@@ -1,16 +1,47 @@
-# Handoff — 2026-10-05
+# Handoff — 2026-10-05 (third session)
 
 Where the project stands after two working sessions, so a fresh session can pick up without the
 conversation. Read this, then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-1. **Plan 2, Task 1** (D1 schema + contract test) and on, in order. Tasks 1–5 need no accounts;
-   stop at **Checkpoint D** (after Task 5) and hand the maintainer its steps. Work test-first,
-   one commit per task, straight to `main`. The superpowers execution skills named in the plan
-   header may not be loaded in a cloud session; then follow the plan's steps directly.
+1. **Plan 2, Tasks 1–5 are done** (third session). Waiting on **Checkpoint D** (maintainer,
+   below). After it, continue with Task 6 (Cloudflare REST client), test-first, one commit per
+   task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
+   (Task 5 was done that way, then reviewed before commit), and for a short report after each
+   task.
 2. Before Task 7 (publish), check the plan's Review Focus. CLS pooling and FTS5 trigger
-   correctness are the two easiest things to get silently wrong.
+   correctness are the two easiest things to get silently wrong. **Task 7 must upsert chunks
+   with `ON CONFLICT(id) DO UPDATE`, not the plan's `insert or replace`:** REPLACE doesn't fire
+   the FTS delete trigger (recursive triggers are off), so the index would keep stale words.
+   `test_fts_follows_upsert_on_conflict` covers the upsert path.
+
+### Checkpoint D (maintainer, M1 Max): platform IDs on the real feed
+
+1. `git pull`, then in `pipeline/`: create a free Spotify developer app (client credentials) and
+   a YouTube Data API key. Put the Wood Talk Spotify show ID in `config.toml` as
+   `spotify_show_id = "…"`.
+2. `uv run wts secrets set spotify_client_id`, `… spotify_client_secret`, `… youtube_api_key`
+   (`security` prompts for each value). `uv run wts secrets check` lists them as `set`.
+3. `uv run wts feed` — it now prints `platform IDs: apple=… spotify=… youtube=…` plus any
+   `_skipped`, `_error` or `_duplicate` counts. Report:
+   - How many of the 35 seed episodes got each ID, and of all 625:
+     `sqlite3 -list state.db "select count(apple_episode_id), count(spotify_episode_id),
+     count(youtube_video_id) from episodes where in_scope = 1"` (drop the `where` for all).
+   - The oldest episode with an Apple ID (decision 4):
+     `… "select min(published_at) from episodes where apple_episode_id is not null"`.
+   - YouTube matches passing the 3 s rule:
+     `… "select count(*) from episodes where abs(youtube_duration_s - duration_s) <= 3"`.
+   - Any `matches … leaving it unmatched` warnings (`wts` drops an episode with two candidate
+     videos or Spotify items in its date window, e.g. a livestream and an edited upload).
+   - Spot-check three links per platform.
+4. A second `uv run wts feed` changes no IDs.
+5. The platform test fixtures are hand-built in each API's documented shape (the cloud session
+   can't reach iTunes and has no keys); see `pipeline/tests/fixtures/platforms/README.md`. If
+   real responses differ, tell the next session.
+
+If coverage is far below expectations (e.g. under half the 2020–2026 seed episodes on Spotify),
+stop and adjust the matching before Task 6.
 3. Corrections/vocabulary are a separate, out-of-band session (`.claude/skills/corrections/`);
    don't mix them into plan 2 work.
 
@@ -31,7 +62,7 @@ conversation. Read this, then [README.md](../README.md), then the spec sections 
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
 - Plan 1 (**done**, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
-- Plan 2 (written, decisions confirmed, not started): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–5 done; Checkpoint D next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
 - Superpowers skills install from `.claude/settings.json`.
@@ -203,7 +234,21 @@ Plan 1 is finished; plan 2 is next.
      ones; cosmetic except for boilerplate matching (phase 2).
    - Further corrections and vocabulary are an out-of-band task: a separate session using
      `.claude/skills/corrections/` and `pipeline/spikes/check_corrections.py`.
-3. **Plan 2** (written, decisions confirmed): execute task by task. Its checkpoints:
+3. **Plan 2**: Tasks 1–5 done (third session, 283 tests, ruff clean):
+   - Task 1: `schema/0001_init.sql` (spec §4.1 + `episodes.year`, FTS5 with sync triggers),
+     contract test applies it to in-memory SQLite.
+   - Task 2: `wts secrets set/check` (Keychain on the Mac, `WTS_SECRET_<NAME>` elsewhere).
+   - Task 3: config `cloudflare_account_id`, `[env.staging|production]`, `run_env`,
+     `backup_dir`, platform settings. `[env.*]` tables are kept raw (`env_tables`) and `envs`
+     is derived, so `cfg.env(name)` can name each missing key.
+   - Task 4: migration 004 (platform IDs, offsets, `publications`, `published_vectors`),
+     `state.publish_ready()`.
+   - Task 5: `wts.platforms` (Apple lookup by guid, Spotify title ±2 days, YouTube uploads
+     playlist by number/title ±14 days). Calls not in the plan: an episode with two candidates
+     in its window stays unmatched (logged); an ID already stored on another episode is not
+     claimed (the stored one stays); Spotify items with month/year-precision dates are ignored;
+     errors are logged as status + Google `reason` only (httpx messages carry the YouTube key).
+   Its checkpoints:
    - **D** after Task 5: platform IDs on the real feed (Spotify/YouTube keys, no Cloudflare).
    - **E** after Task 10: staging D1 + Vectorize, pooling check, ntfy test, seed corpus published.
    - **F** after Task 13: Worker deployed, exact search on real data, cue times checked.
@@ -251,3 +296,5 @@ Plan 1 is finished; plan 2 is next.
 - Second session, same kind of slip: one `sed` edit to the new `preroll_finder.py` (clip length
   `+ 1` → `+ 5`) and a script-generated `preroll_finder_results.txt`. Both files are new in
   this commit, so the diff still shows everything.
+- Third session: the Task 3 config tests were appended to `test_config.py` with a shell heredoc
+  instead of the Edit tool (content is a normal diff).

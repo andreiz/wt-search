@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Wood Talk | Woodworking</title>
+    <link>https://www.woodtalkshow.com</link>
+    <item>
+      <title>Dado Stacks &amp; Shop Safety</title>
+      <guid isPermaLink="false">wt-guid-0312</guid>
+      <link>https://www.woodtalkshow.com/312</link>
+      <pubDate>Tue, 14 Mar 2017 12:00:00 +0000</pubDate>
+      <itunes:episode>312</itunes:episode>
+      <itunes:duration>01:02:03</itunes:duration>
+      <enclosure url="https://cdn.example.com/wt/312.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Ep. 313 – Walnut Finishing</title>
+      <guid isPermaLink="false">wt-guid-0313</guid>
+      <link>https://www.woodtalkshow.com/313</link>
+      <pubDate>Tue, 28 Mar 2017 12:00:00 +0000</pubDate>
+      <itunes:duration>58:30</itunes:duration>
+      <enclosure url="https://cdn.example.com/wt/313.mp3?tracking=abc" length="1000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Bonus: Q&amp;A Live</title>
+      <guid isPermaLink="false">wt-guid-bonus-1</guid>
+      <link>https://www.woodtalkshow.com/bonus-qa</link>
+      <pubDate>Fri, 31 Mar 2017 12:00:00 +0000</pubDate>
+      <itunes:duration>1800</itunes:duration>
+      <enclosure url="https://cdn.example.com/wt/bonus-qa.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Café Talk: "Dovetails?"</title>
+      <guid isPermaLink="false">wt-guid-cafe-1</guid>
+      <link>https://www.woodtalkshow.com/cafe-1</link>
+      <pubDate>Wed, 05 May 2021 12:00:00 +0000</pubDate>
+      <itunes:duration>45:00</itunes:duration>
+      <enclosure url="https://cdn.example.com/wt/cafe-1.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Cafe Talk -- Dovetails!</title>
+      <guid isPermaLink="false">wt-guid-cafe-2</guid>
+      <link>https://www.woodtalkshow.com/cafe-2</link>
+      <pubDate>Wed, 05 May 2021 18:00:00 +0000</pubDate>
+      <itunes:duration>40:00</itunes:duration>
+      <enclosure url="https://cdn.example.com/wt/cafe-2.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Episode 400: Sawmills with Matt</title>
+      <guid isPermaLink="false">wt-guid-0400</guid>
+      <link>https://www.woodtalkshow.com/400</link>
+      <pubDate>Mon, 01 Jun 2020 12:00:00 +0000</pubDate>
+      <itunes:episode>400</itunes:episode>
+      <itunes:duration>3725</itunes:duration>
+      <enclosure url="https://cdn.example.com/wt/400.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>#7 The Early Days</title>
+      <guid isPermaLink="false">wt-guid-0007</guid>
+      <link>https://www.woodtalkshow.com/7</link>
+      <pubDate>Sun, 01 Apr 2007 12:00:00 +0000</pubDate>
+      <itunes:duration>35:10</itunes:duration>
+      <enclosure url="https://cdn.example.com/wt/7.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>Episode 620: Hand Planes Forever</title>
+      <guid isPermaLink="false">wt-guid-0620</guid>
+      <link>https://www.woodtalkshow.com/620</link>
+      <pubDate>Tue, 15 Sep 2026 12:00:00 +0000</pubDate>
+      <itunes:episode>620</itunes:episode>
+      <itunes:duration>1:05:00</itunes:duration>
+      <enclosure url="https://cdn.example.com/wt/620.mp3" length="1000" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>

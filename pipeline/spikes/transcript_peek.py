@@ -3,6 +3,7 @@
     cd pipeline
     uv run python spikes/transcript_peek.py read 613 [--from 12:00] [--to 15:00]
     uv run python spikes/transcript_peek.py suspects [--top 60]
+    uv run python spikes/transcript_peek.py issues 602     # what loop_cut / bad_word_times caught
 
 `read` prints the raw Whisper text with timestamps; words Whisper gave a probability below 0.5
 are shown «like this», except short and common words (`--all` marks those too). It also prints an ffplay command to hear the audio from any point.
@@ -83,6 +84,40 @@ def read(path: Path, audio_dir: Path | None, start: float, end: float, mark_all:
         print(f"[{mmss(seg['start'])}] {text.strip()}")
 
 
+def issues(path: Path, duration_s: float | None) -> None:
+    """What the guards did to this transcript: dropped loops and re-timed segments."""
+    from wts.guards import _has_loop, _is_no_speech, _segment_words, _times_ok
+    from wts.words import normalize_text
+
+    data = json.loads(path.read_text())
+    duration_s = duration_s or data["meta"].get("duration_s")
+    limit_ms = (duration_s + 1) * 1000 if duration_s else None
+    previous_ms, found = -1, 0
+    for seg in data["segments"]:
+        if _is_no_speech(seg):
+            continue
+        if _has_loop(normalize_text(seg["text"]).split()):
+            found += 1
+            print(f"[{mmss(seg['start'])}–{mmss(seg['end'])}] LOOP, segment dropped:\n"
+                  f"    {seg['text'].strip()[:300]}")
+            continue
+        words = _segment_words(seg)
+        if not _times_ok(words, previous_ms, limit_ms):
+            found += 1
+            backwards = [w for w in words if w.start_ms < previous_ms]
+            late = [w for w in words if limit_ms is not None and w.start_ms > limit_ms]
+            why = (f"{len(backwards)} word(s) start before the previous word "
+                   f"({mmss(previous_ms / 1000)}.{previous_ms % 1000:03d})" if backwards
+                   else f"{len(late)} word(s) start after the end of the audio")
+            first = ", ".join(f"{w.text}@{w.start_ms / 1000:.2f}" for w in words[:5])
+            print(f"[{mmss(seg['start'])}–{mmss(seg['end'])}] RE-TIMED: {why}\n"
+                  f"    words: {first}{' …' if len(words) > 5 else ''}\n"
+                  f"    {seg['text'].strip()[:200]}")
+        if words:
+            previous_ms = words[-1].start_ms
+    print(f"\n{found} issue(s) in {path.stem}")
+
+
 def suspects(transcripts_dir: Path, top: int) -> None:
     low: Counter = Counter()
     total: Counter = Counter()
@@ -120,6 +155,9 @@ def main() -> None:
     r.add_argument("--to", dest="end", default="99:59:59")
     r.add_argument("--all", dest="mark_all", action="store_true",
                    help="mark every unsure word, including short and common ones")
+    i = sub.add_parser("issues")
+    i.add_argument("episode", help="episode number, part of a stem, or a transcript path")
+    i.add_argument("--dir", help="transcript folder (default: wts paths' transcripts_dir)")
     s = sub.add_parser("suspects")
     s.add_argument("--top", type=int, default=60)
     s.add_argument("--dir", help="transcript folder (default: wts paths' transcripts_dir)")
@@ -138,6 +176,9 @@ def main() -> None:
     if args.cmd == "read":
         read(find(transcripts_dir, args.episode), audio_dir, seconds(args.start), seconds(args.end),
              args.mark_all)
+    elif args.cmd == "issues":
+        # The audio's probed length is in state.db; the transcript's meta has the feed's.
+        issues(find(transcripts_dir, args.episode), None)
     else:
         suspects(transcripts_dir, args.top)
 

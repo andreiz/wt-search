@@ -131,7 +131,7 @@ and drift acceptance were the alternatives; neither is needed.
 
 Finish plan 1 before starting plan 2.
 
-1. **Plan 1, Checkpoint B** (in progress). Done: transcripts of ep001 and ep610–615 are in
+1. **Plan 1, Checkpoint B** — **done** (second session). Transcripts of ep001 and ep610–615 are in
    `pipeline/tests/fixtures/real/`, trimmed to the first 15 minutes (the repo is public; the
    full files were removed from history, open decision 8). Results:
    - `test_real_transcripts_clean` **passes** (on full and trimmed files).
@@ -153,7 +153,7 @@ Finish plan 1 before starting plan 2.
      33.4 min). The full archive (~620 h, spec §11) ≈ 35 h on the M1 Max; the Mini should be
      faster. `wts transcribe` now prints each episode's time, speed and the time left in the
      run, plus a summary line.
-   - Still to report: any transcription errors.
+   - No transcription errors.
 2. **Plan 1, Checkpoint C** (maintainer): `uv run pytest -m mac`, `uv run wts run`,
    `uv run wts status` (all 35 `embedded`), boilerplate counts per episode (expect few, given the
    deferred detector; plan 1's "0–10% of chunks" no longer applies), spot-check 3

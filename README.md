@@ -27,7 +27,7 @@ More: [DESIGN.md](DESIGN.md) (one page) and the full
 
 | Milestone | What | State |
 |---|---|---|
-| M1 plan 1 | Pipeline core: feed → embeddings | **In progress** ([plan](docs/superpowers/plans/2026-10-05-m1-pipeline-core.md)): code complete; Checkpoint B (seed transcription, real-transcript fixtures) running, Checkpoint C (full seed corpus) next |
+| M1 plan 1 | Pipeline core: feed → embeddings | **In progress** ([plan](docs/superpowers/plans/2026-10-05-m1-pipeline-core.md)): code complete; Checkpoint B done (17× realtime, no errors); Checkpoint C (full seed corpus) next |
 | — | Inserted ads | **Solved** by the User-Agent: `wts` sends `WoodTalkSearchBot/…`, which Acast serves ad-free |
 | M1 plan 2 | D1 schema, Worker API, `wts publish` | Planned ([plan](docs/superpowers/plans/2026-10-05-m1-publish-and-api.md)), decisions confirmed |
 | M1 plans 3–5 | Frontend, review tool, test search set | Not started |

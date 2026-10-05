@@ -104,6 +104,13 @@ def chunk(selector: str, force: bool) -> None:
     _run_step("chunk", selector, force=force)
 
 
+@main.command()
+@select_option
+def embed(selector: str) -> None:
+    """Embed non-boilerplate chunks with bge-base-en-v1.5."""
+    _run_step("embed", selector)
+
+
 @main.group()
 def scope() -> None:
     """Manage which episodes are in scope (the default selection)."""

@@ -19,6 +19,7 @@ from wts.config import Config
 from wts.corrections import CORRECTIONS_FILE, corrections_sha, load_corrections
 from wts.db import kv_get, kv_set
 from wts.download import download_episode, probe_duration_s
+from wts.embed import Embedder, embed_episode, get_embedder
 from wts.paths import Paths
 from wts.state import Status, advance, episodes_for_step, fail, reset
 from wts.storage import ToolMissing
@@ -172,4 +173,33 @@ def run_chunk(
     if counts["ok"] or sha != kv_get(conn, "corrections_sha"):
         counts["refreshed"] = refresh_chunks(conn, corrections, index)
         kv_set(conn, "corrections_sha", sha)
+    return counts
+
+
+def run_embed(
+    conn: sqlite3.Connection,
+    paths: Paths,
+    cfg: Config,
+    ids: Collection[int],
+    *,
+    embedder: Embedder | None = None,
+) -> Counter:
+    rows = episodes_for_step(conn, "embed", ids)
+    counts: Counter = Counter()
+    if not rows:
+        return counts
+    embedder = embedder or get_embedder()  # loading the model is slow; only when needed
+    for row in rows:
+        extra = {"step": "embed", "episode": row["stem"]}
+        try:
+            fresh = embed_episode(conn, row, embedder, paths.embeddings_dir)
+        except Exception as exc:  # noqa: BLE001 — one bad episode must not stop the batch
+            fail(conn, row["id"], "embed", repr(exc)[:500])
+            counts["error"] += 1
+            log.error(f"embedding failed: {exc!r}", extra=extra)
+            continue
+        advance(conn, row["id"], "embed")
+        counts["ok"] += 1
+        counts["vectors"] += fresh
+        log.info(f"embedded ({fresh} new vectors)", extra=extra)
     return counts

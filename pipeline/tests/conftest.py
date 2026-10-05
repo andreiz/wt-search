@@ -68,6 +68,29 @@ class FakeTranscriber:
         )
 
 
+class FakeEmbedder:
+    """Deterministic unit vectors from a hash of the text; counts texts embedded."""
+
+    model = "fake-bge"
+    dim = 768
+
+    def __init__(self):
+        self.calls = 0
+
+    def embed(self, texts):
+        import hashlib
+
+        import numpy as np
+
+        self.calls += len(texts)
+        out = np.zeros((len(texts), self.dim), dtype=np.float32)
+        for i, t in enumerate(texts):
+            seed = int.from_bytes(hashlib.sha256(t.encode()).digest()[:4], "big")
+            v = np.random.default_rng(seed).standard_normal(self.dim).astype(np.float32)
+            out[i] = v / np.linalg.norm(v)
+        return out
+
+
 @pytest.fixture
 def audio_file(paths):
     paths.audio_dir.mkdir(parents=True, exist_ok=True)

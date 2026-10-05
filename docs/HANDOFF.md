@@ -116,6 +116,13 @@ and drift acceptance were the alternatives; neither is needed.
    proposed, not approved.
 5. Whether the GitHub repo is public (decides if real transcript fixtures can be committed whole
    or must be trimmed to the first 15 minutes).
+7. **Boilerplate detection on real data** (Checkpoint B finding, above). Proposed: (a) match
+   word n-gram runs shared by ≥ 5 episodes instead of whole sentences, so Whisper's punctuation
+   doesn't matter; (b) cut chunks at boilerplate span edges so a sponsor read becomes its own
+   flagged chunk(s) instead of diluting a 30 s chunk. Needs brainstorm → spec §3.5 → plan
+   (a plan 1 follow-up) before code.
+8. The full ep001/ep610–615 transcripts remain in public git history (`a44eec9`). Removing them
+   means rewriting `main` and force-pushing (and asking GitHub to purge cached views).
 6. ~~Plan 2's six decisions~~ — all confirmed. Decision 2: D1 REST (non-atomic, idempotent) for
    now; an atomic publish route in the Worker before production (spec §10 item 9).
 
@@ -123,13 +130,24 @@ and drift acceptance were the alternatives; neither is needed.
 
 Finish plan 1 before starting plan 2.
 
-1. **Plan 1, Checkpoint B** (maintainer, in progress): `uv run pytest -m mac -k mlx`, then
-   `uv run wts transcribe`. Report time per episode and any errors. Commit 6 recent transcripts
-   to `pipeline/tests/fixtures/real/` (trimmed to 15 min if the repo is public, open decision 5)
-   → un-skips `test_real_transcripts_clean` (guards drop < 5% of words, no flags) and
-   `test_real_sponsor_reads_flagged` (boilerplate in ≥ 5 of 6, under 15% of words). If either
-   fails on real data, thresholds change only with the maintainer's agreement and go into spec
-   §3.3 / §3.5.
+1. **Plan 1, Checkpoint B** (in progress). Done: transcripts of ep001 and ep610–615 are in
+   `pipeline/tests/fixtures/real/`, trimmed to the first 15 minutes (the repo is public; the
+   full files are still in git history at `a44eec9`). Results:
+   - `test_real_transcripts_clean` **passes** (on full and trimmed files).
+   - `test_real_sponsor_reads_flagged` **fails**: 1 of 7 episodes has a boilerplate chunk
+     (needs ≥ 5). Cause, measured on the fixtures:
+     1. *Sentence matching:* Whisper punctuates the same sponsor read differently per
+        episode (ep610/612 merge "Woodcraft is your trusted source…" with the next sentence),
+        so word-set Jaccard drops to ~0.6 < 0.8 and the sentence matches in < 5 episodes. LSH
+        itself is fine (identical sentences share 16/16 bands).
+     2. *Chunk share:* the read comes in short pieces (≈0:29–0:42, 0:43–0:46, 1:08–1:15) with
+        live host talk between them, so a 30 s chunk is only 25–40% boilerplate, under the 60%
+        rule. Only ep614 gets one flagged chunk.
+   - Experiment: word 6–8-grams shared by ≥ 5 episodes (no sentence boundaries) find the read
+     and merch plug in all 6 recent episodes (~110–130 words, ~4% of 15 min) and nothing in
+     ep001 — detection works that way, but chunks still need cutting at boilerplate edges.
+   - **Open decision 7** (design change to spec §3.5, see below). Still to report: time per
+     episode and any transcription errors.
 2. **Plan 1, Checkpoint C** (maintainer): `uv run pytest -m mac`, `uv run wts run`,
    `uv run wts status` (all 35 `embedded`), boilerplate counts per episode, spot-check 3
    transcripts (one pre-2012), and collect `corrections.yaml` / `vocab.txt` candidates. Plan 1 is

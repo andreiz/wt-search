@@ -99,6 +99,50 @@ BROKEN_FEED = b"""<?xml version="1.0"?>
 </channel></rss>"""
 
 
+def _feed(items: list[tuple[str, str, int | None]]) -> bytes:
+    """A feed from (title, RFC 822 date, itunes:episode) tuples."""
+    out = []
+    for i, (title, when, itunes) in enumerate(items):
+        ep = f"<itunes:episode>{itunes}</itunes:episode>" if itunes else ""
+        out.append(
+            f"<item><title>{title}</title><guid>g{i}</guid><pubDate>{when}</pubDate>{ep}"
+            f'<enclosure url="https://cdn.example.com/{i}.mp3" type="audio/mpeg"/></item>'
+        )
+    return (
+        '<?xml version="1.0"?><rss version="2.0" '
+        'xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>'
+        + "".join(out)
+        + "</channel></rss>"
+    ).encode()
+
+
+SIDE_SERIES = _feed([
+    ("Hand Tools vs Power Tools #85", "Thu, 26 May 2011 12:00:00 +0000", None),
+    ("Board Meetings #1", "Tue, 29 Mar 2011 16:36:37 +0000", None),
+    ("Board Meetings #2", "Thu, 14 Apr 2011 02:46:53 +0000", 2),  # even with itunes:episode
+    ("Something Else | 83", "Mon, 28 Mar 2011 12:00:00 +0000", None),
+    ("Shop Stuff #84", "Fri, 22 Apr 2011 12:00:00 +0000", 84),
+    ("The Awkward Beginning | 1", "Sun, 01 Apr 2007 23:01:50 +0000", 1),
+    ("Can Grandpa's Old Tools Be Saved? | 2", "Mon, 09 Apr 2007 01:49:44 +0000", 2),
+])
+
+
+def test_side_series_numbers_out_of_sequence_are_dropped():
+    by_title = {i.title: i.number for i in parse_feed(SIDE_SERIES)}
+    assert by_title["Board Meetings #1"] is None
+    assert by_title["Board Meetings #2"] is None
+    assert by_title["Hand Tools vs Power Tools #85"] == 85
+    assert by_title["Something Else | 83"] == 83
+    assert by_title["The Awkward Beginning | 1"] == 1  # early episodes fit their own era
+
+
+def test_unnumbered_side_series_keeps_its_number_in_the_stem(conn):
+    upsert_episodes(conn, parse_feed(SIDE_SERIES))
+    stems = {r[0] for r in conn.execute("select stem from episodes")}
+    assert "2011-03-29_board-meetings-1" in stems
+    assert "2007-04-01_ep001_the-awkward-beginning" in stems
+
+
 def test_items_without_usable_date_are_skipped():
     items = parse_feed(BROKEN_FEED.replace(b"%s", b"1"))
     assert [i.title for i in items] == ["No guid"]

@@ -229,6 +229,12 @@ when they match `itunes:episode`, or when there is none and they are 10–1899
 (not years). The number marker is removed from the title before slugging, and
 apostrophes are dropped (`doesn't` → `doesnt`).
 
+A number must also fit the main show's sequence: if it is more than 30 away
+from the median number of episodes published within 120 days, it belongs to a
+side series (e.g. "Board Meetings #1" in 2011) and the episode is stored as
+unnumbered, keeping the number in its slug (`2011-03-29_board-meetings-1`).
+"NNN Extra – …" companion episodes are also unnumbered.
+
 The stem is generated once, stored in `state.db`, and never re-derived. Code
 always looks up paths through the database, never by parsing file names.
 

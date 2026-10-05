@@ -1,7 +1,7 @@
 # Wood Talk Transcript Search — Design
 
-Date: 2026-10-04
-Status: Approved in brainstorming; awaiting written-spec review
+Date: 2026-10-04 (revised 2026-10-05)
+Status: In written-spec review
 Source: `VISION.md`
 
 ## 1. Goal
@@ -9,25 +9,41 @@ Source: `VISION.md`
 A public website that lets listeners search everything said on the Wood Talk
 podcast (about 620 episodes since 2007), not just show notes and tags. Each
 result shows the matching part of the transcript with the hits highlighted,
-links to the official episode at the right time, and can expand to show more
-of the transcript.
+links to the episode at the right time on YouTube, Apple Podcasts, Spotify
+and the Wood Talk site, and can expand to show more of the transcript.
 
 ### Agreed decisions
 
 | Topic | Decision |
 |---|---|
 | Audience | Public, with the hosts' blessing (the maintainer contacts Marc, Shannon and Matt before launch). |
-| Playback | Deep-link out to Apple Podcasts and Spotify at a timestamp, plus the episode's Wood Talk page. No audio is hosted. |
-| Search | Keyword search (with query syntax) combined with meaning-based search. |
+| Playback | Deep-link out at a timestamp: YouTube (where the episode is there and lines up), Apple Podcasts, Spotify, plus the episode's Wood Talk page. No audio is hosted. |
+| Search | Keyword search with query syntax, combined with meaning-based search (§4.3). Started on Enter or the Search button, not while typing. |
+| Result order | Relevance (default), Newest, Oldest. |
+| Repeated content | Sponsor reads, plugs, the standard intro and outro, and inserted ads are detected and hidden by default (`include:ads` shows them). |
 | Hosting | Cloudflare Workers paid plan: Pages, one Worker, D1, Vectorize and Workers AI. Target $5–7 a month. |
 | Upkeep | As close to zero as possible: no servers to patch. |
-| Heavy compute | The maintainer's Mac Mini (M5 Pro): transcription and embeddings. |
+| Heavy compute | The maintainer's M1 Max desktop at first; the Mac Mini (M5 Pro) once it's set up. |
 | Pipeline language | Python. |
 | Notifications | Push notifications through ntfy.sh. |
+| Listener feedback | A "Report transcript error" form on each result. |
+
+### Milestones
+
+- **M1 — seed set on staging.** About 70 episodes (the 50 most recent plus 20
+  sampled evenly across the years), run end to end on the M1 Max and
+  published to `staging`. The test search set (§7.2) is built and the
+  baseline recorded. Deep-link formats and YouTube alignment are checked.
+- **M2 — full archive and launch.** The pipeline moves to the Mac Mini, the
+  rest of the archive is processed, `production` is published, scheduled
+  runs and the watchdog are turned on, and the site launches with the hosts'
+  blessing.
 
 ### Success criteria
 
-- Every published episode can be searched; a new episode is searchable
+- M1: the seed set can be searched on staging, and the test set targets
+  below are met on it.
+- M2: every published episode can be searched; a new episode is searchable
   within 7 days of release, with no manual steps.
 - On the test search set (§7.2), Recall@10 is at least 0.85 overall and at
   least 0.75 for the `paraphrase` cases. The time hit rate (cue within ±45 s)
@@ -45,9 +61,9 @@ of the transcript.
 ## 2. Architecture
 
 ```
-Mac Mini (offline, batch)                      Cloudflare (online, serving)
-──────────────────────────                     ────────────────────────────
-feed → download → transcribe → chunk → embed ──publish──▶ D1 (episodes, chunks, FTS5)
+Mac (offline, batch)                           Cloudflare (online, serving)
+────────────────────                           ────────────────────────────
+feed → download → transcribe → chunk → embed ──publish──▶ D1 (episodes, chunks, FTS5, reports)
                                                          Vectorize (chunk vectors)
                                                          Worker /api/* ◀── Pages frontend
 ```
@@ -61,7 +77,7 @@ the API.
 ### Repository layout
 
 ```
-pipeline/     Python package + `wts` CLI (Mac Mini)
+pipeline/     Python package + `wts` CLI (runs on the Mac)
 worker/       Cloudflare Worker (TypeScript)
 web/          Frontend (Vite + TypeScript + Preact) → Cloudflare Pages
 schema/       D1 SQL migrations (shared contract)
@@ -69,52 +85,101 @@ eval/         Test search set, baseline, eval reports
 docs/         Specs, plans, deep-link format notes
 ```
 
-## 3. Pipeline (Mac Mini)
+## 3. Pipeline (Mac)
 
-A Python CLI called `wts`. Every command can be re-run safely. State is kept
-in a local SQLite file (`~/.wts/state.db`). Large artifacts live under
-`~/.wts/data/`.
+A Python CLI called `wts`. Every command can be re-run safely. All state and
+data live under `~/.wts/`: the state file `state.db` plus `data/`. Moving
+from the M1 Max to the Mac Mini is a single `rsync` of that directory.
+Scheduling (launchd) and the watchdog (§8.2) are turned on only on the Mini.
+On the desktop, `wts run` is run by hand.
 
-### 3.1 Episode lifecycle
+### 3.1 Episode state machine
 
-Each episode moves through these statuses:
+Each episode has a `status` column in `state.db`. Every step is a batch
+command that selects episodes in the status it takes as input. The
+statuses themselves act as the work queue; there is no separate queue
+system.
 
 `new → downloaded → transcribed → chunked → embedded → published`
 
-Each step only picks up episodes in the status before it. On failure the
-episode is set to `error` with a reason and a retry counter. Episodes in
-`error` are retried on later runs up to 3 times, then left for a person to
-look at. If an episode's audio URL or GUID changes in the feed, it resets to
-`new`.
+- Allowed status changes are defined in one table in the code, and every
+  status update goes through one function that enforces it.
+- On failure the episode is set to `error` with a reason, the step it failed
+  in, and a retry counter. Episodes in `error` are retried on later runs, up
+  to 3 times, and are then left for a person to look at.
+- Resets:
+  - If an episode's audio URL or GUID changes in the feed, it goes back to
+    `new`.
+  - Re-chunking (after a `corrections.yaml` edit, §3.3) moves the affected
+    episodes from their current status back to `transcribed`.
+- Concurrency: downloads run 4 at a time. Transcription runs one at a time
+  because it fully uses the GPU. Embedding runs in batches.
+- Selecting episodes: every step takes `--select` (for example `seed`,
+  `recent:50`, `ep:312`, `year:2015`, `all`). The default is the episodes
+  marked as in scope. `wts scope add <selector>` marks them; M1 uses the
+  `seed` selection (§1).
 
 ### 3.2 Commands
 
 | Command | What it does |
 |---|---|
-| `wts feed` | Reads the RSS feed and upserts `episodes`: guid, number, title, published_at, duration_s, audio_url, and page_url (the item's `<link>`, the episode's Wood Talk page). It also matches Apple Podcasts episode IDs (iTunes lookup API) and Spotify episode IDs (Spotify Web API, client-credentials app) on normalized title plus publish date ±2 days. Episodes with no match keep a null ID. |
-| `wts download` | Resumable HTTP download to `data/audio/<guid>.mp3`. Checks size against the `Content-Length` header. |
-| `wts transcribe` | `mlx-whisper` with `large-v3-turbo` and word-level timestamps. A starter prompt seeds woodworking vocabulary (`pipeline/vocab.txt`: brand names, host names, joinery terms). Output goes to `data/transcripts/<guid>.json` and is kept permanently; later steps never need to re-transcribe. |
-| `wts chunk` | Builds windows of about 30 s, cut on sentence boundaries and overlapping by one sentence. Each chunk records `start_ms`, `end_ms`, its text, and `word_times` (each word's start time, relative to the chunk start). |
-| `wts embed` | `bge-base-en-v1.5` (768 dimensions) through `sentence-transformers` on the Mac's GPU (MPS). It must be the same model Workers AI runs for query embeddings (`@cf/baai/bge-base-en-v1.5`). |
-| `wts publish --env staging\|production` | Sends only the episodes that changed. Each episode is one D1 batch (delete the old chunks, then insert the new ones) plus a Vectorize upsert by chunk ID. Vectors for chunks that were removed are deleted. Bumps `meta.corpus_version`. |
-| `wts run` | Runs `feed → download → transcribe → chunk → embed → publish --env production`, then a smoke search (§8.1) and notifications. Scheduled weekly by launchd. |
+| `wts feed` | Reads the RSS feed and upserts `episodes`: guid, number, title, published_at, duration_s, audio_url, and page_url (the item's `<link>`). Matches platform IDs, with no match leaving the ID null: **Apple** via the iTunes lookup API; **Spotify** via the Web API with a client-credentials app, matched on normalized title plus publish date ±2 days; **YouTube** via the YouTube Data API search of the show's channel, matched on title and date. |
+| `wts download` | Resumable HTTP download, then an `ffprobe` check that the file can be decoded and its length is within 2% of `duration_s`. File: `data/audio/<stem>.mp3` (§3.4). |
+| `wts transcribe` | `mlx-whisper` with `large-v3-turbo` and word-level timestamps. A starter prompt seeds woodworking vocabulary from `pipeline/vocab.txt` (brand names, host names, joinery terms). Output is `data/transcripts/<stem>.json`, kept permanently; later steps never need to re-transcribe. |
+| `wts chunk` | Applies `corrections.yaml` (§3.3), marks boilerplate (§3.5), and builds windows of about 30 s cut on sentence boundaries and overlapping by one sentence. Each chunk records `start_ms`, `end_ms`, its text, `word_times`, and `is_boilerplate`. |
+| `wts embed` | `bge-base-en-v1.5` (768 dimensions) through `sentence-transformers` on the Mac's GPU (MPS). It must be the same model Workers AI runs for query embeddings (`@cf/baai/bge-base-en-v1.5`). Boilerplate chunks are not embedded. |
+| `wts publish --env staging\|production` | Sends only the episodes that changed. Each episode is one D1 batch (delete the old chunks, then insert the new ones) plus a Vectorize upsert by chunk ID. Vectors for removed chunks are deleted. Bumps `meta.corpus_version`. |
+| `wts run` | Runs `feed → download → transcribe → chunk → embed → publish` for the selected environment, then a smoke search (§8.1) and notifications. |
 | `wts status` | Episode counts by status, episodes in `error` with their reasons, and the last 10 runs. |
+| `wts reports` | Lists listener transcript-error reports (§4.4) and marks them resolved. |
+| `wts logs` | Filters the pipeline logs (§8.4). |
+| `wts analytics pull` | Copies Worker search analytics to a local file (§8.4). |
 | `wts eval` | See §7.2. |
 
-### 3.3 Transcript quality guards
+### 3.3 Transcription errors
 
-- Drop segments Whisper marks as probably not speech (`no_speech_prob > 0.6`
-  and low average log probability).
-- Detect repetition loops: the same n-gram repeated 4 or more times in a row.
-  Those segments are cut.
-- Flag an episode for a manual look (it still publishes) if it has fewer than
-  80 or more than 260 words per minute.
+| Kind | Handling |
+|---|---|
+| Hard failure (corrupt audio, crash, out of memory) | The `ffprobe` check after download catches bad files early. Failures set `error`, and the episode is retried up to 3 times. |
+| Made-up text over silence | Drop segments Whisper marks as probably not speech (`no_speech_prob > 0.6` and low average log probability). |
+| Repetition loops | Cut segments where the same n-gram repeats 4 or more times in a row. |
+| Suspicious episode | Flag it for a manual look (it still publishes) if it has fewer than 80 or more than 260 words per minute. |
+| Bad timestamps | Word start times must never go backwards and must stay within the episode's length. If they don't, flag the episode and fall back to segment-level timestamps. |
+| Misheard words | `pipeline/corrections.yaml` holds whole-word replacements (`Kremona → Cremona`, `saw stop → SawStop`), applied in `wts chunk`. Fixing one means a re-chunk, not a re-transcription. New entries come from listener reports (§4.4) and the weekly zero-result searches (§8.2). |
 
-### 3.4 Secrets
+### 3.4 File naming
 
-The Cloudflare API token, limited to D1 and Vectorize edit on this account,
-and the Spotify client credentials are stored in the macOS Keychain and read
-by `wts` when it runs. They are never committed.
+Each episode has a file name `stem`: `YYYY-MM-DD_epNNN_<title-slug>`. The
+`epNNN` part is left out when the episode has no number. Example:
+`2017-03-14_ep312_dado-stacks-and-shop-safety`.
+
+The stem is generated once, stored in `state.db`, and never re-derived. Code
+always looks up paths through the database, never by parsing file names.
+
+Each transcript JSON starts with a metadata header: guid, title, number,
+published_at, model, model version, vocab file hash, machine,
+transcribed_at.
+
+### 3.5 Repeated content (boilerplate)
+
+After chunking, each sentence is compared against an index of sentences
+seen in other episodes, using normalized text and a similarity of at least
+0.9. Sentences that appear in 5 or more episodes are marked as boilerplate.
+This catches sponsor reads, Patreon plugs, the standard intro and outro,
+and ads inserted into our downloads. A chunk is `is_boilerplate` when at
+least 60% of its words are in boilerplate sentences. Music and silence are
+already dropped by the not-speech guard.
+
+### 3.6 Secrets
+
+Stored in the macOS Keychain, read by `wts` when it runs, and never
+committed:
+
+- The Cloudflare API token, limited to D1 and Vectorize edit on this
+  account.
+- The Spotify client credentials.
+- The YouTube Data API key.
+- The ntfy topic name.
 
 ## 4. Data model and API (Cloudflare)
 
@@ -124,26 +189,49 @@ by `wts` when it runs. They are never committed.
 episodes(
   id INTEGER PRIMARY KEY, guid TEXT UNIQUE, number INTEGER, title TEXT,
   published_at TEXT, duration_s INTEGER, audio_url TEXT, page_url TEXT,
-  apple_episode_id TEXT, spotify_episode_id TEXT,
-  offset_s INTEGER NOT NULL DEFAULT 0
+  apple_episode_id TEXT, spotify_episode_id TEXT, youtube_video_id TEXT,
+  offset_apple_s INTEGER NOT NULL DEFAULT 0,
+  offset_spotify_s INTEGER NOT NULL DEFAULT 0,
+  offset_youtube_s INTEGER NOT NULL DEFAULT 0
 )
 chunks(
   id INTEGER PRIMARY KEY, episode_id INTEGER REFERENCES episodes(id),
   seq INTEGER, start_ms INTEGER, end_ms INTEGER, text TEXT,
-  word_times TEXT            -- compact delta-encoded word start offsets (ms)
+  word_times TEXT,           -- compact delta-encoded word start offsets (ms)
+  is_boilerplate INTEGER NOT NULL DEFAULT 0
 )
 chunks_fts USING fts5(text, content='chunks', content_rowid='id',
                       tokenize='porter unicode61')
+reports(
+  id INTEGER PRIMARY KEY, chunk_id INTEGER, created_at TEXT,
+  quoted_text TEXT, suggested_text TEXT, note TEXT,
+  status TEXT NOT NULL DEFAULT 'open'   -- open | resolved | rejected
+)
 meta(key TEXT PRIMARY KEY, value TEXT)   -- corpus_version, last_published_at
 ```
+
+`word_times` exists so the cue lands on the hit word itself. Chunks are about
+30 s long, so cueing from the chunk start could be up to 30 s early. It adds
+about 50 MB in total.
 
 ### 4.2 Vectorize
 
 Index `chunks`: 768 dimensions, cosine similarity. Vector ID = `chunks.id`.
 Metadata: `{episode_id, year}`, with a metadata index on `year` for
-filtering.
+filtering. Boilerplate chunks are not indexed.
 
-### 4.3 Query syntax
+### 4.3 Search modes and query syntax
+
+**Meaning-based search.**
+- Each chunk is stored as an embedding: 768 numbers that encode what the
+  passage is about. A query is embedded the same way, and the nearest chunks
+  are returned.
+- This finds passages that match what the query means even when they share
+  no words with it.
+- It always returns its nearest matches, however weak, so meaning-only
+  results are labelled `related` and combined with keyword results (§4.4).
+
+**Query syntax**
 
 | Syntax | Meaning |
 |---|---|
@@ -154,28 +242,43 @@ filtering.
 | `pref*` | Prefix. |
 | `year:2015`, `before:2018`, `after:2020` | Filter by publish year (before/after are exclusive). |
 | `ep:250` | Limit to one episode. |
+| `include:ads` | Include boilerplate chunks (keyword search only). |
 
 The parser turns the query into an FTS5 MATCH expression plus SQL filters.
-The text for meaning-based search is the query with operators, exclusions and
-filters removed. If the input can't be parsed, fall back to plain quoted
-words; never return an error for bad syntax.
+Unless `include:ads` is given, the SQL adds `is_boilerplate = 0`. The text
+for meaning-based search is the query with operators, exclusions and filters
+removed. If the input can't be parsed, fall back to plain quoted words;
+never return an error for bad syntax.
 
 ### 4.4 Endpoints
 
-- `GET /api/search?q=&mode=smart|exact&page=`
-  - `exact`: FTS5 only, ranked by BM25.
+- `GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=`
+  - `exact`: FTS5 only. With `sort=relevance` it is ranked by BM25;
+    otherwise it is ordered by `published_at`, then by position in the
+    episode. The response includes `total` (the full match count).
   - `smart` (default):
-    1. Take the FTS5 top 50, then embed the query with Workers AI and take the
-       Vectorize top 50 (year filter applied in Vectorize).
+    1. Take the FTS5 top 50, then embed the query with Workers AI and take
+       the Vectorize top 50 (year filter applied in Vectorize).
     2. Merge the two lists with reciprocal rank fusion (k = 60).
     3. Apply the exclusion and episode filters to the merged list.
+    4. With `sort=newest|oldest`, re-sort the top 100 merged results by date.
+       Meaning-based search matches everything a little, so date order over
+       every match would be noise.
+    - No `total`.
   - Collapse hits from the same episode that are less than 120 s apart into
-    one result carrying `more_in_episode: n`.
-  - 20 results per page, at most 100 in total.
-  - Each result includes: episode (number, title, date, links), chunk text,
-    highlight ranges, `hit_ms`, `cue_s`, `match: keyword|related`.
+    one result carrying `more_in_episode: n`. When sorting by date, results
+    are grouped by episode in date order.
+  - 20 results per page, at most 100 in total (smart). Exact mode pages
+    through every match.
+  - Each result includes: episode (number, title, date, links), chunk ID and
+    text, highlight ranges, `hit_ms`, per-platform `cue_s`,
+    `match: keyword|related`.
 - `GET /api/context?chunk=&radius=3`: neighboring chunks, ±radius, with
   timestamps.
+- `POST /api/report`
+  - Body: `{chunk_id, quoted_text, suggested_text?, note?, turnstile_token}`.
+  - Checks the Cloudflare Turnstile token, limits lengths (quoted 500,
+    suggested 500, note 1000 characters), then inserts into `reports`.
 - `GET /api/health`: `corpus_version` plus a single trivial D1 query.
 
 ### 4.5 Highlighting and cue time
@@ -185,40 +288,58 @@ words; never return an error for bad syntax.
   first highlighted word, from `word_times`.
 - Meaning-only hits: tagged `related`. Any query words that happen to appear
   are highlighted. `hit_ms` is the chunk's `start_ms`.
-- One function computes the cue time:
-  `cue_s = max(0, floor(hit_ms/1000) − 7 + episode.offset_s)`.
+- One function computes the cue time for each platform `p`:
+  `cue_s[p] = max(0, floor(hit_ms/1000) − 7 + episode.offset_<p>_s)`.
+- The Wood Talk page has no player, so it gets no cue; the card shows
+  "jump to mm:ss" next to its link.
 
 ### 4.6 Deep links
 
-Built from the episode row and `cue_s`:
+Built from the episode row and `cue_s`, in this order on the card:
 
-- **Apple Podcasts:** the episode URL (`…/id251471480?i=<apple_episode_id>`)
-  plus a time parameter.
-- **Spotify:** `https://open.spotify.com/episode/<spotify_episode_id>` plus a
-  time parameter.
-- **Wood Talk page:** `page_url`, always shown. When an episode has no
-  platform ID, the card shows "jump to mm:ss" next to this link.
+1. **YouTube:** `https://www.youtube.com/watch?v=<youtube_video_id>&t=<cue>s`.
+   Shown first when the episode has a matched video that lines up (see
+   below). YouTube ads are not spliced into the video, so if the audio is the
+   same recording, the timestamp is exact.
+2. **Apple Podcasts:** the episode URL (`…/id251471480?i=<apple_episode_id>`)
+   plus a time parameter.
+3. **Spotify:** `https://open.spotify.com/episode/<spotify_episode_id>` plus a
+   time parameter.
+4. **Wood Talk page:** `page_url`, always shown.
 
 The exact time-parameter formats are checked by hand on iOS, Android and
-desktop as the first implementation task. Results go in
-`docs/deep-links.md`, and the link builder lives in one module.
+desktop during M1. Results go in `docs/deep-links.md`, and the link builder
+lives in one module.
 
-**Known limitation:** Acast may insert ads at download time, so platform
-playback can drift from our timestamps. Mitigations:
+**YouTube alignment check (M1).** For about 5 seed episodes that have a
+video:
+- Transcribe the video's first 10 minutes.
+- Find the time offset that best lines up its words with our transcript.
+- Record it as `offset_youtube_s`.
+
+If the offset is the same across episodes from the same period, apply it to
+that whole period. If the video is a different edit (offset not constant
+within the episode), hide the YouTube link for that episode.
+
+**Known limitation:** Acast may insert ads at download time, so Apple and
+Spotify playback can drift from our timestamps. Mitigations:
 
 - The card always shows the time as text.
-- `episodes.offset_s` allows per-episode correction without code changes.
+- YouTube comes first where available.
+- The per-platform offset columns allow corrections without code changes.
 
 ### 4.7 Worker hardening
 
-- Queries are capped at 200 characters; `page` at 5.
+- Queries are capped at 200 characters; smart-mode `page` at 5.
 - If Workers AI or Vectorize fails, return keyword-only results with
   `smart_degraded: true`.
 - Search responses are cached at the edge (Cache API) for 1 h, keyed by the
-  normalized query plus `corpus_version`.
-- A Cloudflare rate-limiting rule: 60 requests per minute per IP on `/api/*`.
-- The frontend sets a strict CSP. There are no cookies, no secrets, and no
-  user data.
+  normalized query, mode, sort and page, plus `corpus_version`.
+- Cloudflare rate-limiting rules, per IP: 60 requests per minute on
+  `/api/*`, and 10 per hour on `/api/report`.
+- `/api/report` requires a valid Turnstile token.
+- The frontend sets a strict CSP. There are no cookies and no secrets. The
+  only stored user input is report text and anonymous search analytics.
 
 ## 5. Frontend (`web/`)
 
@@ -226,18 +347,24 @@ Vite + TypeScript + Preact, deployed to Cloudflare Pages on the same domain
 as the API.
 
 - **Search bar**, pinned to the top:
-  - A large input that searches as you type, waiting 300 ms after the last
-    keystroke.
-  - A Smart/Exact switch, a `?` syntax popover, and year-range chips.
-  - The whole state is in the URL (`?q=&mode=&page=`), so searches can be
-    shared.
+  - A large input, a **Search** button (Enter also searches).
+  - A Smart/Exact switch, a sort menu (Relevance / Newest / Oldest), a `?`
+    syntax popover, and year-range chips.
+  - Searching happens only on Enter or the button; changing the mode, sort
+    or filters re-runs the current search.
+  - The whole state is in the URL (`?q=&mode=&sort=&page=`), so searches can
+    be shared.
 - **Result card:**
   - **Ep. N · Title** · date · **at mm:ss**.
   - A 2–3 line excerpt with `<mark>` highlights, and a `related` tag for
     meaning-only hits.
-  - Buttons: **▶ Apple**, **▶ Spotify**, **Wood Talk page**,
-    **More transcript**, and **+n more in this episode** when hits were
-    collapsed.
+  - Buttons: **▶ YouTube**, **▶ Apple**, **▶ Spotify** (each shown only when
+    the episode has that ID), **Wood Talk page**, **More transcript**, and
+    **+n more in this episode** when hits were collapsed.
+  - A small **Report transcript error** link that opens an inline form: the
+    quoted text is pre-filled, plus an optional suggested correction and a
+    note. Submitted with a Turnstile check; on success it shows "Thanks —
+    we'll review it".
 - **More transcript:**
   - Expands the card in place with about ±90 s of transcript from
     `/api/context`, each paragraph labelled with its timestamp and each label
@@ -247,25 +374,28 @@ as the API.
 - **Other states:**
   - Before any search: example searches plus "N episodes indexed through
     <date>".
-  - No results: suggest Smart mode or looser filters.
+  - No results: suggest Smart mode, looser filters, or `include:ads`.
   - Degraded: a subtle note. Error: a friendly retry message.
 - **Look and feel:**
   - Warm wood-tone accent, automatic dark mode.
   - `/` focuses search; arrow keys move through results.
   - Works on phones and meets WCAG AA.
-  - Footer: "Unofficial · made with the hosts' blessing", show links, and
-    "searches are logged anonymously to improve results".
+  - Footer: "Unofficial · made with the hosts' blessing", show links
+    (YouTube, podcast, site), and "searches are logged anonymously to improve
+    results".
 
 ## 6. Error handling summary
 
 | Failure | Behavior |
 |---|---|
 | Feed unreachable | The run logs an error and notifies; nothing else changes. |
-| Download, transcribe, chunk or embed fails | The episode goes to `error` and is retried on the next runs, up to 3 times. |
+| Download, transcribe, chunk or embed fails | The episode goes to `error` and is retried on the next runs, up to 3 times (§3.3). |
 | Publish fails partway | Safe to re-run; the episode stays `embedded` until both D1 and Vectorize succeed. |
+| Platform ID match fails | The ID stays null and that button is hidden; matching is retried on the next `wts feed`. |
 | Workers AI or Vectorize down | Keyword-only results with `smart_degraded`. |
 | D1 down | 503 from the API; the frontend shows the retry message. |
 | Bad query syntax | Fall back to plain quoted words. |
+| Report fails Turnstile or rate limit | 4xx with a friendly message; nothing is stored. |
 
 ## 7. Testing
 
@@ -273,35 +403,45 @@ as the API.
 
 - **Pipeline (pytest):**
   - Feed parsing (saved sample RSS files) and platform ID matching.
-  - Chunker: boundaries, overlap, and timings that add up.
-  - Quality guards (deliberately bad sample transcripts).
-  - Status-machine moves.
+  - Status-machine moves, including the rules for invalid moves and resets.
+  - Stem generation.
+  - `corrections.yaml` application.
+  - Boilerplate detection (sample episodes sharing a sponsor read).
+  - Chunker: boundaries, overlap, timings that add up, and `word_times`
+    encoding round-trip.
+  - Quality guards and timestamp checks (deliberately bad sample
+    transcripts).
   - Publish diffing against a mocked Cloudflare API.
 - **Worker (Vitest with `@cloudflare/vitest-pool-workers`):**
   - Table-driven tests of the query parser and the FTS5 expression it
-    produces.
-  - Reciprocal rank fusion, collapsing, `cue_s`, the deep-link builder.
+    produces, including `include:ads`.
+  - Reciprocal rank fusion, date sorting, collapsing, per-platform `cue_s`,
+    the deep-link builder.
   - Degraded mode and input limits.
-- **Frontend:** one Playwright smoke test: search → results → expand → check
-  that the Apple, Spotify and Wood Talk links are well-formed with the right
-  time.
+  - `/api/report` validation, with Turnstile mocked.
+- **Frontend:** one Playwright smoke test: search on Enter → results → change
+  sort → expand → check that every link is well-formed with the right time
+  → submit a report (Turnstile test key).
 
 ### 7.2 Test search set (`eval/`)
 
 - **`eval/queries.yaml`:** each case has an `id`, `query`, `mode`, optional
-  filters, and either `expect: [{episode, at_s}]` (time tolerance ±45 s) or
-  `expect_absent: [episode]`. Each case is tagged with one of:
+  filters and sort, and either `expect: [{episode, at_s}]` (time tolerance
+  ±45 s) or `expect_absent: [episode]`. Each case is tagged with one of:
   - `exact`: phrase lookups.
   - `jargon`: brand names and woodworking terms (also tests Whisper's
     spelling).
   - `paraphrase`: meaning-based queries.
   - `filter`: year and episode filters.
-  - `negative`: things that should not come back.
+  - `negative`: things that should not come back, including boilerplate
+    sponsor reads without `include:ads`.
 - **Where the cases come from:**
   1. About 30 written by the maintainer from memory.
-  2. About 100 synthetic ones: a local LLM on the Mini paraphrases a question
+  2. About 100 synthetic ones: a local LLM on the Mac paraphrases a question
      answered by a randomly sampled chunk, so the right answer is that chunk.
   3. Topics from the show notes, mapped to their episodes.
+  - In M1 every case points at a seed-set episode. More cases are added as
+    M2 grows the archive.
 - **`wts eval --target staging|production`** sends every case to the API and
   reports, overall and per tag:
   - Recall@10 (did the right episode appear in the top 10?).
@@ -314,20 +454,22 @@ as the API.
 - Ranking, chunking and model changes are published to `staging` and
   evaluated there before being promoted to `production`.
 - **Optional transcription check:** 3 five-minute clips corrected by hand
-  (`eval/wer/`) measure Whisper's word error rate when changing the model or
-  the vocabulary prompt.
+  (`eval/wer/`) measure Whisper's word error rate when changing the model,
+  the vocabulary prompt or `corrections.yaml`.
 
-## 8. Logs and notifications
+## 8. Logs, notifications and analysis
 
-### 8.1 Pipeline
+### 8.1 Pipeline logs
 
 - **Logs:** JSON lines in `~/Library/Logs/wts/wts-YYYY-MM-DD.log`, kept for
-  30 days. Each line has `run_id`, `episode`, `step`, `duration_ms`, `level`,
-  `msg`, `error`. The console shows the same events in readable form.
-- **Run history:** a `runs` table in the local state file records start,
-  end, per-step counts and errors. `wts status` shows it.
+  30 days. Each line has `ts`, `run_id`, `episode`, `step`, `duration_ms`,
+  `level`, `msg`, `error`. The console shows the same events in readable
+  form.
+- **Run history:** a `runs` table in `state.db` records start, end, machine,
+  per-step counts and errors. `wts status` shows it.
 - **Smoke search:** after each `wts run`, 5 fixed queries from `eval/` are
-  sent to production. Each must return its expected episode in the top 10.
+  sent to the target environment. Each must return its expected episode in
+  the top 10.
 
 ### 8.2 Notifications (ntfy.sh)
 
@@ -337,27 +479,40 @@ push for:
 - New episodes published (number, title, chunk count).
 - Episodes that hit `error`, or ran out of retries.
 - A failed smoke search.
+- New transcript-error reports (a daily digest: count plus the first few).
 - No new feed item for 21 days (the feed may have moved).
-- A weekly digest: top searches and zero-result searches (§8.3).
+- A weekly digest: top searches and zero-result searches.
 
-**Watchdog:** each successful `wts run` pings a healthchecks.io check with an
-8-day timeout. healthchecks.io alerts (email, or its ntfy integration) when
-the pings stop, which covers the Mini being off or launchd being broken.
+**Watchdog (Mac Mini only):** each successful scheduled run pings a
+healthchecks.io check with an 8-day timeout. healthchecks.io alerts when the
+pings stop, which covers the Mini being off or launchd being broken.
 
-### 8.3 Worker
+### 8.3 Worker logs
 
-- **Cloudflare Workers Logs** enabled. One structured line per search:
-  shortened query, mode, latency, result count, degraded flag. No IP
-  addresses. Cloudflare's default retention.
+- **Cloudflare Workers Logs** enabled. One structured line per request:
+  endpoint, shortened query, mode, sort, latency, result count, degraded
+  flag. No IP addresses. Cloudflare's default retention, which is a few
+  days.
 - **Cloudflare Workers Analytics Engine:** one data point per search (query,
-  mode, result count). `wts run` reads the past week through the SQL API for
-  the weekly digest. The output feeds new test cases and new vocabulary
-  terms.
-- **Optional:** a free UptimeRobot check on `/api/health` every 5 minutes.
+  mode, sort, result count, latency) and per report. Retention is about 3
+  months.
+
+### 8.4 Getting logs for analysis
+
+| Source | How |
+|---|---|
+| Pipeline logs | `wts logs [--run ID] [--episode STEM] [--level error] [--since 7d]` for day-to-day use. For ad-hoc analysis, query the files directly: `duckdb -c "select … from read_json_auto('~/Library/Logs/wts/*.log')"` or `jq`. |
+| Pipeline run history | `wts status`, or SQL on `~/.wts/state.db`. |
+| Worker, live | `wrangler tail --env production` (filterable by status or text). |
+| Worker, last few days | Workers Logs query builder in the Cloudflare dashboard. |
+| Search analytics, long term | `wts analytics pull` (run weekly by `wts run`) copies Analytics Engine data through its SQL API into `~/.wts/analytics.db`. That file keeps the full history for SQL or DuckDB analysis, and drives the weekly digest. |
+| Transcript reports | `wts reports` (reads the `reports` table in D1). |
+
+Optional: a free UptimeRobot check on `/api/health` every 5 minutes.
 
 ## 9. Phase 2 (separate spec): topic summaries
 
-A local LLM on the Mini generates chapter-style topics for each episode, in a
+A local LLM on the Mac generates chapter-style topics for each episode, in a
 new `topics(episode_id, start_ms, title)` table. They show as chips that link
 to the right time, and can be searched. It reuses the phase 1 transcripts and
 chunks unchanged.
@@ -365,15 +520,19 @@ chunks unchanged.
 ## 10. Prerequisites and open items
 
 1. **Hosts' blessing:** contact Marc, Shannon and Matt before the public
-   launch. Ask whether ads are inserted at download time and whether they'd
-   share ad insertion offsets or ad-free audio for timestamp accuracy.
-2. **Deep-link formats:** check by hand (first implementation task, §4.6).
-3. **Ad drift:** check whether the feed's audio has ads inserted at download
+   launch (M2). Ask whether ads are inserted at download time and whether
+   the YouTube uploads are the same edit as the podcast audio.
+2. **Deep-link formats:** check by hand during M1 (§4.6).
+3. **YouTube:**
+   - Confirm the show's channel and which episodes it has.
+   - Run the alignment check (§4.6).
+4. **Ad drift:** check whether the feed's audio has ads inserted at download
    time (download the same episode twice and compare duration and hash).
-   Measure the drift on about 5 episodes.
-4. **Feed history:** confirm the RSS feed lists the whole archive. If old
-   episodes are missing, find another source for their audio before
-   transcribing.
-5. **Spotify API access:** register a free developer app for client
-   credentials.
-6. **Domain:** pick a domain or subdomain for Pages and the Worker.
+   Measure the drift on about 5 seed episodes.
+5. **Feed history:** confirm the RSS feed lists the whole archive. If old
+   episodes are missing, find another source for their audio before M2.
+6. **API keys:**
+   - A free Spotify developer app (client credentials).
+   - A YouTube Data API key.
+   - A Cloudflare Turnstile site key.
+7. **Domain:** pick a domain or subdomain for Pages and the Worker.

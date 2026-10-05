@@ -26,7 +26,8 @@ MIN_SEGMENT_S = 8.0  # shared audio shorter than this is ignored
 MAX_GAP_S = 1.0  # tolerate small gaps in a matching run
 MIN_HITS = 20  # exact fingerprint matches needed on one alignment
 COMMON_VALUE_LIMIT = 40  # fingerprint values seen more often than this are noise/silence
-BER_BITS = 10  # an item differing in ≤ this many of 32 bits counts as the same audio
+BER_BITS = 10  # smoothed bit errors (of 32) at or below this count as the same audio
+SMOOTH_S = 5.0  # average bit errors over this window
 
 
 def fingerprint(path: str) -> tuple[float, list[int]]:
@@ -97,48 +98,52 @@ def compare_pair(ad_free_path: str, ad_path: str) -> list[tuple[float, float]]:
     Prints each matching stretch with its offset (ad-copy time − show time); the offset
     steps up by each inserted ad's length. Returns the inserted spans in ad-copy time.
     """
+    import numpy as np
+
     free_duration, free_fp = fingerprint(ad_free_path)
     ad_duration, ad_fp = fingerprint(ad_path)
     step = free_duration / len(free_fp)
-    where: dict[int, list[int]] = defaultdict(list)
-    for pos, value in enumerate(free_fp):
-        where[value].append(pos)
-    votes: dict[int, list[int]] = defaultdict(list)
-    for pos, value in enumerate(ad_fp):
-        if len(where.get(value, ())) <= COMMON_VALUE_LIMIT:
-            for free_pos in where.get(value, ()):
-                votes[pos - free_pos].append(pos)
-    matched = []
-    for offset, positions in votes.items():
-        if len(positions) >= MIN_HITS:
-            for s, e in runs(positions, round(MAX_GAP_S / step), round(MIN_SEGMENT_S / step)):
-                matched.append((s * step, e * step, offset * step))
-    matched.sort()
-    print(f"ad-free {free_duration:.1f}s, ad copy {ad_duration:.1f}s, "
-          f"difference {ad_duration - free_duration:.1f}s\n")
-    print("offsets found from exact matches (ad-copy time − show time):")
-    offsets = sorted({round(o / step) for _, _, o in matched})
-    for o in offsets:
-        spans = [(s, e) for s, e, off in matched if round(off / step) == o]
-        print(f"  {o * step:+7.1f}s  first seen {mmss(spans[0][0])}, last {mmss(spans[-1][1])}")
-
-    # Exact matches are sparse; at the known offsets, compare every item by bit error rate.
-    import numpy as np
-
     ad = np.array(ad_fp, dtype=np.uint32)
     free = np.array(free_fp, dtype=np.uint32)
-    best = np.full(len(ad), 32, dtype=np.int32)
-    for o in offsets:
+    print(f"ad-free {free_duration:.1f}s, ad copy {ad_duration:.1f}s, "
+          f"difference {ad_duration - free_duration:.1f}s, item {step:.4f}s\n")
+
+    # Inserted ads can only push the ad copy later: scan every offset from a little below 0
+    # to the length difference (+ margin), scoring each position by the bit error count
+    # averaged over a ~5 s window. Speech fingerprints rarely match exactly, so no voting.
+    table = np.array([i.bit_count() for i in range(1 << 16)], dtype=np.uint8)
+    window = max(1, round(SMOOTH_S / step))
+    kernel = np.ones(window) / window
+    best = np.full(len(ad), 32.0)
+    best_offset = np.zeros(len(ad), dtype=np.int64)
+    lo_off = -round(5 / step)
+    hi_off = round((ad_duration - free_duration + 15) / step)
+    for o in range(lo_off, hi_off + 1):
         lo, hi = max(0, o), min(len(ad), len(free) + o)
-        if lo >= hi:
+        if hi - lo < window:
             continue
         xor = ad[lo:hi] ^ free[lo - o : hi - o]
-        bits = np.unpackbits(xor.view(np.uint8)).reshape(-1, 32).sum(axis=1)
-        best[lo:hi] = np.minimum(best[lo:hi], bits)
-    window = 9  # ~1.1 s median smoothing
-    padded = np.pad(best, window // 2, mode="edge")
-    smooth = np.median(np.lib.stride_tricks.sliding_window_view(padded, window), axis=1)
-    is_show = smooth <= BER_BITS
+        bits = table[xor & 0xFFFF].astype(np.float64) + table[xor >> 16]
+        # Average only over real items: zero-padding at the edges would fake a match there.
+        smooth = np.convolve(bits, kernel, mode="same") / np.convolve(
+            np.ones_like(bits), kernel, mode="same"
+        )
+        better = smooth < best[lo:hi]
+        best[lo:hi][better] = smooth[better]
+        best_offset[lo:hi][better] = o
+
+    pct = np.percentile(best, [5, 25, 50, 75, 95])
+    print("best bit-error per position (of 32; same audio ≈ low, unrelated ≈ 14–16):")
+    print("  p5 {:.1f}  p25 {:.1f}  median {:.1f}  p75 {:.1f}  p95 {:.1f}".format(*pct))
+    is_show = best <= BER_BITS
+
+    print(f"\noffset steps (ad-copy time − show time), where bit error ≤ {BER_BITS}:")
+    previous = None
+    for i in np.flatnonzero(is_show):
+        o = int(best_offset[i])
+        if previous is None or abs(o - previous) > round(1 / step):
+            print(f"  from {mmss(i * step)}: {o * step:+7.1f}s")
+            previous = o
     inserted, start = [], None
     for i, show in enumerate(np.append(is_show, True)):
         if not show and start is None:

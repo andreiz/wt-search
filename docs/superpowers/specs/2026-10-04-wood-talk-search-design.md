@@ -104,13 +104,59 @@ nothing is hard-coded and nothing goes directly in `$HOME`:
 | Config (`config.toml`) | `~/Library/Application Support/wts/` | Non-secret settings: environment names, feed URL, `audio_dir`. Secrets live in the Keychain (§3.6). |
 | State (`state.db`, `analytics.db`) | `~/Library/Application Support/wts/` | |
 | Transcripts, chunks, embeddings | `~/Library/Application Support/wts/data/` | Small (under 1 GB) but valuable: transcripts are expensive to redo. |
-| Audio | `<audio_dir>`, defaulting to `~/Library/Application Support/wts/audio/` | Large (§11). `audio_dir` can point to an external drive. Not in `~/Library/Caches`, because macOS may purge that, and a re-download can come with different inserted ads. |
+| Audio | `<audio_dir>` on the NAS (§3.0.1); defaults to `~/Library/Application Support/wts/audio/` when unset (tests, quick local runs) | Large (§11). Never in `~/Library/Caches`, because macOS may purge that, and a re-download can come with different inserted ads. |
+| Backups | `<backup_dir>` on the NAS | A copy of the Application Support folder (§3.0.1). |
 | Logs | `~/Library/Logs/wts/` | Shows up in Console.app. |
 
 Every location can be overridden with `WTS_HOME` (one root for everything),
 which tests use for an isolated temporary root. `wts paths` prints the
 resolved locations. Moving from the M1 Max to the Mac Mini is an `rsync` of
-the Application Support folder plus `audio_dir`.
+the Application Support folder; the audio is already on the NAS.
+
+#### 3.0.1 Audio on the NAS
+
+- **Mount.** The NAS share is mounted over SMB, for example at
+  `/Volumes/media`. `config.toml` sets `audio_dir` (for example
+  `/Volumes/media/wts/audio`) and `backup_dir` (for example
+  `/Volumes/media/wts/backup`). On the Mini, the share is mounted at login
+  (a Login Item, or automount via `/etc/auto_master`), so scheduled runs find
+  it.
+- **Checking before use.** Any step that needs audio (`download`,
+  `transcribe`, `review`) first checks that `audio_dir` is reachable and
+  writable, and that it has at least 2 GB free. If not, the step stops and
+  sends a notification. Episodes are **not** moved to `error` and no retries
+  are used up, because a missing mount is a problem with the machine, not
+  with the episode.
+- **Safe writes.** Downloads go to `<audio_dir>/.partial/<stem>.mp3`. They
+  are renamed into place only after the `ffprobe` check passes, so an
+  interrupted network transfer never leaves a half-written file that looks
+  complete.
+- **Transcribing.** Before Whisper runs, the episode's file is copied to a
+  local temporary folder, so a network hiccup can't break a long GPU run
+  halfway through. The local copy is deleted afterwards.
+- **Review tool.** Streams audio straight from the NAS, with HTTP Range
+  support so jumping around in the file is instant.
+- **Backups.** At the end of each `wts run`, the Application Support folder
+  (state, transcripts, chunks, embeddings, corrections overrides: under
+  1 GB) is copied with `rsync` to `backup_dir`. Transcripts are the
+  expensive part to recreate, so they also get a copy on the NAS.
+
+#### 3.0.2 Audio retention: originals now, compact copies later
+
+- **M1 and M2:** keep the original MP3s. The `audio_format` setting is
+  `original`.
+- **Later (not part of M1 or M2):** `wts audio compact` moves to
+  `audio_format = opus32`:
+  1. Re-encode each episode to 32 kbps mono Opus (`<stem>.opus`, about
+     14 MB per hour, about 9 GB for the full archive).
+  2. Check that the length matches the original to within 50 ms. Whisper
+     downsamples to 16 kHz mono anyway, so re-transcribing from the compact
+     copy loses nothing.
+  3. Delete the original only after that check passes, and only if
+     `keep_originals` is false.
+  - New episodes would then be compacted right after transcription.
+  - The review tool and the `transcribe` command read either format, so the
+    switch needs no other changes.
 
 ### 3.1 Episode state machine
 
@@ -489,6 +535,7 @@ as the API.
 | Failure | Behavior |
 |---|---|
 | Feed unreachable | The run logs an error and notifies; nothing else changes. |
+| NAS not mounted, read-only, or nearly full | Steps that need audio stop with a notification; episodes keep their status and no retries are used up (§3.0.1). |
 | Download, transcribe, chunk or embed fails | The episode goes to `error` and is retried on the next runs, up to 3 times (§3.3). |
 | Publish fails partway | Safe to re-run; the episode stays `embedded` until both D1 and Vectorize succeed. |
 | Platform ID match fails | The ID stays null and that button is hidden; matching is retried on the next `wts feed`. |
@@ -636,6 +683,8 @@ chunks unchanged.
    - A YouTube Data API key.
    - A Cloudflare Turnstile site key.
 7. **Domain:** pick a domain or subdomain for Pages and the Worker.
+8. **NAS:** create the SMB share and folders, and set up automatic mounting
+   on the M1 Max and later on the Mini.
 
 ## 11. Sizing and cost estimates
 
@@ -656,10 +705,12 @@ audio.
 | State, analytics, logs | under 0.1 GB |
 | **Total** | **about 20–40 GB**, about 95% of it audio |
 
-The seed set (M1, about 70 episodes) needs about 4 GB. If disk becomes a
-concern, `audio_dir` can point to an external drive. Deleting audio is
-possible but not recommended: the review tool needs it, and a re-download
-may come with different inserted ads.
+The seed set (M1, about 70 episodes) needs about 4 GB. Audio lives on the
+NAS (§3.0.1), so the Mac itself needs only about 1 GB plus a temporary copy
+of the episode being transcribed. Audio is not deleted after transcription
+because the review tool needs it, and a re-download may come with different
+inserted ads. Later, `wts audio compact` (§3.0.2) cuts the NAS footprint to
+about 9 GB.
 
 ### 11.2 Cloudflare running cost
 

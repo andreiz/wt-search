@@ -84,9 +84,14 @@ def _run_step(step: str, selector: str, **kwargs) -> None:
 
 @main.command()
 @select_option
-def download(selector: str) -> None:
-    """Download audio for selected episodes."""
-    _run_step("download", selector)
+@click.option(
+    "--refetch-ads",
+    is_flag=True,
+    help="Re-download selected episodes whose stored copy has inserted ads.",
+)
+def download(selector: str, refetch_ads: bool) -> None:
+    """Download audio, retrying until a copy has no inserted ads (up to 5 tries)."""
+    _run_step("download", selector, refetch_ads=refetch_ads)
 
 
 @main.command()

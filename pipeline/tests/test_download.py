@@ -8,11 +8,18 @@ import httpx
 import pytest
 import respx
 from click.testing import CliRunner
-from conftest import fail_after_first_call, reason_of, retries_of, status_of, url_of
+from conftest import (
+    fail_after_first_call,
+    force_status,
+    reason_of,
+    retries_of,
+    status_of,
+    url_of,
+)
 
 from wts import storage
 from wts.cli import main
-from wts.download import ProbeError, download_episode, probe_duration_s
+from wts.download import ProbeError, download_ad_free, download_episode, probe_duration_s
 from wts.steps import run_download
 from wts.storage import MachineProblem, StorageUnavailable
 
@@ -127,6 +134,83 @@ def test_file_longer_than_feed_from_inserted_ads_is_accepted(tmp_path):
     assert out.duration_s == 893.0
 
 
+def _probe_sequence(*durations):
+    it = iter(durations)
+    return lambda p: next(it)
+
+
+@respx.mock
+def test_ad_free_copy_is_retried_until_found(tmp_path):
+    row = {**EPISODE_ROW, "duration_s": 3137}
+    route = respx.get(row["audio_url"]).mock(return_value=httpx.Response(200, content=b"x"))
+    pauses = []
+    out = download_ad_free(
+        httpx.Client(), row, tmp_path, probe=_probe_sequence(3233.3, 3233.3, 3137.9),
+        sleep=pauses.append,
+    )
+    assert (out.duration_s, out.ads_inserted) == (3137.9, False)
+    assert route.call_count == 3 and len(pauses) == 2
+    assert not list((tmp_path / ".partial").iterdir())
+
+
+@respx.mock
+def test_keeps_shortest_copy_when_every_attempt_has_ads(tmp_path):
+    row = {**EPISODE_ROW, "duration_s": 3137}
+    respx.get(row["audio_url"]).mock(
+        side_effect=[httpx.Response(200, content=f"copy{i}".encode()) for i in range(5)]
+    )
+    out = download_ad_free(
+        httpx.Client(), row, tmp_path,
+        probe=_probe_sequence(3300.0, 3233.0, 3260.0, 3250.0, 3240.0), sleep=lambda s: None,
+    )
+    assert (out.duration_s, out.ads_inserted) == (3233.0, True)
+    assert out.path.read_bytes() == b"copy1"
+    assert not list((tmp_path / ".partial").iterdir())
+
+
+@respx.mock
+def test_no_feed_duration_means_no_retries(tmp_path):
+    row = {**EPISODE_ROW, "duration_s": None}
+    route = respx.get(row["audio_url"]).mock(return_value=httpx.Response(200, content=b"x"))
+    out = download_ad_free(httpx.Client(), row, tmp_path, probe=lambda p: 999.0,
+                           sleep=lambda s: None)
+    assert route.call_count == 1 and out.ads_inserted is False
+
+
+@respx.mock
+def test_run_download_records_ads_flag(conn, make_episode, paths, cfg):
+    e = make_episode(duration_s=3137)
+    respx.get(url_of(conn, e)).mock(return_value=httpx.Response(200, content=b"x"))
+    run_download(conn, paths, cfg, [e], probe=lambda p: 3233.0, pause_s=0)
+    row = conn.execute(
+        "select audio_duration_s, ads_inserted from episodes where id = ?", (e,)
+    ).fetchone()
+    assert tuple(row) == (3233.0, 1)
+
+
+@respx.mock
+def test_refetch_ads_replaces_an_ad_laden_copy(conn, make_episode, paths, cfg):
+    e = make_episode(duration_s=3137)
+    respx.get(url_of(conn, e)).mock(return_value=httpx.Response(200, content=b"x"))
+    run_download(conn, paths, cfg, [e], probe=lambda p: 3233.0, pause_s=0)
+    force_status(conn, e, "transcribed")
+    counts = run_download(conn, paths, cfg, [e], probe=lambda p: 3137.5, pause_s=0,
+                          refetch_ads=True)
+    row = conn.execute(
+        "select status, audio_duration_s, ads_inserted from episodes where id = ?", (e,)
+    ).fetchone()
+    assert tuple(row) == ("downloaded", 3137.5, 0) and counts["refetched"] == 1
+
+
+@respx.mock
+def test_refetch_ads_leaves_ad_free_copies_alone(conn, make_episode, paths, cfg):
+    e = make_episode(duration_s=3137)
+    route = respx.get(url_of(conn, e)).mock(return_value=httpx.Response(200, content=b"x"))
+    run_download(conn, paths, cfg, [e], probe=lambda p: 3137.5, pause_s=0)
+    run_download(conn, paths, cfg, [e], probe=lambda p: 3137.5, pause_s=0, refetch_ads=True)
+    assert route.call_count == 1 and status_of(conn, e) == "downloaded"
+
+
 @respx.mock
 def test_file_far_longer_than_feed_is_rejected(tmp_path):
     row = {**EPISODE_ROW, "duration_s": 600}
@@ -189,6 +273,11 @@ def test_mount_vanishes_mid_download_keeps_status(conn, make_episode, paths, cfg
     with pytest.raises(StorageUnavailable):
         run_download(conn, paths, cfg, [e])
     assert status_of(conn, e) == "new" and retries_of(conn, e) == 0
+
+
+def test_download_cli_accepts_refetch_ads(wts_home):
+    r = CliRunner().invoke(main, ["download", "--select", "all", "--refetch-ads"])
+    assert r.exit_code == 0, r.output
 
 
 def test_download_cli_exits_3_when_audio_dir_missing(wts_home):

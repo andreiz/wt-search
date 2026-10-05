@@ -18,7 +18,12 @@ from wts.chunking import chunk_episode, refresh_chunks
 from wts.config import Config
 from wts.corrections import CORRECTIONS_FILE, corrections_sha, load_corrections
 from wts.db import kv_get, kv_set
-from wts.download import download_episode, probe_duration_s
+from wts.download import (
+    RETRY_PAUSE_S,
+    download_ad_free,
+    has_inserted_ads,
+    probe_duration_s,
+)
 from wts.embed import Embedder, embed_episode, get_embedder
 from wts.feed import parse_feed, upsert_episodes
 from wts.log import run_record
@@ -40,12 +45,29 @@ def run_download(
     client: httpx.Client | None = None,
     probe: Callable[[Path], float] = probe_duration_s,
     workers: int = 4,
+    pause_s: float = RETRY_PAUSE_S,
+    refetch_ads: bool = False,
 ) -> Counter:
     if probe is probe_duration_s and shutil.which("ffprobe") is None:
         raise ToolMissing("ffprobe not found; install ffmpeg (brew install ffmpeg)")
     storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)
-    rows = iter(episodes_for_step(conn, "download", ids))
     counts: Counter = Counter()
+    if refetch_ads:
+        # Copies stored with inserted ads go back to `new` (any transcript is redone).
+        for episode_id in ids:
+            row = conn.execute(
+                "select status, audio_duration_s, duration_s from episodes where id = ?",
+                (episode_id,),
+            ).fetchone()
+            if (
+                row
+                and row["status"] != Status.NEW
+                and row["audio_duration_s"] is not None
+                and has_inserted_ads(row["audio_duration_s"], row["duration_s"])
+            ):
+                reset(conn, episode_id, Status.NEW)
+                counts["refetched"] += 1
+    rows = iter(episodes_for_step(conn, "download", ids))
     client = client or httpx.Client()
     stop = threading.Event()
     pool = ThreadPoolExecutor(max_workers=workers)
@@ -54,7 +76,10 @@ def run_download(
     def refill() -> None:
         # Submit lazily so that stopping the run leaves nothing queued behind it.
         while len(in_flight) < workers and (row := next(rows, None)) is not None:
-            job = pool.submit(download_episode, client, dict(row), paths.audio_dir, probe, stop)
+            job = pool.submit(
+                download_ad_free, client, dict(row), paths.audio_dir, probe, stop,
+                pause_s=pause_s,
+            )
             in_flight[job] = row
 
     def record(row: sqlite3.Row, job: Future) -> None:
@@ -69,12 +94,21 @@ def run_download(
         else:
             with conn:
                 conn.execute(
-                    "update episodes set audio_path = ?, audio_duration_s = ? where id = ?",
-                    (str(got.path), got.duration_s, row["id"]),
+                    "update episodes set audio_path = ?, audio_duration_s = ?, "
+                    "ads_inserted = ? where id = ?",
+                    (str(got.path), got.duration_s, int(got.ads_inserted), row["id"]),
                 )
             advance(conn, row["id"], "download")
             counts["ok"] += 1
-            log.info("downloaded", extra=extra)
+            if got.ads_inserted:
+                counts["ads_inserted"] += 1
+                log.warning(
+                    f"downloaded, but every attempt had ads inserted "
+                    f"(+{got.duration_s - row['duration_s']:.0f}s)",
+                    extra=extra,
+                )
+            else:
+                log.info("downloaded", extra=extra)
             return
         fail(conn, row["id"], "download", reason[:500])
         counts["error"] += 1

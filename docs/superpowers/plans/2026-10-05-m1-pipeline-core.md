@@ -21,6 +21,16 @@ The ML backends (MLX Whisper, sentence-transformers) sit behind small protocols,
 - **Plan 4:** Review tool.
 - **Plan 5:** Test search set and smoke search.
 
+## Checkpoints
+
+There are three manual checkpoints, where the maintainer runs the real thing on the M1 Max:
+
+- **A** (after Task 6): seed episodes on disk.
+- **B** (after Task 7): seed transcription starts and runs while Tasks 8–13 are built. Real transcripts come back as test fixtures.
+- **C** (after Task 14): full seed corpus.
+
+For M1, audio stays on the Mac's local disk (`audio_dir` unset). The NAS comes in with M2. The seed set is **35** episodes: the 20 most recent plus 15 spread across the years.
+
 ## Global Constraints
 
 - Python `>=3.12`. The package lives in `pipeline/` and runs with `uv run wts …`.
@@ -423,7 +433,7 @@ def test_stems_are_never_regenerated(conn):
   - `resolve_selector(conn, selector: str) -> list[int]`. Episode IDs ordered by `published_at`.
     - The selector is a comma-separated union of: `scope`, `all`, `seed`, `recent:N`, `ep:N`, `year:YYYY`, `stem:<stem>`.
     - Unknown terms raise `click.BadParameter`.
-  - `seed_ids(conn, recent: int = 50, sampled: int = 20) -> list[int]`:
+  - `seed_ids(conn, recent: int = 20, sampled: int = 15) -> list[int]`:
     - The newest `recent` episodes by `published_at`.
     - Plus `sampled` episodes from the rest (ordered oldest first), taken at indices `round(i * (n - 1) / (sampled - 1))` for `i` in `range(sampled)`, without duplicates.
     - Deterministic.
@@ -432,13 +442,13 @@ def test_stems_are_never_regenerated(conn):
 - [ ] **Step 1: Write failing tests**
 
 ```python
-def test_seed_is_50_recent_plus_20_spread(conn, make_episodes):
+def test_seed_is_20_recent_plus_15_spread(conn, make_episodes):
     ids = make_episodes(200)                       # published one week apart, oldest first
     seed = seed_ids(conn)
-    assert len(seed) == 70 and len(set(seed)) == 70
-    assert set(ids[-50:]) <= set(seed)
-    older = sorted(set(seed) - set(ids[-50:]))
-    assert older[0] == ids[0] and older[-1] == ids[149]   # spans the whole older range
+    assert len(seed) == 35 and len(set(seed)) == 35
+    assert set(ids[-20:]) <= set(seed)
+    older = sorted(set(seed) - set(ids[-20:]))
+    assert older[0] == ids[0] and older[-1] == ids[179]   # spans the whole older range
 
 def test_seed_with_small_feed_returns_all(conn, make_episodes):
     ids = make_episodes(30)
@@ -558,6 +568,21 @@ def test_probe_real_file(tmp_path):
 
 ---
 
+### Checkpoint A: Seed episodes on disk (maintainer, M1 Max)
+
+This is a manual check, not automated. Implementation pauses until it's done, because it settles facts the later tasks depend on.
+
+1. Run `cd pipeline && uv sync`, then `brew install ffmpeg` if `ffprobe` is missing.
+2. Create `~/Library/Application Support/wts/config.toml` with only the real `feed_url`. Leave `audio_dir` unset: for M1, audio stays on the Mac.
+3. Run `uv run wts paths`. Expected: audio under `~/Library/Application Support/wts/audio`.
+4. Run `uv run wts feed`. Expected: the episode count, and the oldest `published_at` around 2007. If old episodes are missing, record it (spec §10 item 5).
+5. Run `uv run wts scope add seed`, then `uv run wts scope list`. Expected: 35 episodes, 20 recent plus 15 spread across the years.
+6. Run `uv run wts download`, then `uv run wts status`. Expected: 35 `downloaded`, about 2 GB total.
+7. **Ad-insertion check:** download one recent episode a second time to a scratch folder with `curl -L -o`. Compare its duration (`ffprobe`) and `shasum` with the stored copy. Record the result (same or different) in `docs/deep-links.md`, under a heading "Ad insertion".
+8. Report back: the episode count, the oldest date, any download errors, the ad-insertion result, and 3 sample stems (checks file naming on real titles).
+
+---
+
 ### Task 7: Transcription backend and `wts transcribe`
 
 **Files:**
@@ -638,6 +663,24 @@ def test_mlx_backend_smoke(tmp_path):   # run manually on the Mac: uv run pytest
 - [ ] **Step 5: Run the tests and confirm they pass.** Run: `cd pipeline && uv run pytest -q`. Expected: PASS.
 
 - [ ] **Step 6: Commit** — `git commit -m "pipeline: whisper transcription step with atomic raw transcripts"`
+
+---
+
+### Checkpoint B: Start seed transcription (maintainer, M1 Max)
+
+This is manual. Tasks 8–13 proceed **while it runs**; they don't wait for it to finish.
+
+1. Run `uv sync --extra mac`, then `uv run pytest -m mac -k mlx`. Expected: the MLX smoke test passes.
+2. Run `uv run wts transcribe` (one episode at a time; it can be stopped with Ctrl-C and resumed). Note the time per episode from `wts status` or the `runs` table, to estimate the full archive on the Mini.
+3. Once the **6 most recent** episodes are transcribed, copy their transcript JSONs into `pipeline/tests/fixtures/real/` and commit them. Recent episodes most likely share the same sponsor reads, which Task 11/12 needs: 5 or more episodes containing the same read.
+   - **If the repository is public,** check with the hosts first, or trim each file to its first 15 minutes, which still contains the intro and the opening sponsor read.
+4. Report back: the time per episode, the fixture commit, and any errors.
+
+**Real-transcript tests.** These are added to Tasks 8 and 12. Both are skipped automatically when `tests/fixtures/real/` is empty, using a `real_transcripts` fixture in conftest that calls `pytest.skip`.
+
+- **Task 8:** `test_real_transcripts_clean`. For each real file, `clean_transcript` drops less than 5% of words and sets no `wpm_*` or `bad_word_times` flag.
+- **Task 12:** `test_real_sponsor_reads_flagged`. Chunking all 6 real episodes gives at least one boilerplate chunk in at least 5 of them, and boilerplate makes up less than 15% of all chunk words.
+- **If either test fails on real data,** adjust the thresholds in the Global Constraints (guards: no-speech/logprob; boilerplate: Jaccard, episode count, 60% share) only with the maintainer's agreement. Record the new values in the spec (§3.3 or §3.5).
 
 ---
 
@@ -1035,16 +1078,19 @@ def test_run_stops_cleanly_when_nas_missing(conn, paths, cfg, mocked_feed_and_au
 - [ ] **Step 3: Implement `run_all` and `wts run`.** In `pipeline/README.md`, document setup:
   - `brew install ffmpeg`.
   - `uv sync --extra mac`.
-  - Create `config.toml` with `feed_url` and `audio_dir`.
+  - Create `config.toml` with `feed_url`. Set `audio_dir` only when audio should live elsewhere (the NAS, from M2).
   - Add the Commands section to `CLAUDE.md`: `cd pipeline && uv run pytest -q`, `uv run ruff check .`, `uv run pytest -m mac` (Mac only).
 
 - [ ] **Step 4: Run the full suite and lint.** Run: `cd pipeline && uv run pytest -q && uv run ruff check .`. Expected: all pass.
 
 - [ ] **Step 5: Commit** — `git commit -m "pipeline: wts run end-to-end (feed→embed)"`
 
-- [ ] **Step 6: Manual seed run on the M1 Max (maintainer).** This checks the real environment and is not automated.
-  1. `uv sync --extra mac`, then `uv run pytest -m mac`. Expected: the 2 Mac tests pass.
-  2. Write `config.toml` with the real `feed_url` (spec §10 item 5) and the NAS `audio_dir`. Then run `wts paths`. Expected: Application Support, NAS and Logs paths.
-  3. Run `wts feed`, then `wts scope add seed`, then `wts scope list`. Expected: about 620 episodes found, 70 in scope.
-  4. Run `wts run`, then `wts status`. Expected: 70 episodes `embedded`, or listed with errors.
-  5. Spot-check 3 transcripts by eye, and note how long each episode took to transcribe in the `runs` table, to estimate the full-archive time on the Mini.
+### Checkpoint C: Full seed corpus (maintainer, M1 Max)
+
+This is manual. Do it after Task 14 is merged and Checkpoint B's transcription has finished.
+
+1. Run `uv run pytest -m mac`. Expected: both Mac tests pass (MLX and bge).
+2. Run `uv run wts run`, then `uv run wts status`. Expected: all 35 seed episodes `embedded`, or listed with errors. Feed, download and transcribe are no-ops for episodes already done.
+3. Check the boilerplate counts: `sqlite3 "$HOME/Library/Application Support/wts/state.db" "select e.stem, sum(c.is_boilerplate), count(*) from chunks c join episodes e on e.id=c.episode_id group by e.id"`. Expected: a few boilerplate chunks per recent episode, roughly 0–10% of chunks.
+4. Spot-check 3 transcripts by eye, including one from before 2012. Note any misheard terms for `corrections.yaml` and `vocab.txt`.
+5. Report back: the status summary, the boilerplate counts, and the correction candidates. This is the input for plans 2 (publish) and 4 (review tool).

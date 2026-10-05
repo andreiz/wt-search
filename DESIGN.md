@@ -51,7 +51,8 @@ feed → download → transcribe → chunk → embed ──▶ D1 (FTS5) + Vecto
 
 ## Milestones
 
-1. **M1:** about 70 seed episodes on the M1 Max → staging, review tool, test
+1. **M1:** 35 seed episodes (20 recent + 15 across the years) on the M1 Max,
+   audio on local disk → staging, review tool, test
    search set baseline, deep-link and alignment checks.
 2. **M2:** full archive on the Mac Mini → production, scheduled runs and
    watchdog, public launch with the hosts' blessing.

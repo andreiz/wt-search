@@ -30,9 +30,10 @@ and the Wood Talk site, and can expand to show more of the transcript.
 
 ### Milestones
 
-- **M1 — seed set on staging.** About 70 episodes (the 50 most recent plus 20
+- **M1 — seed set on staging.** 35 episodes (the 20 most recent plus 15
   sampled evenly across the years), run end to end on the M1 Max and
-  published to `staging`. The seed transcripts are spot-checked with the
+  published to `staging`. Audio stays on the Mac's local disk (`audio_dir`
+  unset); the NAS comes in with M2. The seed transcripts are spot-checked with the
   review tool (§3.7). The test search set (§7.2) is built and the baseline
   recorded. Deep-link formats and YouTube alignment are checked.
 - **M2 — full archive and launch.** The pipeline moves to the Mac Mini, the
@@ -683,8 +684,8 @@ chunks unchanged.
    - A YouTube Data API key.
    - A Cloudflare Turnstile site key.
 7. **Domain:** pick a domain or subdomain for Pages and the Worker.
-8. **NAS:** create the SMB share and folders, and set up automatic mounting
-   on the M1 Max and later on the Mini.
+8. **NAS (M2):** create the SMB share and folders, set up automatic mounting
+   on the Mini, and move the M1 audio there.
 
 ## 11. Sizing and cost estimates
 
@@ -705,9 +706,10 @@ audio.
 | State, analytics, logs | under 0.1 GB |
 | **Total** | **about 20–40 GB**, about 95% of it audio |
 
-The seed set (M1, about 70 episodes) needs about 4 GB. Audio lives on the
-NAS (§3.0.1), so the Mac itself needs only about 1 GB plus a temporary copy
-of the episode being transcribed. Audio is not deleted after transcription
+The seed set (M1, 35 episodes) needs about 2 GB, kept on the Mac's local
+disk. From M2, audio lives on the NAS (§3.0.1), so the Mac itself needs only
+about 1 GB plus a temporary copy of the episode being transcribed. Audio is
+not deleted after transcription
 because the review tool needs it, and a re-download may come with different
 inserted ads. Later, `wts audio compact` (§3.0.2) cuts the NAS footprint to
 about 9 GB.

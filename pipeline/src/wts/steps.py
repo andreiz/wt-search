@@ -30,6 +30,8 @@ from wts.feed import parse_feed, upsert_episodes
 from wts.log import clock, plural, run_record
 from wts.net import new_client
 from wts.paths import Paths
+from wts.platforms import match_platform_ids
+from wts.secrets import SecretStore, get_store
 from wts.selection import resolve_selector
 from wts.state import Status, advance, episodes_for_step, fail, reset
 from wts.storage import ToolMissing
@@ -320,14 +322,17 @@ def run_embed(
 
 def run_feed(
     conn: sqlite3.Connection, cfg: Config, *, client: httpx.Client | None = None,
-    force: bool = False,
+    force: bool = False, store: SecretStore | None = None,
 ) -> Counter:
     client = client or new_client()
     resp = client.get(cfg.feed_url, timeout=30, follow_redirects=True)
     resp.raise_for_status()
     result = upsert_episodes(conn, parse_feed(resp.content), force=force)
     log.info(f"feed: {result}", extra={"step": "feed"})
-    return Counter(added=result.added, updated=result.updated, reset=result.reset)
+    counts = Counter(added=result.added, updated=result.updated, reset=result.reset)
+    # Platform failures are logged and counted, never raised: the feed itself has landed.
+    counts.update(match_platform_ids(conn, cfg, client, store or get_store()))
+    return counts
 
 
 def run_all(

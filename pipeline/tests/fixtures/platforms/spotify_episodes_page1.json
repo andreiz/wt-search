@@ -1,0 +1,51 @@
+{
+  "href": "https://api.spotify.com/v1/shows/6hSv7mQd1x3kGZ0wVtQkYp/episodes?offset=0&limit=3&market=US",
+  "limit": 3,
+  "next": "https://api.spotify.com/v1/shows/6hSv7mQd1x3kGZ0wVtQkYp/episodes?offset=3&limit=3&market=US",
+  "offset": 0,
+  "previous": null,
+  "total": 7,
+  "items": [
+    {
+      "audio_preview_url": null,
+      "description": "Why we don't use metric in the shop.",
+      "html_description": "<p>Why we don't use metric in the shop.</p>",
+      "duration_ms": 3612000,
+      "explicit": false,
+      "external_urls": {"spotify": "https://open.spotify.com/episode/4kQ0aWt615MetricShop01"},
+      "href": "https://api.spotify.com/v1/episodes/4kQ0aWt615MetricShop01",
+      "id": "4kQ0aWt615MetricShop01",
+      "images": [{"height": 640, "url": "https://i.scdn.co/image/ab6765630000ba8a0001", "width": 640}],
+      "is_externally_hosted": false,
+      "is_playable": true,
+      "language": "en",
+      "languages": ["en"],
+      "name": "Why We Don’t Use Metric | WT615",
+      "release_date": "2026-09-17",
+      "release_date_precision": "day",
+      "type": "episode",
+      "uri": "spotify:episode:4kQ0aWt615MetricShop01"
+    },
+    null,
+    {
+      "audio_preview_url": null,
+      "description": "Boards, bending, and the tyranny of length.",
+      "html_description": "<p>Boards, bending, and the tyranny of length.</p>",
+      "duration_ms": 3468000,
+      "explicit": false,
+      "external_urls": {"spotify": "https://open.spotify.com/episode/2mXp9LgBendy614Boards02"},
+      "href": "https://api.spotify.com/v1/episodes/2mXp9LgBendy614Boards02",
+      "id": "2mXp9LgBendy614Boards02",
+      "images": [{"height": 640, "url": "https://i.scdn.co/image/ab6765630000ba8a0002", "width": 640}],
+      "is_externally_hosted": false,
+      "is_playable": true,
+      "language": "en",
+      "languages": ["en"],
+      "name": "It's Too Long and Bendy | 614",
+      "release_date": "2026-09-02",
+      "release_date_precision": "day",
+      "type": "episode",
+      "uri": "spotify:episode:2mXp9LgBendy614Boards02"
+    }
+  ]
+}

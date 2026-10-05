@@ -1,0 +1,61 @@
+{
+  "kind": "youtube#playlistItemListResponse",
+  "etag": "bH5jK7wtsFakeEtagPlaylist002",
+  "items": [
+    {
+      "kind": "youtube#playlistItem",
+      "etag": "e5wtsFake0005",
+      "id": "VVV3VDlrTG0zUXhaN3ZOcFIyc1lkOEF3LkNkNEVmNkdoOElq",
+      "snippet": {
+        "publishedAt": "2026-08-05T16:00:00Z",
+        "channelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "title": "Reservations about Shannon | 612",
+        "description": "A hire we have reservations about.",
+        "thumbnails": {"default": {"url": "https://i.ytimg.com/vi/Cd4Ef6Gh8Ij/default.jpg", "width": 120, "height": 90}},
+        "channelTitle": "Wood Talk",
+        "videoOwnerChannelTitle": "Wood Talk",
+        "videoOwnerChannelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "playlistId": "UUwT9kLm3QxZ7vNpR2sYd8Aw",
+        "position": 4,
+        "resourceId": {"kind": "youtube#video", "videoId": "Cd4Ef6Gh8Ij"}
+      }
+    },
+    {
+      "kind": "youtube#playlistItem",
+      "etag": "e6wtsFake0006",
+      "id": "VVV3VDlrTG0zUXhaN3ZOcFIyc1lkOEF3Lk1uME9wMlFyNFN0",
+      "snippet": {
+        "publishedAt": "2026-08-12T17:30:00Z",
+        "channelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "title": "Shop Tour Q&A",
+        "description": "Your shop tour questions.",
+        "thumbnails": {"default": {"url": "https://i.ytimg.com/vi/Mn0Op2Qr4St/default.jpg", "width": 120, "height": 90}},
+        "channelTitle": "Wood Talk",
+        "videoOwnerChannelTitle": "Wood Talk",
+        "videoOwnerChannelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "playlistId": "UUwT9kLm3QxZ7vNpR2sYd8Aw",
+        "position": 5,
+        "resourceId": {"kind": "youtube#video", "videoId": "Mn0Op2Qr4St"}
+      }
+    },
+    {
+      "kind": "youtube#playlistItem",
+      "etag": "e7wtsFake0007",
+      "id": "VVV3VDlrTG0zUXhaN3ZOcFIyc1lkOEF3LlV2NldYOFl6MEFi",
+      "snippet": {
+        "publishedAt": "2019-12-18T23:10:00Z",
+        "channelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "title": "Wood Talk LIVE | WT379",
+        "description": "The unedited livestream.",
+        "thumbnails": {"default": {"url": "https://i.ytimg.com/vi/Uv6Wx8Yz0Ab/default.jpg", "width": 120, "height": 90}},
+        "channelTitle": "Wood Talk",
+        "videoOwnerChannelTitle": "Wood Talk",
+        "videoOwnerChannelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "playlistId": "UUwT9kLm3QxZ7vNpR2sYd8Aw",
+        "position": 6,
+        "resourceId": {"kind": "youtube#video", "videoId": "Uv6Wx8Yz0Ab"}
+      }
+    }
+  ],
+  "pageInfo": {"totalResults": 7, "resultsPerPage": 3}
+}

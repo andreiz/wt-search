@@ -1,4 +1,4 @@
-"""RSS feed ingest (spec §3.2 `wts feed`). Platform ID matching comes in plan 2."""
+"""RSS feed ingest (spec §3.2 `wts feed`). Platform ID matching follows it in `wts.platforms`."""
 
 import logging
 import sqlite3

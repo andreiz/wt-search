@@ -1,0 +1,80 @@
+{
+  "kind": "youtube#playlistItemListResponse",
+  "etag": "bH5jK7wtsFakeEtagPlaylist001",
+  "nextPageToken": "EAAaBlBUOkNESQ",
+  "items": [
+    {
+      "kind": "youtube#playlistItem",
+      "etag": "e1wtsFake0001",
+      "id": "VVV3VDlrTG0zUXhaN3ZOcFIyc1lkOEF3LmFCM2RFNWZHN2gx",
+      "snippet": {
+        "publishedAt": "2026-09-17T20:00:14Z",
+        "channelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "title": "WT615 – Why We Don’t Use Metric",
+        "description": "Why we don't use metric in the shop.",
+        "thumbnails": {"default": {"url": "https://i.ytimg.com/vi/aB3dE5fG7h1/default.jpg", "width": 120, "height": 90}},
+        "channelTitle": "Wood Talk",
+        "videoOwnerChannelTitle": "Wood Talk",
+        "videoOwnerChannelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "playlistId": "UUwT9kLm3QxZ7vNpR2sYd8Aw",
+        "position": 0,
+        "resourceId": {"kind": "youtube#video", "videoId": "aB3dE5fG7h1"}
+      }
+    },
+    {
+      "kind": "youtube#playlistItem",
+      "etag": "e2wtsFake0002",
+      "id": "VVV3VDlrTG0zUXhaN3ZOcFIyc1lkOEF3LmtMOW1OMnBRNHI2",
+      "snippet": {
+        "publishedAt": "2026-09-02T14:30:00Z",
+        "channelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "title": "Wood Talk 614: It's Too Long and Bendy",
+        "description": "Boards, bending, and the tyranny of length.",
+        "thumbnails": {"default": {"url": "https://i.ytimg.com/vi/kL9mN2pQ4r6/default.jpg", "width": 120, "height": 90}},
+        "channelTitle": "Wood Talk",
+        "videoOwnerChannelTitle": "Wood Talk",
+        "videoOwnerChannelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "playlistId": "UUwT9kLm3QxZ7vNpR2sYd8Aw",
+        "position": 1,
+        "resourceId": {"kind": "youtube#video", "videoId": "kL9mN2pQ4r6"}
+      }
+    },
+    {
+      "kind": "youtube#playlistItem",
+      "etag": "e3wtsFake0003",
+      "id": "VVV3VDlrTG0zUXhaN3ZOcFIyc1lkOEF3LnRVOHZXMXhZM3o1",
+      "snippet": {
+        "publishedAt": "2026-08-20T09:15:30Z",
+        "channelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "title": "#613 Shove a Kregger in the Hole",
+        "description": "Pocket holes, defended.",
+        "thumbnails": {"default": {"url": "https://i.ytimg.com/vi/tU8vW1xY3z5/default.jpg", "width": 120, "height": 90}},
+        "channelTitle": "Wood Talk",
+        "videoOwnerChannelTitle": "Wood Talk",
+        "videoOwnerChannelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "playlistId": "UUwT9kLm3QxZ7vNpR2sYd8Aw",
+        "position": 2,
+        "resourceId": {"kind": "youtube#video", "videoId": "tU8vW1xY3z5"}
+      }
+    },
+    {
+      "kind": "youtube#playlistItem",
+      "etag": "e4wtsFake0004",
+      "id": "VVV3VDlrTG0zUXhaN3ZOcFIyc1lkOEF3LktsMk1uNFBxNlJz",
+      "snippet": {
+        "publishedAt": "2026-08-14T18:00:00Z",
+        "channelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "title": "Shop Update: New Bench",
+        "description": "A short update from the shop.",
+        "thumbnails": {"default": {"url": "https://i.ytimg.com/vi/Kl2Mn4Pq6Rs/default.jpg", "width": 120, "height": 90}},
+        "channelTitle": "Wood Talk",
+        "videoOwnerChannelTitle": "Wood Talk",
+        "videoOwnerChannelId": "UCwT9kLm3QxZ7vNpR2sYd8Aw",
+        "playlistId": "UUwT9kLm3QxZ7vNpR2sYd8Aw",
+        "position": 3,
+        "resourceId": {"kind": "youtube#video", "videoId": "Kl2Mn4Pq6Rs"}
+      }
+    }
+  ],
+  "pageInfo": {"totalResults": 7, "resultsPerPage": 4}
+}

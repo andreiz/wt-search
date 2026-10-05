@@ -1,7 +1,7 @@
 # Wood Talk Transcript Search — Design
 
 Date: 2026-10-04 (revised 2026-10-05)
-Status: In written-spec review
+Status: Approved 2026-10-05
 Source: `VISION.md`
 
 ## 1. Goal

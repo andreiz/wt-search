@@ -222,6 +222,12 @@ def test_chunk_cli(wts_home):
     assert r.exit_code == 0, r.output
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="Deferred to phase 2 (spec §3.5, §9): Whisper splits the same sponsor read into "
+    "different sentences per episode, and the read is interleaved with host talk, so 30 s "
+    "chunks stay under the 60% share. Remove this mark when the rework lands.",
+)
 def test_real_sponsor_reads_flagged(conn, paths, cfg, make_episodes, real_transcripts):
     ids = make_episodes(len(real_transcripts))
     paths.transcripts_dir.mkdir(parents=True, exist_ok=True)

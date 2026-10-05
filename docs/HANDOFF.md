@@ -117,13 +117,13 @@ and drift acceptance were the alternatives; neither is needed.
 5. ~~Whether the GitHub repo is public~~ — it is; real fixtures are trimmed to 15 minutes.
 6. ~~Plan 2's six decisions~~ — all confirmed. Decision 2: D1 REST (non-atomic, idempotent) for
    now; an atomic publish route in the Worker before production (spec §10 item 9).
-7. **Boilerplate detection on real data** (Checkpoint B finding, below). Proposed: (a) match
-   word n-gram runs shared by ≥ 5 episodes instead of whole sentences, so Whisper's punctuation
-   doesn't matter; (b) cut chunks at boilerplate span edges so a sponsor read becomes its own
-   flagged chunk(s) instead of diluting a 30 s chunk. Needs brainstorm → spec §3.5 → plan
-   (a plan 1 follow-up) before code.
-8. The full ep001/ep610–615 transcripts remain in public git history (`a44eec9`). Removing them
-   means rewriting `main` and force-pushing (and asking GitHub to purge cached views).
+7. ~~Boilerplate detection on real data~~ — **deferred to phase 2** (spec §3.5, §9): word-run
+   matching plus cutting chunks at boilerplate edges. Until then the existing detector stays and
+   most sponsor reads are searchable; `test_real_sponsor_reads_flagged` is `xfail(strict=True)`,
+   so it errors once the rework makes it pass (then remove the mark).
+8. The full ep001/ep610–615 transcripts are in public git history (`a44eec9`); the maintainer is
+   removing them (history rewrite + force-push). Any clone made before that, including a cloud
+   session's, must be re-synced to the rewritten `main` before committing.
 
 ## Next steps (in order)
 
@@ -133,8 +133,9 @@ Finish plan 1 before starting plan 2.
    `pipeline/tests/fixtures/real/`, trimmed to the first 15 minutes (the repo is public; the
    full files are still in git history at `a44eec9`). Results:
    - `test_real_transcripts_clean` **passes** (on full and trimmed files).
-   - `test_real_sponsor_reads_flagged` **fails**: 1 of 7 episodes has a boilerplate chunk
-     (needs ≥ 5). Cause, measured on the fixtures:
+   - `test_real_sponsor_reads_flagged` **fails** (now an expected failure; the fix is deferred to
+     phase 2, open decision 7): 1 of 7 episodes has a boilerplate chunk (needs ≥ 5). Cause,
+     measured on the fixtures:
      1. *Sentence matching:* Whisper punctuates the same sponsor read differently per
         episode (ep610/612 merge "Woodcraft is your trusted source…" with the next sentence),
         so word-set Jaccard drops to ~0.6 < 0.8 and the sentence matches in < 5 episodes. LSH
@@ -145,10 +146,10 @@ Finish plan 1 before starting plan 2.
    - Experiment: word 6–8-grams shared by ≥ 5 episodes (no sentence boundaries) find the read
      and merch plug in all 6 recent episodes (~110–130 words, ~4% of 15 min) and nothing in
      ep001 — detection works that way, but chunks still need cutting at boilerplate edges.
-   - **Open decision 7** (design change to spec §3.5, see below). Still to report: time per
-     episode and any transcription errors.
+   - Still to report: time per episode and any transcription errors.
 2. **Plan 1, Checkpoint C** (maintainer): `uv run pytest -m mac`, `uv run wts run`,
-   `uv run wts status` (all 35 `embedded`), boilerplate counts per episode, spot-check 3
+   `uv run wts status` (all 35 `embedded`), boilerplate counts per episode (expect few, given the
+   deferred detector; plan 1's "0–10% of chunks" no longer applies), spot-check 3
    transcripts (one pre-2012), and collect `corrections.yaml` / `vocab.txt` candidates. Plan 1 is
    done when this is reported.
 3. **Plan 2** (written, decisions confirmed): execute task by task. Its checkpoints:

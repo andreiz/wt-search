@@ -280,6 +280,23 @@ the remaining sponsor mentions with a local LLM on the Mac. Manual
 boilerplate and not-boilerplate flags from the review tool (§3.7) override
 the detector.
 
+**Measured on real transcripts (2026-10-05, Checkpoint B; deferred to phase
+2):** the detector above misses most sponsor reads. On the first 15 minutes
+of ep610–615 only 1 of 6 episodes got a boilerplate chunk, for two reasons:
+
+1. Whisper punctuates the same read differently per episode (one episode
+   merges "Woodcraft is your trusted source…" with the next sentence), so
+   sentence word-set similarity falls to ~0.6, below 0.8.
+2. The read comes in short pieces with live host talk between them, so a
+   30 s chunk is only 25–40% boilerplate, under the 60% rule.
+
+Matching runs of 6–8 words shared by 5+ episodes, ignoring sentence
+boundaries, found the read and the merch-code plug in all 6 episodes. The
+rework (§9) pairs that with cutting chunks at boilerplate edges, so a read
+becomes its own flagged chunk. Until then, most sponsor reads are searchable
+like any other speech. `test_real_sponsor_reads_flagged` is marked as an
+expected failure until the rework lands.
+
 ### 3.6 Secrets
 
 Stored in the macOS Keychain, read by `wts` when it runs, and never
@@ -702,6 +719,12 @@ A local LLM on the Mac generates chapter-style topics for each episode, in a
 new `topics(episode_id, start_ms, title)` table. They show as chips that link
 to the right time, and can be searched. It reuses the phase 1 transcripts and
 chunks unchanged.
+
+**Boilerplate detection rework** (deferred from phase 1, §3.5): detect
+repeated content by word runs shared across episodes instead of whole
+sentences, and cut chunks at boilerplate edges. Changing chunk boundaries
+re-chunks and re-embeds the corpus, so it needs its own brainstorm, spec
+and plan.
 
 ## 10. Prerequisites and open items
 

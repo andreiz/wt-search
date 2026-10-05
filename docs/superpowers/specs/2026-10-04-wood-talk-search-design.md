@@ -193,7 +193,7 @@ system.
 | `wts download` | Resumable HTTP download, then an `ffprobe` check that the file can be decoded and is neither more than 2% shorter than `duration_s` (truncated) nor more than 10 minutes longer. *(Revised 2026-10-05: Acast inserts ads per download, so real files run 1–3 min longer than `itunes:duration`; the original ±2% rule rejected 20 of 35 seed episodes.)* The probed length is stored as `audio_duration_s`. **Ad-free copies:** every HTTP request (feed and downloads) sends the User-Agent `WoodTalkSearchBot/<version> (+https://github.com/andreiz/wt-search)`, one constant in `wts/net.py`. Acast inserts no ads for User-Agents it treats as bots (plain `curl`, and `…Bot` with a capital B; the check is case-sensitive, so `wts-bot` got ads), while httpx's default and unknown User-Agents get ads stitched into each download (*revised 2026-10-05*: the cause is the User-Agent, not IP or timing). A copy within 5 s of `duration_s` has no ads and carries the show's own timeline. As a safety net, `wts download` still checks this: it tries twice (2 s apart); if both copies have ads it keeps the shorter and sets `ads_inserted`. `--refetch-ads` re-downloads stored copies that have ads (resetting them to `new`). File: `<audio_dir>/<stem>.mp3` (§3.0, §3.4). |
 | `wts transcribe` | `mlx-whisper` with `large-v3-turbo`, keeping word-level timestamps and word probabilities. A starter prompt seeds woodworking vocabulary from `pipeline/vocab.txt` (brand names, host names, joinery terms). Output is `<data>/transcripts/<stem>.json` (§3.0), kept permanently; later steps never need to re-transcribe. |
 | `wts chunk` | Applies `corrections.yaml` (§3.3), marks boilerplate (§3.5), and builds windows of about 30 s cut on sentence boundaries and overlapping by one sentence. Each chunk records `start_ms`, `end_ms`, its text, `word_times`, and `is_boilerplate`. |
-| `wts embed` | `bge-base-en-v1.5` (768 dimensions) through `sentence-transformers` on the Mac's GPU (MPS). It must be the same model Workers AI runs for query embeddings (`@cf/baai/bge-base-en-v1.5`). Boilerplate chunks are not embedded. |
+| `wts embed` | `bge-base-en-v1.5` (768 dimensions) through `sentence-transformers` on the Mac's GPU (MPS). It must be the same model Workers AI runs for query embeddings (`@cf/baai/bge-base-en-v1.5`), **with `pooling: "cls"`**: sentence-transformers uses CLS pooling for bge, while Workers AI defaults to `mean`, and the two aren't compatible. `wts check-embeddings` compares the two before publishing. Boilerplate chunks are not embedded. |
 | `wts publish --env staging\|production` | Sends only the episodes that changed. Each episode is one D1 batch (delete the old chunks, then insert the new ones) plus a Vectorize upsert by chunk ID. Vectors for removed chunks are deleted. Bumps `meta.corpus_version`. |
 | `wts run` | Runs `feed → download → transcribe → chunk → embed → publish` for the selected environment, then a smoke search (§8.1) and notifications. |
 | `wts status` | Episode counts by status, episodes in `error` with their reasons, and the last 10 runs. |
@@ -381,9 +381,13 @@ about 50 MB in total.
 
 ### 4.2 Vectorize
 
-Index `chunks`: 768 dimensions, cosine similarity. Vector ID = `chunks.id`.
-Metadata: `{episode_id, year}`, with a metadata index on `year` for
-filtering. Boilerplate chunks are not indexed.
+One index per environment (index names are account-wide):
+`wts-chunks-staging` and `wts-chunks-production`. 768 dimensions, cosine
+similarity. Vector ID = `chunks.id`. Metadata: `{episode_id, year}`, with a
+metadata index on `year` for filtering. The metadata index must be created
+before the first upsert; vectors inserted earlier aren't indexed for
+filtering. Boilerplate chunks are not indexed. Query embeddings use Workers
+AI with `pooling: "cls"` (§3.2 `wts embed`).
 
 ### 4.3 Search modes and query syntax
 
@@ -422,7 +426,7 @@ never return an error for bad syntax.
     otherwise it is ordered by `published_at`, then by position in the
     episode. The response includes `total` (the full match count).
   - `smart` (default):
-    1. Take the FTS5 top 50, then embed the query with Workers AI and take
+    1. Take the FTS5 top 50, then embed the query with Workers AI (`pooling: "cls"`) and take
        the Vectorize top 50 (year filter applied in Vectorize).
     2. Merge the two lists with reciprocal rank fusion (k = 60).
     3. Apply the exclusion and episode filters to the merged list.

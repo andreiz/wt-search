@@ -8,6 +8,8 @@ points to.
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
 - Plan 1 (built): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
+- Plan 2 (written, not started): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+  — its "Decisions this plan makes" need the maintainer's OK before Task 4 / Task 7.
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
 - Superpowers skills install from `.claude/settings.json`.
@@ -21,9 +23,11 @@ requests now send `WoodTalkSearchBot/<version> (+https://github.com/andreiz/wt-s
 (`cd pipeline && uv run pytest -q`).
 
 **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): feed ingested (625 episodes),
-seed scope = 35 episodes (20 most recent + 15 across 2007–2025), **all 35 downloaded**; 6 are
-ad-free copies, 29 carry inserted ads — **next: `wts download --refetch-ads`** to replace those
-29 with ad-free copies. **Nothing transcribed yet** (Checkpoint B not started).
+seed scope = 35 episodes (20 most recent + 15 across 2007–2025), **all 35 downloaded**.
+`wts download --refetch-ads` (second session) re-fetched the 29 ad-laden copies: 29 ok, no
+`ads_inserted` warnings, so all 35 should be ad-free (confirm with the `ads_inserted=1` count →
+0). Its `refetched: 4` means 25 of them were already `new`, probably from an earlier
+interrupted re-fetch. Checkpoint B is in progress.
 
 ## What we learned from the real feed
 
@@ -113,20 +117,21 @@ and drift acceptance were the alternatives; neither is needed.
    proposed, not approved.
 5. Whether the GitHub repo is public (decides if real transcript fixtures can be committed whole
    or must be trimmed to the first 15 minutes).
+6. Plan 2's six decisions (per-environment publish state; idempotent, non-atomic D1 publish;
+   FTS5 `highlight()` instead of a TS stemmer; Apple IDs only for the newest ~200 episodes;
+   YouTube via the uploads playlist; the length rule applied at publish time).
 
 ## Next steps (in order)
 
-1. **Re-fetch** (maintainer): `uv run wts download --refetch-ads` → expect all 35 seed copies
-   ad-free (`q "select count(*) from episodes where in_scope=1 and ads_inserted=1"` → 0).
-   Any that still have ads: report the episode and check the IP (see the oddity above).
-2. **Checkpoint B** (maintainer): `uv run pytest -m mac -k mlx`, then `uv run wts transcribe`.
-   Commit 6 recent transcripts to `pipeline/tests/fixtures/real/` → enables the two real-data
-   tests (guards drop < 5% of words; boilerplate flags reads in ≥ 5 of 6 without exceeding 15%).
+1. **Checkpoint B** (maintainer, in progress): `uv run pytest -m mac -k mlx`, then
+   `uv run wts transcribe`. Commit 6 recent transcripts to `pipeline/tests/fixtures/real/` →
+   enables the two real-data tests (guards drop < 5% of words; boilerplate flags reads in ≥ 5 of
+   6 without exceeding 15%).
+2. **Plan 2** (written): confirm its decisions (open decision 6), then execute task by task.
+   Tasks 1–9 need no Cloudflare account; Checkpoint D (staging resources, secrets, pooling
+   check) comes before the Worker tasks.
 3. **Checkpoint C**: full seed corpus (`wts run`), boilerplate counts, correction candidates.
-4. **Plan 2**: D1 schema, Worker API, `wts publish`, platform ID matching (Apple, Spotify,
-   YouTube @WoodTalk with the length rule), Keychain secrets, ntfy, backups, `wts logs`.
-   Write it with `superpowers:writing-plans` from spec §4, §6–§8.
-5. Plans 3–5: frontend, review tool, test search set.
+4. Plans 3–5: frontend, review tool, test search set (write them after plan 2's Checkpoint E).
 
 ## Rulings made during plan 1 (with cost if wrong)
 

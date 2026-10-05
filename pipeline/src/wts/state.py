@@ -90,14 +90,15 @@ def reset(conn: sqlite3.Connection, episode_id: int, to: Status) -> None:
 
 
 def episodes_for_step(
-    conn: sqlite3.Connection, step: str, ids: Collection[int]
+    conn: sqlite3.Connection, step: str, ids: Collection[int], *, newest_first: bool = False
 ) -> list[sqlite3.Row]:
     if not ids:
         return []
     marks = ", ".join("?" for _ in ids)
+    order = "desc" if newest_first else "asc"
     return conn.execute(
         f"select * from episodes where id in ({marks}) and "
         "(status = ? or (status = ? and error_step = ? and retries < ?)) "
-        "order by published_at",
+        f"order by published_at {order}",
         (*ids, STEP_INPUT[step], Status.ERROR, step, MAX_RETRIES),
     ).fetchall()

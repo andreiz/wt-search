@@ -140,7 +140,9 @@ def run_transcribe(
     vocab_file: Path = VOCAB_FILE,
 ) -> Counter:
     storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)
-    rows = episodes_for_step(conn, "transcribe", ids)
+    # Newest first: recent episodes are the ones people search for, and a long backlog run
+    # makes them searchable before the archive.
+    rows = episodes_for_step(conn, "transcribe", ids, newest_first=True)
     counts: Counter = Counter()
     if not rows:
         return counts

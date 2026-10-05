@@ -37,6 +37,25 @@ def test_transcript_written_atomically_with_meta(conn, make_episode, paths, cfg,
     assert not list(paths.transcripts_dir.glob("*.tmp"))
 
 
+def test_newest_episodes_are_transcribed_first(conn, make_episode, paths, cfg):
+    paths.audio_dir.mkdir(parents=True, exist_ok=True)
+    heard = []
+
+    class RecordingTranscriber(FakeTranscriber):
+        def transcribe(self, audio, initial_prompt):
+            heard.append(audio.name)
+            return super().transcribe(audio, initial_prompt)
+
+    ids = []
+    for day in ("2007-04-01", "2026-09-17", "2015-07-10"):
+        audio = paths.audio_dir / f"{day}.mp3"
+        audio.write_bytes(b"fake audio")
+        ids.append(make_episode(audio_path=str(audio), status="downloaded",
+                                published_at=f"{day}T00:00:00+00:00"))
+    run_transcribe(conn, paths, cfg, ids, transcriber=RecordingTranscriber())
+    assert heard == ["2026-09-17.mp3", "2015-07-10.mp3", "2007-04-01.mp3"]
+
+
 def test_interrupt_leaves_no_transcript_and_status_unchanged(
     conn, make_episode, paths, cfg, audio_file
 ):

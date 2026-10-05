@@ -25,8 +25,12 @@
 
 ## Checkpoints
 
-- **D** (after Task 9): the maintainer creates the staging Cloudflare resources, stores secrets, and runs the embedding pooling check. It must pass before anything is published.
-- **E** (after Task 16): the seed corpus is published to staging and searched with `curl`.
+Four manual checkpoints, continuing plan 1's lettering. At each one the maintainer runs the real thing on the M1 Max, and the results go into `docs/HANDOFF.md` before the next task starts:
+
+- **D** (after Task 5): platform IDs on the real feed. Spotify and YouTube secrets go in the Keychain, then `wts feed` runs; this shows the match coverage for the seed set and how far back Apple's lookup reaches. No Cloudflare account needed yet.
+- **E** (after Task 10): staging data, Worker not deployed yet. Create the staging D1 and Vectorize resources and the API token, pass the embedding pooling check, receive an ntfy test push, then **publish the seed corpus** and inspect it with `wrangler d1 execute`. A second publish must send nothing.
+- **F** (after Task 13): exact search on staging. Deploy the Worker with `/api/health` and exact search, and search the real corpus with `curl`. Check a few cue times against the audio and YouTube.
+- **G** (after Task 16): everything on staging. Smart search, context and reports, rate limits, then `wts run --env staging` end to end with backup and notifications.
 
 ## Global Constraints
 
@@ -54,13 +58,13 @@
 1. **Publish state per environment.** A new `publications(episode_id, env, digest, published_at)` table plus `published_vectors(env, chunk_id)`. Status `published` means "published to at least one environment"; which environments have the current content is decided by digest. Re-chunking still resets status as before, and a change that doesn't touch the chunks (platform IDs, offsets) republishes because the digest changes.
 2. **Atomicity.** The spec's "one D1 batch" per episode becomes "one D1 `batch` request, made idempotent". The Worker may briefly see a half-updated episode during a publish. Acceptable on staging. **Before production (M2)**, D1 writes move to an authenticated publish route in the Worker that uses `env.DB.batch()`, which is atomic (spec §10). Not built in this plan.
 3. **Highlighting uses FTS5's own `highlight()`**, not a stemmer reimplemented in TypeScript. Highlights then match exactly what FTS5 matched. For meaning-only hits, a second FTS5 query restricted to those chunk IDs highlights any query words that appear.
-4. **Apple IDs** come from the iTunes lookup API, matched on `episodeGuid` = RSS guid. The lookup returns at most the newest ~200 episodes, so older episodes get no Apple button until a fallback is added (M2). Checkpoint E reports how far back it reaches.
+4. **Apple IDs** come from the iTunes lookup API, matched on `episodeGuid` = RSS guid. The lookup returns at most the newest ~200 episodes, so older episodes get no Apple button until a fallback is added (M2). Checkpoint D reports how far back it reaches.
 5. **YouTube** uses the channel's uploads playlist (`channels.list forHandle=@WoodTalk` → `playlistItems.list` → `videos.list`), about 1 quota unit per 50 videos. The spec's channel search costs 100 units per call. The 3 s length rule is applied when publishing: `youtube_video_id` goes to D1 as null when the lengths don't match, but the match stays in `state.db` for the review tool's sync mode.
 6. **The YouTube length rule's input** is the matched video's `contentDetails.duration`, stored locally as `youtube_duration_s`.
 
 ## Review Focus
 
-1. **Pooling.** Workers AI must embed queries with `pooling: "cls"`, or smart search quietly returns poor results. Task 9 adds `wts check-embeddings`, which compares Mac vectors with Workers AI vectors for the same text (cosine ≥ 0.99). Checkpoint D runs it before any publish.
+1. **Pooling.** Workers AI must embed queries with `pooling: "cls"`, or smart search quietly returns poor results. Task 9 adds `wts check-embeddings`, which compares Mac vectors with Workers AI vectors for the same text (cosine ≥ 0.99). Checkpoint E runs it before any publish.
 2. **FTS5 external-content triggers.** With `content='chunks'`, the delete trigger must pass the *old* row values (`insert into chunks_fts(chunks_fts, rowid, text) values('delete', old.id, old.text)`). Otherwise the index silently keeps stale terms. The schema test covers insert, update and delete (Task 1).
 3. **Partial publishes.** If any call fails, the episode's `publications` row isn't written and its status doesn't change. The next run repeats everything for that episode, and the result is the same as a clean publish. Tests inject a failure at each of the four calls (Task 7).
 4. **FTS5 syntax injection.** User input must never reach `MATCH` unquoted. Every term is emitted as a double-quoted string, with `"` doubled, and the Worker adds operators only from parsed syntax (`AND`, `OR`, `NOT`, `*` after a quoted prefix). Inputs like `text:foo`, `NEAR(a b)`, `^x`, unbalanced quotes and lone `-` must parse into plain terms or fall back, never into an error (Task 11).
@@ -281,6 +285,21 @@ vectorize_index = "wts-chunks-staging"
 
 ---
 
+### Checkpoint D: Platform IDs on the real feed (maintainer, M1 Max)
+
+1. **Accounts:** a free Spotify developer app (client credentials) and a YouTube Data API key (spec §10 item 6). The Spotify show ID goes in `config.toml` as `spotify_show_id`.
+2. **Secrets:** `uv run wts secrets set` for `spotify_client_id`, `spotify_client_secret` and `youtube_api_key`. Then run `uv run wts secrets check`, which should list them as `set` and print no values.
+3. **Match:** `uv run wts feed`. Report:
+   - How many of the 35 seed episodes got each platform ID, and how many of all 625.
+   - The oldest episode with an Apple ID (decision 4).
+   - For YouTube: how many matches pass the 3 s length rule.
+   - Spot-check three matches per platform by opening the links.
+4. **Idempotence:** a second `uv run wts feed` changes no IDs.
+
+If coverage is far below expectations (for example under half the 2020–2026 seed episodes on Spotify), stop and adjust the matching before Task 6.
+
+---
+
 ### Task 6: Cloudflare REST client
 
 **Files:**
@@ -411,20 +430,6 @@ vectorize_index = "wts-chunks-staging"
 
 ---
 
-### Checkpoint D: Staging resources and the pooling check (maintainer, M1 Max)
-
-1. **Cloudflare resources:**
-   - `npx wrangler d1 create wts-staging`
-   - `npx wrangler vectorize create wts-chunks-staging --dimensions=768 --metric=cosine`
-   - `npx wrangler vectorize create-metadata-index wts-chunks-staging --property-name=year --type=number` — before any upsert.
-2. **API token** scoped to this account, with D1 Edit, Vectorize Edit and Workers AI Read. Then `uv run wts secrets set cloudflare_api_token`.
-3. **Config:** `cloudflare_account_id` and `[env.staging]` in `config.toml`.
-4. **Other secrets:** `uv run wts secrets set` for `spotify_client_id`, `spotify_client_secret`, `youtube_api_key` and `ntfy_topic`; `spotify_show_id` in config. Run `uv run wts secrets check` and `uv run wts notify test`.
-5. **Pooling check:** `uv run wts check-embeddings` must pass (cosine ≥ 0.99). If it fails, stop: smart search would be wrong.
-6. **Platform IDs:** `uv run wts feed` then report how many seed episodes got each platform ID. This answers how far back the Apple lookup reaches (decision 4).
-
----
-
 ### Task 10: Worker scaffold and `/api/health`
 
 **Files:**
@@ -435,6 +440,7 @@ vectorize_index = "wts-chunks-staging"
 - `wrangler.jsonc`:
   - `migrations_dir: "../schema"`.
   - `env.staging` and `env.production`, each with `d1_databases` (binding `DB`), `vectorize` (binding `VEC`), `ai` (binding `AI`) and `analytics_engine_datasets` (binding `ANALYTICS`).
+  - The D1 `database_id` values are placeholders until Checkpoint E fills in staging's (IDs aren't secrets; they're committed).
   - Var `TURNSTILE_SITE_KEY`; secret `TURNSTILE_SECRET`.
 - `vitest.config.ts` uses `defineWorkersConfig` and applies `schema/` migrations to the test D1 (`readD1Migrations` + `applyD1Migrations` in a setup file).
 - `GET /api/health` → `{ok: true, corpus_version}`, from one D1 query.
@@ -445,6 +451,28 @@ vectorize_index = "wts-chunks-staging"
 - [ ] **Step 3: Implement the scaffold and route.**
 - [ ] **Step 4: Run tests and type-check.** Run: `cd worker && npm test && npx tsc --noEmit`.
 - [ ] **Step 5: Commit.** `worker: scaffold, wrangler environments, /api/health`
+
+---
+
+### Checkpoint E: Seed corpus in staging D1 and Vectorize (maintainer, M1 Max)
+
+Needs the seed corpus embedded (plan 1's Checkpoint C). The Worker isn't deployed yet; Task 10's `wrangler.jsonc` is used only to apply the schema.
+
+1. **Cloudflare resources:**
+   - `npx wrangler d1 create wts-staging`, then put its `database_id` in `worker/wrangler.jsonc` under `env.staging` and commit.
+   - `npx wrangler vectorize create wts-chunks-staging --dimensions=768 --metric=cosine`
+   - `npx wrangler vectorize create-metadata-index wts-chunks-staging --property-name=year --type=number` — before any upsert.
+   - Apply the schema: `cd worker && npx wrangler d1 migrations apply wts-staging --env staging --remote`.
+2. **API token** scoped to this account, with D1 Edit, Vectorize Edit and Workers AI Read. Then `uv run wts secrets set cloudflare_api_token`.
+3. **Config:** `cloudflare_account_id` and `[env.staging]` in `config.toml`.
+4. **Notifications:** `uv run wts secrets set ntfy_topic`, subscribe to the topic on the phone, then `uv run wts notify test` — the push should arrive.
+5. **Pooling check:** `uv run wts check-embeddings` must pass (cosine ≥ 0.99). If it fails, stop: smart search would be wrong.
+6. **Publish:** `uv run wts publish --env staging --dry-run`, then without `--dry-run`. Expect 35 episodes published.
+7. **Inspect:**
+   - `npx wrangler d1 execute wts-staging --remote --command "select count(*) from episodes; select count(*) from chunks; select value from meta where key='corpus_version'"` — counts match `state.db`.
+   - `… --command "select rowid from chunks_fts where chunks_fts match 'dovetail' limit 5"` returns rows (FTS5 on real data).
+   - `npx wrangler vectorize info wts-chunks-staging` — the vector count equals the non-boilerplate chunk count (mutations are async; allow a minute).
+8. **Idempotence:** `uv run wts publish --env staging` again sends nothing.
 
 ---
 
@@ -551,6 +579,19 @@ vectorize_index = "wts-chunks-staging"
 
 ---
 
+### Checkpoint F: Exact search on staging (maintainer, M1 Max)
+
+1. **Migrations:** `cd worker && npx wrangler d1 migrations apply wts-staging --env staging --remote` — nothing new to apply unless Tasks 11–13 added a migration.
+2. **Deploy:** `npx wrangler deploy --env staging`, with a `workers.dev` URL or the staging route (spec §10 item 7).
+3. **Search:**
+   - `curl '<staging>/api/health'` returns the `corpus_version` from Checkpoint E.
+   - `curl '<staging>/api/search?q=dovetail&mode=exact'`, plus a phrase, an exclusion, `year:2015`, `ep:613` and `include:ads` — each gives sensible results.
+   - Search a sponsor read word for word: hidden by default, found with `include:ads`.
+4. **Cue times:** for five hits, play the episode file from `audio_dir` at `hit_ms` (and the YouTube link where there is one). The hit word should be spoken within about 7 s after the cue.
+5. **Latency:** `npx wrangler tail --env staging` during the searches; note typical latency.
+
+---
+
 ### Task 14: Smart search and degraded mode
 
 **Files:**
@@ -601,7 +642,7 @@ vectorize_index = "wts-chunks-staging"
 - Logging: one structured `console.log` per request with endpoint, query truncated to 80 characters, mode, sort, latency, result count and the degraded flag. No IP addresses.
 - Analytics Engine: `writeDataPoint` per search (blobs: query, mode, sort; doubles: results, latency) and per report.
 - Limits: `q` over 200 characters is truncated, not rejected; `page` is clamped.
-- Rate limiting (spec §4.7) uses Cloudflare dashboard rules, documented in Checkpoint E, not code.
+- Rate limiting (spec §4.7) uses Cloudflare dashboard rules, set up in Checkpoint G, not code.
 
 - [ ] **Step 1: Write failing tests:**
   - Context around the first and last chunk.
@@ -652,21 +693,23 @@ vectorize_index = "wts-chunks-staging"
 
 ---
 
-### Checkpoint E: Seed corpus on staging (maintainer, M1 Max)
+### Checkpoint G: Everything on staging (maintainer, M1 Max)
 
-1. **Deploy the Worker:**
-   - `cd worker && npx wrangler d1 migrations apply wts-staging --env staging --remote`
-   - `npx wrangler secret put TURNSTILE_SECRET --env staging`
-   - `npx wrangler deploy --env staging`
+1. **Deploy:**
+   - `npx wrangler secret put TURNSTILE_SECRET --env staging` (Turnstile site key from spec §10 item 6).
+   - `npx wrangler deploy --env staging`.
 2. **Route and rate limits:** route `/api/*` on the staging domain (spec §10 item 7); add the rate-limiting rules (60/min on `/api/*`, 10/h on `/api/report`).
-3. **Publish:** `uv run wts publish --env staging --dry-run`, then without `--dry-run`. Expect 35 episodes published.
-4. **Check:**
-   - `curl '<staging>/api/health'` → the new `corpus_version`.
-   - `curl '<staging>/api/search?q=dovetail&mode=exact'` → results with highlights and cues.
-   - `curl '<staging>/api/search?q=how+do+I+flatten+a+workbench+top'` → smart results with some `related` hits, not degraded.
-   - Spot-check five YouTube links against the video at that time.
-5. **Repeat-run check:** run `uv run wts publish --env staging` again → nothing published (digests match).
-6. **Record** in `docs/HANDOFF.md`:
-   - Platform ID coverage for the seed set (Apple, Spotify, YouTube; and YouTube links shown after the length rule).
-   - Search latency from `wrangler tail`.
+3. **Smart search:**
+   - `curl '<staging>/api/search?q=how+do+I+flatten+a+workbench+top'` → results with some `related` hits, not `smart_degraded`.
+   - Three paraphrase queries of your own, about topics you remember from the seed episodes; note whether the right episode is in the top 10. (This previews plan 5's test search set.)
+   - `newest`/`oldest` sorts, and a `year:` filter in smart mode.
+4. **Context and report:**
+   - `curl '<staging>/api/context?chunk=<id>'` returns neighbouring chunks with cues.
+   - A report with the Turnstile test token (`XXXX.DUMMY.TOKEN.XXXX` against the always-pass test secret) is stored: `npx wrangler d1 execute wts-staging --remote --command "select * from reports"`. Then switch back to the real Turnstile secret.
+5. **Caching:** the same search twice — the second is a cache hit in `wrangler tail`. A re-publish (new `corpus_version`) misses.
+6. **End to end:** `uv run wts run --env staging` with nothing new. It should run every step, publish nothing, write a backup to `backup_dir` (or log that it's unset), and send no error notification. Check `uv run wts logs --since 1h` and `uv run wts logs --level warning`.
+7. **Record** in `docs/HANDOFF.md`:
+   - Platform ID coverage (from Checkpoint D) and YouTube links shown after the length rule.
+   - Search latency (p50 and worst seen) for exact and smart modes.
+   - The paraphrase results from step 3.
    - Anything surprising.

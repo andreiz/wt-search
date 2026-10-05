@@ -125,11 +125,15 @@ and drift acceptance were the alternatives; neither is needed.
    `uv run wts transcribe`. Commit 6 recent transcripts to `pipeline/tests/fixtures/real/` →
    enables the two real-data tests (guards drop < 5% of words; boilerplate flags reads in ≥ 5 of
    6 without exceeding 15%).
-2. **Plan 2** (written, decisions confirmed): execute task by task.
-   Tasks 1–9 need no Cloudflare account; Checkpoint D (staging resources, secrets, pooling
-   check) comes before the Worker tasks.
+2. **Plan 2** (written, decisions confirmed): execute task by task. Its checkpoints:
+   - **D** after Task 5: platform IDs on the real feed (Spotify/YouTube keys, no Cloudflare).
+   - **E** after Task 10: staging D1 + Vectorize, pooling check, ntfy test, seed corpus published
+     (needs Checkpoint C).
+   - **F** after Task 13: Worker deployed, exact search on real data, cue times checked.
+   - **G** after Task 16: smart search, report, caching, `wts run --env staging` end to end.
 3. **Checkpoint C**: full seed corpus (`wts run`), boilerplate counts, correction candidates.
-4. Plans 3–5: frontend, review tool, test search set (write them after plan 2's Checkpoint E).
+   Needed before plan 2's Checkpoint E.
+4. Plans 3–5: frontend, review tool, test search set (write them after plan 2's Checkpoint G).
 
 ## Rulings made during plan 1 (with cost if wrong)
 

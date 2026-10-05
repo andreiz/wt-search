@@ -27,6 +27,7 @@ from wts.download import (
 from wts.embed import Embedder, embed_episode, get_embedder
 from wts.feed import parse_feed, upsert_episodes
 from wts.log import run_record
+from wts.net import new_client
 from wts.paths import Paths
 from wts.selection import resolve_selector
 from wts.state import Status, advance, episodes_for_step, fail, reset
@@ -68,7 +69,7 @@ def run_download(
                 reset(conn, episode_id, Status.NEW)
                 counts["refetched"] += 1
     rows = iter(episodes_for_step(conn, "download", ids))
-    client = client or httpx.Client()
+    client = client or new_client()
     stop = threading.Event()
     pool = ThreadPoolExecutor(max_workers=workers)
     in_flight: dict[Future, sqlite3.Row] = {}
@@ -247,7 +248,7 @@ def run_feed(
     conn: sqlite3.Connection, cfg: Config, *, client: httpx.Client | None = None,
     force: bool = False,
 ) -> Counter:
-    client = client or httpx.Client()
+    client = client or new_client()
     resp = client.get(cfg.feed_url, timeout=30, follow_redirects=True)
     resp.raise_for_status()
     result = upsert_episodes(conn, parse_feed(resp.content), force=force)

@@ -15,22 +15,29 @@ points to.
 ## State
 
 **Code:** `pipeline/` (`wts` CLI) is complete for plan 1: feed → download → transcribe → chunk →
-embed, plus fixes from two fresh-reviewer passes and the real-feed follow-ups below. 174 tests,
-ruff clean (`cd pipeline && uv run pytest -q`).
+embed, plus fixes from two fresh-reviewer passes and the real-feed follow-ups below. All HTTP
+requests now send `WoodTalkSearchBot/<version> (+https://github.com/andreiz/wt-search)`
+(`wts/net.py`), which Acast serves ad-free; `AD_FREE_ATTEMPTS` is 2. 177 tests, ruff clean
+(`cd pipeline && uv run pytest -q`).
 
 **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): feed ingested (625 episodes),
 seed scope = 35 episodes (20 most recent + 15 across 2007–2025), **all 35 downloaded**; 6 are
-ad-free copies, 29 carry inserted ads. **Nothing transcribed yet** (Checkpoint B not started).
+ad-free copies, 29 carry inserted ads — **next: `wts download --refetch-ads`** to replace those
+29 with ad-free copies. **Nothing transcribed yet** (Checkpoint B not started).
 
 ## What we learned from the real feed
 
-- **Feed:** Acast, `https://feeds.acast.com/public/shows/…` (found via
+- **Feed:** Acast, `https://feeds.acast.com/public/shows/65a70f971a69290016a72737` (found via
   `itunes.apple.com/lookup?id=251471480` → `feedUrl`). 625 episodes, 2007–2026.
 - **Episode numbers** come in many title styles (`#85`, `WT127`, `WT 607`, `Wood Talk 595`,
   `552 -`, `| 609`, `Wood Talk #603`); a side series (**Board Meetings #1–3**, 2011) and seven
   **"NNN Extra"** episodes (2016) are stored unnumbered. Every main episode has a unique number.
   (Spec §3.4.)
-- **Acast inserts ads per download** (spec §3.2, §4.6):
+- **Acast inserts ads per download — unless the User-Agent looks like a bot** (spec §3.2,
+  §4.6). **The cause was the User-Agent, not IP or timing:** `curl` and `…Bot` (capital B;
+  the check is case-sensitive, `wts-bot` got ads) get no ads; `python-httpx/…` (what `wts`
+  sent before) and unknown User-Agents do. `wts` now sends `WoodTalkSearchBot/<version> (+…)`.
+  The notes below describe the ad-laden copies.
   - Files run 24–182 s longer than `itunes:duration`; inserted spots are ~30 s (some 15–20 s),
     1–6 per download. The feed's duration is the show's own, ad-free length.
   - Ads change between downloads over minutes–hours, but rapid retries (5× at 2 s) almost always
@@ -41,13 +48,14 @@ ad-free copies, 29 carry inserted ads. **Nothing transcribed yet** (Checkpoint B
     and on many episodes one or two **mid-roll** slots at fixed show times (same in every copy
     of an episode). Each download fills each slot with 0–4 min of ads. 20 of 41 copies had
     mid-rolls (2 of 14 from 2026; most 2013–2023). ep613 (32 s pre + 62 s post) was a lucky
-    first sample: **the pre-roll alone is not the timeline.**
-  - **Who gets ads depends on the request.** From the cloud container, plain `curl` (and the
-    httpx User-Agent) got ad-free files every time (26 of 26 episodes); Apple Podcasts /
-    Spotify app User-Agents got ads in 41 of 52 copies. On the maintainer's Mac (home IP) the
-    httpx User-Agent got ads in 29 of 35, so the IP seems to matter too (likely Acast treats
-    datacenter requests without an app User-Agent as non-listeners). Untested: plain `curl`
-    from the Mac.
+    first sample: a pre-roll correction alone would not have given the show's timeline.
+    This is what Apple/Spotify listeners get at play time, so platform links land early
+    (spec §4.6).
+  - Evidence for the User-Agent: from a cloud container, plain `curl` got ad-free files for
+    26 of 26 episodes and Apple Podcasts / Spotify app User-Agents got ads in 41 of 52 copies;
+    the maintainer confirmed `curl` and `…Bot` vs `wts-bot`/httpx on the Mac. One oddity: a
+    single `python-httpx/0.28.1` download of ep613 from the cloud container came back ad-free.
+    If ad-laden copies reappear, check the IP before the User-Agent.
   - Acast re-encodes the whole stitched file (44.1 kHz mono 64 kbps, no per-piece headers), so
     ad boundaries can't be read from the MP3 frames.
   - **The show opens with a ~2 s sting** at 0:00, identical 2020–2026, a close variant
@@ -59,7 +67,10 @@ ad-free copies, 29 carry inserted ads. **Nothing transcribed yet** (Checkpoint B
 - **sqlite tip:** the maintainer's `.sqliterc` uses column mode, which wraps long values —
   use `sqlite3 -list -noheader` when capturing values in shell.
 
-## Spikes: locate inserted ads
+## Spikes: locate inserted ads (no longer needed)
+
+Ad-free downloads (bot User-Agent) make timeline correction unnecessary, so both spikes are
+done; `pipeline/spikes/` can be deleted, or kept as tools for checking a stray ad-laden copy.
 
 ### Pre-roll finder (done, second session)
 
@@ -70,9 +81,7 @@ ad-free copies, 29 carry inserted ads. **Nothing transcribed yet** (Checkpoint B
 
 - 2014–2026: pre-roll within +0.0…+0.4 s on all 34 ad copies (match ≤ 2.2 bits vs runner-up
   ≥ 9.7 of 32; zero-pre-roll copies found at 0.0). 2007–2013: no sting, finder says so.
-- But mid-rolls (above) mean this only fixes the first slot. Useful later as a sanity check
-  that a copy starts with the show (sting at 0:00 = no pre-roll).
-- Not run on the Mac's seed copies; no need unless we pursue slot mapping.
+- But mid-rolls (above) mean this only fixes the first slot. Not run on the Mac's seed copies.
 
 ### Pair comparison
 
@@ -88,30 +97,16 @@ stitches ads in a different MP3 format, which raw `fpcalc` can't read):
 - No-argument mode (cross-episode, finds identical ad audio shared between seed episodes) is
   **untested** and still uses exact-match voting, which fails on speech — rework before use.
 
-### Where this leaves timeline correction
+### Resolution
 
-With mid-rolls, a correct show timeline needs either an **ad-free copy** or a map of **every
-filled slot**. Options, cheapest first:
-
-1. **Download ad-free copies.** Test on the Mac first: `curl -sL -o x.mp3 <enclosure url>`
-   for a few episodes, compare with `itunes:duration`. If home `curl` still gets ads, test a
-   fetch from a cloud host (e.g. a Cloudflare Worker, which the project deploys anyway) —
-   unverified whether Cloudflare's egress behaves like this container. Then `wts download`
-   needs no timeline step at all. Whether to do this is the maintainer's call (it's Acast's
-   ad system; listeners still get ads through the platform links).
-2. **Map slots by comparing two ad copies** of the same episode: offsets differ where slot
-   fills differ. Fails where both copies fill a slot identically (both WT555 copies did), and
-   rapid retries usually get identical ads, so the copies must be hours apart. Doubles
-   downloads.
-3. **Accept drift:** timestamps on the downloaded copy's timeline; links land late by the
-   pre-roll + mid-rolls the copy had (breaks the spec's "never late" promise).
+Decided by the maintainer (second session): download ad-free with the bot User-Agent; keep the
+length check and `ads_inserted` flag as a safety net with `AD_FREE_ATTEMPTS = 2`. Slot mapping
+and drift acceptance were the alternatives; neither is needed.
 
 ## Open decisions for the maintainer
 
-1. Timeline correction approach (options above). Recommended: try ad-free downloads first —
-   `curl` from the Mac (2 min test), then a cloud fetch.
-2. Retries: reduce `AD_FREE_ATTEMPTS` from 5 to 2 (rapid retries rarely help), or drop retrying
-   once timeline correction exists.
+1. ~~Timeline correction approach~~ — resolved: bot User-Agent (above).
+2. ~~Retries~~ — resolved: `AD_FREE_ATTEMPTS` 5 → 2, kept as a safety net.
 3. M2: new feed episodes aren't auto-added to scope — scheduled `wts run` would skip them.
    Options: auto-scope new episodes, or default `--select all`.
 4. `wts vocab suggest` (pull candidate terms from feed titles/show notes into `vocab.txt`) —
@@ -121,13 +116,12 @@ filled slot**. Options, cheapest first:
 
 ## Next steps (in order)
 
-1. **Checkpoint B** (maintainer): `uv run pytest -m mac -k mlx`, then `uv run wts transcribe`.
-   Can start now on the 6 ad-free episodes
-   (`q "select stem from episodes where in_scope=1 and audio_duration_s <= duration_s + 5"`).
+1. **Re-fetch** (maintainer): `uv run wts download --refetch-ads` → expect all 35 seed copies
+   ad-free (`q "select count(*) from episodes where in_scope=1 and ads_inserted=1"` → 0).
+   Any that still have ads: report the episode and check the IP (see the oddity above).
+2. **Checkpoint B** (maintainer): `uv run pytest -m mac -k mlx`, then `uv run wts transcribe`.
    Commit 6 recent transcripts to `pipeline/tests/fixtures/real/` → enables the two real-data
    tests (guards drop < 5% of words; boilerplate flags reads in ≥ 5 of 6 without exceeding 15%).
-2. Timeline correction: maintainer picks an approach (open decision 1); then brainstorming →
-   spec → plan. Pre-roll finder spike is done (mid-rolls make it insufficient on its own).
 3. **Checkpoint C**: full seed corpus (`wts run`), boilerplate counts, correction candidates.
 4. **Plan 2**: D1 schema, Worker API, `wts publish`, platform ID matching (Apple, Spotify,
    YouTube @WoodTalk with the length rule), Keychain secrets, ntfy, backups, `wts logs`.
@@ -158,7 +152,7 @@ filled slot**. Options, cheapest first:
 - `storage`: `mkdir` `PermissionError` isn't mapped to `StorageUnavailable`; no mount-point check.
 - Runs stopped by `MachineProblem` or a feed HTTP error are recorded with `errors=0`.
 - `FeedResult.updated` counts every row; `reset` also counts episodes already `new`.
-- `httpx.Client` never closed; default User-Agent.
+- `httpx.Client` never closed. (User-Agent fixed in the second session.)
 - Whisper prompt cap counts words, not tokens (~87 words today; fine until `vocab.txt` grows).
 - Stem date is the UTC date (US-evening releases get the next day).
 - `seed_ids(sampled=1)` divides by zero (not reachable from the CLI).

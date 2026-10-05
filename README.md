@@ -28,7 +28,7 @@ More: [DESIGN.md](DESIGN.md) (one page) and the full
 | Milestone | What | State |
 |---|---|---|
 | M1 plan 1 | Pipeline core: feed → embeddings | **Built** ([plan](docs/superpowers/plans/2026-10-05-m1-pipeline-core.md)); 35 seed episodes downloaded, transcription next |
-| — | Inserted-ad timeline correction | Spikes done (`pipeline/spikes/`); approach open — mid-rolls are common |
+| — | Inserted ads | **Solved** by the User-Agent: `wts` sends `WoodTalkSearchBot/…`, which Acast serves ad-free |
 | M1 plan 2 | D1 schema, Worker API, `wts publish` | Not started |
 | M1 plans 3–5 | Frontend, review tool, test search set | Not started |
 | M2 | Full archive on the Mac Mini, production, launch | Not started |
@@ -42,8 +42,9 @@ More: [DESIGN.md](DESIGN.md) (one page) and the full
   1–3 minutes of them. Files may therefore be longer than the feed's `itunes:duration`.
   Apple/Spotify links will drift by the listener's ad time; ad-free copies (length ≈ feed
   duration) give the show's own timeline. Measured on 41 ad copies: ads fill a pre-roll, a
-  post-roll and, on many episodes, one or two mid-roll slots (20 of 41 copies). From a cloud
-  container, plain `curl` downloads came back ad-free every time (26 of 26 episodes).
+  post-roll and, on many episodes, one or two mid-roll slots (20 of 41 copies). Which copy you
+  get depends on the User-Agent: `curl` and `…Bot` (capital B) get no ads; httpx's default and
+  unknown ones do. `wts` sends `WoodTalkSearchBot/<version>`.
 - YouTube (@WoodTalk) has recent episodes at exactly the feed's length; older videos are
   unedited livestreams.
 

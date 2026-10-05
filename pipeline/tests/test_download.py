@@ -17,9 +17,10 @@ from conftest import (
     url_of,
 )
 
-from wts import storage
+from wts import __version__, storage
 from wts.cli import main
 from wts.download import ProbeError, download_ad_free, download_episode, probe_duration_s
+from wts.net import USER_AGENT
 from wts.steps import run_download
 from wts.storage import MachineProblem, StorageUnavailable
 
@@ -145,11 +146,11 @@ def test_ad_free_copy_is_retried_until_found(tmp_path):
     route = respx.get(row["audio_url"]).mock(return_value=httpx.Response(200, content=b"x"))
     pauses = []
     out = download_ad_free(
-        httpx.Client(), row, tmp_path, probe=_probe_sequence(3233.3, 3233.3, 3137.9),
+        httpx.Client(), row, tmp_path, probe=_probe_sequence(3233.3, 3137.9),
         sleep=pauses.append,
     )
     assert (out.duration_s, out.ads_inserted) == (3137.9, False)
-    assert route.call_count == 3 and len(pauses) == 2
+    assert route.call_count == 2 and len(pauses) == 1
     assert not list((tmp_path / ".partial").iterdir())
 
 
@@ -157,11 +158,11 @@ def test_ad_free_copy_is_retried_until_found(tmp_path):
 def test_keeps_shortest_copy_when_every_attempt_has_ads(tmp_path):
     row = {**EPISODE_ROW, "duration_s": 3137}
     respx.get(row["audio_url"]).mock(
-        side_effect=[httpx.Response(200, content=f"copy{i}".encode()) for i in range(5)]
+        side_effect=[httpx.Response(200, content=f"copy{i}".encode()) for i in range(2)]
     )
     out = download_ad_free(
-        httpx.Client(), row, tmp_path,
-        probe=_probe_sequence(3300.0, 3233.0, 3260.0, 3250.0, 3240.0), sleep=lambda s: None,
+        httpx.Client(), row, tmp_path, probe=_probe_sequence(3300.0, 3233.0),
+        sleep=lambda s: None,
     )
     assert (out.duration_s, out.ads_inserted) == (3233.0, True)
     assert out.path.read_bytes() == b"copy1"
@@ -186,6 +187,26 @@ def test_run_download_records_ads_flag(conn, make_episode, paths, cfg):
         "select audio_duration_s, ads_inserted from episodes where id = ?", (e,)
     ).fetchone()
     assert tuple(row) == (3233.0, 1)
+
+
+@respx.mock
+def test_download_sends_the_bot_user_agent_through_redirects(conn, make_episode, paths, cfg):
+    # Acast redirects each download (sphinx → stitcher); its ad filter sees both requests.
+    e = make_episode(duration_s=3137)
+    first = respx.get(url_of(conn, e)).mock(
+        return_value=httpx.Response(302, headers={"Location": "https://stitch.example/a.mp3"})
+    )
+    second = respx.get("https://stitch.example/a.mp3").mock(
+        return_value=httpx.Response(200, content=b"x")
+    )
+    run_download(conn, paths, cfg, [e], probe=lambda p: 3137.5, pause_s=0)
+    assert first.calls.last.request.headers["User-Agent"] == USER_AGENT
+    assert second.calls.last.request.headers["User-Agent"] == USER_AGENT
+
+
+def test_user_agent_names_the_bot_with_a_capital_b():
+    # Acast's ad filter is case-sensitive: "…Bot" gets ad-free audio, "wts-bot" got ads.
+    assert USER_AGENT == f"WoodTalkSearchBot/{__version__} (+https://github.com/andreiz/wt-search)"
 
 
 @respx.mock

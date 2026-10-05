@@ -33,10 +33,11 @@ Each step also runs on its own (`download`, `transcribe`, `chunk`, `embed`) and 
 `--select` (`scope`, `all`, `seed`, `recent:N`, `ep:N`, `year:YYYY`, `stem:S`; comma = union).
 Everything is safe to re-run and to stop with Ctrl-C.
 
-- Inserted ads: Acast stitches different ads into each download. `wts download` retries (up to
-  5×) until it gets a copy whose length matches the feed — i.e. no ads — and otherwise keeps
-  the shortest and marks it `ads_inserted`. `uv run wts download --refetch-ads` re-does stored
-  copies that have ads.
+- Inserted ads: Acast stitches ads into downloads unless the User-Agent looks like a bot, so
+  `wts` sends `WoodTalkSearchBot/<version>` (`src/wts/net.py`; keep the capital B — Acast's
+  check is case-sensitive). As a safety net `wts download` tries twice for a copy whose length
+  matches the feed — i.e. no ads — and otherwise keeps the shorter and marks it
+  `ads_inserted`. `uv run wts download --refetch-ads` re-does stored copies that have ads.
 - Misheard words: add them to `corrections.yaml`, then `uv run wts chunk` (no re-transcribing).
 - Whisper's spelling hints: `vocab.txt`.
 - If the audio folder is missing, unwritable or under 2 GB free, or `ffprobe` is missing, steps

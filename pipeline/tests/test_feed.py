@@ -8,6 +8,7 @@ from click.testing import CliRunner
 
 from wts.cli import main
 from wts.feed import MassReset, normalize_audio_url, parse_feed, upsert_episodes
+from wts.net import USER_AGENT
 from wts.state import Status
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -86,6 +87,17 @@ def test_feed_command_fetches_and_upserts(wts_home):
     r = CliRunner().invoke(main, ["feed"])
     assert r.exit_code == 0, r.output
     assert "added=8" in r.output
+
+
+@respx.mock
+def test_feed_request_sends_the_bot_user_agent(wts_home):
+    (wts_home / "config.toml").write_text('feed_url = "https://feed.example/rss"\n')
+    route = respx.get("https://feed.example/rss").mock(
+        return_value=httpx.Response(200, content=FEED)
+    )
+    r = CliRunner().invoke(main, ["feed"])
+    assert r.exit_code == 0, r.output
+    assert route.calls.last.request.headers["User-Agent"] == USER_AGENT
 
 
 BROKEN_FEED = b"""<?xml version="1.0"?>

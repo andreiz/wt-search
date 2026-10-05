@@ -190,7 +190,7 @@ system.
 | Command | What it does |
 |---|---|
 | `wts feed` | Reads the RSS feed and upserts `episodes`: guid, number, title, published_at, duration_s, audio_url, and page_url (the item's `<link>`). Matches platform IDs, with no match leaving the ID null: **Apple** via the iTunes lookup API; **Spotify** via the Web API with a client-credentials app, matched on normalized title plus publish date ±2 days; **YouTube** via the YouTube Data API search of the show's channel, matched on title and date. |
-| `wts download` | Resumable HTTP download, then an `ffprobe` check that the file can be decoded and is neither more than 2% shorter than `duration_s` (truncated) nor more than 10 minutes longer. *(Revised 2026-10-05: Acast inserts ads per download, so real files run 1–3 min longer than `itunes:duration`; the original ±2% rule rejected 20 of 35 seed episodes.)* The probed length is stored as `audio_duration_s`. **Ad-free copies:** Acast stitches different ads into each download, and a copy within 5 s of `duration_s` has none, so it carries the show's own timeline. `wts download` retries up to 5 times (2 s apart) until it gets one; if every try has ads it keeps the shortest and sets `ads_inserted`. `--refetch-ads` re-downloads stored copies that have ads (resetting them to `new`). File: `<audio_dir>/<stem>.mp3` (§3.0, §3.4). |
+| `wts download` | Resumable HTTP download, then an `ffprobe` check that the file can be decoded and is neither more than 2% shorter than `duration_s` (truncated) nor more than 10 minutes longer. *(Revised 2026-10-05: Acast inserts ads per download, so real files run 1–3 min longer than `itunes:duration`; the original ±2% rule rejected 20 of 35 seed episodes.)* The probed length is stored as `audio_duration_s`. **Ad-free copies:** every HTTP request (feed and downloads) sends the User-Agent `WoodTalkSearchBot/<version> (+https://github.com/andreiz/wt-search)`, one constant in `wts/net.py`. Acast inserts no ads for User-Agents it treats as bots (plain `curl`, and `…Bot` with a capital B; the check is case-sensitive, so `wts-bot` got ads), while httpx's default and unknown User-Agents get ads stitched into each download (*revised 2026-10-05*: the cause is the User-Agent, not IP or timing). A copy within 5 s of `duration_s` has no ads and carries the show's own timeline. As a safety net, `wts download` still checks this: it tries twice (2 s apart); if both copies have ads it keeps the shorter and sets `ads_inserted`. `--refetch-ads` re-downloads stored copies that have ads (resetting them to `new`). File: `<audio_dir>/<stem>.mp3` (§3.0, §3.4). |
 | `wts transcribe` | `mlx-whisper` with `large-v3-turbo`, keeping word-level timestamps and word probabilities. A starter prompt seeds woodworking vocabulary from `pipeline/vocab.txt` (brand names, host names, joinery terms). Output is `<data>/transcripts/<stem>.json` (§3.0), kept permanently; later steps never need to re-transcribe. |
 | `wts chunk` | Applies `corrections.yaml` (§3.3), marks boilerplate (§3.5), and builds windows of about 30 s cut on sentence boundaries and overlapping by one sentence. Each chunk records `start_ms`, `end_ms`, its text, `word_times`, and `is_boilerplate`. |
 | `wts embed` | `bge-base-en-v1.5` (768 dimensions) through `sentence-transformers` on the Mac's GPU (MPS). It must be the same model Workers AI runs for query embeddings (`@cf/baai/bge-base-en-v1.5`). Boilerplate chunks are not embedded. |
@@ -488,25 +488,22 @@ get no YouTube button; no manual alignment is needed. Exact links also
 require our timestamps to be on the show's own timeline (see the ad
 timeline below).
 
-**Known limitation:** Acast inserts ads at download time: 1–6 spots of
-~30 s (some 15–20 s) per download, varying between downloads (spec §3.2).
-Apple and Spotify listeners get their own ads, so those links can land up
-to a few minutes early. Timestamps on the show's own timeline guarantee
-they are never late.
+**Our timeline:** `wts download` fetches with a bot User-Agent, which
+Acast serves without inserted ads (§3.2), so transcripts and `hit_ms` are
+on the show's own timeline: the same as `itunes:duration` and the
+length-matched YouTube videos. A copy that still comes with ads is flagged
+`ads_inserted` (§3.2); its timestamps run late by the ads before each
+point and it should be re-fetched before publishing.
 
-*Measured (2026-10-05, 41 ad copies of 22 episodes from 2007–2026, each
-compared with an ad-free copy by fingerprint; table in
-`pipeline/spikes/preroll_finder_results.txt`):* ads go into fixed **slots**
-per episode: a pre-roll at 0:00, a post-roll after the show, and on many
-episodes one or two **mid-roll** slots at fixed show times (WT555: 13:16 and
-37:25 in both copies). Each download fills each slot with 0–4 minutes of
-ads. 20 of 41 copies had mid-rolls (2 of 14 from 2026; most 2013–2023
-copies). So the show's timeline needs the length of every filled slot, not
-just the pre-roll. The pre-roll alone can be found exactly: from 2014 on,
-every episode opens with the same ~2 s sting at show time 0:00 (none
-2007–2013), and locating it in an ad copy gave the pre-roll within 0.4 s on
-all 34 copies tested. Apple/Spotify links land early by the listener's own
-pre-roll plus any mid-rolls before that point. Mitigations:
+**Known limitation:** Apple and Spotify listeners get ads inserted at play
+time, so those links land early by the listener's own ads before that
+point. Ads go into fixed **slots** per episode: a pre-roll at 0:00, a
+post-roll, and on many episodes one or two **mid-roll** slots at fixed show
+times; each listen fills each slot with 0–4 minutes of ads. *Measured
+2026-10-05* on 41 ad copies of 22 episodes from 2007–2026, each compared
+with an ad-free copy by fingerprint: 20 of 41 had mid-rolls (2 of 14 from
+2026; most 2013–2023). Because our timestamps are on the show's timeline,
+these links are early, never late. Mitigations:
 
 - The card always shows the time as text.
 - YouTube comes first where available.
@@ -711,13 +708,10 @@ chunks unchanged.
 3. **YouTube:** ~~confirm the channel~~ @WoodTalk; length-match rule in §4.6.
 4. **Ad drift:** ~~check whether ads are inserted~~ confirmed per download
    (29 of 35 seed copies have 24–182 s of ads; Patreon offers no ad-free
-   audio). Mid-rolls are common (§4.6), so a pre-roll correction alone
-   isn't enough. Whether ads are inserted depends on the request: from a
-   cloud container, a plain `curl` download was ad-free for 26 of 26
-   episodes, while podcast-app User-Agents got ads in 41 of 52 copies; from
-   the maintainer's home Mac, the default httpx User-Agent gets ads in most
-   downloads. Open: get ad-free copies reliably (where the download runs),
-   or map every slot. See `docs/HANDOFF.md`.
+   audio). ~~Recover the show's timeline~~ resolved 2026-10-05: the cause
+   is the User-Agent. `curl` and `…Bot` User-Agents get no ads; httpx's
+   default and unknown ones do. `wts` now sends `WoodTalkSearchBot/…`
+   (§3.2), so downloads are ad-free and no timeline correction is needed.
 5. **Feed history:** confirm the RSS feed lists the whole archive. If old
    episodes are missing, find another source for their audio before M2.
 6. **API keys:**

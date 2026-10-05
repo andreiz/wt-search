@@ -16,7 +16,7 @@ from wts.feed import normalize_audio_url
 SHORTER_TOLERANCE = 0.02
 MAX_INSERTED_ADS_S = 600
 AD_FREE_SLACK_S = 5  # a copy this close to the feed's duration has no inserted ads
-AD_FREE_ATTEMPTS = 5
+AD_FREE_ATTEMPTS = 2  # with the bot User-Agent copies come ad-free; this is a safety net
 RETRY_PAUSE_S = 2.0
 CHUNK = 1 << 16
 
@@ -135,8 +135,9 @@ def download_ad_free(
 ) -> Downloaded:
     """Download until we get a copy without inserted ads (length matches the feed).
 
-    Acast stitches ads into each download differently; an ad-free copy carries the show's own
-    timeline. If every attempt has ads, keep the shortest copy and report ads_inserted.
+    Acast skips ads for the bot User-Agent (wts.net), so the first copy should be ad-free; an
+    ad-free copy carries the show's own timeline. If every attempt has ads, keep the shortest
+    copy and report ads_inserted.
     """
     best: Downloaded | None = None
     best_file = audio_dir / ".partial" / f"{row['stem']}.best"

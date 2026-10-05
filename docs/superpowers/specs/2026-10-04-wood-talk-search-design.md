@@ -476,18 +476,23 @@ The exact time-parameter formats are checked by hand on iOS, Android and
 desktop during M1. Results go in `docs/deep-links.md`, and the link builder
 lives in one module.
 
-**YouTube alignment check (M1).** For about 5 seed episodes that have a
-video:
-- Transcribe the video's first 10 minutes.
-- Find the time offset that best lines up its words with our transcript.
-- Record it as `offset_youtube_s`.
+**YouTube (findings 2026-10-05).** Channel: **@WoodTalk**. Videos exist
+sporadically from WT322 (2016) and regularly for recent episodes.
+Livestream-era videos are unedited streams (WT379: 1:04:15 on YouTube vs
+50:39 in the feed), but recent videos have exactly the feed's length.
 
-If the offset is the same across episodes from the same period, apply it to
-that whole period. If the video is a different edit (offset not constant
-within the episode), hide the YouTube link for that episode.
+**Rule:** a YouTube link is shown only when the matched video's length
+(YouTube Data API `contentDetails.duration`) is within 3 s of the feed's
+`itunes:duration`, which is the show's own ad-free length. Other episodes
+get no YouTube button; no manual alignment is needed. Exact links also
+require our timestamps to be on the show's own timeline (see the ad
+timeline below).
 
-**Known limitation:** Acast may insert ads at download time, so Apple and
-Spotify playback can drift from our timestamps. Mitigations:
+**Known limitation:** Acast inserts ads at download time: 1–6 spots of
+~30 s (some 15–20 s) per download, varying between downloads (spec §3.2).
+Apple and Spotify listeners get their own ads, so those links can land up
+to a few minutes early. Timestamps on the show's own timeline guarantee
+they are never late. Mitigations:
 
 - The card always shows the time as text.
 - YouTube comes first where available.
@@ -689,12 +694,11 @@ chunks unchanged.
    launch (M2). Ask whether ads are inserted at download time and whether
    the YouTube uploads are the same edit as the podcast audio.
 2. **Deep-link formats:** check by hand during M1 (§4.6).
-3. **YouTube:**
-   - Confirm the show's channel and which episodes it has.
-   - Run the alignment check (§4.6).
-4. **Ad drift:** check whether the feed's audio has ads inserted at download
-   time (download the same episode twice and compare duration and hash).
-   Measure the drift on about 5 seed episodes.
+3. **YouTube:** ~~confirm the channel~~ @WoodTalk; length-match rule in §4.6.
+4. **Ad drift:** ~~check whether ads are inserted~~ confirmed per download
+   (29 of 35 seed copies have 24–182 s of ads; Patreon offers no ad-free
+   audio). Next: detect inserted ads by audio fingerprint to recover the
+   show's own timeline (spike in `pipeline/spikes/ad_fingerprint.py`).
 5. **Feed history:** confirm the RSS feed lists the whole archive. If old
    episodes are missing, find another source for their audio before M2.
 6. **API keys:**

@@ -4,5 +4,22 @@
 global:
   saw stop: SawStop
   kremona: Cremona
+  kermona: Cremona
   fest tool: Festool
+  # Festool Systainers (ep613 "festival sustainers", "festival tools"). "festival" alone stays:
+  # it can be a real festival.
+  festival sustainers: Festool Systainers
+  festival sustainer: Festool Systainer
+  festival tools: Festool tools
+  festival tool: Festool tool
+  sustainers: Systainers
+  sustainer: Systainer
+  work bench: workbench
+  work benches: workbenches
+  # T-9 Boeshield. Keys ignore punctuation, so "t9" also matches "T-9".
+  bow shield: Boeshield
+  bowshield: Boeshield
+  boe shield: Boeshield
+  t9: T-9
+  container store: Container Store
 episodes: {}

@@ -53,6 +53,43 @@ def paths() -> None:
         click.echo(f"{f.name}: {getattr(p, f.name)}")
 
 
+select_option = click.option(
+    "--select",
+    "selector",
+    default="scope",
+    show_default=True,
+    help="Episodes: scope, all, seed, recent:N, ep:N, year:YYYY, stem:S (comma = union).",
+)
+
+
+@main.group()
+def scope() -> None:
+    """Manage which episodes are in scope (the default selection)."""
+
+
+@scope.command("add")
+@click.argument("selector")
+def scope_add(selector: str) -> None:
+    """Mark the selected episodes as in scope."""
+    from wts.selection import add_to_scope, resolve_selector
+
+    conn = _ctx().conn()
+    n = add_to_scope(conn, resolve_selector(conn, selector))
+    click.echo(f"{n} episode(s) added to scope")
+
+
+@scope.command("list")
+def scope_list() -> None:
+    """List in-scope episodes."""
+    conn = _ctx().conn()
+    rows = conn.execute(
+        "select stem, status from episodes where in_scope = 1 order by published_at"
+    ).fetchall()
+    for r in rows:
+        click.echo(f"{r['stem']}  {r['status']}")
+    click.echo(f"{len(rows)} in scope")
+
+
 @main.command()
 def feed() -> None:
     """Read the RSS feed and add or update episodes."""

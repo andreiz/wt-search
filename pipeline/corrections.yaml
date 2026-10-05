@@ -1,0 +1,8 @@
+# Whole-word transcript fixes, applied in `wts chunk` (spec §3.3).
+# Keys are matched case-insensitively, ignoring punctuation; multi-word keys merge into one word.
+# After editing, run `wts chunk` — changed episodes are re-chunked automatically.
+global:
+  saw stop: SawStop
+  kremona: Cremona
+  fest tool: Festool
+episodes: {}

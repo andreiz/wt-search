@@ -34,6 +34,32 @@ def test_three_repeats_are_kept():
     assert _text(words) == "no no no, not that one."
 
 
+def test_conversational_repeats_are_kept():
+    text = "Yeah, yeah, yeah, yeah. So anyway we glued it up and clamped it overnight."
+    words, flags = clean_transcript(tx(seg(text)), 60)
+    assert _text(words) == text and "loop_cut" not in flags
+
+
+def test_dropped_loop_is_flagged():
+    _, flags = clean_transcript(tx(seg(" ".join(["the glue"] * 4)), seg("Clamp it.")), 60)
+    assert "loop_cut" in flags
+
+
+def test_one_bad_segment_only_retimes_that_segment():
+    good = seg_with_word_starts("one two", starts=[0.0, 0.2], start=0.0, end=1.0)
+    bad = seg_with_word_starts("a b c d", starts=[1.0, 4.0, 2.0, 4.5], start=1.0, end=5.0)
+    words, flags = clean_transcript(tx(good, bad), 60)
+    assert "bad_word_times" in flags
+    assert [w.start_ms for w in words] == [0, 200, 1000, 2000, 3000, 4000]
+
+
+def test_whisper_word_with_inner_space_is_split():
+    s = seg_with_word_starts("x", starts=[0.0], start=0.0, end=1.0)
+    s["words"][0]["word"] = " - the"
+    words, _ = clean_transcript(tx(s), 60)
+    assert [w.text for w in words] == ["-", "the"]
+
+
 def test_backwards_timestamps_fall_back_to_even_spacing():
     data = tx(seg_with_word_starts("a b c d", starts=[0.0, 3.0, 1.0, 4.0], start=0.0, end=4.0))
     words, flags = clean_transcript(data, 60)

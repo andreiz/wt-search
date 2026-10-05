@@ -63,6 +63,9 @@ def _units(sentences: Sequence[Sentence], boilerplate: Sequence[bool], max_ms: i
 
 def _chunk(seq: int, units: Sequence[_Unit]) -> Chunk:
     words = [w for u in units for w in u.words]
+    if any(not w.text or len(w.text.split()) != 1 for w in words):
+        # word_times needs exactly one entry per space-separated token of the chunk text.
+        raise ValueError(f"chunk {seq}: words must be single non-empty tokens")
     start = words[0].start_ms
     boiler_words = sum(len(u.words) for u in units if u.boilerplate)
     return Chunk(

@@ -33,7 +33,8 @@ def _match_words(key: str) -> tuple[str, ...]:
 def load_corrections(path: Path) -> list[CorrectionRule]:
     if not path.exists():
         return []
-    data = yaml.safe_load(path.read_text()) or {}
+    # BaseLoader keeps every key and value as text: `no:` stays "no", `uh:` is "" (delete).
+    data = yaml.load(path.read_text(), Loader=yaml.BaseLoader) or {}
     rules = [
         CorrectionRule(_match_words(k), str(v), None) for k, v in (data.get("global") or {}).items()
     ]
@@ -44,6 +45,31 @@ def load_corrections(path: Path) -> list[CorrectionRule]:
 
 def corrections_sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else ""
+
+
+def _replace(span: list[Word], replacement: str, previous: list[Word]) -> list[Word]:
+    """The replacement as one Word per token (sharing the span's time), keeping punctuation.
+
+    Each Word's text must stay a single token: chunk text and word_times are aligned 1:1.
+    """
+    trailing_match = _TRAILING.search(span[-1].text)
+    trailing = trailing_match.group() if trailing_match else ""
+    tokens = replacement.split()
+    if not tokens:  # deletion: keep a sentence end by moving it onto the previous word
+        if trailing and previous and not _TRAILING.search(previous[-1].text):
+            last = previous[-1]
+            previous[-1] = Word(last.text + trailing, last.start_ms, last.end_ms, last.prob)
+        return []
+    start, end = span[0].start_ms, span[-1].end_ms
+    step = (end - start + 1) / len(tokens)
+    prob = min(w.prob for w in span)
+    out = [
+        Word(t, start + round(k * step), start + round((k + 1) * step) - 1, prob)
+        for k, t in enumerate(tokens)
+    ]
+    last = out[-1]
+    out[-1] = Word(last.text + trailing, last.start_ms, end, prob)
+    return out
 
 
 def apply_corrections(words: list[Word], rules: Sequence[CorrectionRule], stem: str) -> list[Word]:
@@ -62,16 +88,7 @@ def apply_corrections(words: list[Word], rules: Sequence[CorrectionRule], stem: 
         for rule in ordered:
             n = len(rule.match)
             if tuple(keys[i : i + n]) == rule.match:
-                span = words[i : i + n]
-                trailing = _TRAILING.search(span[-1].text)
-                out.append(
-                    Word(
-                        rule.replace + (trailing.group() if trailing else ""),
-                        span[0].start_ms,
-                        span[-1].end_ms,
-                        min(w.prob for w in span),
-                    )
-                )
+                out.extend(_replace(words[i : i + n], rule.replace, out))
                 i += n
                 break
         else:

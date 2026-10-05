@@ -60,7 +60,7 @@ def run_download(
     def record(row: sqlite3.Row, job: Future) -> None:
         extra = {"step": "download", "episode": row["stem"]}
         try:
-            path = job.result()
+            got = job.result()
         except OSError as exc:
             storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)  # raises if it's gone
             reason = repr(exc)
@@ -69,7 +69,8 @@ def run_download(
         else:
             with conn:
                 conn.execute(
-                    "update episodes set audio_path = ? where id = ?", (str(path), row["id"])
+                    "update episodes set audio_path = ?, audio_duration_s = ? where id = ?",
+                    (str(got.path), got.duration_s, row["id"]),
                 )
             advance(conn, row["id"], "download")
             counts["ok"] += 1

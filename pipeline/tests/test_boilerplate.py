@@ -84,6 +84,22 @@ def test_short_sentences_never_boilerplate(conn, make_episodes):
     assert not idx.is_boilerplate(ids[0], "yeah totally")
 
 
+def test_replacing_with_identical_sentences_skips_rewrite(conn, make_episodes):
+    ids = make_episodes(1)
+    idx = BoilerplateIndex(conn)
+    idx.replace_episode(ids[0], [sentence_from(AD)])
+    rowids = conn.execute("select rowid from bp_bands order by rowid").fetchall()
+    idx.replace_episode(ids[0], [sentence_from(AD)])
+    assert conn.execute("select rowid from bp_bands order by rowid").fetchall() == rowids
+
+
+def test_band_keys_are_cached():
+    band_keys.cache_clear()
+    band_keys(AD)
+    band_keys(AD)
+    assert band_keys.cache_info().hits >= 1
+
+
 def test_mask(conn, make_episodes):
     ids = make_episodes(5)
     idx = BoilerplateIndex(conn)

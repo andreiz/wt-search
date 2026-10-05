@@ -53,6 +53,28 @@ def test_case_insensitive_whole_word_only():
     assert [w.text for w in out] == ["Cremona", "kremonas"]
 
 
+def test_replacement_with_space_becomes_separate_timed_words():
+    out = apply_corrections(ws("welcome to woodtalk."), rules(g={"woodtalk": "Wood Talk"}), "s")
+    assert [w.text for w in out] == ["welcome", "to", "Wood", "Talk."]
+    assert (out[2].start_ms, out[3].end_ms) == (2000, 2999)
+    assert out[2].end_ms <= out[3].start_ms
+
+
+def test_empty_replacement_deletes_words_but_keeps_sentence_end():
+    out = apply_corrections(ws("so um. we glued"), rules(g={"um": ""}), "s")
+    assert [w.text for w in out] == ["so.", "we", "glued"]
+
+
+def test_yaml_keys_and_values_stay_text(tmp_path):
+    f = tmp_path / "c.yaml"
+    f.write_text("global:\n  no: nope\n  uh:\n  '1': one\n")
+    assert set(load_corrections(f)) == {
+        CorrectionRule(("no",), "nope", None),
+        CorrectionRule(("uh",), "", None),
+        CorrectionRule(("1",), "one", None),
+    }
+
+
 def test_load_shipped_file_and_sha(tmp_path):
     loaded = load_corrections(CORRECTIONS_FILE)
     assert CorrectionRule(("saw", "stop"), "SawStop", None) in loaded

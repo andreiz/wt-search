@@ -41,8 +41,8 @@ def test_download_resumes_with_range_and_if_range(tmp_path):
     out = download_episode(httpx.Client(), EPISODE_ROW, tmp_path, probe=lambda p: 60.0)
     headers = route.calls[0].request.headers
     assert headers["Range"] == "bytes=3-" and headers["If-Range"] == '"v1"'
-    assert out == tmp_path / f"{EPISODE_ROW['stem']}.mp3"
-    assert out.read_bytes() == b"abcdef" and not partial.exists()
+    assert out.path == tmp_path / f"{EPISODE_ROW['stem']}.mp3" and out.duration_s == 60.0
+    assert out.path.read_bytes() == b"abcdef" and not partial.exists()
     assert not list((tmp_path / ".partial").iterdir())
 
 
@@ -51,7 +51,7 @@ def test_full_response_to_range_request_restarts(tmp_path):
     _partial(tmp_path, b"stale")
     respx.get(EPISODE_ROW["audio_url"]).mock(return_value=httpx.Response(200, content=b"fresh"))
     out = download_episode(httpx.Client(), EPISODE_ROW, tmp_path, probe=lambda p: 60.0)
-    assert out.read_bytes() == b"fresh"
+    assert out.path.read_bytes() == b"fresh"
 
 
 @respx.mock
@@ -61,7 +61,7 @@ def test_partial_without_validator_restarts_from_zero(tmp_path):
         return_value=httpx.Response(200, content=b"whole")
     )
     out = download_episode(httpx.Client(), EPISODE_ROW, tmp_path, probe=lambda p: 60.0)
-    assert "Range" not in route.calls[0].request.headers and out.read_bytes() == b"whole"
+    assert "Range" not in route.calls[0].request.headers and out.path.read_bytes() == b"whole"
 
 
 @respx.mock
@@ -71,7 +71,7 @@ def test_partial_from_a_different_url_is_not_spliced(tmp_path):
         return_value=httpx.Response(200, content=b"new")
     )
     out = download_episode(httpx.Client(), EPISODE_ROW, tmp_path, probe=lambda p: 60.0)
-    assert "Range" not in route.calls[0].request.headers and out.read_bytes() == b"new"
+    assert "Range" not in route.calls[0].request.headers and out.path.read_bytes() == b"new"
 
 
 @respx.mock
@@ -79,7 +79,7 @@ def test_416_means_partial_is_already_complete(tmp_path):
     _partial(tmp_path, b"complete")
     respx.get(EPISODE_ROW["audio_url"]).mock(return_value=httpx.Response(416))
     out = download_episode(httpx.Client(), EPISODE_ROW, tmp_path, probe=lambda p: 60.0)
-    assert out.read_bytes() == b"complete"
+    assert out.path.read_bytes() == b"complete"
 
 
 @respx.mock
@@ -140,8 +140,11 @@ def test_successful_download_advances(conn, make_episode, paths, cfg):
     e = make_episode(duration_s=60)
     respx.get(url_of(conn, e)).mock(return_value=httpx.Response(200, content=b"audio"))
     counts = run_download(conn, paths, cfg, [e], probe=lambda p: 60.5)
-    row = conn.execute("select status, audio_path from episodes where id = ?", (e,)).fetchone()
+    row = conn.execute(
+        "select status, audio_path, audio_duration_s from episodes where id = ?", (e,)
+    ).fetchone()
     assert row["status"] == "downloaded" and Path(row["audio_path"]).read_bytes() == b"audio"
+    assert row["audio_duration_s"] == 60.5
     assert counts["ok"] == 1
 
 

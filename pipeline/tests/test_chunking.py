@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -142,6 +143,60 @@ def test_corrections_edit_alone_triggers_refresh(
     run_chunk(conn, paths, cfg, [], corrections_file=cf)
     assert "Mark" in all_text(conn, transcribed_episode).split()
     assert status_of(conn, transcribed_episode) == "chunked"  # will be re-embedded
+
+
+def test_spaced_correction_keeps_word_times_aligned(conn, transcribed_episode, paths, cfg, tmp_path):
+    cf = tmp_path / "c.yaml"
+    cf.write_text("global:\n  kremona: Matt Cremona\n  um: ''\n")
+    run_chunk(conn, paths, cfg, [transcribed_episode], corrections_file=cf)
+    for text, times in conn.execute("select text, word_times from chunks"):
+        assert len(text.split(" ")) == len(times.split(","))
+    assert "Matt Cremona" in all_text(conn, transcribed_episode)
+
+
+def test_probed_audio_duration_is_used_for_timing_checks(conn, transcribed_episode, paths, cfg):
+    # The feed says 10 s, but the downloaded file (with inserted ads) is longer.
+    conn.execute(
+        "update episodes set duration_s = 10, audio_duration_s = 600 where id = ?",
+        (transcribed_episode,),
+    )
+    conn.commit()
+    run_chunk(conn, paths, cfg, [transcribed_episode])
+    flags = conn.execute(
+        "select flags from episodes where id = ?", (transcribed_episode,)
+    ).fetchone()[0]
+    assert "bad_word_times" not in json.loads(flags)
+
+
+def test_unreadable_transcript_during_refresh_fails_only_that_episode(
+    conn, paths, cfg, episodes_with_ad
+):
+    first, second = episodes_with_ad[:2]
+    run_chunk(conn, paths, cfg, [first])
+    force_status(conn, first, "embedded")
+    path = conn.execute("select transcript_path from episodes where id = ?", (first,)).fetchone()
+    Path(path[0]).write_text("{not json")
+    counts = run_chunk(conn, paths, cfg, [second])
+    assert status_of(conn, second) == "chunked" and counts["ok"] == 1
+    assert status_of(conn, first) == "error"
+
+
+def test_flag_change_keeps_chunk_ids(conn, paths, cfg, episodes_with_ad):
+    first4, fifth = episodes_with_ad[:4], episodes_with_ad[4]
+    run_chunk(conn, paths, cfg, first4)
+    before = chunk_ids(conn, first4[0])
+    run_chunk(conn, paths, cfg, [fifth])  # flips first4's ad chunks to boilerplate
+    assert boilerplate_chunk_count(conn, first4[0]) >= 1
+    assert chunk_ids(conn, first4[0]) == before
+
+
+def test_chunk_ids_are_never_reused(conn, paths, cfg, transcribed_episode, tmp_path):
+    run_chunk(conn, paths, cfg, [transcribed_episode])
+    old_max = max(chunk_ids(conn, transcribed_episode))
+    conn.execute("delete from chunks where id = ?", (old_max,))
+    conn.commit()
+    run_chunk(conn, paths, cfg, [transcribed_episode], force=True)
+    assert old_max not in chunk_ids(conn, transcribed_episode)
 
 
 def test_missing_transcript_fails_episode(conn, paths, cfg, make_episode):

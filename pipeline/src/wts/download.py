@@ -5,6 +5,7 @@ import subprocess
 import threading
 from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import NamedTuple
 from urllib.parse import urlsplit
 
 import httpx
@@ -21,6 +22,11 @@ class ProbeError(Exception):
 
 class DownloadAborted(Exception):
     """The run is stopping; the partial file is kept for the next run."""
+
+
+class Downloaded(NamedTuple):
+    path: Path
+    duration_s: float  # as probed from the file we actually got
 
 
 def probe_duration_s(path: Path) -> float:
@@ -55,7 +61,7 @@ def download_episode(
     audio_dir: Path,
     probe: Callable[[Path], float] = probe_duration_s,
     stop: threading.Event | None = None,
-) -> Path:
+) -> Downloaded:
     name = f"{row['stem']}{_extension(row['audio_url'])}"
     partial = audio_dir / ".partial" / name
     meta_file = partial.with_name(partial.name + ".json")
@@ -95,4 +101,4 @@ def download_episode(
     final = audio_dir / name
     partial.replace(final)
     meta_file.unlink(missing_ok=True)
-    return final
+    return Downloaded(final, seconds)

@@ -210,9 +210,9 @@ system.
 |---|---|
 | Hard failure (corrupt audio, crash, out of memory) | The `ffprobe` check after download catches bad files early. Failures set `error`, and the episode is retried up to 3 times. |
 | Made-up text over silence | Drop segments Whisper marks as probably not speech (`no_speech_prob > 0.6` and low average log probability). |
-| Repetition loops | Cut segments where the same n-gram repeats 4 or more times in a row. |
+| Repetition loops | Cut segments where the same phrase (2–8 words) repeats 4 or more times in a row, or a single word 8 or more times, and the repeats make up at least half the segment; flag the episode `loop_cut`. *(Revised 2026-10-05: the original "any n-gram 4 times" rule dropped normal speech like "yeah, yeah, yeah, yeah".)* |
 | Suspicious episode | Flag it for a manual look (it still publishes) if it has fewer than 80 or more than 260 words per minute. |
-| Bad timestamps | Word start times must never go backwards and must stay within the episode's length. If they don't, flag the episode and fall back to segment-level timestamps. |
+| Bad timestamps | Word start times must never go backwards and must stay within the episode's length (the downloaded file's probed length, which can exceed the feed's when ads are inserted). If a segment's words don't, flag the episode and spread that segment's words evenly across it; other segments keep their word timings. |
 | Misheard words | `pipeline/corrections.yaml` holds whole-word replacements (`Kremona → Cremona`, `saw stop → SawStop`), applied in `wts chunk`. Fixing one means a re-chunk, not a re-transcription. New entries come from listener reports (§4.4) and the weekly zero-result searches (§8.2). |
 
 ### 3.4 File naming
@@ -707,7 +707,7 @@ audio.
 | Audio at 64–96 kbps (likely for older episodes) | about 18–27 GB |
 | Transcript JSON with word timings and probabilities | about 0.6 MB per episode, about 0.4 GB |
 | Chunks and embeddings (100k × 768 float32) | about 0.3 GB |
-| State, analytics, logs | under 0.1 GB |
+| State (`state.db`: chunks plus the boilerplate index of ~16 band keys per sentence), analytics, logs | about 0.4–0.5 GB |
 | **Total** | **about 20–40 GB**, about 95% of it audio |
 
 The seed set (M1, 35 episodes) needs about 2 GB, kept on the Mac's local

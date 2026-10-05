@@ -8,6 +8,7 @@ exact Jaccard similarity.
 import hashlib
 import sqlite3
 from collections.abc import Sequence
+from functools import lru_cache
 
 from datasketch import MinHash
 
@@ -30,10 +31,15 @@ def shingles(norm: str, k: int = SHINGLE_K) -> set[str]:
     return {" ".join(words[i : i + k]) for i in range(len(words) - k + 1)}
 
 
-def band_keys(norm: str) -> list[int]:
-    m = MinHash(num_perm=NUM_PERM, seed=1)
-    for s in shingles(norm):
-        m.update(s.encode())
+_TEMPLATE = MinHash(num_perm=NUM_PERM, seed=1)  # building permutations is costly; do it once
+
+
+@lru_cache(maxsize=200_000)
+def band_keys(norm: str) -> tuple[int, ...]:
+    m = MinHash(
+        num_perm=NUM_PERM, seed=1, permutations=_TEMPLATE.permutations, scheme=_TEMPLATE.scheme
+    )
+    m.update_batch([s.encode() for s in shingles(norm)])
     values = m.hashvalues
     keys = []
     for b in range(BANDS):
@@ -41,7 +47,7 @@ def band_keys(norm: str) -> list[int]:
             b.to_bytes(1, "big") + values[b * ROWS : (b + 1) * ROWS].tobytes(), digest_size=8
         ).digest()
         keys.append(int.from_bytes(digest, "big", signed=True))
-    return keys
+    return tuple(keys)
 
 
 def _jaccard(a: set[str], b: set[str]) -> float:
@@ -53,6 +59,15 @@ class BoilerplateIndex:
         self.conn = conn
 
     def replace_episode(self, episode_id: int, sentences: Sequence[Sentence]) -> None:
+        wanted = [s.norm for s in sentences if len(s.norm.split()) >= MIN_WORDS]
+        stored = [
+            r[0]
+            for r in self.conn.execute(
+                "select norm_text from bp_sentences where episode_id = ? order by id", (episode_id,)
+            )
+        ]
+        if stored == wanted:
+            return  # unchanged: skip rewriting thousands of band rows
         with self.conn:
             self.conn.execute(
                 "delete from bp_bands where sentence_id in "
@@ -60,10 +75,7 @@ class BoilerplateIndex:
                 (episode_id,),
             )
             self.conn.execute("delete from bp_sentences where episode_id = ?", (episode_id,))
-            for s in sentences:
-                norm = s.norm
-                if len(norm.split()) < MIN_WORDS:
-                    continue
+            for norm in wanted:
                 cur = self.conn.execute(
                     "insert into bp_sentences (episode_id, norm_text) values (?, ?)",
                     (episode_id, norm),

@@ -120,6 +120,22 @@ def test_abort_stops_queued_downloads_and_keeps_finished(conn, make_episodes, pa
 
 
 @respx.mock
+def test_file_longer_than_feed_from_inserted_ads_is_accepted(tmp_path):
+    row = {**EPISODE_ROW, "duration_s": 753}
+    respx.get(row["audio_url"]).mock(return_value=httpx.Response(200, content=b"x"))
+    out = download_episode(httpx.Client(), row, tmp_path, probe=lambda p: 893.0)  # +140 s of ads
+    assert out.duration_s == 893.0
+
+
+@respx.mock
+def test_file_far_longer_than_feed_is_rejected(tmp_path):
+    row = {**EPISODE_ROW, "duration_s": 600}
+    respx.get(row["audio_url"]).mock(return_value=httpx.Response(200, content=b"x"))
+    with pytest.raises(ProbeError, match="longer"):
+        download_episode(httpx.Client(), row, tmp_path, probe=lambda p: 600.0 + 601)
+
+
+@respx.mock
 def test_probe_mismatch_raises_and_discards_partial(tmp_path):
     respx.get(EPISODE_ROW["audio_url"]).mock(return_value=httpx.Response(200, content=b"x"))
     with pytest.raises(ProbeError, match="duration"):

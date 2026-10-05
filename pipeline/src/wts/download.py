@@ -12,7 +12,8 @@ import httpx
 
 from wts.feed import normalize_audio_url
 
-DURATION_TOLERANCE = 0.02
+SHORTER_TOLERANCE = 0.02
+MAX_INSERTED_ADS_S = 600
 CHUNK = 1 << 16
 
 
@@ -92,8 +93,17 @@ def download_episode(
     try:
         seconds = probe(partial)
         expected = row["duration_s"]
-        if expected and abs(seconds - expected) > DURATION_TOLERANCE * expected:
-            raise ProbeError(f"duration {seconds:.0f}s differs from feed's {expected}s by over 2%")
+        # Truncated downloads are short. Files are often *longer* than the feed says,
+        # because ads are inserted per download, so allow up to MAX_INSERTED_ADS_S extra.
+        if expected and seconds < expected * (1 - SHORTER_TOLERANCE):
+            raise ProbeError(
+                f"duration {seconds:.0f}s is over 2% shorter than the feed's {expected}s"
+            )
+        if expected and seconds > expected + MAX_INSERTED_ADS_S:
+            raise ProbeError(
+                f"duration {seconds:.0f}s is over {MAX_INSERTED_ADS_S // 60} min longer "
+                f"than the feed's {expected}s"
+            )
     except ProbeError:
         partial.unlink(missing_ok=True)
         meta_file.unlink(missing_ok=True)

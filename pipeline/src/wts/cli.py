@@ -8,6 +8,7 @@ import click
 from wts import __version__
 from wts.config import Config, load_config
 from wts.paths import Paths, resolve_paths
+from wts.secrets import SECRET_NAMES
 
 
 @dataclass
@@ -142,6 +143,36 @@ def scope_list() -> None:
     for r in rows:
         click.echo(f"{r['stem']}  {r['status']}")
     click.echo(f"{len(rows)} in scope")
+
+
+@main.group("secrets")
+def secrets_group() -> None:
+    """Manage secrets in the macOS Keychain (values are never printed)."""
+
+
+@secrets_group.command("set")
+@click.argument("name", type=click.Choice(SECRET_NAMES))
+def secrets_set(name: str) -> None:
+    """Store a secret; `security` prompts for the value."""
+    from wts.secrets import KeychainError, set_secret
+
+    try:
+        code = set_secret(name)
+    except KeychainError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if code != 0:
+        raise click.ClickException(f"security exited {code}; {name} not stored")
+    click.echo(f"{name} stored")
+
+
+@secrets_group.command("check")
+def secrets_check() -> None:
+    """List each secret as set or missing."""
+    from wts.secrets import get_store
+
+    store = get_store()
+    for name in SECRET_NAMES:
+        click.echo(f"{name} {'set' if store.get(name) is not None else 'missing'}")
 
 
 @main.command()

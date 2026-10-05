@@ -37,10 +37,21 @@ ad-free copies, 29 carry inserted ads. **Nothing transcribed yet** (Checkpoint B
     get the same ads — retries cost ~8 GB for 2 GB kept. Two downloads of ep615 minutes apart
     were byte-identical (no ads); ep613 came back once with +96 s and once ad-free.
   - Patreon does **not** offer ad-free audio.
-  - **ep613 measured exactly** (ad-free `/tmp/second.mp3` vs ad copy, via the spike below):
-    **32 s pre-roll at 0:00 + 62 s post-roll at the end, no mid-rolls**; show audio sits at a
-    constant +32.1 s offset. If this holds generally, the show's timeline needs only the
-    **pre-roll length per episode**.
+  - **Ad slots (measured on 41 ad copies, second session):** a pre-roll at 0:00, a post-roll,
+    and on many episodes one or two **mid-roll** slots at fixed show times (same in every copy
+    of an episode). Each download fills each slot with 0–4 min of ads. 20 of 41 copies had
+    mid-rolls (2 of 14 from 2026; most 2013–2023). ep613 (32 s pre + 62 s post) was a lucky
+    first sample: **the pre-roll alone is not the timeline.**
+  - **Who gets ads depends on the request.** From the cloud container, plain `curl` (and the
+    httpx User-Agent) got ad-free files every time (26 of 26 episodes); Apple Podcasts /
+    Spotify app User-Agents got ads in 41 of 52 copies. On the maintainer's Mac (home IP) the
+    httpx User-Agent got ads in 29 of 35, so the IP seems to matter too (likely Acast treats
+    datacenter requests without an app User-Agent as non-listeners). Untested: plain `curl`
+    from the Mac.
+  - Acast re-encodes the whole stitched file (44.1 kHz mono 64 kbps, no per-piece headers), so
+    ad boundaries can't be read from the MP3 frames.
+  - **The show opens with a ~2 s sting** at 0:00, identical 2020–2026, a close variant
+    2014–2017, none 2007–2013. Nothing else in the first minute is shared between episodes.
 - **YouTube** (@WoodTalk): sporadic from WT322 (2016); livestream-era videos are unedited and
   longer (WT379 1:04:15 vs 50:39 podcast); recent videos match the feed length exactly. Rule:
   link YouTube only when video length is within 3 s of `itunes:duration` (spec §4.6). Exact links
@@ -48,7 +59,22 @@ ad-free copies, 29 carry inserted ads. **Nothing transcribed yet** (Checkpoint B
 - **sqlite tip:** the maintainer's `.sqliterc` uses column mode, which wraps long values —
   use `sqlite3 -list -noheader` when capturing values in shell.
 
-## Spike in progress: locate inserted ads
+## Spikes: locate inserted ads
+
+### Pre-roll finder (done, second session)
+
+`pipeline/spikes/preroll_finder.py` locates the sting in the first `extra + 5` s of an ad copy
+(templates: first 2 s of a few ad-free copies from different eras). Results in
+`pipeline/spikes/preroll_finder_results.txt`, run in the cloud container on 22 episodes ×
+(1 ad-free curl copy + Apple and Spotify UA copies), truth from `ad_fingerprint.py --pair`:
+
+- 2014–2026: pre-roll within +0.0…+0.4 s on all 34 ad copies (match ≤ 2.2 bits vs runner-up
+  ≥ 9.7 of 32; zero-pre-roll copies found at 0.0). 2007–2013: no sting, finder says so.
+- But mid-rolls (above) mean this only fixes the first slot. Useful later as a sanity check
+  that a copy starts with the show (sting at 0:00 = no pre-roll).
+- Not run on the Mac's seed copies; no need unless we pursue slot mapping.
+
+### Pair comparison
 
 `pipeline/spikes/ad_fingerprint.py` (throwaway; Chromaprint via ffmpeg-decoded WAV — Acast
 stitches ads in a different MP3 format, which raw `fpcalc` can't read):
@@ -56,19 +82,34 @@ stitches ads in a different MP3 format, which raw `fpcalc` can't read):
 - `--pair AD_FREE.mp3 AD.mp3` — scans every offset with fingerprint bit-error (exact matches
   are too rare on speech), reports offset steps and inserted spans. Verified on synthetic music,
   synthetic speech (espeak) and the real ep613 pair (median 2.4 bit errors; found 95 of 95.4 s).
+  Second session: ground truth for 41 ad copies (~40 s each). On 2007–2013 audio it shows brief
+  false matches at some ad/show boundaries (an extra offset step ~1 s long); harmless for
+  totals, but read the first span, not the first offset step.
 - No-argument mode (cross-episode, finds identical ad audio shared between seed episodes) is
   **untested** and still uses exact-match voting, which fails on speech — rework before use.
 
-**Next step proposed (not started):** a *pre-roll finder* — use the show's opening from an
-ad-free copy as a template, locate it near the start of each ad-laden copy → pre-roll length;
-check `extra − pre-roll` looks like a post-roll (~30/60 s) to confirm no mid-rolls. Recent
-episodes first (they have YouTube); older eras need their own opening template. If it holds,
-design the pipeline step (store per-episode pre-roll; map transcript times to show time) via
-brainstorming → spec → plan.
+### Where this leaves timeline correction
+
+With mid-rolls, a correct show timeline needs either an **ad-free copy** or a map of **every
+filled slot**. Options, cheapest first:
+
+1. **Download ad-free copies.** Test on the Mac first: `curl -sL -o x.mp3 <enclosure url>`
+   for a few episodes, compare with `itunes:duration`. If home `curl` still gets ads, test a
+   fetch from a cloud host (e.g. a Cloudflare Worker, which the project deploys anyway) —
+   unverified whether Cloudflare's egress behaves like this container. Then `wts download`
+   needs no timeline step at all. Whether to do this is the maintainer's call (it's Acast's
+   ad system; listeners still get ads through the platform links).
+2. **Map slots by comparing two ad copies** of the same episode: offsets differ where slot
+   fills differ. Fails where both copies fill a slot identically (both WT555 copies did), and
+   rapid retries usually get identical ads, so the copies must be hours apart. Doubles
+   downloads.
+3. **Accept drift:** timestamps on the downloaded copy's timeline; links land late by the
+   pre-roll + mid-rolls the copy had (breaks the spec's "never late" promise).
 
 ## Open decisions for the maintainer
 
-1. Pre-roll finder spike — go ahead? (Proposed above.)
+1. Timeline correction approach (options above). Recommended: try ad-free downloads first —
+   `curl` from the Mac (2 min test), then a cloud fetch.
 2. Retries: reduce `AD_FREE_ATTEMPTS` from 5 to 2 (rapid retries rarely help), or drop retrying
    once timeline correction exists.
 3. M2: new feed episodes aren't auto-added to scope — scheduled `wts run` would skip them.
@@ -85,7 +126,8 @@ brainstorming → spec → plan.
    (`q "select stem from episodes where in_scope=1 and audio_duration_s <= duration_s + 5"`).
    Commit 6 recent transcripts to `pipeline/tests/fixtures/real/` → enables the two real-data
    tests (guards drop < 5% of words; boilerplate flags reads in ≥ 5 of 6 without exceeding 15%).
-2. Pre-roll finder spike → if it holds, design the timeline-correction step.
+2. Timeline correction: maintainer picks an approach (open decision 1); then brainstorming →
+   spec → plan. Pre-roll finder spike is done (mid-rolls make it insufficient on its own).
 3. **Checkpoint C**: full seed corpus (`wts run`), boilerplate counts, correction candidates.
 4. **Plan 2**: D1 schema, Worker API, `wts publish`, platform ID matching (Apple, Spotify,
    YouTube @WoodTalk with the length rule), Keychain secrets, ntfy, backups, `wts logs`.
@@ -130,3 +172,6 @@ brainstorming → spec → plan.
 - Weak ETags can't be used with `If-Range` (resume restarts); Ctrl-C can wait up to the 60 s timeout.
 - One process slip: in Task 12 `run_chunk` was appended with a shell heredoc instead of the Edit
   tool (content is a normal diff).
+- Second session, same kind of slip: one `sed` edit to the new `preroll_finder.py` (clip length
+  `+ 1` → `+ 5`) and a script-generated `preroll_finder_results.txt`. Both files are new in
+  this commit, so the diff still shows everything.

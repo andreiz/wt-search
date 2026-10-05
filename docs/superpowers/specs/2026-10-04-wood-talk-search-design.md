@@ -494,13 +494,19 @@ Apple and Spotify listeners get their own ads, so those links can land up
 to a few minutes early. Timestamps on the show's own timeline guarantee
 they are never late.
 
-*Measured (ep613, ad-free vs ad copy, fingerprint comparison):* a 32 s
-**pre-roll** at 0:00 and a 62 s **post-roll** after the show, **no
-mid-rolls**; the show sits at a constant offset equal to the pre-roll. If
-this holds across episodes, the show's timeline needs one number per episode
-(the pre-roll length), and Apple/Spotify links land early by exactly the
-listener's own pre-roll. To be confirmed on more episodes (pre-roll finder
-spike; see `docs/HANDOFF.md`). Mitigations:
+*Measured (2026-10-05, 41 ad copies of 22 episodes from 2007–2026, each
+compared with an ad-free copy by fingerprint; table in
+`pipeline/spikes/preroll_finder_results.txt`):* ads go into fixed **slots**
+per episode: a pre-roll at 0:00, a post-roll after the show, and on many
+episodes one or two **mid-roll** slots at fixed show times (WT555: 13:16 and
+37:25 in both copies). Each download fills each slot with 0–4 minutes of
+ads. 20 of 41 copies had mid-rolls (2 of 14 from 2026; most 2013–2023
+copies). So the show's timeline needs the length of every filled slot, not
+just the pre-roll. The pre-roll alone can be found exactly: from 2014 on,
+every episode opens with the same ~2 s sting at show time 0:00 (none
+2007–2013), and locating it in an ad copy gave the pre-roll within 0.4 s on
+all 34 copies tested. Apple/Spotify links land early by the listener's own
+pre-roll plus any mid-rolls before that point. Mitigations:
 
 - The card always shows the time as text.
 - YouTube comes first where available.
@@ -705,8 +711,13 @@ chunks unchanged.
 3. **YouTube:** ~~confirm the channel~~ @WoodTalk; length-match rule in §4.6.
 4. **Ad drift:** ~~check whether ads are inserted~~ confirmed per download
    (29 of 35 seed copies have 24–182 s of ads; Patreon offers no ad-free
-   audio). Next: detect inserted ads by audio fingerprint to recover the
-   show's own timeline (spike in `pipeline/spikes/ad_fingerprint.py`).
+   audio). Mid-rolls are common (§4.6), so a pre-roll correction alone
+   isn't enough. Whether ads are inserted depends on the request: from a
+   cloud container, a plain `curl` download was ad-free for 26 of 26
+   episodes, while podcast-app User-Agents got ads in 41 of 52 copies; from
+   the maintainer's home Mac, the default httpx User-Agent gets ads in most
+   downloads. Open: get ad-free copies reliably (where the download runs),
+   or map every slot. See `docs/HANDOFF.md`.
 5. **Feed history:** confirm the RSS feed lists the whole archive. If old
    episodes are missing, find another source for their audio before M2.
 6. **API keys:**

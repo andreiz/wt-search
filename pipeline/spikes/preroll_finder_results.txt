@@ -1,0 +1,65 @@
+Pre-roll finder vs ground truth — 2026-10-05, run in a cloud container.
+
+Corpus: 22 episodes across 2007–2026, each downloaded three times on the same day:
+  * plain curl User-Agent -> ad-free every time (26 of 26 episodes tried; length = feed length)
+  * Apple Podcasts and Spotify app User-Agents -> 41 of 52 copies had inserted ads
+Truth: spikes/ad_fingerprint.py --pair AD_FREE AD (offset scan by fingerprint bit error).
+Finder: spikes/preroll_finder.py --stings <ad-free WT614, WT272, WT515> --files <ad copies>
+
+columns: extra = file length - feed length; true pre / found = pre-roll seconds;
+bits = mean fingerprint bit error at the match (of 32); next = best bit error > 3 s away;
+truth spans are in ad-copy time (pre-roll at 0:00, mid-rolls inside, post-rolls at the end).
+(true pre = the offset after the first span; the pair tool shows brief false matches at some
+ad/show boundaries on 2007–2013 audio, e.g. WT122 "+28.3 from 0:58" then "+79.9 from 1:19".)
+
+Summary
+  * 2014–2026 (34 ad copies): pre-roll found within +0.0 … +0.4 s (consistently ~+0.2 s late);
+    match ≤ 2.2 bits vs runner-up ≥ 9.7, so no ambiguity. Zero-pre-roll copies found at 0.0.
+  * 2007–2013 (7 copies): no sting in the show; the finder reports bits ≥ 10 ("NO STING").
+  * Mid-rolls in 20 of 41 copies (2 of 14 from 2026, 18 of 27 older; most 2013–2023 copies
+    have two): pre-roll alone does NOT give the
+    show's timeline. Slots sit at fixed show times per episode (WT555: 13:16 and 37:25 in
+    both copies; WT172: 40:16 in both); each download fills each slot with 0–4 min of ads.
+
+episode copy  year   extra true pre  found  bits  next   err  truth: inserted spans
+WT614   apple 2026   32.2     31.2   31.5   1.4  11.0  +0.3  0:00–0:31 (31s)
+WT614   spot  2026   33.1      0.0    0.0   0.0  11.4  +0.0  53:57–54:29 (32s)
+WT613   apple 2026   87.4     85.6   85.8   0.5  10.6  +0.2  0:00–1:25 (86s)
+WT613   spot  2026   63.8     62.2   62.4   1.4  10.4  +0.2  0:00–1:02 (62s)
+WT611   apple 2026   54.6     26.3   26.6   1.9  10.9  +0.3  0:00–0:26 (26s), 79:16–79:42 (26s)
+WT611   spot  2026   36.0      0.0    0.0   0.1  11.1  +0.0  29:49–30:23 (34s)
+WT610   spot  2026   33.0      0.0    0.0   0.0  11.9  +0.0  58:29–59:01 (32s)
+WT609   apple 2026   33.6      0.0    0.0   0.2  11.4  +0.0  27:58–28:30 (32s)
+WT609   spot  2026   34.2      0.0    0.0   0.2  11.4  +0.0  27:58–28:31 (33s)
+WT606   apple 2026   49.5     48.1   48.4   1.6  10.9  +0.3  0:00–0:48 (48s)
+WT606   spot  2026   36.0     17.1   17.3   1.6  11.4  +0.2  0:00–0:17 (17s), 60:00–60:18 (17s)
+WT605   apple 2026   18.2     17.1   17.3   1.6  11.2  +0.2  0:00–0:17 (17s)
+WT605   spot  2026   68.3      0.0    0.0   0.0  11.7  +0.0  20:59–21:32 (33s), 60:20–60:53 (33s)
+WT604   spot  2026   32.9     32.1   32.4   1.1  11.7  +0.3  0:00–0:32 (32s)
+WT585   apple 2025   66.1     32.1   32.4   1.2  11.3  +0.3  0:00–0:32 (32s), 55:08–55:41 (32s)
+WT585   spot  2025   66.1     32.1   32.4   1.2  11.3  +0.3  0:00–0:32 (32s), 55:08–55:41 (32s)
+WT555   apple 2023  161.3     62.4   62.5   2.1  10.7  +0.1  0:00–1:02 (62s), 14:18–14:53 (35s), 39:02–40:05 (63s)
+WT555   spot  2023  161.0     62.4   62.5   2.1  10.9  +0.1  0:00–1:02 (62s), 14:18–14:53 (35s), 39:02–40:05 (63s)
+WT515   apple 2021  130.7     32.2   32.4   0.9  10.6  +0.2  0:00–0:32 (32s), 17:44–18:48 (63s), 36:00–36:32 (32s)
+WT515   spot  2021  210.3     73.8   73.9   2.2   9.7  +0.1  0:00–1:13 (74s), 18:26–19:26 (60s), 36:38–37:52 (74s)
+WT465   apple 2020  100.8     32.2   32.4   0.9  10.2  +0.2  0:00–0:32 (32s), 49:52–50:27 (35s), 78:21–78:53 (32s)
+WT465   spot  2020  125.5     32.2   32.4   0.9  10.2  +0.2  0:00–0:32 (32s), 49:52–50:51 (59s), 78:46–79:18 (32s)
+WT415   apple 2017  160.4     62.3   62.5   0.8  10.7  +0.2  0:00–1:02 (62s), 28:01–29:06 (64s), 60:47–61:20 (33s)
+WT415   spot  2017  190.7     62.0   62.2   1.2  10.4  +0.2  0:00–1:01 (62s), 28:01–29:06 (65s), 60:47–61:50 (63s)
+WT365   apple 2017   26.1      0.0    0.0   1.1  10.8  +0.0  58:09–58:35 (26s)
+WT365   spot  2017   27.4      0.0    0.0   1.1  10.8  +0.0  58:09–58:36 (27s)
+WT322   apple 2016   35.7      0.0    0.0   1.0   9.9  +0.0  37:07–37:41 (34s)
+WT322   spot  2016   33.0     31.8   32.1   1.2  12.1  +0.3  0:00–0:31 (32s)
+WT272   apple 2015   32.3     31.2   31.6   1.1  12.2  +0.4  0:00–0:31 (31s)
+WT272   spot  2015   65.5     32.0   32.2   0.6  10.3  +0.2  0:00–0:31 (32s), 52:13–52:45 (32s)
+WT222   apple 2015  152.4      0.0    0.0   1.4  10.8  +0.0  21:42–23:16 (94s), 51:33–52:30 (57s)
+WT222   spot  2015   27.3      0.0    0.0   1.4  10.8  +0.0  49:58–50:25 (27s)
+WT172   apple 2014  220.5    109.9  110.1   1.1   9.9  +0.2  0:00–1:49 (110s), 42:06–43:29 (83s), 65:58–66:25 (27s)
+WT172   spot  2014  163.4     80.0   80.2   2.2   9.9  +0.2  0:00–1:20 (80s), 41:36–42:59 (83s)
+WT122   apple 2013  164.1     79.9  111.2  10.0  10.1     —  0:00–1:19 (80s), 30:03–31:26 (82s)  no sting before 2014 (finder flags it)
+WT75    apple 2010  317.9    140.5  252.5  10.1  10.2     —  0:00–2:19 (140s), 35:35–37:27 (112s), 63:25–64:29 (64s)  no sting before 2014 (finder flags it)
+WT75    spot  2010  257.4    110.3  222.4  10.2  10.2     —  0:00–1:49 (109s), 35:05–36:57 (112s), 62:55–63:28 (33s)  no sting before 2014 (finder flags it)
+Festoo  apple 2007   33.5      0.0   27.0  10.7  11.3     —  63:46–64:18 (32s)  no sting before 2014 (finder flags it)
+Festoo  spot  2007  191.2     80.0  158.6  10.0  10.1     —  0:00–1:20 (80s), 33:14–34:36 (82s), 66:29–66:56 (27s)  no sting before 2014 (finder flags it)
+WT1     apple 2007  251.3    122.2  177.8  10.1  10.3     —  0:00–2:02 (122s), 19:43–20:47 (64s), 36:33–37:35 (62s)  no sting before 2014 (finder flags it)
+WT1     spot  2007  287.0    140.3   33.8  10.1  10.2     —  0:00–2:20 (140s), 20:01–21:53 (112s), 37:39–38:11 (32s)  no sting before 2014 (finder flags it)

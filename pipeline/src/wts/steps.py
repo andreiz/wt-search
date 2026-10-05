@@ -20,7 +20,10 @@ from wts.corrections import CORRECTIONS_FILE, corrections_sha, load_corrections
 from wts.db import kv_get, kv_set
 from wts.download import download_episode, probe_duration_s
 from wts.embed import Embedder, embed_episode, get_embedder
+from wts.feed import parse_feed, upsert_episodes
+from wts.log import run_record
 from wts.paths import Paths
+from wts.selection import resolve_selector
 from wts.state import Status, advance, episodes_for_step, fail, reset
 from wts.storage import ToolMissing
 from wts.transcribe import VOCAB_FILE, Transcriber, get_transcriber, transcribe_episode
@@ -203,3 +206,48 @@ def run_embed(
         counts["vectors"] += fresh
         log.info(f"embedded ({fresh} new vectors)", extra=extra)
     return counts
+
+
+def run_feed(
+    conn: sqlite3.Connection, cfg: Config, *, client: httpx.Client | None = None,
+    force: bool = False,
+) -> Counter:
+    client = client or httpx.Client()
+    resp = client.get(cfg.feed_url, timeout=30, follow_redirects=True)
+    resp.raise_for_status()
+    result = upsert_episodes(conn, parse_feed(resp.content), force=force)
+    log.info(f"feed: {result}", extra={"step": "feed"})
+    return Counter(added=result.added, updated=result.updated, reset=result.reset)
+
+
+def run_all(
+    conn: sqlite3.Connection,
+    paths: Paths,
+    cfg: Config,
+    selector: str,
+    *,
+    client: httpx.Client | None = None,
+    transcriber: Transcriber | None = None,
+    embedder: Embedder | None = None,
+    probe: Callable[[Path], float] = probe_duration_s,
+) -> dict[str, Counter]:
+    """feed → download → transcribe → chunk → embed. Publish is added in plan 2."""
+    results: dict[str, Counter] = {}
+    if cfg.feed_url:
+        with run_record(conn, "feed") as run:
+            run.counts.update(run_feed(conn, cfg, client=client))
+        results["feed"] = run.counts
+    else:
+        log.warning("feed_url is not set; skipping the feed step", extra={"step": "feed"})
+    ids = resolve_selector(conn, selector)
+    steps = [
+        ("download", lambda: run_download(conn, paths, cfg, ids, client=client, probe=probe)),
+        ("transcribe", lambda: run_transcribe(conn, paths, cfg, ids, transcriber=transcriber)),
+        ("chunk", lambda: run_chunk(conn, paths, cfg, ids)),
+        ("embed", lambda: run_embed(conn, paths, cfg, ids, embedder=embedder)),
+    ]
+    for name, step in steps:
+        with run_record(conn, name) as run:
+            run.counts.update(step())
+        results[name] = run.counts
+    return results

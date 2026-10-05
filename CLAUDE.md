@@ -12,13 +12,19 @@ Vectorize and a Pages frontend serve search.
   design spec. This is the source of truth; update it when a design decision
   changes.
 
-## Layout (planned; no code yet)
+## Commands
 
-- `pipeline/` — Python `wts` CLI (Mac)
-- `worker/` — Cloudflare Worker (TypeScript)
-- `web/` — frontend (Vite + TypeScript + Preact)
-- `schema/` — D1 migrations, the shared contract between pipeline and Worker
-- `eval/` — test search set and baselines
+- `cd pipeline && uv run pytest -q` — pipeline tests (ML backends faked; runs on Linux)
+- `cd pipeline && uv run ruff check .` — lint
+- `cd pipeline && uv run pytest -m mac` — Mac only: real MLX Whisper and bge models
+
+## Layout
+
+- `pipeline/` — Python `wts` CLI (Mac); see `pipeline/README.md`
+- `worker/` — Cloudflare Worker (TypeScript) — planned
+- `web/` — frontend (Vite + TypeScript + Preact) — planned
+- `schema/` — D1 migrations, the shared contract between pipeline and Worker — planned
+- `eval/` — test search set and baselines — planned
 
 ## Conventions
 

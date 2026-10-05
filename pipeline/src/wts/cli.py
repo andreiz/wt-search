@@ -143,24 +143,41 @@ def scope_list() -> None:
 @click.option("--force", is_flag=True, help="Allow resetting many episodes whose audio URL moved.")
 def feed(force: bool) -> None:
     """Read the RSS feed and add or update episodes."""
-    import httpx
-
-    from wts.feed import MassReset, parse_feed, upsert_episodes
+    from wts.feed import MassReset
     from wts.log import run_record
+    from wts.steps import run_feed
 
     ctx = _ctx()
     if not ctx.cfg.feed_url:
         raise click.UsageError(f"feed_url is not set in {ctx.paths.config_file}")
-    log = ctx.logger()
+    ctx.logger()
     conn = ctx.conn()
     with run_record(conn, "feed") as run:
-        resp = httpx.get(ctx.cfg.feed_url, timeout=30, follow_redirects=True)
-        resp.raise_for_status()
         try:
-            result = upsert_episodes(conn, parse_feed(resp.content), force=force)
+            run.counts.update(run_feed(conn, ctx.cfg, force=force))
         except MassReset as exc:
             run.counts["error"] += 1
             raise click.ClickException(str(exc)) from exc
-        run.counts.update(added=result.added, updated=result.updated, reset=result.reset)
-    log.info(f"feed: {result}", extra={"step": "feed"})
-    click.echo(f"added={result.added} updated={result.updated} reset={result.reset}")
+    c = run.counts
+    click.echo(f"added={c['added']} updated={c['updated']} reset={c['reset']}")
+
+
+@main.command("run")
+@select_option
+def run_cmd(selector: str) -> None:
+    """Run feed → download → transcribe → chunk → embed for the selected episodes."""
+    from wts.feed import MassReset
+    from wts.steps import run_all
+    from wts.storage import MachineProblem
+
+    ctx = _ctx()
+    ctx.logger()
+    try:
+        results = run_all(ctx.conn(), ctx.paths, ctx.cfg, selector)
+    except MachineProblem as exc:
+        click.echo(f"Stopped: {exc}", err=True)
+        raise SystemExit(3) from exc
+    except MassReset as exc:
+        raise click.ClickException(f"{exc} (use `wts feed --force`)") from exc
+    for step, counts in results.items():
+        click.echo(f"{step}: {dict(counts) or 'nothing to do'}")

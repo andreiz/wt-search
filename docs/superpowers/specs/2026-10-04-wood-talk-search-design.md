@@ -236,13 +236,17 @@ model and no API call.
 1. **Normalize** each sentence: lowercase, strip punctuation, write numbers
    out as words, collapse whitespace.
 2. **Fingerprint** each sentence of 6 or more words with MinHash (the
-   `datasketch` library, 128 permutations) over overlapping 5-word phrases.
-   Index the fingerprints in an LSH index, which finds near-identical items
-   quickly. The index is kept in `state.db` and updated as episodes are
-   chunked.
-3. **Count** how many *different* episodes have a sentence with an estimated
-   Jaccard similarity of at least 0.8. If it's 5 or more, the sentence is
-   boilerplate.
+   `datasketch` library, 128 permutations) over the sentence's set of words.
+   Index the fingerprints in an LSH index (16 bands × 8 rows), which finds
+   near-identical items quickly. The index is kept in `state.db` and updated
+   as episodes are chunked.
+   - *Revised during implementation (2026-10-05):* the original design used
+     overlapping 5-word phrases. One misheard word in a 16-word sponsor read
+     drops 5-word-phrase similarity to about 0.4, while word-set similarity
+     stays at about 0.87, so word sets are used instead.
+3. **Count** how many *different* episodes have a sentence with an exact
+   word-set Jaccard similarity of at least 0.8 (LSH only proposes
+   candidates). If it's 5 or more, the sentence is boilerplate.
    - This catches sponsor reads, Patreon plugs, and the standard intro and
      outro, even with small transcription differences.
    - It also catches ads inserted into our downloads, because the same ad

@@ -1,8 +1,89 @@
-import pytest
-from conftest import status_of
+import sqlite3
 
-from wts.db import kv_get, kv_set
-from wts.state import InvalidTransition, Status, advance, episodes_for_step, fail, reset
+import pytest
+from conftest import insert_episode, status_of
+
+from wts.db import _migrations, connect, kv_get, kv_set
+from wts.state import (
+    InvalidTransition,
+    Status,
+    advance,
+    episodes_for_step,
+    fail,
+    publish_ready,
+    reset,
+)
+
+
+def test_platform_migration_applies_on_a_plan1_database(tmp_path):
+    path = tmp_path / "state.db"
+    old = sqlite3.connect(path)
+    for number, sql in _migrations():
+        if number <= 3:
+            old.executescript(sql)
+            old.execute(f"PRAGMA user_version = {number}")
+    e = insert_episode(old, status="embedded", title="Dovetails")
+    old.execute(
+        "insert into chunks (episode_id, seq, start_ms, end_ms, text, word_times) "
+        "values (?, 0, 0, 1000, 'hi', '0')",
+        (e,),
+    )
+    old.commit()
+    old.close()
+
+    conn = connect(path)
+    row = conn.execute("select * from episodes where id = ?", (e,)).fetchone()
+    assert (row["status"], row["title"]) == ("embedded", "Dovetails")
+    assert (row["offset_apple_s"], row["offset_spotify_s"], row["offset_youtube_s"]) == (0, 0, 0)
+    for col in ("apple_episode_id", "spotify_episode_id", "youtube_video_id",
+                "youtube_duration_s", "platforms_checked_at"):
+        assert row[col] is None
+    assert conn.execute("select count(*) from chunks").fetchone()[0] == 1
+    assert conn.execute("select count(*) from publications").fetchone()[0] == 0
+    assert conn.execute("select count(*) from published_vectors").fetchone()[0] == 0
+
+
+def test_publications_are_per_environment(conn, make_episode):
+    e = make_episode()
+    for env in ("staging", "production"):
+        conn.execute(
+            "insert into publications (episode_id, env, digest, published_at) "
+            "values (?, ?, 'd', 'now')",
+            (e, env),
+        )
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "insert into publications (episode_id, env, digest, published_at) "
+            "values (?, 'staging', 'd2', 'now')",
+            (e,),
+        )
+    conn.execute(
+        "insert into published_vectors (env, chunk_id, episode_id) values ('staging', 7, ?)", (e,)
+    )
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            "insert into published_vectors (env, chunk_id, episode_id) values ('staging', 7, ?)",
+            (e,),
+        )
+
+
+def test_publish_ready_takes_embedded_published_and_retryable_errors(conn, make_episode):
+    embedded = make_episode(status="embedded")
+    published = make_episode(status="published")
+    chunked = make_episode(status="chunked")
+    retry = make_episode(status="embedded")
+    fail(conn, retry, "publish", "boom")
+    parked = make_episode(status="embedded")
+    for _ in range(3):
+        fail(conn, parked, "publish", "boom")
+    other_error = make_episode(status="chunked")
+    fail(conn, other_error, "embed", "boom")
+    ids = [embedded, published, chunked, retry, parked, other_error]
+    assert sorted(r["id"] for r in publish_ready(conn, ids)) == sorted(
+        [embedded, published, retry]
+    )
+    assert publish_ready(conn, []) == []
+    assert [r["id"] for r in publish_ready(conn, [published])] == [published]
 
 
 def test_happy_path_advances(conn, make_episode):

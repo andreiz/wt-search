@@ -102,3 +102,18 @@ def episodes_for_step(
         f"order by published_at {order}",
         (*ids, STEP_INPUT[step], Status.ERROR, step, MAX_RETRIES),
     ).fetchall()
+
+
+def publish_ready(conn: sqlite3.Connection, ids: Collection[int]) -> list[sqlite3.Row]:
+    """Episodes that may be published: `embedded`, `published` (to some environment, maybe not
+    the one being published to), or a publish error with retries left. Which are due for an
+    environment is decided by digest (publish.py)."""
+    if not ids:
+        return []
+    marks = ", ".join("?" for _ in ids)
+    return conn.execute(
+        f"select * from episodes where id in ({marks}) and "
+        "(status in (?, ?) or (status = ? and error_step = 'publish' and retries < ?)) "
+        "order by published_at",
+        (*ids, Status.EMBEDDED, Status.PUBLISHED, Status.ERROR, MAX_RETRIES),
+    ).fetchall()

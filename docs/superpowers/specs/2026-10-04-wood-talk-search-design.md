@@ -725,6 +725,11 @@ chunks unchanged.
 7. **Domain:** pick a domain or subdomain for Pages and the Worker.
 8. **NAS (M2):** create the SMB share and folders, set up automatic mounting
    on the Mini, and move the M1 audio there.
+9. **Atomic publish (before production, M2):** D1's REST API doesn't apply a
+   batch all-or-nothing, so on staging a search can briefly see a
+   half-updated episode while it publishes. Before production, `wts publish`
+   sends D1 writes to an authenticated publish route in the Worker that uses
+   `env.DB.batch()`. Vectorize stays on its REST API. (Plan 2, decision 2.)
 
 ## 11. Sizing and cost estimates
 

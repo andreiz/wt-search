@@ -29,7 +29,7 @@ More: [DESIGN.md](DESIGN.md) (one page) and the full
 |---|---|---|
 | M1 plan 1 | Pipeline core: feed → embeddings | **Built** ([plan](docs/superpowers/plans/2026-10-05-m1-pipeline-core.md)); 35 seed episodes downloaded, transcription next |
 | — | Inserted ads | **Solved** by the User-Agent: `wts` sends `WoodTalkSearchBot/…`, which Acast serves ad-free |
-| M1 plan 2 | D1 schema, Worker API, `wts publish` | Planned ([plan](docs/superpowers/plans/2026-10-05-m1-publish-and-api.md)); decisions awaiting review |
+| M1 plan 2 | D1 schema, Worker API, `wts publish` | Planned ([plan](docs/superpowers/plans/2026-10-05-m1-publish-and-api.md)), decisions confirmed |
 | M1 plans 3–5 | Frontend, review tool, test search set | Not started |
 | M2 | Full archive on the Mac Mini, production, launch | Not started |
 

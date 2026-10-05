@@ -8,8 +8,7 @@ points to.
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
 - Plan 1 (built): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
-- Plan 2 (written, not started): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
-  — its "Decisions this plan makes" need the maintainer's OK before Task 4 / Task 7.
+- Plan 2 (written, decisions confirmed, not started): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
 - Superpowers skills install from `.claude/settings.json`.
@@ -19,8 +18,8 @@ points to.
 **Code:** `pipeline/` (`wts` CLI) is complete for plan 1: feed → download → transcribe → chunk →
 embed, plus fixes from two fresh-reviewer passes and the real-feed follow-ups below. All HTTP
 requests now send `WoodTalkSearchBot/<version> (+https://github.com/andreiz/wt-search)`
-(`wts/net.py`), which Acast serves ad-free; `AD_FREE_ATTEMPTS` is 2. 177 tests, ruff clean
-(`cd pipeline && uv run pytest -q`).
+(`wts/net.py`), which Acast serves ad-free; `AD_FREE_ATTEMPTS` is 2. `wts transcribe` goes
+newest first. 178 tests, ruff clean (`cd pipeline && uv run pytest -q`).
 
 **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): feed ingested (625 episodes),
 seed scope = 35 episodes (20 most recent + 15 across 2007–2025), **all 35 downloaded**.
@@ -117,9 +116,8 @@ and drift acceptance were the alternatives; neither is needed.
    proposed, not approved.
 5. Whether the GitHub repo is public (decides if real transcript fixtures can be committed whole
    or must be trimmed to the first 15 minutes).
-6. Plan 2's six decisions (per-environment publish state; idempotent, non-atomic D1 publish;
-   FTS5 `highlight()` instead of a TS stemmer; Apple IDs only for the newest ~200 episodes;
-   YouTube via the uploads playlist; the length rule applied at publish time).
+6. ~~Plan 2's six decisions~~ — all confirmed. Decision 2: D1 REST (non-atomic, idempotent) for
+   now; an atomic publish route in the Worker before production (spec §10 item 9).
 
 ## Next steps (in order)
 
@@ -127,7 +125,7 @@ and drift acceptance were the alternatives; neither is needed.
    `uv run wts transcribe`. Commit 6 recent transcripts to `pipeline/tests/fixtures/real/` →
    enables the two real-data tests (guards drop < 5% of words; boilerplate flags reads in ≥ 5 of
    6 without exceeding 15%).
-2. **Plan 2** (written): confirm its decisions (open decision 6), then execute task by task.
+2. **Plan 2** (written, decisions confirmed): execute task by task.
    Tasks 1–9 need no Cloudflare account; Checkpoint D (staging resources, secrets, pooling
    check) comes before the Worker tasks.
 3. **Checkpoint C**: full seed corpus (`wts run`), boilerplate counts, correction candidates.

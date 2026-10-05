@@ -49,10 +49,10 @@
   - `cue_s[p] = max(0, floor(hit_ms/1000) − 7 + offset_p_s)`.
 - Commit straight to `main`. Every commit message ends with the repo's attribution lines, if the session provides them.
 
-## Decisions this plan makes (for the maintainer to confirm)
+## Decisions this plan makes (all six confirmed by the maintainer, 2026-10-05)
 
 1. **Publish state per environment.** A new `publications(episode_id, env, digest, published_at)` table plus `published_vectors(env, chunk_id)`. Status `published` means "published to at least one environment"; which environments have the current content is decided by digest. Re-chunking still resets status as before, and a change that doesn't touch the chunks (platform IDs, offsets) republishes because the digest changes.
-2. **Atomicity.** The spec's "one D1 batch" per episode becomes "one D1 `batch` request, made idempotent". The Worker may briefly see a half-updated episode during a publish. Acceptable on staging; for production the alternative would be an authenticated publish route in the Worker that uses `env.DB.batch()`, which is atomic. Not built now.
+2. **Atomicity.** The spec's "one D1 batch" per episode becomes "one D1 `batch` request, made idempotent". The Worker may briefly see a half-updated episode during a publish. Acceptable on staging. **Before production (M2)**, D1 writes move to an authenticated publish route in the Worker that uses `env.DB.batch()`, which is atomic (spec §10). Not built in this plan.
 3. **Highlighting uses FTS5's own `highlight()`**, not a stemmer reimplemented in TypeScript. Highlights then match exactly what FTS5 matched. For meaning-only hits, a second FTS5 query restricted to those chunk IDs highlights any query words that appear.
 4. **Apple IDs** come from the iTunes lookup API, matched on `episodeGuid` = RSS guid. The lookup returns at most the newest ~200 episodes, so older episodes get no Apple button until a fallback is added (M2). Checkpoint E reports how far back it reaches.
 5. **YouTube** uses the channel's uploads playlist (`channels.list forHandle=@WoodTalk` → `playlistItems.list` → `videos.list`), about 1 quota unit per 50 videos. The spec's channel search costs 100 units per call. The 3 s length rule is applied when publishing: `youtube_video_id` goes to D1 as null when the lengths don't match, but the match stays in `state.db` for the review tool's sync mode.

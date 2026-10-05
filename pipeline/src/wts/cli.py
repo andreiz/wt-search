@@ -90,7 +90,7 @@ def _run_step(step: str, selector: str, **kwargs) -> None:
     help="Re-download selected episodes whose stored copy has inserted ads.",
 )
 def download(selector: str, refetch_ads: bool) -> None:
-    """Download audio, retrying until a copy has no inserted ads (up to 5 tries)."""
+    """Download audio; retry once if the copy has inserted ads (normally it won't)."""
     _run_step("download", selector, refetch_ads=refetch_ads)
 
 

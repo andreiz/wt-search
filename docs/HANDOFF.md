@@ -148,7 +148,12 @@ Finish plan 1 before starting plan 2.
    - Experiment: word 6–8-grams shared by ≥ 5 episodes (no sentence boundaries) find the read
      and merch plug in all 6 recent episodes (~110–130 words, ~4% of 15 min) and nothing in
      ep001 — detection works that way, but chunks still need cutting at boilerplate edges.
-   - Still to report: time per episode and any transcription errors.
+   - **Speed** (M1 Max, `large-v3-turbo`, from the log's `duration_ms`): 16.4–18.5× realtime,
+     about 3.3 min per hour of audio (ep611: 4.4 min for 78.8 min; ep001: 2.0 min for
+     33.4 min). The full archive (~620 h, spec §11) ≈ 35 h on the M1 Max; the Mini should be
+     faster. `wts transcribe` now prints each episode's time, speed and the time left in the
+     run, plus a summary line.
+   - Still to report: any transcription errors.
 2. **Plan 1, Checkpoint C** (maintainer): `uv run pytest -m mac`, `uv run wts run`,
    `uv run wts status` (all 35 `embedded`), boilerplate counts per episode (expect few, given the
    deferred detector; plan 1's "0–10% of chunks" no longer applies), spot-check 3

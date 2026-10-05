@@ -147,7 +147,9 @@ def run_transcribe(
     if not rows:
         return counts
     transcriber = transcriber or get_transcriber()
-    for row in rows:
+    audio_s = [row["audio_duration_s"] or row["duration_s"] or 0 for row in rows]
+    done_s = done_audio_s = 0.0
+    for i, row in enumerate(rows, 1):
         extra = {"step": "transcribe", "episode": row["stem"]}
         started = time.monotonic()
         try:
@@ -172,9 +174,34 @@ def run_transcribe(
             )
         advance(conn, row["id"], "transcribe")
         counts["ok"] += 1
-        elapsed_ms = int((time.monotonic() - started) * 1000)
-        log.info("transcribed", extra={**extra, "duration_ms": elapsed_ms})
+        elapsed = time.monotonic() - started
+        done_s += elapsed
+        done_audio_s += audio_s[i - 1]
+        msg = f"transcribed in {_clock(elapsed)}{_speed(audio_s[i - 1], elapsed)}; {i} of {len(rows)}"
+        left_audio_s = sum(audio_s[i:])
+        if left_audio_s and done_audio_s:
+            msg += f", about {_clock(left_audio_s * done_s / done_audio_s)} left"
+        log.info(msg, extra={**extra, "duration_ms": int(elapsed * 1000)})
+    if counts["ok"]:
+        log.info(
+            f"transcribed {counts['ok']} episodes in {_clock(done_s)}"
+            f"{_speed(done_audio_s, done_s)}",
+            extra={"step": "transcribe"},
+        )
     return counts
+
+
+def _clock(seconds: float) -> str:
+    """h:mm:ss, or m:ss under an hour."""
+    s = round(seconds)
+    h, rest = divmod(s, 3600)
+    return f"{h}:{rest // 60:02d}:{rest % 60:02d}" if h else f"{rest // 60}:{rest % 60:02d}"
+
+
+def _speed(audio_s: float, elapsed_s: float) -> str:
+    if not audio_s:
+        return ""
+    return f" ({_clock(audio_s)} of audio, {audio_s / max(elapsed_s, 0.001):.1f}× realtime)"
 
 
 def run_chunk(

@@ -56,6 +56,38 @@ def test_newest_episodes_are_transcribed_first(conn, make_episode, paths, cfg):
     assert heard == ["2026-09-17.mp3", "2015-07-10.mp3", "2007-04-01.mp3"]
 
 
+def test_progress_reports_time_speed_and_estimate(conn, make_episode, paths, cfg, audio_file,
+                                                  monkeypatch):
+    import logging
+
+    from wts import steps
+
+    clock = iter(range(0, 10_000, 60))  # every reading is 60 s after the last
+    monkeypatch.setattr(steps.time, "monotonic", lambda: next(clock))
+    messages = []
+    handler = logging.Handler()
+    handler.emit = lambda record: messages.append(record.getMessage())
+    logger = logging.getLogger("wts")
+    old_level = logger.level
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    try:
+        ids = [
+            make_episode(audio_path=str(audio_file), status="downloaded", duration_s=3600,
+                         published_at=f"2026-0{m}-01T00:00:00+00:00")
+            for m in (1, 2)
+        ]
+        run_transcribe(conn, paths, cfg, ids, transcriber=FakeTranscriber())
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(old_level)
+    assert messages == [
+        "transcribed in 1:00 (1:00:00 of audio, 60.0× realtime); 1 of 2, about 1:00 left",
+        "transcribed in 1:00 (1:00:00 of audio, 60.0× realtime); 2 of 2",
+        "transcribed 2 episodes in 2:00 (2:00:00 of audio, 60.0× realtime)",
+    ]
+
+
 def test_interrupt_leaves_no_transcript_and_status_unchanged(
     conn, make_episode, paths, cfg, audio_file
 ):

@@ -96,6 +96,14 @@ def transcribe(selector: str) -> None:
     _run_step("transcribe", selector)
 
 
+@main.command()
+@select_option
+@click.option("--force", is_flag=True, help="Re-chunk selected episodes even if already chunked.")
+def chunk(selector: str, force: bool) -> None:
+    """Clean transcripts, apply corrections, flag boilerplate, and build chunks."""
+    _run_step("chunk", selector, force=force)
+
+
 @main.group()
 def scope() -> None:
     """Manage which episodes are in scope (the default selection)."""

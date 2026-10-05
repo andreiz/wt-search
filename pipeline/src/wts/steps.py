@@ -13,10 +13,14 @@ from pathlib import Path
 import httpx
 
 from wts import storage
+from wts.boilerplate import BoilerplateIndex
+from wts.chunking import chunk_episode, refresh_chunks
 from wts.config import Config
+from wts.corrections import CORRECTIONS_FILE, corrections_sha, load_corrections
+from wts.db import kv_get, kv_set
 from wts.download import download_episode, probe_duration_s
 from wts.paths import Paths
-from wts.state import advance, episodes_for_step, fail
+from wts.state import Status, advance, episodes_for_step, fail, reset
 from wts.storage import ToolMissing
 from wts.transcribe import VOCAB_FILE, Transcriber, get_transcriber, transcribe_episode
 
@@ -128,4 +132,44 @@ def run_transcribe(
         counts["ok"] += 1
         elapsed_ms = int((time.monotonic() - started) * 1000)
         log.info("transcribed", extra={**extra, "duration_ms": elapsed_ms})
+    return counts
+
+
+def run_chunk(
+    conn: sqlite3.Connection,
+    paths: Paths,
+    cfg: Config,
+    ids: Collection[int],
+    *,
+    force: bool = False,
+    corrections_file: Path = CORRECTIONS_FILE,
+) -> Counter:
+    corrections = load_corrections(corrections_file)
+    index = BoilerplateIndex(conn)
+    counts: Counter = Counter()
+    if force:
+        done = (Status.CHUNKED, Status.EMBEDDED, Status.PUBLISHED)
+        for episode_id in ids:
+            row = conn.execute("select status from episodes where id = ?", (episode_id,)).fetchone()
+            if row and row["status"] in done:
+                reset(conn, episode_id, Status.TRANSCRIBED)
+    for row in episodes_for_step(conn, "chunk", ids):
+        extra = {"step": "chunk", "episode": row["stem"]}
+        try:
+            chunk_episode(conn, row, corrections, index)
+        except Exception as exc:  # noqa: BLE001 — one bad episode must not stop the batch
+            fail(conn, row["id"], "chunk", repr(exc)[:500])
+            counts["error"] += 1
+            log.error(f"chunking failed: {exc!r}", extra=extra)
+            continue
+        advance(conn, row["id"], "chunk")
+        counts["ok"] += 1
+        log.info("chunked", extra=extra)
+
+    # New episodes can turn earlier sentences into boilerplate (the 5-episode rule), and a
+    # corrections.yaml edit changes text: re-check everything already chunked.
+    sha = corrections_sha(corrections_file)
+    if counts["ok"] or sha != kv_get(conn, "corrections_sha"):
+        counts["refreshed"] = refresh_chunks(conn, corrections, index)
+        kv_set(conn, "corrections_sha", sha)
     return counts

@@ -21,7 +21,7 @@ and the Wood Talk site, and can expand to show more of the transcript.
 | Search | Keyword search with query syntax, combined with meaning-based search (§4.3). Started on Enter or the Search button, not while typing. |
 | Result order | Relevance (default), Newest, Oldest. |
 | Repeated content | Sponsor reads, plugs, the standard intro and outro, and inserted ads are detected and hidden by default (`include:ads` shows them). |
-| Hosting | Cloudflare Workers paid plan: Pages, one Worker, D1, Vectorize and Workers AI. Target $5–7 a month. |
+| Hosting | Cloudflare Workers paid plan: Pages, one Worker, D1, Vectorize and Workers AI. Estimated about $8–9 a month (§11). |
 | Upkeep | As close to zero as possible: no servers to patch. |
 | Heavy compute | The maintainer's M1 Max desktop at first; the Mac Mini (M5 Pro) once it's set up. |
 | Pipeline language | Python. |
@@ -32,8 +32,9 @@ and the Wood Talk site, and can expand to show more of the transcript.
 
 - **M1 — seed set on staging.** About 70 episodes (the 50 most recent plus 20
   sampled evenly across the years), run end to end on the M1 Max and
-  published to `staging`. The test search set (§7.2) is built and the
-  baseline recorded. Deep-link formats and YouTube alignment are checked.
+  published to `staging`. The seed transcripts are spot-checked with the
+  review tool (§3.7). The test search set (§7.2) is built and the baseline
+  recorded. Deep-link formats and YouTube alignment are checked.
 - **M2 — full archive and launch.** The pipeline moves to the Mac Mini, the
   rest of the archive is processed, `production` is published, scheduled
   runs and the watchdog are turned on, and the site launches with the hosts'
@@ -57,6 +58,8 @@ and the Wood Talk site, and can expand to show more of the transcript.
 - Identifying which host is speaking.
 - User accounts, saved searches, comments.
 - Topic summaries and chapters (phase 2, §9).
+
+Sizing and running-cost estimates are in §11.
 
 ## 2. Architecture
 
@@ -87,11 +90,27 @@ docs/         Specs, plans, deep-link format notes
 
 ## 3. Pipeline (Mac)
 
-A Python CLI called `wts`. Every command can be re-run safely. All state and
-data live under `~/.wts/`: the state file `state.db` plus `data/`. Moving
-from the M1 Max to the Mac Mini is a single `rsync` of that directory.
-Scheduling (launchd) and the watchdog (§8.2) are turned on only on the Mini.
-On the desktop, `wts run` is run by hand.
+A Python CLI called `wts`. Every command can be re-run safely. Scheduling
+(launchd) and the watchdog (§8.2) are turned on only on the Mini. On the
+desktop, `wts run` is run by hand.
+
+### 3.0 Where files live
+
+Paths follow macOS conventions, resolved with the `platformdirs` library so
+nothing is hard-coded and nothing goes directly in `$HOME`:
+
+| What | Default location | Notes |
+|---|---|---|
+| Config (`config.toml`) | `~/Library/Application Support/wts/` | Non-secret settings: environment names, feed URL, `audio_dir`. Secrets live in the Keychain (§3.6). |
+| State (`state.db`, `analytics.db`) | `~/Library/Application Support/wts/` | |
+| Transcripts, chunks, embeddings | `~/Library/Application Support/wts/data/` | Small (under 1 GB) but valuable: transcripts are expensive to redo. |
+| Audio | `<audio_dir>`, defaulting to `~/Library/Application Support/wts/audio/` | Large (§11). `audio_dir` can point to an external drive. Not in `~/Library/Caches`, because macOS may purge that, and a re-download can come with different inserted ads. |
+| Logs | `~/Library/Logs/wts/` | Shows up in Console.app. |
+
+Every location can be overridden with `WTS_HOME` (one root for everything),
+which tests use for an isolated temporary root. `wts paths` prints the
+resolved locations. Moving from the M1 Max to the Mac Mini is an `rsync` of
+the Application Support folder plus `audio_dir`.
 
 ### 3.1 Episode state machine
 
@@ -124,8 +143,8 @@ system.
 | Command | What it does |
 |---|---|
 | `wts feed` | Reads the RSS feed and upserts `episodes`: guid, number, title, published_at, duration_s, audio_url, and page_url (the item's `<link>`). Matches platform IDs, with no match leaving the ID null: **Apple** via the iTunes lookup API; **Spotify** via the Web API with a client-credentials app, matched on normalized title plus publish date ±2 days; **YouTube** via the YouTube Data API search of the show's channel, matched on title and date. |
-| `wts download` | Resumable HTTP download, then an `ffprobe` check that the file can be decoded and its length is within 2% of `duration_s`. File: `data/audio/<stem>.mp3` (§3.4). |
-| `wts transcribe` | `mlx-whisper` with `large-v3-turbo` and word-level timestamps. A starter prompt seeds woodworking vocabulary from `pipeline/vocab.txt` (brand names, host names, joinery terms). Output is `data/transcripts/<stem>.json`, kept permanently; later steps never need to re-transcribe. |
+| `wts download` | Resumable HTTP download, then an `ffprobe` check that the file can be decoded and its length is within 2% of `duration_s`. File: `<audio_dir>/<stem>.mp3` (§3.0, §3.4). |
+| `wts transcribe` | `mlx-whisper` with `large-v3-turbo`, keeping word-level timestamps and word probabilities. A starter prompt seeds woodworking vocabulary from `pipeline/vocab.txt` (brand names, host names, joinery terms). Output is `<data>/transcripts/<stem>.json` (§3.0), kept permanently; later steps never need to re-transcribe. |
 | `wts chunk` | Applies `corrections.yaml` (§3.3), marks boilerplate (§3.5), and builds windows of about 30 s cut on sentence boundaries and overlapping by one sentence. Each chunk records `start_ms`, `end_ms`, its text, `word_times`, and `is_boilerplate`. |
 | `wts embed` | `bge-base-en-v1.5` (768 dimensions) through `sentence-transformers` on the Mac's GPU (MPS). It must be the same model Workers AI runs for query embeddings (`@cf/baai/bge-base-en-v1.5`). Boilerplate chunks are not embedded. |
 | `wts publish --env staging\|production` | Sends only the episodes that changed. Each episode is one D1 batch (delete the old chunks, then insert the new ones) plus a Vectorize upsert by chunk ID. Vectors for removed chunks are deleted. Bumps `meta.corpus_version`. |
@@ -135,6 +154,8 @@ system.
 | `wts logs` | Filters the pipeline logs (§8.4). |
 | `wts analytics pull` | Copies Worker search analytics to a local file (§8.4). |
 | `wts eval` | See §7.2. |
+| `wts review` | Local transcript review tool (§3.7). |
+| `wts paths` | Prints the resolved file locations (§3.0). |
 
 ### 3.3 Transcription errors
 
@@ -162,13 +183,37 @@ transcribed_at.
 
 ### 3.5 Repeated content (boilerplate)
 
-After chunking, each sentence is compared against an index of sentences
-seen in other episodes, using normalized text and a similarity of at least
-0.9. Sentences that appear in 5 or more episodes are marked as boilerplate.
-This catches sponsor reads, Patreon plugs, the standard intro and outro,
-and ads inserted into our downloads. A chunk is `is_boilerplate` when at
-least 60% of its words are in boilerplate sentences. Music and silence are
-already dropped by the not-speech guard.
+A deterministic, local text-matching step in `wts chunk`. It needs no AI
+model and no API call.
+
+1. **Normalize** each sentence: lowercase, strip punctuation, write numbers
+   out as words, collapse whitespace.
+2. **Fingerprint** each sentence of 6 or more words with MinHash (the
+   `datasketch` library, 128 permutations) over overlapping 5-word phrases.
+   Index the fingerprints in an LSH index, which finds near-identical items
+   quickly. The index is kept in `state.db` and updated as episodes are
+   chunked.
+3. **Count** how many *different* episodes have a sentence with an estimated
+   Jaccard similarity of at least 0.8. If it's 5 or more, the sentence is
+   boilerplate.
+   - This catches sponsor reads, Patreon plugs, and the standard intro and
+     outro, even with small transcription differences.
+   - It also catches ads inserted into our downloads, because the same ad
+     appears in every episode downloaded in the same period.
+4. **Mark the chunk:** a chunk is `is_boilerplate` when at least 60% of its
+   words are in boilerplate sentences.
+
+The 5-episode threshold depends on how many episodes have been chunked, so
+whenever the index grows, `wts chunk` re-checks earlier chunks (cheap: no
+re-embedding unless a chunk's flag changes). Music and silence are already
+dropped by the not-speech guard (§3.3).
+
+**Known gap:** ad-libbed host reads ("I've been using the new Festool…") are
+worded differently each time and won't match. The `negative` test cases
+(§7.2) measure how much this matters. If needed, a later step can classify
+the remaining sponsor mentions with a local LLM on the Mac. Manual
+boilerplate and not-boilerplate flags from the review tool (§3.7) override
+the detector.
 
 ### 3.6 Secrets
 
@@ -180,6 +225,61 @@ committed:
 - The Spotify client credentials.
 - The YouTube Data API key.
 - The ntfy topic name.
+
+### 3.7 Review tool (`wts review`)
+
+A local web page for checking transcript quality by ear. It runs only on the
+Mac and is never deployed.
+
+- **Launch:**
+  - `wts review <episode>` opens an episode.
+  - `--at mm:ss` opens it at a given time.
+  - `--report <id>` opens the passage a listener reported.
+  - `--next-flagged` opens the next episode the quality guards flagged.
+- **How it runs:** a small server built into `wts`, using Python's standard
+  library plus a JSON handler, bound to `127.0.0.1` on a random port. It
+  serves one static HTML/JS page, the episode's audio file, its transcript
+  and chunks, and a few write endpoints. It opens the browser automatically.
+- **Playback:**
+  - Plays our downloaded audio with an HTML5 `<audio>` element. This is the
+    exact file Whisper heard, so the transcript lines up perfectly, and
+    transcription errors aren't mixed up with platform ad drift.
+  - Speed control from 0.75× to 2×.
+- **Transcript view:**
+  - Scrolls along with playback and highlights the current word, using the
+    word timings.
+  - Words with low Whisper confidence (probability below 0.5) are tinted.
+  - Boilerplate chunks are greyed out, and chunk boundaries are marked.
+  - Clicking a word jumps playback to it.
+- **Keyboard:**
+  - Space: play or pause.
+  - ← / →: back or forward 5 s.
+  - `[` / `]`: previous or next chunk.
+  - `n`: next low-confidence word.
+  - `e`: edit the selection.
+- **Edits (written locally, never pushed live directly):**
+  - Fix a misheard word or phrase. It's saved to `corrections.yaml`, either
+    as a **global** rule or **this episode only**, and the episode is
+    queued for re-chunking (§3.1).
+  - Flag a passage as boilerplate or not boilerplate. The flag overrides the
+    detector (§3.5).
+  - Mark a listener report as resolved or rejected (updates D1 through the
+    Cloudflare API).
+- **Optional platform sync mode:**
+  - Shows a YouTube embed (IFrame Player API: `seekTo`, `getCurrentTime`) or
+    a Spotify embed (iFrame API: `seek`, `playback_update` events) next to
+    our player.
+  - You line up the same spoken moment in both and press **Sync here**. The
+    difference is saved to `offset_youtube_s` or `offset_spotify_s` for the
+    episode, or for a range of episodes, and published on the next `wts
+    publish`. This is the manual version of the alignment check in §4.6.
+  - Spotify full-episode playback in the embed needs a signed-in Spotify
+    session in the browser.
+  - Apple Podcasts has no controllable embed, so it is offered only as a
+    link at the current time.
+- **Tests:** server endpoints with pytest (`WTS_HOME` temporary root), plus
+  one Playwright test: load a sample episode, click a word, check the audio
+  position, make a correction, check `corrections.yaml`.
 
 ## 4. Data model and API (Cloudflare)
 
@@ -502,10 +602,10 @@ pings stop, which covers the Mini being off or launchd being broken.
 | Source | How |
 |---|---|
 | Pipeline logs | `wts logs [--run ID] [--episode STEM] [--level error] [--since 7d]` for day-to-day use. For ad-hoc analysis, query the files directly: `duckdb -c "select … from read_json_auto('~/Library/Logs/wts/*.log')"` or `jq`. |
-| Pipeline run history | `wts status`, or SQL on `~/.wts/state.db`. |
+| Pipeline run history | `wts status`, or SQL on `state.db` (location from `wts paths`). |
 | Worker, live | `wrangler tail --env production` (filterable by status or text). |
 | Worker, last few days | Workers Logs query builder in the Cloudflare dashboard. |
-| Search analytics, long term | `wts analytics pull` (run weekly by `wts run`) copies Analytics Engine data through its SQL API into `~/.wts/analytics.db`. That file keeps the full history for SQL or DuckDB analysis, and drives the weekly digest. |
+| Search analytics, long term | `wts analytics pull` (run weekly by `wts run`) copies Analytics Engine data through its SQL API into `analytics.db` (§3.0). That file keeps the full history for SQL or DuckDB analysis, and drives the weekly digest. |
 | Transcript reports | `wts reports` (reads the `reports` table in D1). |
 
 Optional: a free UptimeRobot check on `/api/health` every 5 minutes.
@@ -536,3 +636,52 @@ chunks unchanged.
    - A YouTube Data API key.
    - A Cloudflare Turnstile site key.
 7. **Domain:** pick a domain or subdomain for Pages and the Worker.
+
+## 11. Sizing and cost estimates
+
+These are estimates; `wts feed` reports the real total duration and audio
+size from the feed, and §10 item 5 confirms the archive's extent.
+
+### 11.1 Local storage (Mac)
+
+Assumption: about 620 episodes averaging about 1 hour, so about 620 hours of
+audio.
+
+| Item | Estimate |
+|---|---|
+| Audio at 128 kbps | about 58 MB/h, about **36 GB** |
+| Audio at 64–96 kbps (likely for older episodes) | about 18–27 GB |
+| Transcript JSON with word timings and probabilities | about 0.6 MB per episode, about 0.4 GB |
+| Chunks and embeddings (100k × 768 float32) | about 0.3 GB |
+| State, analytics, logs | under 0.1 GB |
+| **Total** | **about 20–40 GB**, about 95% of it audio |
+
+The seed set (M1, about 70 episodes) needs about 4 GB. If disk becomes a
+concern, `audio_dir` can point to an external drive. Deleting audio is
+possible but not recommended: the review tool needs it, and a re-download
+may come with different inserted ads.
+
+### 11.2 Cloudflare running cost
+
+| Item | Basis | Estimate per month |
+|---|---|---|
+| Workers Paid plan | Flat fee; includes 10M requests, D1 and Vectorize allowances | **$5.00** |
+| Vectorize storage | about 90k non-boilerplate chunks × 768 dims ≈ 69M stored dims; 10M included, then $0.05 per million | **about $3.00**, growing about 0.5% a month with new episodes |
+| Vectorize queries | Billed as (stored vectors + queries) × dims per month; 50M included, then $0.01 per million | 10k searches ≈ $0.27; 100k ≈ $0.96; 1M ≈ $7.10 |
+| Workers AI (query embeddings) | bge-base costs about 6,058 neurons per million tokens; 10k neurons a day are free | $0 up to about 150k searches a day |
+| D1 | under 0.5 GB stored; reads well within the included allowance | $0 |
+| Pages, Turnstile, Workers Logs, Analytics Engine | Included or free | $0 |
+| **Total** | at ordinary traffic (up to about 100k searches a month) | **about $8–9** |
+
+**What drives the cost:**
+1. The flat $5 plan fee.
+2. **Vectorize storage.** Number of chunks × vector dimensions is the main
+   variable cost at ordinary traffic. Levers:
+   - Larger chunks (fewer vectors).
+   - A 384-dimension model such as `bge-small-en-v1.5` (about half the
+     cost; the test search set decides whether the quality loss is
+     acceptable).
+   - Leaving boilerplate out (already done).
+3. **Search volume** matters only around 1M searches a month or more, for
+   example after an on-air mention. Edge caching (§4.7) absorbs repeated
+   popular queries, and the per-IP rate limits cap abuse.

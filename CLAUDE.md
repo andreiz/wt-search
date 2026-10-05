@@ -36,3 +36,5 @@ Vectorize and a Pages frontend serve search.
 - Design work goes through brainstorming → spec → implementation plan before
   any code.
 - No secrets in the repo. They live in the macOS Keychain (spec §3.6).
+- Commit and push straight to `main`. Don't create branches unless the
+  maintainer asks for one.

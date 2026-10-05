@@ -1,5 +1,7 @@
 import itertools
+import json
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -72,6 +74,64 @@ def audio_file(paths):
     f = paths.audio_dir / "episode.mp3"
     f.write_bytes(b"fake audio")
     return f
+
+
+REAL_FIXTURES = Path(__file__).parent / "fixtures" / "real"
+
+
+@pytest.fixture
+def real_transcripts():
+    """Real Wood Talk transcripts committed at Checkpoint B; skips until they exist."""
+    files = sorted(REAL_FIXTURES.glob("*.json")) if REAL_FIXTURES.exists() else []
+    if not files:
+        pytest.skip("no real transcripts in tests/fixtures/real yet (Checkpoint B)")
+    return [json.loads(f.read_text()) for f in files]
+
+
+def ws(text: str, step_ms: int = 1000):
+    """Words from text; word i spans [i*step, i*step + step - 1] ms."""
+    from wts.words import Word
+
+    return [
+        Word(t, i * step_ms, i * step_ms + step_ms - 1, 0.9) for i, t in enumerate(text.split())
+    ]
+
+
+def seg(text: str, no_speech: float = 0.01, logprob: float = -0.2, word_ms: int = 300):
+    """A transcript segment with relative word times; `tx` lays segments end to end."""
+    words = [
+        {"start": i * word_ms / 1000, "end": (i + 1) * word_ms / 1000, "word": f" {w}",
+         "probability": 0.9}
+        for i, w in enumerate(text.split())
+    ]
+    return {"start": 0.0, "end": len(words) * word_ms / 1000, "text": f" {text}",
+            "no_speech_prob": no_speech, "avg_logprob": logprob, "words": words, "_rel": True}
+
+
+def seg_with_word_starts(text: str, starts, start: float, end: float):
+    """A segment with absolute, explicit word start times (seconds)."""
+    words = [
+        {"start": s, "end": s + 0.2, "word": f" {w}", "probability": 0.9}
+        for w, s in zip(text.split(), starts, strict=True)
+    ]
+    return {"start": start, "end": end, "text": f" {text}", "no_speech_prob": 0.01,
+            "avg_logprob": -0.2, "words": words}
+
+
+def tx(*segments, **meta):
+    """A transcript JSON (Task 7 shape). Relative segments are laid end to end."""
+    offset = 0.0
+    out = []
+    for s in segments:
+        s = dict(s)
+        if s.pop("_rel", False):
+            s["words"] = [
+                {**w, "start": w["start"] + offset, "end": w["end"] + offset} for w in s["words"]
+            ]
+            s["start"], s["end"] = s["start"] + offset, s["end"] + offset
+        offset = max(offset, s["end"])
+        out.append(s)
+    return {"meta": {"guid": "g", "title": "t", "duration_s": None, **meta}, "segments": out}
 
 
 def fail_after_first_call(exc):

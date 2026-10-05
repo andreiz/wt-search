@@ -16,9 +16,16 @@ def test_status_report_lists_errors_and_runs(conn, make_episode):
     assert "download" in out.split("Last runs")[1]
 
 
-def test_run_record_writes_counts_and_finish(conn):
+def test_run_record_writes_counts_time_and_finish(conn):
     with run_record(conn, "chunk") as r:
         r.counts["ok"] += 2
     row = conn.execute("select * from runs where id = ?", (r.id,)).fetchone()
-    assert json.loads(row["counts"]) == {"ok": 2}
+    assert json.loads(row["counts"]) == {"ok": 2, "seconds": 0}
+    assert r.counts["seconds"] == 0
     assert row["errors"] == 0 and row["finished_at"] and row["machine"]
+
+
+def test_status_shows_runs_readably(conn):
+    with run_record(conn, "embed") as r:
+        r.counts["ok"] += 3
+    assert "embed  ok=3 in 0:00" in status_report(conn)

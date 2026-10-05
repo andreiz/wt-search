@@ -93,6 +93,27 @@ def test_chunk_step_stores_chunks_and_flags(conn, transcribed_episode, paths, cf
     assert isinstance(json.loads(flags), list)
 
 
+def test_chunk_reports_chunks_boilerplate_and_flags(conn, paths, cfg, episodes_with_ad,
+                                                     wts_messages):
+    slow = episodes_with_ad[0]  # ~230 words over 10 minutes: wpm_low
+    conn.execute("update episodes set audio_duration_s = 600 where id = ?", (slow,))
+    conn.commit()
+    counts = run_chunk(conn, paths, cfg, episodes_with_ad)
+    total, bp = conn.execute(
+        "select count(*), sum(is_boilerplate) from chunks"
+    ).fetchone()
+    assert (counts["chunks"], counts["boilerplate"], counts["flagged"]) == (total, bp, 1)
+    assert bp > 0
+    per_episode = [m for m in wts_messages if m.startswith("chunked: ")]
+    assert len(per_episode) == 5
+    assert per_episode[0].endswith("; flags: wpm_low")
+    stem = conn.execute("select stem from episodes where id = ?", (slow,)).fetchone()[0]
+    assert wts_messages[-1] == (
+        f"chunked 5 episodes: {total} chunks, {bp} boilerplate ({100 * bp / total:.0f}%); "
+        f"flagged: {stem} (wpm_low)"
+    )
+
+
 def test_shipped_corrections_are_applied(conn, transcribed_episode, paths, cfg):
     run_chunk(conn, paths, cfg, [transcribed_episode], corrections_file=CORRECTIONS_FILE)
     assert "Cremona" in all_text(conn, transcribed_episode)
@@ -220,6 +241,7 @@ def test_prepare_episode_returns_sentences_and_flags(conn, transcribed_episode):
 def test_chunk_cli(wts_home):
     r = CliRunner().invoke(main, ["chunk", "--select", "all", "--force"])
     assert r.exit_code == 0, r.output
+    assert "chunk: nothing to do (0:00)" in r.output
 
 
 @pytest.mark.xfail(

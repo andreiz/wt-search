@@ -2,7 +2,29 @@ import json
 import logging
 import os
 
-from wts.log import setup_logging
+from wts.log import clock, describe, describe_run, setup_logging
+
+
+def test_clock_formats_minutes_and_hours():
+    assert [clock(s) for s in (0, 59.6, 60, 3599, 3600, 5532)] == [
+        "0:00", "1:00", "1:00", "59:59", "1:00:00", "1:32:12"
+    ]
+
+
+def test_describe_counts_with_time():
+    assert describe({"ok": 35, "chunks": 4120, "seconds": 48}) == "ok=35 chunks=4120 in 0:48"
+    assert describe({"seconds": 1}) == "nothing to do (0:01)"
+    assert describe({"ok": 3, "error": 0, "refreshed": 0}) == "ok=3"
+    assert describe({}) == "nothing to do"
+
+
+def test_describe_run_lists_steps_and_total():
+    results = {"download": {"seconds": 2}, "transcribe": {"ok": 28, "seconds": 5530}}
+    assert describe_run(results) == (
+        "download: nothing to do (0:02)\n"
+        "transcribe: ok=28 in 1:32:10\n"
+        "total 1:32:12"
+    )
 
 
 def _last_line(tmp_path):

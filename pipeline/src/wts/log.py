@@ -7,7 +7,7 @@ import sqlite3
 import time
 import uuid
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -85,9 +85,39 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
+def clock(seconds: float) -> str:
+    """h:mm:ss, or m:ss under an hour."""
+    s = round(seconds)
+    h, rest = divmod(s, 3600)
+    return f"{h}:{rest // 60:02d}:{rest % 60:02d}" if h else f"{rest // 60}:{rest % 60:02d}"
+
+
+def plural(n: int, word: str) -> str:
+    return f"{n} {word}" if n == 1 else f"{n} {word}s"
+
+
+def describe(counts: Mapping[str, int]) -> str:
+    """One step's counts for people: `ok=35 chunks=4120 in 0:48`, or `nothing to do`.
+
+    Zero counts are left out.
+    """
+    parts = " ".join(f"{k}={v}" for k, v in counts.items() if k != "seconds" and v)
+    seconds = counts.get("seconds")
+    if not parts:
+        return "nothing to do" if seconds is None else f"nothing to do ({clock(seconds)})"
+    return parts if seconds is None else f"{parts} in {clock(seconds)}"
+
+
+def describe_run(results: Mapping[str, Mapping[str, int]]) -> str:
+    lines = [f"{step}: {describe(counts)}" for step, counts in results.items()]
+    lines.append(f"total {clock(sum(c.get('seconds', 0) for c in results.values()))}")
+    return "\n".join(lines)
+
+
 @contextmanager
 def run_record(conn: sqlite3.Connection, command: str) -> Iterator[RunRecord]:
     record = RunRecord(id=uuid.uuid4().hex[:12])
+    started = time.monotonic()
     with conn:
         conn.execute(
             "insert into runs (id, command, machine, started_at) values (?, ?, ?, ?)",
@@ -96,6 +126,7 @@ def run_record(conn: sqlite3.Connection, command: str) -> Iterator[RunRecord]:
     try:
         yield record
     finally:
+        record.counts["seconds"] = round(time.monotonic() - started)
         with conn:
             conn.execute(
                 "update runs set finished_at = ?, counts = ?, errors = ? where id = ?",

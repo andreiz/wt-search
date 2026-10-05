@@ -1,6 +1,9 @@
 """`wts status`: what state the corpus is in."""
 
+import json
 import sqlite3
+
+from wts.log import describe
 
 
 def status_report(conn: sqlite3.Connection) -> str:
@@ -24,5 +27,6 @@ def status_report(conn: sqlite3.Connection) -> str:
         "select command, started_at, finished_at, counts from runs order by started_at desc, "
         "rowid desc limit 10"
     ):
-        lines.append(f"  {r['started_at']}  {r['command']}  {r['counts'] or '(running)'}")
+        counts = describe(json.loads(r["counts"])) if r["counts"] else "(running)"
+        lines.append(f"  {r['started_at']}  {r['command']}  {counts}")
     return "\n".join(lines)

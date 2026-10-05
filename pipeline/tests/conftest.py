@@ -92,6 +92,23 @@ class FakeEmbedder:
 
 
 @pytest.fixture
+def wts_messages():
+    """Messages logged to the `wts` logger at INFO and above, in order."""
+    import logging
+
+    messages: list[str] = []
+    handler = logging.Handler()
+    handler.emit = lambda record: messages.append(record.getMessage())
+    logger = logging.getLogger("wts")
+    old_level = logger.level
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    yield messages
+    logger.removeHandler(handler)
+    logger.setLevel(old_level)
+
+
+@pytest.fixture
 def audio_file(paths):
     paths.audio_dir.mkdir(parents=True, exist_ok=True)
     f = paths.audio_dir / "episode.mp3"

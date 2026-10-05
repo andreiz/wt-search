@@ -1,5 +1,6 @@
 """Batch steps: each selects eligible episodes, does the work, and moves their status."""
 
+import json
 import logging
 import shutil
 import sqlite3
@@ -26,7 +27,7 @@ from wts.download import (
 )
 from wts.embed import Embedder, embed_episode, get_embedder
 from wts.feed import parse_feed, upsert_episodes
-from wts.log import run_record
+from wts.log import clock, plural, run_record
 from wts.net import new_client
 from wts.paths import Paths
 from wts.selection import resolve_selector
@@ -177,31 +178,24 @@ def run_transcribe(
         elapsed = time.monotonic() - started
         done_s += elapsed
         done_audio_s += audio_s[i - 1]
-        msg = f"transcribed in {_clock(elapsed)}{_speed(audio_s[i - 1], elapsed)}; {i} of {len(rows)}"
+        msg = f"transcribed in {clock(elapsed)}{_speed(audio_s[i - 1], elapsed)}; {i} of {len(rows)}"
         left_audio_s = sum(audio_s[i:])
         if left_audio_s and done_audio_s:
-            msg += f", about {_clock(left_audio_s * done_s / done_audio_s)} left"
+            msg += f", about {clock(left_audio_s * done_s / done_audio_s)} left"
         log.info(msg, extra={**extra, "duration_ms": int(elapsed * 1000)})
     if counts["ok"]:
         log.info(
-            f"transcribed {counts['ok']} episodes in {_clock(done_s)}"
+            f"transcribed {plural(counts['ok'], 'episode')} in {clock(done_s)}"
             f"{_speed(done_audio_s, done_s)}",
             extra={"step": "transcribe"},
         )
     return counts
 
 
-def _clock(seconds: float) -> str:
-    """h:mm:ss, or m:ss under an hour."""
-    s = round(seconds)
-    h, rest = divmod(s, 3600)
-    return f"{h}:{rest // 60:02d}:{rest % 60:02d}" if h else f"{rest // 60}:{rest % 60:02d}"
-
-
 def _speed(audio_s: float, elapsed_s: float) -> str:
     if not audio_s:
         return ""
-    return f" ({_clock(audio_s)} of audio, {audio_s / max(elapsed_s, 0.001):.1f}× realtime)"
+    return f" ({clock(audio_s)} of audio, {audio_s / max(elapsed_s, 0.001):.1f}× realtime)"
 
 
 def run_chunk(
@@ -222,6 +216,7 @@ def run_chunk(
             row = conn.execute("select status from episodes where id = ?", (episode_id,)).fetchone()
             if row and row["status"] in done:
                 reset(conn, episode_id, Status.TRANSCRIBED)
+    chunked: list[int] = []
     for row in episodes_for_step(conn, "chunk", ids):
         extra = {"step": "chunk", "episode": row["stem"]}
         try:
@@ -233,7 +228,10 @@ def run_chunk(
             continue
         advance(conn, row["id"], "chunk")
         counts["ok"] += 1
-        log.info("chunked", extra=extra)
+        chunked.append(row["id"])
+        n, bp, flags = _chunk_stats(conn, [row["id"]])
+        msg = f"chunked: {plural(n, 'chunk')}, {bp} boilerplate"
+        log.info(msg + (f"; flags: {', '.join(flags[row['stem']])}" if flags else ""), extra=extra)
 
     # New episodes can turn earlier sentences into boilerplate (the 5-episode rule), and a
     # corrections.yaml edit changes text: re-check everything already chunked.
@@ -241,7 +239,36 @@ def run_chunk(
     if counts["ok"] or sha != kv_get(conn, "corrections_sha"):
         counts["refreshed"] = refresh_chunks(conn, corrections, index)
         kv_set(conn, "corrections_sha", sha)
+    if chunked:
+        # After the refresh, so boilerplate reflects every episode chunked so far.
+        n, bp, flags = _chunk_stats(conn, chunked)
+        counts.update(chunks=n, boilerplate=bp, flagged=len(flags))
+        msg = (f"chunked {plural(len(chunked), 'episode')}: {plural(n, 'chunk')}, "
+               f"{bp} boilerplate ({100 * bp / max(n, 1):.0f}%)")
+        if flags:
+            msg += "; flagged: " + ", ".join(f"{s} ({', '.join(f)})" for s, f in flags.items())
+        log.info(msg, extra={"step": "chunk"})
     return counts
+
+
+def _chunk_stats(
+    conn: sqlite3.Connection, ids: list[int]
+) -> tuple[int, int, dict[str, list[str]]]:
+    """Chunks, boilerplate chunks, and the quality flags of flagged episodes, for `ids`."""
+    marks = ", ".join("?" for _ in ids)
+    n, bp = conn.execute(
+        f"select count(*), coalesce(sum(is_boilerplate), 0) from chunks "
+        f"where episode_id in ({marks})",
+        ids,
+    ).fetchone()
+    flags = {
+        r["stem"]: json.loads(r["flags"])
+        for r in conn.execute(
+            f"select stem, flags from episodes where id in ({marks}) order by published_at", ids
+        )
+        if json.loads(r["flags"] or "[]")
+    }
+    return n, bp, flags
 
 
 def run_embed(
@@ -257,8 +284,10 @@ def run_embed(
     if not rows:
         return counts
     embedder = embedder or get_embedder()  # loading the model is slow; only when needed
+    total_s = 0.0
     for row in rows:
         extra = {"step": "embed", "episode": row["stem"]}
+        started = time.monotonic()
         try:
             fresh = embed_episode(conn, row, embedder, paths.embeddings_dir)
         except Exception as exc:  # noqa: BLE001 — one bad episode must not stop the batch
@@ -267,9 +296,25 @@ def run_embed(
             log.error(f"embedding failed: {exc!r}", extra=extra)
             continue
         advance(conn, row["id"], "embed")
+        elapsed = time.monotonic() - started
+        total_s += elapsed
+        n = conn.execute(
+            "select count(*) from chunks where episode_id = ? and is_boilerplate = 0", (row["id"],)
+        ).fetchone()[0]
         counts["ok"] += 1
+        counts["chunks"] += n
         counts["vectors"] += fresh
-        log.info(f"embedded ({fresh} new vectors)", extra=extra)
+        log.info(
+            f"embedded {plural(n, 'chunk')} ({plural(fresh, 'new vector')}) in {clock(elapsed)}",
+            extra={**extra, "duration_ms": int(elapsed * 1000)},
+        )
+    if counts["ok"]:
+        log.info(
+            f"embedded {plural(counts['ok'], 'episode')}: {plural(counts['chunks'], 'chunk')}, "
+            f"{plural(counts['vectors'], 'new vector')}, "
+            f"{counts['chunks'] - counts['vectors']} cached in {clock(total_s)}",
+            extra={"step": "embed"},
+        )
     return counts
 
 

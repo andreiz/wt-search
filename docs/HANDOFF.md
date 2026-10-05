@@ -19,7 +19,10 @@ points to.
 embed, plus fixes from two fresh-reviewer passes and the real-feed follow-ups below. All HTTP
 requests now send `WoodTalkSearchBot/<version> (+https://github.com/andreiz/wt-search)`
 (`wts/net.py`), which Acast serves ad-free; `AD_FREE_ATTEMPTS` is 2. `wts transcribe` goes
-newest first. 178 tests, ruff clean (`cd pipeline && uv run pytest -q`).
+newest first. Steps report as they go: transcribe (time, speed, time left), chunk (chunks,
+boilerplate, quality flags per episode and in a summary), embed (new vs cached vectors, time);
+every step's time is stored in `runs.counts.seconds`, and `wts run` ends with a per-step summary
+and total. 186 tests, ruff clean (`cd pipeline && uv run pytest -q`).
 
 **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): feed ingested (625 episodes),
 seed scope = 35 episodes (20 most recent + 15 across 2007–2025), **all 35 downloaded**.

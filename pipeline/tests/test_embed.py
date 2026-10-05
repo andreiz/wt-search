@@ -51,6 +51,23 @@ def test_embeds_only_non_boilerplate(conn, chunked_episode, paths, cfg):
     assert not list(paths.embeddings_dir.glob("*.tmp"))
 
 
+def test_embed_reports_chunks_new_and_cached_vectors(conn, chunked_episode, paths, cfg,
+                                                     wts_messages):
+    import re
+
+    fake = FakeEmbedder()
+    counts = run_embed(conn, paths, cfg, [chunked_episode], embedder=fake)
+    assert (counts["chunks"], counts["vectors"]) == (2, 2)
+    assert re.fullmatch(r"embedded 2 chunks \(2 new vectors\) in 0:\d\d", wts_messages[-2])
+    assert re.fullmatch(r"embedded 1 episode: 2 chunks, 2 new vectors, 0 cached in 0:\d\d",
+                        wts_messages[-1])
+    add_chunks(conn, chunked_episode, CHUNKS)  # same text again: everything comes from cache
+    force_status(conn, chunked_episode, "chunked")
+    run_embed(conn, paths, cfg, [chunked_episode], embedder=fake)
+    assert re.fullmatch(r"embedded 1 episode: 2 chunks, 0 new vectors, 2 cached in 0:\d\d",
+                        wts_messages[-1])
+
+
 def test_reembed_reuses_vectors_for_unchanged_text(conn, chunked_episode, paths, cfg):
     fake = FakeEmbedder()
     run_embed(conn, paths, cfg, [chunked_episode], embedder=fake)

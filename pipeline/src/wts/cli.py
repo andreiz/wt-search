@@ -65,7 +65,7 @@ select_option = click.option(
 def _run_step(step: str, selector: str, **kwargs) -> None:
     """Resolve the selection, run one batch step inside a run record, print counts."""
     from wts import steps
-    from wts.log import run_record
+    from wts.log import describe, run_record
     from wts.selection import resolve_selector
     from wts.storage import MachineProblem
 
@@ -79,7 +79,7 @@ def _run_step(step: str, selector: str, **kwargs) -> None:
     except MachineProblem as exc:
         click.echo(f"Stopped: {exc}", err=True)
         raise SystemExit(3) from exc
-    click.echo(f"{step}: {dict(run.counts) or 'nothing to do'}")
+    click.echo(f"{step}: {describe(run.counts)}")
 
 
 @main.command()
@@ -172,6 +172,7 @@ def feed(force: bool) -> None:
 def run_cmd(selector: str) -> None:
     """Run feed → download → transcribe → chunk → embed for the selected episodes."""
     from wts.feed import MassReset
+    from wts.log import describe_run
     from wts.steps import run_all
     from wts.storage import MachineProblem
 
@@ -184,5 +185,4 @@ def run_cmd(selector: str) -> None:
         raise SystemExit(3) from exc
     except MassReset as exc:
         raise click.ClickException(f"{exc} (use `wts feed --force`)") from exc
-    for step, counts in results.items():
-        click.echo(f"{step}: {dict(counts) or 'nothing to do'}")
+    click.echo(describe_run(results))

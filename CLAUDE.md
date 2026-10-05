@@ -14,6 +14,11 @@ Vectorize and a Pages frontend serve search.
   design spec. This is the source of truth; update it when a design decision
   changes.
 
+## Skills
+
+- `.claude/skills/corrections/` — turning reported transcript mistakes into safe
+  `corrections.yaml` rules and `vocab.txt` entries (checked with `pipeline/spikes/check_corrections.py`).
+
 ## Commands
 
 - `cd pipeline && uv run pytest -q` — pipeline tests (ML backends faked; runs on Linux)

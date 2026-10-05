@@ -1,7 +1,6 @@
 """RSS feed ingest (spec §3.2 `wts feed`). Platform ID matching comes in plan 2."""
 
 import logging
-import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -10,9 +9,8 @@ from urllib.parse import urlsplit, urlunsplit
 import feedparser
 
 from wts.state import Status, reset
-from wts.stems import make_stem
+from wts.stems import make_stem, split_title
 
-_TITLE_NUMBER = re.compile(r"^\s*(?:Ep\.?|Episode|#)\s*(\d+)", re.IGNORECASE)
 MAX_RESETS = 5
 log = logging.getLogger("wts")
 
@@ -54,10 +52,8 @@ def _parse_duration(value: str | None) -> int | None:
 
 def _number(entry) -> int | None:
     raw = entry.get("itunes_episode")
-    if raw and str(raw).strip().isdigit():
-        return int(raw)
-    m = _TITLE_NUMBER.match(entry.get("title", ""))
-    return int(m.group(1)) if m else None
+    itunes = int(raw) if raw and str(raw).strip().isdigit() else None
+    return split_title(entry.get("title", ""), itunes)[0]
 
 
 def parse_feed(xml: bytes) -> list[FeedItem]:
@@ -123,7 +119,8 @@ def upsert_episodes(
             "select id, audio_url from episodes where guid = ?", (item.guid,)
         ).fetchone()
         if row is None:
-            stem = make_stem(item.published_at.date(), item.number, item.title, taken)
+            slug_title = split_title(item.title, item.number)[1]
+            stem = make_stem(item.published_at.date(), item.number, slug_title, taken)
             with conn:
                 conn.execute(
                     "insert into episodes (guid, number, title, published_at, duration_s, "

@@ -221,6 +221,14 @@ Each episode has a file name `stem`: `YYYY-MM-DD_epNNN_<title-slug>`. The
 `epNNN` part is left out when the episode has no number. Example:
 `2017-03-14_ep312_dado-stacks-and-shop-safety`.
 
+The episode number comes from `itunes:episode` when present, otherwise from
+the title, in any of the show's styles: `#85`, `WT127`, `WT 607`,
+`Wood Talk 595`, `WoodTalk 599`, `Ep. 313`, `Episode 400`, a leading `552 -`,
+or a trailing `| 609`. Bare leading or trailing numbers are accepted only
+when they match `itunes:episode`, or when there is none and they are 10–1899
+(not years). The number marker is removed from the title before slugging, and
+apostrophes are dropped (`doesn't` → `doesnt`).
+
 The stem is generated once, stored in `state.db`, and never re-derived. Code
 always looks up paths through the database, never by parsing file names.
 

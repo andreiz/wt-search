@@ -45,6 +45,8 @@ def test_insert_gives_unique_ascii_stems(conn):
     stems = [row[0] for row in conn.execute("select stem from episodes")]
     assert len(set(stems)) == 8 and all(s.isascii() for s in stems)
     assert "2017-03-14_ep312_dado-stacks-shop-safety" in stems
+    assert "2017-03-28_ep313_walnut-finishing" in stems  # number not repeated in the slug
+    assert "2020-06-01_ep400_sawmills-with-matt" in stems
     assert {"2021-05-05_cafe-talk-dovetails", "2021-05-05_cafe-talk-dovetails-2"} <= set(stems)
 
 

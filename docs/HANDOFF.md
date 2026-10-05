@@ -7,7 +7,7 @@ points to.
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 1 (built): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
+- Plan 1 (code complete; Checkpoints B and C open): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
 - Plan 2 (written, decisions confirmed, not started): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
@@ -121,18 +121,24 @@ and drift acceptance were the alternatives; neither is needed.
 
 ## Next steps (in order)
 
-1. **Checkpoint B** (maintainer, in progress): `uv run pytest -m mac -k mlx`, then
-   `uv run wts transcribe`. Commit 6 recent transcripts to `pipeline/tests/fixtures/real/` →
-   enables the two real-data tests (guards drop < 5% of words; boilerplate flags reads in ≥ 5 of
-   6 without exceeding 15%).
-2. **Plan 2** (written, decisions confirmed): execute task by task. Its checkpoints:
+Finish plan 1 before starting plan 2.
+
+1. **Plan 1, Checkpoint B** (maintainer, in progress): `uv run pytest -m mac -k mlx`, then
+   `uv run wts transcribe`. Report time per episode and any errors. Commit 6 recent transcripts
+   to `pipeline/tests/fixtures/real/` (trimmed to 15 min if the repo is public, open decision 5)
+   → un-skips `test_real_transcripts_clean` (guards drop < 5% of words, no flags) and
+   `test_real_sponsor_reads_flagged` (boilerplate in ≥ 5 of 6, under 15% of words). If either
+   fails on real data, thresholds change only with the maintainer's agreement and go into spec
+   §3.3 / §3.5.
+2. **Plan 1, Checkpoint C** (maintainer): `uv run pytest -m mac`, `uv run wts run`,
+   `uv run wts status` (all 35 `embedded`), boilerplate counts per episode, spot-check 3
+   transcripts (one pre-2012), and collect `corrections.yaml` / `vocab.txt` candidates. Plan 1 is
+   done when this is reported.
+3. **Plan 2** (written, decisions confirmed): execute task by task. Its checkpoints:
    - **D** after Task 5: platform IDs on the real feed (Spotify/YouTube keys, no Cloudflare).
-   - **E** after Task 10: staging D1 + Vectorize, pooling check, ntfy test, seed corpus published
-     (needs Checkpoint C).
+   - **E** after Task 10: staging D1 + Vectorize, pooling check, ntfy test, seed corpus published.
    - **F** after Task 13: Worker deployed, exact search on real data, cue times checked.
    - **G** after Task 16: smart search, report, caching, `wts run --env staging` end to end.
-3. **Checkpoint C**: full seed corpus (`wts run`), boilerplate counts, correction candidates.
-   Needed before plan 2's Checkpoint E.
 4. Plans 3–5: frontend, review tool, test search set (write them after plan 2's Checkpoint G).
 
 ## Rulings made during plan 1 (with cost if wrong)

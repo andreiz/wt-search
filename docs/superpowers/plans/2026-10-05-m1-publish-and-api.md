@@ -15,7 +15,7 @@
 - Worker: TypeScript (strict), wrangler, Vitest with `@cloudflare/vitest-pool-workers`, npm. Use current stable versions and commit `package-lock.json`.
 - External: macOS `security` (Keychain), `rsync`, ntfy.sh.
 
-**Spec:** `docs/superpowers/specs/2026-10-04-wood-talk-search-design.md` (§3.0.1 backups, §3.2, §3.6, §4, §6, §7.1, §8). This is **plan 2 of 5 for milestone M1**. Plan 1 (pipeline core) is built.
+**Spec:** `docs/superpowers/specs/2026-10-04-wood-talk-search-design.md` (§3.0.1 backups, §3.2, §3.6, §4, §6, §7.1, §8). This is **plan 2 of 5 for milestone M1**. It starts once plan 1 (pipeline core) is finished, including its Checkpoints B and C.
 
 **Not in this plan:**
 - Frontend (plan 3). Search is checked with `curl` here.

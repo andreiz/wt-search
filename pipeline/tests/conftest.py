@@ -30,6 +30,50 @@ def cfg():
     return Config()
 
 
+class FakeTranscriber:
+    """Returns a fixed two-segment transcript, or raises `raise_exc`."""
+
+    def __init__(self, raise_exc=None, transcript=None):
+        self.raise_exc = raise_exc
+        self.transcript = transcript
+        self.calls = 0
+
+    def transcribe(self, audio, initial_prompt):
+        from wts.transcribe import RawSegment, RawTranscript, RawWord
+
+        self.calls += 1
+        assert audio.exists()
+        if self.raise_exc:
+            raise self.raise_exc
+        if self.transcript:
+            return self.transcript
+        return RawTranscript(
+            segments=[
+                RawSegment(0.0, 1.0, " Welcome to Wood Talk.", 0.01, -0.2, [
+                    RawWord(0.0, 0.4, " Welcome", 0.98),
+                    RawWord(0.4, 0.5, " to", 0.99),
+                    RawWord(0.5, 0.7, " Wood", 0.95),
+                    RawWord(0.7, 1.0, " Talk.", 0.97),
+                ]),
+                RawSegment(1.0, 2.0, " Glue it up.", 0.02, -0.3, [
+                    RawWord(1.0, 1.3, " Glue", 0.9),
+                    RawWord(1.3, 1.5, " it", 0.99),
+                    RawWord(1.5, 2.0, " up.", 0.4),
+                ]),
+            ],
+            model="fake-whisper",
+            model_version="0",
+        )
+
+
+@pytest.fixture
+def audio_file(paths):
+    paths.audio_dir.mkdir(parents=True, exist_ok=True)
+    f = paths.audio_dir / "episode.mp3"
+    f.write_bytes(b"fake audio")
+    return f
+
+
 def fail_after_first_call(exc):
     calls = {"n": 0}
 

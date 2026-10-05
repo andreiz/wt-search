@@ -89,6 +89,13 @@ def download(selector: str) -> None:
     _run_step("download", selector)
 
 
+@main.command()
+@select_option
+def transcribe(selector: str) -> None:
+    """Transcribe downloaded episodes with Whisper (one at a time; Ctrl-C safe)."""
+    _run_step("transcribe", selector)
+
+
 @main.group()
 def scope() -> None:
     """Manage which episodes are in scope (the default selection)."""

@@ -1,0 +1,64 @@
+# People and show
+Spagnuolo
+Cremona
+Rogers
+Wood Whisperer
+Renaissance Woodworker
+Patreon
+# Brands
+SawStop
+Festool
+Domino
+Lie-Nielsen
+Veritas
+Powermatic
+Laguna
+Rockler
+Woodcraft
+Kreg
+Titebond
+Osmo
+Rubio Monocoat
+Shapeoko
+Shaper Origin
+Bessey
+Jet
+Grizzly
+Makita
+DeWalt
+# Joinery
+dovetail
+mortise
+tenon
+dado
+rabbet
+bridle joint
+drawbore
+half-lap
+box joint
+pocket hole
+# Tools
+spokeshave
+jointer
+planer
+bandsaw
+router table
+card scraper
+chisel
+marking gauge
+crosscut sled
+track saw
+# Finishes
+shellac
+lacquer
+Danish oil
+boiled linseed oil
+polyurethane
+# Wood species
+walnut
+cherry
+white oak
+ash
+maple
+padauk
+wenge

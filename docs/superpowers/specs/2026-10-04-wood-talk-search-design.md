@@ -492,7 +492,15 @@ timeline below).
 ~30 s (some 15–20 s) per download, varying between downloads (spec §3.2).
 Apple and Spotify listeners get their own ads, so those links can land up
 to a few minutes early. Timestamps on the show's own timeline guarantee
-they are never late. Mitigations:
+they are never late.
+
+*Measured (ep613, ad-free vs ad copy, fingerprint comparison):* a 32 s
+**pre-roll** at 0:00 and a 62 s **post-roll** after the show, **no
+mid-rolls**; the show sits at a constant offset equal to the pre-roll. If
+this holds across episodes, the show's timeline needs one number per episode
+(the pre-roll length), and Apple/Spotify links land early by exactly the
+listener's own pre-roll. To be confirmed on more episodes (pre-roll finder
+spike; see `docs/HANDOFF.md`). Mitigations:
 
 - The card always shows the time as text.
 - YouTube comes first where available.

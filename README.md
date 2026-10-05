@@ -27,7 +27,8 @@ More: [DESIGN.md](DESIGN.md) (one page) and the full
 
 | Milestone | What | State |
 |---|---|---|
-| M1 plan 1 | Pipeline core: feed → embeddings | **Built** ([plan](docs/superpowers/plans/2026-10-05-m1-pipeline-core.md)); seed run in progress |
+| M1 plan 1 | Pipeline core: feed → embeddings | **Built** ([plan](docs/superpowers/plans/2026-10-05-m1-pipeline-core.md)); 35 seed episodes downloaded, transcription next |
+| — | Inserted-ad timeline correction | Spike in progress (`pipeline/spikes/ad_fingerprint.py`) |
 | M1 plan 2 | D1 schema, Worker API, `wts publish` | Not started |
 | M1 plans 3–5 | Frontend, review tool, test search set | Not started |
 | M2 | Full archive on the Mac Mini, production, launch | Not started |
@@ -40,7 +41,12 @@ More: [DESIGN.md](DESIGN.md) (one page) and the full
 - **Acast inserts ads per download**: the same episode can come back with no ads or
   1–3 minutes of them. Files may therefore be longer than the feed's `itunes:duration`.
   Apple/Spotify links will drift by the listener's ad time; ad-free copies (length ≈ feed
-  duration) give the show's own timeline.
+  duration) give the show's own timeline. Measured on one episode: a ~30 s pre-roll plus a
+  post-roll, no mid-rolls.
+- YouTube (@WoodTalk) has recent episodes at exactly the feed's length; older videos are
+  unedited livestreams.
+
+**Picking this up in a new session?** Start with [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Quick start (pipeline, Mac)
 

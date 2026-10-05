@@ -8,6 +8,8 @@ Vectorize and a Pages frontend serve search.
 
 - `VISION.md` — the original idea.
 - `DESIGN.md` — a one-page overview.
+- `docs/HANDOFF.md` — current state, findings, open decisions and next steps. Read it first
+  when resuming; update it at the end of a working session.
 - `docs/superpowers/specs/2026-10-04-wood-talk-search-design.md` — the full
   design spec. This is the source of truth; update it when a design decision
   changes.

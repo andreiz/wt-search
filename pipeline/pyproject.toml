@@ -1,0 +1,39 @@
+[project]
+name = "wts"
+version = "0.1.0"
+description = "Wood Talk transcript search pipeline"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.1",
+    "platformdirs>=4.2",
+    "httpx>=0.27",
+    "feedparser>=6.0",
+    "datasketch>=1.6",
+    "num2words>=0.5",
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+mac = ["mlx-whisper", "sentence-transformers"]
+
+[project.scripts]
+wts = "wts.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "respx>=0.21", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not mac'"
+markers = ["mac: needs Apple Silicon ML backends (run manually on the Mac)"]
+
+[tool.ruff]
+line-length = 100

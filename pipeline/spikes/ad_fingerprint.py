@@ -30,10 +30,20 @@ BER_BITS = 10  # an item differing in ≤ this many of 32 bits counts as the sam
 
 
 def fingerprint(path: str) -> tuple[float, list[int]]:
-    out = subprocess.run(
-        ["fpcalc", "-raw", "-json", "-length", "0", path],
-        capture_output=True, text=True, check=True,
-    )
+    # Acast stitches ads encoded differently from the episode (sample rate/channels change
+    # mid-file), which fpcalc can't read. Decode to one uniform WAV with ffmpeg first.
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(suffix=".wav") as wav:
+        subprocess.run(
+            ["ffmpeg", "-loglevel", "fatal", "-y", "-i", path, "-ac", "1", "-ar", "22050",
+             wav.name],
+            check=True,
+        )
+        out = subprocess.run(
+            ["fpcalc", "-raw", "-json", "-length", "0", wav.name],
+            capture_output=True, text=True, check=True,
+        )
     data = json.loads(out.stdout)
     return float(data["duration"]), data["fingerprint"]
 

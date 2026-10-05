@@ -1,8 +1,31 @@
 # Handoff — 2026-10-05
 
-Where the project stands after the first working session, so a fresh session can pick up
-without the conversation. Read this, then [README.md](../README.md), then the spec sections it
-points to.
+Where the project stands after two working sessions, so a fresh session can pick up without the
+conversation. Read this, then [README.md](../README.md), then the spec sections it points to.
+
+## Start here (next session)
+
+1. **Plan 2, Task 1** (D1 schema + contract test) and on, in order. Tasks 1–5 need no accounts;
+   stop at **Checkpoint D** (after Task 5) and hand the maintainer its steps. Work test-first,
+   one commit per task, straight to `main`. The superpowers execution skills named in the plan
+   header may not be loaded in a cloud session; then follow the plan's steps directly.
+2. Before Task 7 (publish), check the plan's Review Focus. CLS pooling and FTS5 trigger
+   correctness are the two easiest things to get silently wrong.
+3. Corrections/vocabulary are a separate, out-of-band session (`.claude/skills/corrections/`);
+   don't mix them into plan 2 work.
+
+**Pending with the maintainer** (not blocking plan 2's first tasks):
+- Apply the session-2 corrections to the seed corpus: `git pull`, `uv run wts chunk`,
+  `uv run wts embed`.
+- Ask GitHub Support to purge cached views of commit `a44eec9` (open decision 8).
+
+**Cloud session environment** (as found in session 2):
+- Reachable: Acast (`feeds.acast.com`, `sphinx.acast.com`), PyPI, the npm registry, GitHub.
+  Node 22 and npm are installed (for `worker/`).
+- Blocked: `itunes.apple.com` and `developers.cloudflare.com` (web search still works for
+  Cloudflare docs). The Apple lookup in Task 5 can only be tested with recorded fixtures here.
+- Only the 15-minute fixtures of ep001 and ep610–615 are available; full transcripts, audio and
+  `state.db` live on the maintainer's Mac.
 
 ## Read first
 
@@ -75,8 +98,14 @@ interrupted re-fetch. **All 35 seed episodes are `embedded`** (Checkpoint C, bel
 
 ## Spikes: locate inserted ads (no longer needed)
 
-Ad-free downloads (bot User-Agent) make timeline correction unnecessary, so both spikes are
-done; `pipeline/spikes/` can be deleted, or kept as tools for checking a stray ad-laden copy.
+Ad-free downloads (bot User-Agent) make timeline correction unnecessary, so both ad spikes are
+done; `ad_fingerprint.py`, `preroll_finder.py` and its results file can be deleted, or kept for
+checking a stray ad-laden copy. **Keep** the other two scripts in `pipeline/spikes/`, which are
+in use until plan 4's review tool replaces them:
+- `transcript_peek.py`: `read <ep>` (raw text, unsure words marked, ffplay command),
+  `suspects` (likely mishearings across all transcripts), `issues <ep>` (what `loop_cut` and
+  `bad_word_times` caught).
+- `check_corrections.py`: every sentence a `corrections.yaml` change would alter.
 
 ### Pre-roll finder (done, second session)
 

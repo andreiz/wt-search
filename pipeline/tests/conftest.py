@@ -17,6 +17,31 @@ def wts_home(tmp_path, monkeypatch):
 
 
 @pytest.fixture
+def paths(wts_home):
+    from wts.paths import resolve_paths
+
+    return resolve_paths()
+
+
+@pytest.fixture
+def cfg():
+    from wts.config import Config
+
+    return Config()
+
+
+def fail_after_first_call(exc):
+    calls = {"n": 0}
+
+    def check(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] > 1:
+            raise exc("audio folder went away")
+
+    return check
+
+
+@pytest.fixture
 def conn(tmp_path):
     c = connect(tmp_path / "state.db")
     yield c

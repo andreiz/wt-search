@@ -62,6 +62,33 @@ select_option = click.option(
 )
 
 
+def _run_step(step: str, selector: str, **kwargs) -> None:
+    """Resolve the selection, run one batch step inside a run record, print counts."""
+    from wts import steps
+    from wts.log import run_record
+    from wts.selection import resolve_selector
+    from wts.storage import StorageUnavailable
+
+    ctx = _ctx()
+    ctx.logger()
+    conn = ctx.conn()
+    ids = resolve_selector(conn, selector)
+    try:
+        with run_record(conn, step) as run:
+            run.counts.update(getattr(steps, f"run_{step}")(conn, ctx.paths, ctx.cfg, ids, **kwargs))
+    except StorageUnavailable as exc:
+        click.echo(f"Stopped: {exc}", err=True)
+        raise SystemExit(3) from exc
+    click.echo(f"{step}: {dict(run.counts) or 'nothing to do'}")
+
+
+@main.command()
+@select_option
+def download(selector: str) -> None:
+    """Download audio for selected episodes."""
+    _run_step("download", selector)
+
+
 @main.group()
 def scope() -> None:
     """Manage which episodes are in scope (the default selection)."""

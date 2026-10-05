@@ -8,7 +8,7 @@ from datetime import date
 # Episode numbers appear in many house styles: "#85", "WT127", "WT 607", "Wood Talk 595",
 # "WoodTalk 599", "Ep. 313", "Episode 400", a leading "552 -" or a trailing "| 609".
 _MARKED = re.compile(
-    r"(?:\bwood\s*talk|\bwt|\bep(?:isode)?\.?|#)\s*[-:]?\s*(\d{1,4})\b", re.IGNORECASE
+    r"(?:(?:\bwood\s*talk|\bwt|\bep(?:isode)?\.?)[\s\-:#|–—]*|#\s*)(\d{1,4})\b", re.IGNORECASE
 )
 _LEADING = re.compile(r"^\s*(\d{1,4})\s*[-–—:|]")
 _TRAILING = re.compile(r"(?:^|[\s|:–—-])(\d{1,4})\s*$")

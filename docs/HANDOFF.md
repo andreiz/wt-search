@@ -121,9 +121,11 @@ and drift acceptance were the alternatives; neither is needed.
    matching plus cutting chunks at boilerplate edges. Until then the existing detector stays and
    most sponsor reads are searchable; `test_real_sponsor_reads_flagged` is `xfail(strict=True)`,
    so it errors once the rework makes it pass (then remove the mark).
-8. The full ep001/ep610–615 transcripts are in public git history (`a44eec9`); the maintainer is
-   removing them (history rewrite + force-push). Any clone made before that, including a cloud
-   session's, must be re-synced to the rewritten `main` before committing.
+8. ~~Full transcripts in public history~~ — removed (second session): `main` was rewritten with
+   `git filter-branch` so every commit carries only the trimmed fixtures, and force-pushed. The
+   old commit `a44eec9` is unreachable from any branch. Left to do (maintainer): ask GitHub
+   Support to purge cached views of `a44eec9` in `andreiz/wt-search`. Clones made before the
+   rewrite must `git fetch && git reset --hard origin/main` before committing.
 
 ## Next steps (in order)
 
@@ -131,7 +133,7 @@ Finish plan 1 before starting plan 2.
 
 1. **Plan 1, Checkpoint B** (in progress). Done: transcripts of ep001 and ep610–615 are in
    `pipeline/tests/fixtures/real/`, trimmed to the first 15 minutes (the repo is public; the
-   full files are still in git history at `a44eec9`). Results:
+   full files were removed from history, open decision 8). Results:
    - `test_real_transcripts_clean` **passes** (on full and trimmed files).
    - `test_real_sponsor_reads_flagged` **fails** (now an expected failure; the fix is deferred to
      phase 2, open decision 7): 1 of 7 episodes has a boilerplate chunk (needs ≥ 5). Cause,

@@ -5,7 +5,7 @@
     uv run python spikes/transcript_peek.py suspects [--top 60]
 
 `read` prints the raw Whisper text with timestamps; words Whisper gave a probability below 0.5
-are shown «like this». It also prints an ffplay command to hear the audio from any point.
+are shown «like this», except short and common words (`--all` marks those too). It also prints an ffplay command to hear the audio from any point.
 `suspects` ranks words across every transcript by the share of times Whisper was unsure of them
 (at least 2 unsure and 25% of uses), with one example each: the usual source of corrections.yaml
 and vocab.txt entries.
@@ -20,6 +20,24 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 LOW = 0.5
+# Whisper is often unsure of short words, fillers and sentence starts ("and", "like", "yeah"),
+# which don't matter for search. Only longer, less common words are marked unless --all.
+COMMON = set("""
+about actually also already always anyway because been being could didn does doing done
+going gonna good great have here just kind know like literally maybe mean much okay only
+really right said same says should so-called some something sort sure take than that thats
+their them then there these they thing things think this those though through totally very
+want well were what whatever when where which while will with would yeah yes your
+""".split())  # noqa: SIM905 — a block of words is easier to edit than a list literal
+
+
+def clean(word: str) -> str:
+    return re.sub(r"[^\w'-]", "", word).lower().replace("'", "")
+
+
+def worth_marking(word: str) -> bool:
+    key = clean(word)
+    return len(key) >= 4 and key not in COMMON
 
 
 def mmss(seconds: float) -> str:
@@ -45,7 +63,7 @@ def find(transcripts_dir: Path, which: str) -> Path:
     return matches[0]
 
 
-def read(path: Path, audio_dir: Path | None, start: float, end: float) -> None:
+def read(path: Path, audio_dir: Path | None, start: float, end: float, mark_all: bool) -> None:
     data = json.loads(path.read_text())
     meta = data["meta"]
     print(f"{meta.get('title')}  ({meta.get('published_at', '')[:10]}, {mmss(meta['duration_s'])})")
@@ -57,7 +75,10 @@ def read(path: Path, audio_dir: Path | None, start: float, end: float) -> None:
             continue
         words = seg.get("words") or []
         text = "".join(
-            f" «{w['word'].strip()}»" if w["probability"] < LOW else w["word"] for w in words
+            f" «{w['word'].strip()}»"
+            if w["probability"] < LOW and (mark_all or worth_marking(w["word"]))
+            else w["word"]
+            for w in words
         ) if words else seg["text"]
         print(f"[{mmss(seg['start'])}] {text.strip()}")
 
@@ -70,9 +91,9 @@ def suspects(transcripts_dir: Path, top: int) -> None:
     for path in sorted(transcripts_dir.glob("*.json")):
         for seg in json.loads(path.read_text())["segments"]:
             for w in seg.get("words") or []:
-                key = re.sub(r"[^\w'-]", "", w["word"]).lower()
-                if len(key) < 4:
+                if not worth_marking(w["word"]):
                     continue
+                key = clean(w["word"])
                 total[key] += 1
                 if w["probability"] < LOW:
                     low[key] += 1
@@ -97,6 +118,8 @@ def main() -> None:
     r.add_argument("episode", help="episode number, part of a stem, or a transcript path")
     r.add_argument("--from", dest="start", default="0")
     r.add_argument("--to", dest="end", default="99:59:59")
+    r.add_argument("--all", dest="mark_all", action="store_true",
+                   help="mark every unsure word, including short and common ones")
     s = sub.add_parser("suspects")
     s.add_argument("--top", type=int, default=60)
     s.add_argument("--dir", help="transcript folder (default: wts paths' transcripts_dir)")
@@ -113,7 +136,8 @@ def main() -> None:
         paths = resolve_paths(load_config(resolve_paths().config_file))
         transcripts_dir, audio_dir = paths.transcripts_dir, paths.audio_dir
     if args.cmd == "read":
-        read(find(transcripts_dir, args.episode), audio_dir, seconds(args.start), seconds(args.end))
+        read(find(transcripts_dir, args.episode), audio_dir, seconds(args.start), seconds(args.end),
+             args.mark_all)
     else:
         suspects(transcripts_dir, args.top)
 

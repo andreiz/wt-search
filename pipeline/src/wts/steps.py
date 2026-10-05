@@ -1,20 +1,23 @@
 """Batch steps: each selects eligible episodes, does the work, and moves their status."""
 
 import logging
+import shutil
 import sqlite3
+import threading
 import time
 from collections import Counter
 from collections.abc import Callable, Collection
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from pathlib import Path
 
 import httpx
 
 from wts import storage
 from wts.config import Config
-from wts.download import ProbeError, download_episode, probe_duration_s
+from wts.download import download_episode, probe_duration_s
 from wts.paths import Paths
 from wts.state import advance, episodes_for_step, fail
+from wts.storage import ToolMissing
 from wts.transcribe import VOCAB_FILE, Transcriber, get_transcriber, transcribe_episode
 
 log = logging.getLogger("wts")
@@ -30,30 +33,32 @@ def run_download(
     probe: Callable[[Path], float] = probe_duration_s,
     workers: int = 4,
 ) -> Counter:
+    if probe is probe_duration_s and shutil.which("ffprobe") is None:
+        raise ToolMissing("ffprobe not found; install ffmpeg (brew install ffmpeg)")
     storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)
-    rows = episodes_for_step(conn, "download", ids)
+    rows = iter(episodes_for_step(conn, "download", ids))
     counts: Counter = Counter()
     client = client or httpx.Client()
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = [
-            (row, pool.submit(download_episode, client, dict(row), paths.audio_dir, probe))
-            for row in rows
-        ]
-        for row, future in futures:
-            extra = {"step": "download", "episode": row["stem"]}
-            try:
-                path = future.result()
-            except (ProbeError, httpx.HTTPError) as exc:
-                fail(conn, row["id"], "download", str(exc)[:500])
-                counts["error"] += 1
-                log.error(f"download failed: {exc}", extra=extra)
-                continue
-            except OSError as exc:
-                storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)  # raises if it's gone
-                fail(conn, row["id"], "download", repr(exc)[:500])
-                counts["error"] += 1
-                log.error(f"download failed: {exc!r}", extra=extra)
-                continue
+    stop = threading.Event()
+    pool = ThreadPoolExecutor(max_workers=workers)
+    in_flight: dict[Future, sqlite3.Row] = {}
+
+    def refill() -> None:
+        # Submit lazily so that stopping the run leaves nothing queued behind it.
+        while len(in_flight) < workers and (row := next(rows, None)) is not None:
+            job = pool.submit(download_episode, client, dict(row), paths.audio_dir, probe, stop)
+            in_flight[job] = row
+
+    def record(row: sqlite3.Row, job: Future) -> None:
+        extra = {"step": "download", "episode": row["stem"]}
+        try:
+            path = job.result()
+        except OSError as exc:
+            storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)  # raises if it's gone
+            reason = repr(exc)
+        except Exception as exc:  # noqa: BLE001 — one bad episode must not stop the batch
+            reason = str(exc) or repr(exc)
+        else:
             with conn:
                 conn.execute(
                     "update episodes set audio_path = ? where id = ?", (str(path), row["id"])
@@ -61,6 +66,23 @@ def run_download(
             advance(conn, row["id"], "download")
             counts["ok"] += 1
             log.info("downloaded", extra=extra)
+            return
+        fail(conn, row["id"], "download", reason[:500])
+        counts["error"] += 1
+        log.error(f"download failed: {reason}", extra=extra)
+
+    try:
+        refill()
+        while in_flight:
+            done, _ = wait(in_flight, return_when=FIRST_COMPLETED)
+            for job in done:
+                record(in_flight.pop(job), job)
+            refill()
+    except BaseException:
+        stop.set()  # running downloads stop at their next block; partials are kept
+        raise
+    finally:
+        pool.shutdown(wait=True, cancel_futures=True)
     return counts
 
 
@@ -87,6 +109,12 @@ def run_transcribe(
         except KeyboardInterrupt:
             log.warning("interrupted; episode left as downloaded", extra=extra)
             raise
+        except OSError as exc:
+            storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)  # raises if it's gone
+            fail(conn, row["id"], "transcribe", repr(exc)[:500])
+            counts["error"] += 1
+            log.exception("transcription failed", extra=extra)
+            continue
         except Exception as exc:
             fail(conn, row["id"], "transcribe", repr(exc)[:500])
             counts["error"] += 1

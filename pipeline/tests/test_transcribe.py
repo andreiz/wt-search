@@ -62,6 +62,22 @@ def test_missing_audio_file_fails_episode(conn, make_episode, paths, cfg):
     assert status_of(conn, e) == "error"
 
 
+def test_audio_folder_vanishing_does_not_burn_retries(
+    conn, make_episode, paths, cfg, audio_file, monkeypatch
+):
+    from conftest import fail_after_first_call, retries_of
+
+    from wts import storage
+    from wts.storage import StorageUnavailable
+
+    e = make_episode(audio_path=str(audio_file), status="downloaded")
+    audio_file.unlink()  # the share dropped: reading the file fails
+    monkeypatch.setattr(storage, "check_audio_dir", fail_after_first_call(StorageUnavailable))
+    with pytest.raises(StorageUnavailable):
+        run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber())
+    assert (status_of(conn, e), retries_of(conn, e)) == ("downloaded", 0)
+
+
 @pytest.mark.mac
 def test_mlx_backend_smoke(tmp_path):  # run manually on the Mac: uv run pytest -m mac
     assert shutil.which("ffmpeg")

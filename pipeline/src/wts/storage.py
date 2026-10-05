@@ -4,7 +4,15 @@ import shutil
 from pathlib import Path
 
 
-class StorageUnavailable(Exception):
+class MachineProblem(Exception):
+    """Something wrong with this machine: stop the run, but don't charge any episode a retry."""
+
+
+class StorageUnavailable(MachineProblem):
+    pass
+
+
+class ToolMissing(MachineProblem):
     pass
 
 

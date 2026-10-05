@@ -67,7 +67,7 @@ def _run_step(step: str, selector: str, **kwargs) -> None:
     from wts import steps
     from wts.log import run_record
     from wts.selection import resolve_selector
-    from wts.storage import StorageUnavailable
+    from wts.storage import MachineProblem
 
     ctx = _ctx()
     ctx.logger()
@@ -76,7 +76,7 @@ def _run_step(step: str, selector: str, **kwargs) -> None:
     try:
         with run_record(conn, step) as run:
             run.counts.update(getattr(steps, f"run_{step}")(conn, ctx.paths, ctx.cfg, ids, **kwargs))
-    except StorageUnavailable as exc:
+    except MachineProblem as exc:
         click.echo(f"Stopped: {exc}", err=True)
         raise SystemExit(3) from exc
     click.echo(f"{step}: {dict(run.counts) or 'nothing to do'}")
@@ -125,11 +125,12 @@ def scope_list() -> None:
 
 
 @main.command()
-def feed() -> None:
+@click.option("--force", is_flag=True, help="Allow resetting many episodes whose audio URL moved.")
+def feed(force: bool) -> None:
     """Read the RSS feed and add or update episodes."""
     import httpx
 
-    from wts.feed import parse_feed, upsert_episodes
+    from wts.feed import MassReset, parse_feed, upsert_episodes
     from wts.log import run_record
 
     ctx = _ctx()
@@ -140,7 +141,11 @@ def feed() -> None:
     with run_record(conn, "feed") as run:
         resp = httpx.get(ctx.cfg.feed_url, timeout=30, follow_redirects=True)
         resp.raise_for_status()
-        result = upsert_episodes(conn, parse_feed(resp.content))
+        try:
+            result = upsert_episodes(conn, parse_feed(resp.content), force=force)
+        except MassReset as exc:
+            run.counts["error"] += 1
+            raise click.ClickException(str(exc)) from exc
         run.counts.update(added=result.added, updated=result.updated, reset=result.reset)
     log.info(f"feed: {result}", extra={"step": "feed"})
     click.echo(f"added={result.added} updated={result.updated} reset={result.reset}")

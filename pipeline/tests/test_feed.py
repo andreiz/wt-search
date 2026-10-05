@@ -2,11 +2,12 @@ from dataclasses import replace
 from pathlib import Path
 
 import httpx
+import pytest
 import respx
 from click.testing import CliRunner
 
 from wts.cli import main
-from wts.feed import normalize_audio_url, parse_feed, upsert_episodes
+from wts.feed import MassReset, normalize_audio_url, parse_feed, upsert_episodes
 from wts.state import Status
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -83,6 +84,47 @@ def test_feed_command_fetches_and_upserts(wts_home):
     r = CliRunner().invoke(main, ["feed"])
     assert r.exit_code == 0, r.output
     assert "added=8" in r.output
+
+
+BROKEN_FEED = b"""<?xml version="1.0"?>
+<rss version="2.0"><channel>
+<item><title>No date</title><guid>g-nodate</guid>
+  <enclosure url="https://cdn.example.com/a.mp3" type="audio/mpeg"/></item>
+<item><title>Bad date</title><guid>g-baddate</guid><pubDate>sometime soon</pubDate>
+  <enclosure url="https://cdn.example.com/b.mp3" type="audio/mpeg"/></item>
+<item><title>No guid</title><pubDate>Tue, 14 Mar 2017 12:00:00 +0000</pubDate>
+  <enclosure url="https://cdn.example.com/c.mp3?tracking=%s" type="audio/mpeg"/></item>
+</channel></rss>"""
+
+
+def test_items_without_usable_date_are_skipped():
+    items = parse_feed(BROKEN_FEED.replace(b"%s", b"1"))
+    assert [i.title for i in items] == ["No guid"]
+
+
+def test_missing_guid_falls_back_to_normalized_url(conn):
+    upsert_episodes(conn, parse_feed(BROKEN_FEED.replace(b"%s", b"1")))
+    r = upsert_episodes(conn, parse_feed(BROKEN_FEED.replace(b"%s", b"2")))
+    assert (r.added, conn.execute("select count(*) from episodes").fetchone()[0]) == (0, 1)
+    assert conn.execute("select guid from episodes").fetchone()[0] == "https://cdn.example.com/c.mp3"
+
+
+def test_mass_reset_is_refused_without_force(conn):
+    items = parse_feed(FEED)
+    upsert_episodes(conn, items)
+    advance_all_to(conn, "transcribed")
+    moved = [replace(i, audio_url=i.audio_url.replace("cdn.example.com", "pdst.fm/e/cdn")) for i in items]
+    with pytest.raises(MassReset, match="8 episodes"):
+        upsert_episodes(conn, moved)
+    assert all(row[0] == "transcribed" for row in conn.execute("select status from episodes"))
+    assert upsert_episodes(conn, moved, force=True).reset == 8
+
+
+def test_feed_command_force_flag(wts_home):
+    (wts_home / "config.toml").write_text('feed_url = "https://feed.example/rss"\n')
+    with respx.mock:
+        respx.get("https://feed.example/rss").mock(return_value=httpx.Response(200, content=FEED))
+        assert CliRunner().invoke(main, ["feed", "--force"]).exit_code == 0
 
 
 def test_stems_are_never_regenerated(conn):

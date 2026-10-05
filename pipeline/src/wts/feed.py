@@ -1,10 +1,10 @@
 """RSS feed ingest (spec §3.2 `wts feed`). Platform ID matching comes in plan 2."""
 
+import logging
 import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from email.utils import parsedate_to_datetime
 from urllib.parse import urlsplit, urlunsplit
 
 import feedparser
@@ -13,6 +13,12 @@ from wts.state import Status, reset
 from wts.stems import make_stem
 
 _TITLE_NUMBER = re.compile(r"^\s*(?:Ep\.?|Episode|#)\s*(\d+)", re.IGNORECASE)
+MAX_RESETS = 5
+log = logging.getLogger("wts")
+
+
+class MassReset(Exception):
+    """The feed changed audio URLs for many episodes at once (e.g. a new tracking prefix)."""
 
 
 @dataclass(frozen=True)
@@ -61,10 +67,14 @@ def parse_feed(xml: bytes) -> list[FeedItem]:
         enclosures = entry.get("enclosures") or []
         if not enclosures:
             continue
-        published = parsedate_to_datetime(entry["published"]).astimezone(UTC)
+        parsed_date = entry.get("published_parsed")
+        if parsed_date is None:
+            log.warning(f"skipping feed item without a usable date: {entry.get('title')!r}")
+            continue
+        published = datetime(*parsed_date[:6], tzinfo=UTC)
         items.append(
             FeedItem(
-                guid=entry.get("id") or enclosures[0]["href"],
+                guid=entry.get("id") or normalize_audio_url(enclosures[0]["href"]),
                 number=_number(entry),
                 title=entry.get("title", "").strip(),
                 published_at=published,
@@ -85,7 +95,24 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
-def upsert_episodes(conn: sqlite3.Connection, items: list[FeedItem]) -> FeedResult:
+def _moved_guids(conn: sqlite3.Connection, items: list[FeedItem]) -> list[str]:
+    moved = []
+    for item in items:
+        row = conn.execute("select audio_url from episodes where guid = ?", (item.guid,)).fetchone()
+        if row and normalize_audio_url(row[0]) != normalize_audio_url(item.audio_url):
+            moved.append(item.guid)
+    return moved
+
+
+def upsert_episodes(
+    conn: sqlite3.Connection, items: list[FeedItem], *, force: bool = False
+) -> FeedResult:
+    moved_guids = _moved_guids(conn, items)
+    if len(moved_guids) > MAX_RESETS and not force:
+        raise MassReset(
+            f"{len(moved_guids)} episodes changed their audio URL, which would re-download and "
+            "re-transcribe them all. If the show really moved its audio, re-run with --force."
+        )
     added = updated = resets = 0
 
     def taken(stem: str) -> bool:
@@ -108,7 +135,7 @@ def upsert_episodes(conn: sqlite3.Connection, items: list[FeedItem]) -> FeedResu
                 )
             added += 1
             continue
-        moved = normalize_audio_url(row["audio_url"]) != normalize_audio_url(item.audio_url)
+        moved = item.guid in moved_guids
         with conn:
             conn.execute(
                 "update episodes set number = ?, title = ?, published_at = ?, duration_s = ?, "
@@ -122,4 +149,8 @@ def upsert_episodes(conn: sqlite3.Connection, items: list[FeedItem]) -> FeedResu
         if moved:
             reset(conn, row["id"], Status.NEW)
             resets += 1
+            log.warning(
+                f"audio URL changed; episode reset to new: {row['audio_url']} -> {item.audio_url}",
+                extra={"step": "feed"},
+            )
     return FeedResult(added=added, updated=updated, reset=resets)

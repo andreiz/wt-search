@@ -7,7 +7,7 @@ points to.
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 1 (code complete; Checkpoints B and C open): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
+- Plan 1 (**done**, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
 - Plan 2 (written, decisions confirmed, not started): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
@@ -29,7 +29,7 @@ seed scope = 35 episodes (20 most recent + 15 across 2007–2025), **all 35 down
 `wts download --refetch-ads` (second session) re-fetched the 29 ad-laden copies: 29 ok, no
 `ads_inserted` warnings, so all 35 should be ad-free (confirm with the `ads_inserted=1` count →
 0). Its `refetched: 4` means 25 of them were already `new`, probably from an earlier
-interrupted re-fetch. Checkpoint B is in progress.
+interrupted re-fetch. **All 35 seed episodes are `embedded`** (Checkpoint C, below).
 
 ## What we learned from the real feed
 
@@ -132,7 +132,7 @@ and drift acceptance were the alternatives; neither is needed.
 
 ## Next steps (in order)
 
-Finish plan 1 before starting plan 2.
+Plan 1 is finished; plan 2 is next.
 
 1. **Plan 1, Checkpoint B** — **done** (second session). Transcripts of ep001 and ep610–615 are in
    `pipeline/tests/fixtures/real/`, trimmed to the first 15 minutes (the repo is public; the
@@ -157,11 +157,23 @@ Finish plan 1 before starting plan 2.
      faster. `wts transcribe` now prints each episode's time, speed and the time left in the
      run, plus a summary line.
    - No transcription errors.
-2. **Plan 1, Checkpoint C** (maintainer): `uv run pytest -m mac`, `uv run wts run`,
-   `uv run wts status` (all 35 `embedded`), boilerplate counts per episode (expect few, given the
-   deferred detector; plan 1's "0–10% of chunks" no longer applies), spot-check 3
-   transcripts (one pre-2012), and collect `corrections.yaml` / `vocab.txt` candidates. Plan 1 is
-   done when this is reported.
+2. **Plan 1, Checkpoint C** — **done** (second session). Plan 1 is complete.
+   - `wts status`: 35 `embedded`, no errors. `wts run`: transcribe 28 episodes in 1:21:55
+     (~2.9 min each), chunk 35 → 4,036 chunks in 0:10, embed 4,034 vectors in 0:34.
+   - Boilerplate: 2 chunks (0%), as expected with the deferred detector (open decision 7).
+   - Flags, reviewed with `transcript_peek.py issues`: all harmless.
+     - `loop_cut` on ep602 ("and you, and you, and you, and you.") and ep613 ("Would whisper 1.0
+       like do, do, do, …"): real repetition, nothing searchable lost.
+     - `bad_word_times` on ep597 ("besser.") and ep602 ("Company.", "debug."): words Whisper
+       invented after the audio ends, kept and re-timed. **Possible guard tweak** (needs the
+       maintainer's OK and spec §3.3): drop words that start after the audio's end instead.
+   - Spot-check: misheard brands/terms became corrections (Festool Systainers, workbench,
+     T-9 Boeshield, Cremona, Container Store; commit `cbffe4e`). The seed corpus was chunked
+     before that commit: after `git pull`, `uv run wts chunk` + `uv run wts embed` applies them.
+     Marc vs Mark has no safe global rule. Whisper also splits long run-on sentences into short
+     ones; cosmetic except for boilerplate matching (phase 2).
+   - Further corrections and vocabulary are an out-of-band task: a separate session using
+     `.claude/skills/corrections/` and `pipeline/spikes/check_corrections.py`.
 3. **Plan 2** (written, decisions confirmed): execute task by task. Its checkpoints:
    - **D** after Task 5: platform IDs on the real feed (Spotify/YouTube keys, no Cloudflare).
    - **E** after Task 10: staging D1 + Vectorize, pooling check, ntfy test, seed corpus published.

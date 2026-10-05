@@ -114,17 +114,16 @@ and drift acceptance were the alternatives; neither is needed.
    Options: auto-scope new episodes, or default `--select all`.
 4. `wts vocab suggest` (pull candidate terms from feed titles/show notes into `vocab.txt`) —
    proposed, not approved.
-5. Whether the GitHub repo is public (decides if real transcript fixtures can be committed whole
-   or must be trimmed to the first 15 minutes).
-7. **Boilerplate detection on real data** (Checkpoint B finding, above). Proposed: (a) match
+5. ~~Whether the GitHub repo is public~~ — it is; real fixtures are trimmed to 15 minutes.
+6. ~~Plan 2's six decisions~~ — all confirmed. Decision 2: D1 REST (non-atomic, idempotent) for
+   now; an atomic publish route in the Worker before production (spec §10 item 9).
+7. **Boilerplate detection on real data** (Checkpoint B finding, below). Proposed: (a) match
    word n-gram runs shared by ≥ 5 episodes instead of whole sentences, so Whisper's punctuation
    doesn't matter; (b) cut chunks at boilerplate span edges so a sponsor read becomes its own
    flagged chunk(s) instead of diluting a 30 s chunk. Needs brainstorm → spec §3.5 → plan
    (a plan 1 follow-up) before code.
 8. The full ep001/ep610–615 transcripts remain in public git history (`a44eec9`). Removing them
    means rewriting `main` and force-pushing (and asking GitHub to purge cached views).
-6. ~~Plan 2's six decisions~~ — all confirmed. Decision 2: D1 REST (non-atomic, idempotent) for
-   now; an atomic publish route in the Worker before production (spec §10 item 9).
 
 ## Next steps (in order)
 

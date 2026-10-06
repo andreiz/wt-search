@@ -18,8 +18,11 @@ conversation. Read this, then [README.md](../README.md), then the spec sections 
 
 ### Checkpoint D (maintainer, M1 Max): platform IDs on the real feed
 
-1. `git pull`, then in `pipeline/`: create a free Spotify developer app (client credentials) and
-   a YouTube Data API key. Put the Wood Talk Spotify show ID in `config.toml` as
+Run every `uv run wts …` command from `pipeline/` (`cd pipeline` first). From the repo root,
+`uv` finds no project and fails with ``Failed to spawn: `wts` ``.
+
+1. `git pull`. Create a free Spotify developer app (client credentials) and a YouTube Data API
+   key. Put the Wood Talk Spotify show ID in `config.toml` (`uv run wts paths` shows where) as
    `spotify_show_id = "…"`.
 2. `uv run wts secrets set spotify_client_id`, `… spotify_client_secret`, `… youtube_api_key`
    (`security` prompts for each value). `uv run wts secrets check` lists them as `set`.

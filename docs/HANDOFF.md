@@ -48,8 +48,9 @@ If coverage is far below expectations (e.g. under half the 2020–2026 seed epis
 stop and adjust the matching before Task 6.
 
 **Checkpoint D passed (2026-10-06).** A second `wts feed` added nothing (+0 on every
-platform). Spot-check: Spotify WT615, WT288 and episode 1 resolve to the right titles;
-YouTube WT615 (0 s off the feed) and WoodTalk 582 (+1 s) line up, so both get timed links.
+platform). Spot-check, links opened by the maintainer: Spotify WT615, WT288 and episode 1 are
+the right episodes; YouTube WT615 (0 s off the feed) and WoodTalk 582 (+1 s) are right and line
+up, so both get timed links.
 
 **Results:**
 - Spotify: **625 of 625** (seed 35 of 35). Spot-check of three links still to do.
@@ -85,7 +86,7 @@ YouTube WT615 (0 s off the feed) and WoodTalk 582 (+1 s) line up, so both get ti
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
 - Plan 1 (**done**, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
-- Plan 2 (Tasks 1–5 done; Checkpoint D next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–5 and Checkpoint D done; Task 6 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
 - Superpowers skills install from `.claude/settings.json`.

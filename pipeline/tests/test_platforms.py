@@ -319,6 +319,26 @@ def test_youtube_batches_video_lookups_in_fifties(api):
     assert sizes == [50, 50, 20]
 
 
+def test_youtube_shorts_and_clips_are_never_candidates(api):
+    # The real channel has 1-minute clips titled "… - WT582 #podcast" and "… - WT Episode 582".
+    clips = [("full", "WT615 | Why We Don't Use Metric", "PT50M12S"),
+             ("clip1", "Metric Madness - WT615 #podcast #woodtalk", "PT58S"),
+             ("clip2", "Why Not Metric? - WT Episode 615", "PT2M10S")]
+    api.get(f"{YT}/channels").mock(
+        return_value=httpx.Response(200, json=fixture("youtube_channels.json"))
+    )
+    api.get(f"{YT}/playlistItems").mock(return_value=httpx.Response(200, json={"items": [
+        {"snippet": {"publishedAt": "2026-09-17T20:00:00Z", "title": title,
+                     "resourceId": {"videoId": vid}}}
+        for vid, title, _ in clips
+    ]}))
+    api.get(f"{YT}/videos").mock(return_value=httpx.Response(200, json={"items": [
+        {"id": vid, "contentDetails": {"duration": length}} for vid, _, length in clips
+    ]}))
+    found = match_youtube(new_client(), YOUTUBE_KEY, "@WoodTalk", [episode("615")])
+    assert found == {1: ("full", 50 * 60 + 12)}
+
+
 def test_youtube_unknown_handle_raises(api):
     api.get(f"{YT}/channels").mock(
         return_value=httpx.Response(200, json={"pageInfo": {"totalResults": 0}})

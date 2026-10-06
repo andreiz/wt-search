@@ -6,7 +6,8 @@ instead of searching (100 units per call). Every match is stored with the video'
 
 Numbered episodes match on the number in the video title, in any style `split_title` knows;
 unnumbered ones on equal normalized titles. Either way the dates must be within ±14 days, and
-an episode with more than one candidate stays unmatched.
+an episode with more than one candidate stays unmatched. Videos under 10 minutes (shorts and
+clips, some titled with the episode number) are never candidates.
 """
 
 import logging
@@ -24,6 +25,8 @@ from wts.stems import split_title
 API = "https://www.googleapis.com/youtube/v3"
 DATE_WINDOW_DAYS = 14
 VIDEOS_PER_CALL = 50
+# Shorts and clips run up to ~3 min on the real channel; episodes since 2016 run ~30 min or more.
+MIN_EPISODE_VIDEO_S = 600
 log = logging.getLogger("wts")
 
 _DURATION = re.compile(r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$")
@@ -110,6 +113,8 @@ def match_youtube(
     by_number: dict[int, list[Video]] = defaultdict(list)
     by_title: dict[str, list[Video]] = defaultdict(list)
     for video in _channel_videos(client, api_key, handle):
+        if video.duration_s < MIN_EPISODE_VIDEO_S:
+            continue  # a short or clip, which can carry the episode's number in its title
         number = split_title(video.title, None)[0]
         if number is not None:
             by_number[number].append(video)

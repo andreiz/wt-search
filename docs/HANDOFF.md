@@ -26,11 +26,13 @@ Run every `uv run wts …` command from `pipeline/` (`cd pipeline` first). From 
    `spotify_show_id = "…"`.
 2. `uv run wts secrets set spotify_client_id`, `… spotify_client_secret`, `… youtube_api_key`
    (`security` prompts for each value). `uv run wts secrets check` lists them as `set`.
-3. `uv run wts feed` — it now prints `platform IDs: apple=… spotify=… youtube=…` plus any
-   `_skipped`, `_error` or `_duplicate` counts. Report:
+3. `uv run wts feed` — it prints `platform IDs (of 625 episodes): apple 200 (+0), …`: each
+   platform's total, then what this run added (and any duplicate/skipped/error). Report:
    - How many of the 35 seed episodes got each ID, and of all 625:
-     `sqlite3 -list state.db "select count(apple_episode_id), count(spotify_episode_id),
-     count(youtube_video_id) from episodes where in_scope = 1"` (drop the `where` for all).
+     `sqlite3 -init /dev/null -list state.db "select count(apple_episode_id),
+     count(spotify_episode_id), count(youtube_video_id) from episodes where in_scope = 1"`
+     (drop the `where` for all). `-init /dev/null` skips the maintainer's `~/.sqliterc` (its
+     banner and header settings).
    - The oldest episode with an Apple ID (decision 4):
      `… "select min(published_at) from episodes where apple_episode_id is not null"`.
    - YouTube matches passing the 3 s rule:
@@ -45,6 +47,16 @@ Run every `uv run wts …` command from `pipeline/` (`cd pipeline` first). From 
 
 If coverage is far below expectations (e.g. under half the 2020–2026 seed episodes on Spotify),
 stop and adjust the matching before Task 6.
+
+**Results so far (2026-10-06):**
+- Spotify: **625 of 625** (seed 35 of 35). Spot-check of three links still to do.
+- Apple: **200 of 625** (seed 25 of 35); oldest 2017-10-30 — the lookup's newest-200 limit
+  (decision 4). The 10 older seed episodes get no Apple button until the M2 fallback.
+- YouTube: not run yet (key not set).
+- The User-Agent is not a problem for Spotify (bot and curl UAs both answer in < 0.2 s). The
+  first run's Spotify `ReadTimeout` didn't recur; signed-in calls take < 0.3 s. Errors now name
+  the failed request (host and path). If timeouts come back, add a retry to platform lookups.
+- The real Apple response shape matched the hand-built fixture well enough to match by guid.
 3. Corrections/vocabulary are a separate, out-of-band session (`.claude/skills/corrections/`);
    don't mix them into plan 2 work.
 
@@ -128,7 +140,8 @@ interrupted re-fetch. **All 35 seed episodes are `embedded`** (Checkpoint C, bel
   link YouTube only when video length is within 3 s of `itunes:duration` (spec §4.6). Exact links
   need timestamps on the show's own (ad-free) timeline.
 - **sqlite tip:** the maintainer's `.sqliterc` uses column mode, which wraps long values —
-  use `sqlite3 -list -noheader` when capturing values in shell.
+  use `sqlite3 -init /dev/null -list -noheader` when capturing values in shell (`-init
+  /dev/null` skips `.sqliterc`, whose settings otherwise win and which prints a banner).
 
 ## Spikes: locate inserted ads (no longer needed)
 

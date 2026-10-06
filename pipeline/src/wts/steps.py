@@ -31,6 +31,7 @@ from wts.log import clock, plural, run_record
 from wts.net import new_client
 from wts.paths import Paths
 from wts.platforms import match_platform_ids
+from wts.publish import run_publish as publish_to
 from wts.secrets import SecretStore, get_store
 from wts.selection import resolve_selector
 from wts.state import Status, advance, episodes_for_step, fail, reset
@@ -318,6 +319,14 @@ def run_embed(
             extra={"step": "embed"},
         )
     return counts
+
+
+def run_publish(
+    conn: sqlite3.Connection, paths: Paths, cfg: Config, ids: Collection[int], *, env: str,
+    **kwargs,
+) -> Counter:
+    """`wts publish --env`; see publish.py."""
+    return publish_to(conn, paths, cfg, env, ids, **kwargs)
 
 
 def run_feed(

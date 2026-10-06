@@ -6,7 +6,7 @@ from dataclasses import dataclass, fields
 import click
 
 from wts import __version__
-from wts.config import Config, load_config
+from wts.config import ENV_NAMES, Config, load_config
 from wts.paths import Paths, resolve_paths
 from wts.secrets import SECRET_NAMES
 
@@ -115,6 +115,24 @@ def chunk(selector: str, force: bool) -> None:
 def embed(selector: str) -> None:
     """Embed non-boilerplate chunks with bge-base-en-v1.5."""
     _run_step("embed", selector)
+
+
+@main.command()
+@select_option
+@click.option("--env", "env", type=click.Choice(ENV_NAMES), required=True,
+              help="Cloudflare environment to publish to.")
+@click.option("--dry-run", is_flag=True, help="Show what would be sent; call nothing.")
+def publish(selector: str, env: str, dry_run: bool) -> None:
+    """Send changed episodes to D1 and Vectorize (safe to re-run)."""
+    from wts.secrets import MissingSecret, get_secret, get_store
+
+    if not dry_run:  # fail before the run starts, naming what to set
+        _ctx().cfg.env(env)
+        try:
+            get_secret(get_store(), "cloudflare_api_token")
+        except MissingSecret as exc:
+            raise click.ClickException(str(exc)) from exc
+    _run_step("publish", selector, env=env, dry_run=dry_run)
 
 
 @main.group()

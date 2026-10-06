@@ -10,8 +10,6 @@ from wts.config import Config, load_config
 from wts.paths import Paths, resolve_paths
 from wts.secrets import SECRET_NAMES
 
-PLATFORM_NAMES = ("apple", "spotify", "youtube")
-
 
 @dataclass
 class Ctx:
@@ -183,6 +181,7 @@ def feed(force: bool) -> None:
     """Read the RSS feed and add or update episodes."""
     from wts.feed import MassReset
     from wts.log import run_record
+    from wts.platforms import platform_summary
     from wts.steps import run_feed
 
     ctx = _ctx()
@@ -198,9 +197,7 @@ def feed(force: bool) -> None:
             raise click.ClickException(str(exc)) from exc
     c = run.counts
     click.echo(f"added={c['added']} updated={c['updated']} reset={c['reset']}")
-    platforms = {k: v for k, v in sorted(c.items()) if k.split("_")[0] in PLATFORM_NAMES}
-    if platforms:
-        click.echo("platform IDs: " + " ".join(f"{k}={v}" for k, v in platforms.items()))
+    click.echo(platform_summary(conn, c))
 
 
 @main.command("run")

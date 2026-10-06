@@ -177,3 +177,18 @@ def match_platform_ids(
             extra=EXTRA,
         )
     return counts
+
+
+def platform_summary(conn: sqlite3.Connection, counts: Counter) -> str:
+    """One line for `wts feed`: each platform's total IDs, then what this run did, e.g.
+    `apple 200 (+0), spotify 625 (+3, 2 duplicate), youtube 0 (skipped)`."""
+    episodes = conn.execute("select count(*) from episodes").fetchone()[0]
+    parts = []
+    for p in PLATFORMS:
+        total = conn.execute(f"select count({p.column}) from episodes").fetchone()[0]
+        notes = [f"+{counts[p.name]}"] if p.name in counts else []
+        if counts[f"{p.name}_duplicate"]:
+            notes.append(f"{counts[f'{p.name}_duplicate']} duplicate")
+        notes += [kind for kind in ("skipped", "error") if counts[f"{p.name}_{kind}"]]
+        parts.append(f"{p.name} {total}" + (f" ({', '.join(notes)})" if notes else ""))
+    return f"platform IDs (of {episodes} episodes): " + ", ".join(parts)

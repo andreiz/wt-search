@@ -1,5 +1,6 @@
 import base64
 import json
+from collections import Counter
 from dataclasses import replace
 from datetime import date, timedelta
 from pathlib import Path
@@ -10,7 +11,7 @@ import pytest
 import respx
 
 from wts.net import USER_AGENT, new_client
-from wts.platforms import match_platform_ids
+from wts.platforms import match_platform_ids, platform_summary
 from wts.platforms.apple import match_apple
 from wts.platforms.spotify import match_spotify
 from wts.platforms.text import PlatformError, normalize_title
@@ -546,3 +547,21 @@ def test_run_feed_survives_a_platform_that_cannot_be_reached(conn, cfg):
                           store=EnvStore({}))
     assert counts["added"] == 1 and counts["apple_error"] == 1
     assert conn.execute("select count(*) from episodes").fetchone()[0] == 1
+
+
+def test_platform_summary_shows_totals_beside_new_matches(conn, make_episode):
+    make_episode(apple_episode_id="1", spotify_episode_id="a")
+    make_episode(spotify_episode_id="b")
+    make_episode()
+    counts = Counter(apple=0, spotify=1, youtube_skipped=1, spotify_duplicate=2)
+    assert platform_summary(conn, counts) == (
+        "platform IDs (of 3 episodes): apple 1 (+0), spotify 2 (+1, 2 duplicate), "
+        "youtube 0 (skipped)"
+    )
+
+
+def test_platform_summary_reports_errors_and_unchecked(conn, make_episode):
+    make_episode(apple_episode_id="1")
+    assert platform_summary(conn, Counter(spotify_error=1)) == (
+        "platform IDs (of 1 episodes): apple 1, spotify 0 (error), youtube 0"
+    )

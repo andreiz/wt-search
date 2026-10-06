@@ -418,6 +418,19 @@ def test_youtube_403_is_logged_and_keeps_other_matches(conn, cfg, make_episode, 
     assert len(failures) == 1 and "403" in failures[0] and "quotaExceeded" in failures[0]
 
 
+def test_errors_name_the_request_without_its_query(conn, cfg, make_episode, api, wts_messages):
+    mock_apple(api)
+    mock_spotify(api).episodes.mock(side_effect=httpx.ReadTimeout("timed out"))
+    mock_youtube(api).channels.mock(side_effect=httpx.ReadTimeout("timed out"))
+    add_all(make_episode, ["615"])
+    match_platform_ids(conn, settings(cfg), new_client(), FULL_STORE)
+    spotify = next(m for m in wts_messages if m.startswith("spotify: lookup failed"))
+    youtube = next(m for m in wts_messages if m.startswith("youtube: lookup failed"))
+    assert f"ReadTimeout on GET api.spotify.com/v1/shows/{SHOW_ID}/episodes" in spotify
+    assert "ReadTimeout on GET www.googleapis.com/youtube/v3/channels" in youtube
+    assert "?" not in spotify and "?" not in youtube  # the YouTube key is a query parameter
+
+
 @pytest.mark.parametrize(
     "failure",
     [

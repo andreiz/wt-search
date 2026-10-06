@@ -66,6 +66,15 @@ PLATFORMS = (
 )
 
 
+def _request(exc: httpx.HTTPError) -> str:
+    """` on GET host/path` for the failed request, without the query string."""
+    try:
+        request = exc.request
+    except RuntimeError:  # an httpx error raised without a request attached
+        return ""
+    return f" on {request.method} {request.url.host}{request.url.path}"
+
+
 def _describe(exc: Exception) -> str:
     """What went wrong, without the exception's own text: httpx puts the request URL in its
     messages, and the YouTube key is a query parameter of that URL."""
@@ -74,8 +83,12 @@ def _describe(exc: Exception) -> str:
         try:
             reason = exc.response.json()["error"]["errors"][0]["reason"]  # Google's error body
         except Exception:  # noqa: BLE001 — any other body shape just has no reason
-            return text
-        return f"{text} {reason}" if isinstance(reason, str) and reason.isalpha() else text
+            reason = None
+        if isinstance(reason, str) and reason.isalpha():
+            text += f" {reason}"
+        return text + _request(exc)
+    if isinstance(exc, httpx.HTTPError):
+        return type(exc).__name__ + _request(exc)
     if isinstance(exc, PlatformError):
         return str(exc)
     return type(exc).__name__

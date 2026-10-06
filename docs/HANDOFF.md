@@ -5,9 +5,8 @@ conversation. Read this, then [README.md](../README.md), then the spec sections 
 
 ## Start here (next session)
 
-1. **Plan 2, Tasks 1–5 are done** (third session). Waiting on **Checkpoint D** (maintainer,
-   below). After it, continue with Task 6 (Cloudflare REST client), test-first, one commit per
-   task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
+1. **Plan 2, Tasks 1–5 and Checkpoint D are done** (third session). Continue with Task 6
+   (Cloudflare REST client), test-first, one commit per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
    (Task 5 was done that way, then reviewed before commit), and for a short report after each
    task.
 2. Before Task 7 (publish), check the plan's Review Focus. CLS pooling and FTS5 trigger
@@ -48,7 +47,11 @@ Run every `uv run wts …` command from `pipeline/` (`cd pipeline` first). From 
 If coverage is far below expectations (e.g. under half the 2020–2026 seed episodes on Spotify),
 stop and adjust the matching before Task 6.
 
-**Results so far (2026-10-06):**
+**Checkpoint D passed (2026-10-06).** A second `wts feed` added nothing (+0 on every
+platform). Spot-check: Spotify WT615, WT288 and episode 1 resolve to the right titles;
+YouTube WT615 (0 s off the feed) and WoodTalk 582 (+1 s) line up, so both get timed links.
+
+**Results:**
 - Spotify: **625 of 625** (seed 35 of 35). Spot-check of three links still to do.
 - Apple: **200 of 625** (seed 25 of 35); oldest 2017-10-30 — the lookup's newest-200 limit
   (decision 4). The 10 older seed episodes get no Apple button until the M2 fallback.

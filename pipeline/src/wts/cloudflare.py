@@ -166,7 +166,8 @@ class D1:
             raise self._api.fail(200, f"D1 returned {got} results for {expected} statements")
         out = []
         for number, entry in enumerate(result, 1):
-            if not isinstance(entry, dict) or not entry.get("success"):
+            # `success` is optional per statement in the API reference; only `false` fails.
+            if not isinstance(entry, dict) or entry.get("success") is False:
                 reason = entry.get("error", "failed") if isinstance(entry, dict) else "failed"
                 raise self._api.fail(200, f"D1 statement {number} failed: {reason}")
             out.append(entry.get("results") or [])

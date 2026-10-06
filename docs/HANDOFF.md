@@ -74,11 +74,29 @@ up, so both get timed links.
   `uv run wts embed`.
 - Ask GitHub Support to purge cached views of commit `a44eec9` (open decision 8).
 
-**Cloud session environment** (as found in session 2):
-- Reachable: Acast (`feeds.acast.com`, `sphinx.acast.com`), PyPI, the npm registry, GitHub.
-  Node 22 and npm are installed (for `worker/`).
-- Blocked: `itunes.apple.com` and `developers.cloudflare.com` (web search still works for
-  Cloudflare docs). The Apple lookup in Task 5 can only be tested with recorded fixtures here.
+**Cloud session environment** (checked in session 3):
+- Reachable: Acast (`feeds.acast.com`, `sphinx.acast.com`), PyPI, the npm registry, GitHub,
+  and **`developers.cloudflare.com`** (session 2's note that it was blocked was wrong or is
+  stale; check with `curl` before assuming). Append `index.md` to a docs URL for Markdown, e.g.
+  `https://developers.cloudflare.com/d1/platform/limits/index.md`. Node 22 and npm are
+  installed (for `worker/`).
+- Blocked: `itunes.apple.com` and every `spotify.com` host. Platform tests use hand-built
+  fixtures.
+
+**Cloudflare API, checked against the docs (session 3):**
+- D1 limits: 100 bound parameters and 100 KB per statement (as planned). Workers on the Free
+  plan get only 50 D1 queries per invocation (1000 on Paid): keep the Worker's queries per
+  request small.
+- D1 REST `query`: body `{sql, params}` or `{batch: [{sql, params}]}`; result is one
+  `{results, success?, meta}` per statement. Per-statement `success` is optional (the client
+  now fails only on `false`). **`params` are documented as strings**; `wts` sends JSON numbers
+  (plan decision). Checkpoint E will show whether D1 accepts them; if not, send strings
+  (INTEGER column affinity converts them on insert, but check `where id = ?` comparisons).
+- Vectorize HTTP: upsert up to 5000 vectors and 100 MB per request (we send 1000); response
+  `result.mutationId`. Upsert body: the API reference shows `Content-Type: application/x-ndjson`
+  (what `wts` sends, raw), but its example and the Python guide upload the NDJSON as a multipart
+  file (`files={"vectors": f}`). If the raw body is refused at Checkpoint E, switch to multipart.
+- Vectorize query `topK`: at most 50 with values or metadata, 100 without (Task 14 uses 50).
 - Only the 15-minute fixtures of ep001 and ep610–615 are available; full transcripts, audio and
   `state.db` live on the maintainer's Mac.
 

@@ -183,6 +183,14 @@ def test_statement_level_failure_raises(d1):
 
 
 @respx.mock
+def test_statement_success_is_optional(d1):
+    # The API reference documents a statement's `success` as optional: only `false` fails.
+    respx.post(D1_URL).respond(json={"success": True, "errors": [], "messages": [],
+                                     "result": [{"results": [{"n": 1}]}]})
+    assert d1.query("select 1 as n") == [{"n": 1}]
+
+
+@respx.mock
 def test_a_result_count_that_differs_from_the_statements_raises(d1):
     respx.post(D1_URL).respond(json=d1_ok([]))
     with pytest.raises(CloudflareError, match="1 results for 2 statements"):

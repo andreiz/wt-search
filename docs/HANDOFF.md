@@ -5,8 +5,8 @@ conversation. Read this, then [README.md](../README.md), then the spec sections 
 
 ## Start here (next session)
 
-1. **Plan 2, Tasks 1–5 and Checkpoint D are done** (third session). Continue with Task 6
-   (Cloudflare REST client), test-first, one commit per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
+1. **Plan 2, Tasks 1–7 and Checkpoint D are done** (third session). Continue with Task 8
+   (ntfy notifications), test-first, one commit per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
    (Task 5 was done that way, then reviewed before commit), and for a short report after each
    task.
 2. Before Task 7 (publish), check the plan's Review Focus. CLS pooling and FTS5 trigger
@@ -104,7 +104,7 @@ up, so both get timed links.
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
 - Plan 1 (**done**, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
-- Plan 2 (Tasks 1–5 and Checkpoint D done; Task 6 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–7 and Checkpoint D done; Task 8 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
 - Superpowers skills install from `.claude/settings.json`.
@@ -291,6 +291,25 @@ Plan 1 is finished; plan 2 is next.
      in its window stays unmatched (logged); an ID already stored on another episode is not
      claimed (the stored one stays); Spotify items with month/year-precision dates are ignored;
      errors are logged as status + Google `reason` only (httpx messages carry the YouTube key).
+     After Checkpoint D: `wts feed` prints totals; YouTube ignores videos under 10 minutes.
+   - Task 6: `wts/cloudflare.py` (Sonnet subagent, reviewed): `D1.query/batch`,
+     `Vectorize.upsert/delete_by_ids` (≤ 1000 per request), retries, token scrubbed from
+     errors, `chunked_inserts(table, columns, rows, upsert_on=…)` within 100 params / 50 KB.
+   - Task 7: `wts publish --env staging|production [--select] [--dry-run]` (`wts/publish.py`).
+     Calls not spelled out in the plan:
+     - `published_vectors` is written *before* the Vectorize upsert (insert-or-ignore) and
+       trimmed after the delete, so it lists every id that may be in the index; vectors sent
+       before a failure are still deleted if a re-chunk then drops their chunk (tested).
+     - Gone chunks are deleted with `id not in (select value from json_each(?))` (one JSON
+       param; D1's docs recommend this), so any episode size fits the 100-parameter limit.
+     - `due_episodes(conn, env, ids, embeddings_dir)` takes the embeddings dir (the digest
+       covers the vectors). The digest includes a `DIGEST_VERSION`.
+     - A failed `corpus_version` bump sets `kv` `publish.corpus_version_pending.<env>` and is
+       retried on the next run even if nothing else is due.
+     - The CLI checks config and the token before starting (not for `--dry-run`).
+     - Known gap (pre-existing): an episode in `error` isn't re-chunked by a corrections
+       refresh (`refresh_chunks` takes chunked/embedded/published only). A publish failure on
+       an already-published episode puts it in `error` until a publish succeeds.
    Its checkpoints:
    - **D** after Task 5: platform IDs on the real feed (Spotify/YouTube keys, no Cloudflare).
    - **E** after Task 10: staging D1 + Vectorize, pooling check, ntfy test, seed corpus published.

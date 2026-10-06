@@ -52,7 +52,12 @@ stop and adjust the matching before Task 6.
 - Spotify: **625 of 625** (seed 35 of 35). Spot-check of three links still to do.
 - Apple: **200 of 625** (seed 25 of 35); oldest 2017-10-30 — the lookup's newest-200 limit
   (decision 4). The 10 older seed episodes get no Apple button until the M2 fallback.
-- YouTube: not run yet (key not set).
+- YouTube: **89 of 625** matched, **55** within 3 s of the feed (seed: 23 matched, 21 pass).
+  The channel has 187 videos; the 98 unmatched are 39 unnumbered "Wood Talk Live Stream"
+  videos (2016–2018, unedited, 20–125 min, so they would fail the length rule anyway), one
+  "testing live", and ~57 shorts/clips (≤ 3 min). Two 1-minute clips carry "WT582" in the
+  title, which would make ep582 ambiguous: matching now ignores videos under 10 minutes
+  (`8a3a360`). Re-run `wts feed` to pick up ep582 if it was left unmatched.
 - The User-Agent is not a problem for Spotify (bot and curl UAs both answer in < 0.2 s). The
   first run's Spotify `ReadTimeout` didn't recur; signed-in calls take < 0.3 s. Errors now name
   the failed request (host and path). If timeouts come back, add a retry to platform lookups.

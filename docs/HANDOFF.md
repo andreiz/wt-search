@@ -11,8 +11,8 @@ deploy the Worker, add `api_url` under `[env.staging]`, exact search on staging 
 
 Checkpoint F done so far (2026-10-07): Worker deployed to staging (`wts-api-staging`,
 without the Analytics binding, below); `wts search --env staging` works on the real corpus;
-YouTube and Spotify links open at the cue (Spotify now `?t=<s>`, the format its own share
-sheet makes; `docs/deep-links.md`). Still open: five cue times against the audio, latency
+YouTube and Spotify links open at the cue on desktop (Spotify now `?t=<s>`, the format its
+own share sheet makes; phones not checked yet; `docs/deep-links.md`). Still open: five cue times against the audio, latency
 (`wrangler tail`), and `rows_read` for a common word (step 6).
 
 Checkpoint F testing also brought (2026-10-07): corrections for Titebond, Bessey, Roubo,

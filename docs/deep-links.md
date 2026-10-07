@@ -22,19 +22,16 @@ no country or slug. Whether it opens the episode on each device is itself to be 
 the Apple rows below cover it as well as the time.
 
 **2026-10-07, Checkpoint F:** the maintainer opened YouTube and Spotify links from
-`wts search` on staging; both started at the cue. Devices weren't noted per row, so the rows
-below stay open until each is seen on its own.
+`wts search` on staging, on desktop; both started at the cue. Phones are still to check.
 
 | Platform | Device | Format | Result |
 | --- | --- | --- | --- |
-| YouTube | any (maintainer's) | `&t=<s>s` | works (2026-10-07) |
-| Spotify | any (maintainer's) | `?t=<s>` | works (2026-10-07) |
 | YouTube | iOS app | `&t=<s>s` (what the Worker uses) | not checked |
 | YouTube | Android app | `&t=<s>s` (what the Worker uses) | not checked |
-| YouTube | Desktop web | `&t=<s>s` (what the Worker uses) | not checked |
+| YouTube | Desktop web | `&t=<s>s` (what the Worker uses) | works (2026-10-07) |
 | Apple Podcasts | iOS app | `&t=<s>` appended to the `?i=` URL | not checked |
 | Apple Podcasts | Android app | `&t=<s>` appended to the `?i=` URL | not checked |
 | Apple Podcasts | Desktop web | `&t=<s>` appended to the `?i=` URL | not checked |
 | Spotify | iOS app | `?t=<s>` (what the Worker uses; the app's own share format) | not checked |
 | Spotify | Android app | `?t=<s>` (what the Worker uses) | not checked |
-| Spotify | Desktop web | `?t=<s>` (what the Worker uses) | not checked |
+| Spotify | Desktop web | `?t=<s>` (what the Worker uses) | works (2026-10-07) |

@@ -29,7 +29,7 @@ Four manual checkpoints, continuing plan 1's lettering. At each one the maintain
 
 - **D** (after Task 5): platform IDs on the real feed. Spotify and YouTube secrets go in the Keychain, then `wts feed` runs; this shows the match coverage for the seed set and how far back Apple's lookup reaches. No Cloudflare account needed yet.
 - **E** (after Task 10): staging data, Worker not deployed yet. Create the staging D1 and Vectorize resources and the API token, pass the embedding pooling check, receive an ntfy test push, then **publish the seed corpus** and inspect it with `wrangler d1 execute`. A second publish must send nothing.
-- **F** (after Task 13): exact search on staging. Deploy the Worker with `/api/health` and exact search, and search the real corpus with `curl`. Check a few cue times against the audio and YouTube.
+- **F** (after Task 13a): exact search on staging. Deploy the Worker with `/api/health` and exact search, and search the real corpus with `wts search` (Task 13a) and `curl`. Check a few cue times against the audio and YouTube.
 - **G** (after Task 16): everything on staging. Smart search, context and reports, rate limits, then `wts run --env staging` end to end with backup and notifications.
 
 ## Global Constraints
@@ -579,13 +579,48 @@ Needs the seed corpus embedded (plan 1's Checkpoint C). The Worker isn't deploye
 
 ---
 
+### Task 13a: `wts search` (added 2026-10-07)
+
+A terminal client for the maintainer: searches a deployed environment through the Worker's API, so it shows exactly what the web app will (spec §3.2). Not for listeners, and no offline search over `state.db` (both ruled out by the maintainer).
+
+**Files:**
+- Create: `pipeline/src/wts/search.py`, `pipeline/tests/test_search.py`, `pipeline/tests/fixtures/search/*.json`
+- Modify: `pipeline/src/wts/config.py`, `pipeline/tests/test_config.py`, `pipeline/src/wts/cli.py`, `pipeline/README.md`
+
+**Interfaces:**
+- Config: `[env.<name>] api_url` (for example `https://wts-api-staging.<account>.workers.dev`). Optional, so `wts publish` doesn't need it. `Config.api_url(name) -> str` raises `click.UsageError` naming the missing key.
+- `search(client, api_url, q, *, mode="smart", sort="relevance", page=1) -> dict` calls `GET <api_url>/api/search` with those parameters and returns the parsed JSON. A non-2xx response or invalid JSON raises `SearchError` with the status and the API's `error` field; network errors are retried like the other `wts` clients. It uses `wts.net.new_client()` (the bot User-Agent).
+- `format_results(response, *, color: bool) -> str`:
+  - Per result: `#<number> <title> (<YYYY-MM-DD>)  <mm:ss or h:mm:ss>`, then the text with each range in bold (ANSI) when `color`, or wrapped in `[` `]` otherwise, then `+N more in episode` when present, then the links in card order (YouTube, Apple, Spotify, page), one per line.
+  - A header line: `total` in exact mode; `smart search degraded: keyword results only` when `smart_degraded`.
+  - No results → `No results.`
+- CLI: `wts search "<query>" [--env staging|production] [--mode smart|exact] [--sort relevance|newest|oldest] [--page N] [--json]`. `--env` defaults to `run_env`; with neither, a usage error. `color` follows `click`'s TTY detection. `--json` prints the response as is.
+- The same `search()` is what plan 5's `wts eval` and the smoke search after `wts run` call.
+
+- [ ] **Step 1: Write failing tests** (respx, with response fixtures in the spec §4.4 shape from Task 13):
+  - The request URL and parameters (the query is URL-encoded, page and mode passed through).
+  - Highlight ranges in bold, and with brackets when color is off, including two ranges in one result and ranges at the start and end of the text.
+  - `mm:ss` from `hit_ms`, and `h:mm:ss` over an hour.
+  - Links in card order; missing platforms are omitted.
+  - `more_in_episode`, `total`, `smart_degraded` and empty results.
+  - 404/500 from the API → `SearchError` with the status; the CLI exits 1 with one line.
+  - `--json` output parses back to the response.
+  - A missing `api_url` names `[env.staging] api_url`; no `--env` and no `run_env` is a usage error.
+- [ ] **Step 2: Run and confirm they fail.**
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run tests and lint.**
+- [ ] **Step 5: Commit.** `pipeline: wts search, a terminal client for /api/search`
+
+---
+
 ### Checkpoint F: Exact search on staging (maintainer, M1 Max)
 
 1. **Migrations:** `cd worker && npx wrangler d1 migrations apply wts-staging --env staging --remote` — nothing new to apply unless Tasks 11–13 added a migration.
 2. **Deploy:** `npx wrangler deploy --env staging`, with a `workers.dev` URL or the staging route (spec §10 item 7).
 3. **Search:**
+   - Add `api_url` (the deployed `workers.dev` URL) under `[env.staging]` in `config.toml`.
    - `curl '<staging>/api/health'` returns the `corpus_version` from Checkpoint E.
-   - `curl '<staging>/api/search?q=dovetail&mode=exact'`, plus a phrase, an exclusion, `year:2015`, `ep:613` and `include:ads` — each gives sensible results.
+   - `uv run wts search --env staging --mode exact dovetail`, plus a phrase, an exclusion, `year:2015`, `ep:613` and `include:ads` — each gives sensible results. Check one with `--json` against `curl '<staging>/api/search?q=dovetail&mode=exact'`.
    - Search a sponsor read word for word: hidden by default, found with `include:ads`.
 4. **Cue times:** for five hits, play the episode file from `audio_dir` at `hit_ms` (and the YouTube link where there is one). The hit word should be spoken within about 7 s after the cue.
 5. **Latency:** `npx wrangler tail --env staging` during the searches; note typical latency.

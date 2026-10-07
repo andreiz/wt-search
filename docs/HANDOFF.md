@@ -6,8 +6,8 @@ then [README.md](../README.md), then the spec sections it points to.
 ## Start here (next session)
 
 **Plan 2: Tasks 1–11 and Checkpoints D and E are done. Next: Task 12 (word times,
-highlights, cue times, deep links)**, then Task 13 and Checkpoint F (deploy the Worker, exact
-search on staging with `curl`).
+highlights, cue times, deep links)**, then Task 13, Task 13a (`wts search`, added
+2026-10-07) and Checkpoint F (deploy the Worker, exact search on staging with `wts search`).
 
 How the maintainer works:
 - Test-first, one commit per task, straight to `main` (CLAUDE.md). Edit tool for changes.
@@ -155,7 +155,13 @@ How the maintainer works:
   Wednesdays, every ~13 days (breaks up to 36 days in 2026, 68 in 2025); an idle run is a few
   requests and ~8 YouTube quota units; daily runs also catch YouTube uploads that land late.
 
-Checkpoints still ahead: **F** after Task 13 (deploy, exact search, cue times), **G** after
+- **Task 13a added (2026-10-07, maintainer's idea):** `wts search`, a terminal client of
+  `/api/search` for the maintainer only (no listener tool, no offline search over `state.db`).
+  It calls the deployed Worker rather than reimplementing search in Python, so it shows what
+  the web app shows; plan 5's `wts eval` and the smoke search reuse its `search()`. New
+  optional config key `[env.<name>] api_url`. Spec §3.2, plan Task 13a.
+
+Checkpoints still ahead: **F** after Task 13a (deploy, exact search, cue times), **G** after
 Task 16 (smart search, report, caching, `wts run --env staging` end to end). Plans 3–5
 (frontend, review tool, test search set) are written after Checkpoint G.
 

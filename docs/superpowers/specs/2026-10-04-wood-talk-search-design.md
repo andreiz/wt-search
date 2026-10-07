@@ -196,7 +196,7 @@ system.
 | `wts embed` | `bge-base-en-v1.5` (768 dimensions) through `sentence-transformers` on the Mac's GPU (MPS). It must be the same model Workers AI runs for query embeddings (`@cf/baai/bge-base-en-v1.5`), **with `pooling: "cls"`**: sentence-transformers uses CLS pooling for bge, while Workers AI defaults to `mean`, and the two aren't compatible. `wts check-embeddings` compares the two before publishing. Boilerplate chunks are not embedded. |
 | `wts publish --env staging\|production` | Sends only the episodes that changed, per environment: `state.db` keeps a `publications` row (episode, environment, digest) for each, and an episode is due when the digest of what it would send (D1 row with platform IDs and offsets, chunks, vectors) differs. Per episode: a Vectorize upsert of its non-boilerplate chunks by chunk ID; one D1 batch (upsert the episode row, delete its chunks that are gone, upsert its chunks with `ON CONFLICT DO UPDATE`, never `INSERT OR REPLACE`, which would skip the FTS delete trigger); a Vectorize delete of vectors for chunks that were removed or became boilerplate (ids from `published_vectors`, which lists every id that may be in that environment's index). Bumps `meta.corpus_version`. *(Revised 2026-10-06, plan 2 decisions 1–2: D1's REST API is not atomic across a batch's statements, so publishing is idempotent instead; before production, D1 writes move to an authenticated Worker route using the atomic `env.DB.batch()`, §10.)* `--dry-run` shows what would be sent. |
 | `wts run` | Runs `feed → download → transcribe → chunk → embed → publish` for the selected environment, then a smoke search (§8.1) and notifications. |
-| `wts search "<query>" [--env staging\|production] [--mode smart\|exact] [--sort relevance\|newest\|oldest] [--page N] [--json]` | Searches a deployed environment from the terminal, for the maintainer. A thin client of the Worker's `/api/search` (§4.4), so results are exactly what the web app shows: the query syntax, ranking, collapsing, cue times and links all stay in the Worker, with no second implementation in Python. Prints one block per result (episode number, title, date, `mm:ss`, the text with hits in bold, `+N more in episode`, then the links); `--json` prints the raw response. The environment defaults to `run_env`; its URL is `[env.<name>] api_url` in `config.toml`. The same client serves `wts eval` and the smoke search after `wts run` (§7.2, §8.1). *(Added 2026-10-07.)* |
+| `wts search "<query>" [--env staging\|production] [--mode smart\|exact] [--sort relevance\|newest\|oldest] [--page N] [--json]` | Searches a deployed environment from the terminal, for the maintainer. A thin client of the Worker's `/api/search` (§4.4), so results are exactly what the web app shows: the query syntax, ranking, collapsing, cue times and links all stay in the Worker, with no second implementation in Python. Prints one block per result (episode number, title, date, `mm:ss` and `related` for a meaning-only hit, the text with hits in bold, `+N more in episode`, then the links); `--json` prints the raw response. The environment defaults to `run_env`; its URL is `[env.<name>] api_url` in `config.toml`. The same client serves `wts eval` and the smoke search after `wts run` (§7.2, §8.1). *(Added 2026-10-07.)* |
 | `wts status` | Episode counts by status, episodes in `error` with their reasons, and the last 10 runs. |
 | `wts reports` | Lists listener transcript-error reports (§4.4) and marks them resolved. |
 | `wts logs` | Filters the pipeline logs (§8.4). |
@@ -472,7 +472,26 @@ Parser rules (`worker/src/query.ts`):
     4. With `sort=newest|oldest`, re-sort the top 100 merged results by date.
        Meaning-based search matches everything a little, so date order over
        every match would be noise.
-    - No `total`.
+    5. Collapse the whole list (not per page, unlike exact), then page.
+    - No `total`. *(Settled 2026-10-07, plan 2 Task 14.)* A smart response is
+      `{page, limit, has_more, results, mode, sort, smart_degraded?}`: no
+      `total`, `total_capped` or `truncated`, degraded or not. Pages stop at
+      `ceil(100 / limit)` (5 at 20).
+    - The year filters also go to Vectorize (`year: {$eq}`, or `{$gt, $lt}`
+      for `after:`/`before:`; Vectorize can't combine `$eq` with a range, so
+      `year:` sends `$eq` alone). D1 applies every SQL filter again, and the
+      exclusions (`rowid NOT IN (… MATCH <excluded terms>)`), when it loads the
+      chunks only Vectorize found; ids with no chunk (a publish in progress)
+      are dropped.
+    - Hits only Vectorize found are `related` even when they contain every
+      query word (they ranked past the FTS5 top 50); a second FTS5 query
+      (`rowid IN (…)`, the query's terms ORed) highlights any query words in
+      them. D1: one query for the keyword list (run while the query is
+      embedded), then one batch of two for the related chunks, if any.
+    - When Workers AI or Vectorize fails (or AI returns no embedding), the
+      keyword list alone goes through the same steps, with
+      `smart_degraded: true`, and one log line (`ai_unavailable` or
+      `vectorize_unavailable`).
   - Collapse hits from the same episode that are less than 120 s apart into
     one result carrying `more_in_episode: n`. When sorting by date, results
     are grouped by episode in date order.
@@ -489,8 +508,8 @@ Parser rules (`worker/src/query.ts`):
   - Highlight ranges are `[start, end)` offsets into `text` in UTF-16 code
     units (JavaScript string indices, what the frontend slices with). Other
     clients convert; Python indexes by code point.
-  - Response (as built in plan 2 Task 13): `{total, total_capped,
-    truncated, page, has_more, results, mode, sort, smart_degraded?}`.
+  - Exact response (as built in plan 2 Task 13): `{total, total_capped,
+    truncated, page, limit, has_more, results, mode, sort}`; smart's is above.
     `total` stops at 1,000 (`total_capped` when there are more), so a
     common word isn't read in full just to be counted; `truncated` when
     there are more than 200 matches; `has_more` never runs past page 10. Each result: `{episode: {id, number,

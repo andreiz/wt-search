@@ -1,7 +1,4 @@
 {
-  "total": 3,
-  "total_capped": false,
-  "truncated": false,
   "page": 1,
   "limit": 20,
   "has_more": false,

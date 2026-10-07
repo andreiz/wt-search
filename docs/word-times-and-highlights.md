@@ -128,9 +128,10 @@ of range, or `word_times` doesn't decode.
 ## Meaning-only ("related") hits
 
 A hit that came only from Vectorize may contain none of the query's words. Smart search
-(Task 14) runs one more FTS5 query over those chunks with the query's terms ORed, to
-highlight any of them that do appear. When none do, there are no ranges and the cue is the
-chunk's start.
+(`loadRelated` in `worker/src/search.ts`) runs one more FTS5 query over those chunks with
+the query's terms ORed (`rowid IN (…) AND "a" OR "b"`), to highlight any of them that do
+appear; when none do, there are no ranges. Either way the cue is the chunk's start (spec
+§4.5): the passage as a whole is the hit, and a highlighted word may be anywhere in it.
 
 ## Links
 

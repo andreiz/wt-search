@@ -1,34 +1,28 @@
-# Handoff — 2026-10-07 (after the fourth session)
+# Handoff — 2026-10-07 (after the fifth session)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-**Branch:** the fourth session worked on `claude/practical-galileo-95lrqj`; the maintainer
-merged it into `main` (`bebf6f1`) and it is deleted. Work on `main` again (CLAUDE.md).
+**Branch:** the fifth session (Task 14) worked on `claude/task-14-handoff-vtk18e`, the
+branch its cloud session was given, not `main`; the maintainer merges it. After that, work
+on `main` again (CLAUDE.md).
 
-**Plan 2: Tasks 1–13a and Checkpoint F are done** (F has two hand checks left, below).
-**Next: Task 14 (smart search)**, then Task 15 and Task 16, then Checkpoint G.
+**Plan 2: Tasks 1–14 and Checkpoint F are done** (F has two hand checks left, below).
+**Next: Task 15** (context, report, caching, logs, analytics), then Task 16, then
+Checkpoint G. **Staging still runs the Task 13 Worker** (smart = exact + `smart_degraded`)
+until the next `wrangler deploy --env staging`; Checkpoint G checks smart search there.
 
-**Task 14 pointers** (plan Task 14, spec §4.4, §4.7):
-- Replace the stand-in in `worker/src/index.ts`: today `mode=smart` returns
-  `exactSearch()` results plus `smart_degraded: true` (marked "Task 14 replaces this").
-- `parseQuery()` already gives what smart search needs: `semantic` (text to embed),
-  `terms` (FTS5-quoted positive terms; join with ` OR ` for related-hit highlights) and
-  `exclude` (excluded terms as one FTS5 expression: drop vector hits with
-  `rowid NOT IN (… MATCH exclude)`). Never build FTS5 from user text yourself.
-- Collapse with the same rule as exact (`collapse()` in `search.ts`; spec §4.4); smart caps
-  at 100 results (5 pages at the default 20). `?limit=` (page size 1–20, added at the end of
-  session 4) must work in smart mode too: cap pages at `ceil(100 / limit)`, as exact does
-  with `maxExactPage()`. Spec §4.4 now has `total_capped`/`truncated` for exact; decide
-  and record what smart returns instead of `total`.
-- **When smart mode stops returning `total`, `worker/test/search-contract.test.ts` fails on
-  purpose:** update `pipeline/tests/fixtures/search/smart_degraded.json` (and add a
-  `smart.json`) to the new shape; `wts search` prints the smart header from `format_results`.
-- Fake AI and Vectorize in tests through `miniflare` options (Task 10 note below); the AI
-  call must pass `pooling: "cls"`. Keep to a handful of D1 queries per request.
-- `Env.ANALYTICS` is optional and has no staging binding until Task 15 (below).
+**Task 15 pointers** (plan Task 15, spec §4.4, §4.7, §8.3):
+- **Don't cache `smart_degraded` responses** (added to plan Task 15): a short Workers AI
+  outage would otherwise serve keyword-only answers for the cache's hour.
+- The per-request log line's "degraded flag" is `smart_degraded` on the response; the
+  failure itself is already logged once (`ai_unavailable` / `vectorize_unavailable`).
+- Exact and smart responses differ at the top level now (smart has no `total`,
+  `total_capped`, `truncated`): `ExactResponse` / `SmartResponse` in `search.ts`. "Result
+  count" for analytics is `results.length` in both.
+- `Env.ANALYTICS` is optional and has no staging binding yet (below); Task 15 re-adds it.
 
 Checkpoint F results (2026-10-07): Worker deployed to staging (`wts-api-staging`,
 without the Analytics binding, below); `wts search --env staging` works on the real corpus;
@@ -92,11 +86,13 @@ How the maintainer works:
 
 - **Pipeline** (`pipeline/`, `wts` CLI): plan 1 complete; plan 2 adds secrets, config for
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
-  `wts search` (with `--limit N`), hyphen joining in `wts chunk`. **588 tests**, ruff clean
+  `wts search` (with `--limit N`), hyphen joining in `wts chunk`. **590 tests**, ruff clean
   (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
-  `/api/search` with result caps and `?limit=` (page size). **196 tests**, type-check clean. **Deployed to staging**:
+  `/api/search` with result caps and `?limit=` (page size), smart search (RRF of FTS5 and
+  Vectorize) with degraded mode. **241 tests**, type-check clean. **Deployed to staging**
+  (the Task 13 version, before smart search):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;
@@ -254,11 +250,48 @@ How the maintainer works:
     mistyped option is therefore searched for as words (said in `--help`).
   - The Python fixtures (`pipeline/tests/fixtures/search/`) are hand-built; a Worker test
     (`worker/test/search-contract.test.ts`) checks their keys and types against a real
-    response. **When Task 14 drops `total` from smart mode, that test fails on purpose:
-    update `smart_degraded.json`.**
+    response, each fixture against a response of its own mode (Task 14).
   - Checked end to end against `wrangler dev --local` with a hand-seeded D1: exclusion,
     cue times, highlights after an emoji, `include:ads`, `--json`, missing `api_url`.
   - `click.get_text_stream` is deprecated in click 8.5; the CLI uses `sys.stdout.isatty()`.
+- **Task 14** `worker/src/fusion.ts` (`rrf`, `sortByDate`, `collapse`, moved out of
+  `search.ts`), `smartSearch()` in `search.ts`. Response and steps in spec §4.4. Written in
+  the main session, not by a subagent: the shape decisions and the code were intertwined.
+  Calls the plan didn't spell out:
+  - **Smart response shape:** `{page, limit, has_more, results, mode, sort,
+    smart_degraded?}`, no `total`/`total_capped`/`truncated`, degraded or not. Degraded is
+    the keyword list (FTS5 top 50) through the same fusion, date sort, collapse and paging,
+    so it has the smart caps, not exact's 200.
+  - **Collapse the whole fused list, then page** (exact collapses per page): all ≤ 100 hits
+    are in hand. A related hit can absorb a keyword hit ranked below it (same rule as exact).
+  - **Pages:** `maxSmartPage(limit) = ceil(100 / limit)`; the route picks the cap by mode.
+  - **RRF ties** keep first-appearance order (keyword list first), so a keyword hit wins a
+    tie with a meaning hit of the same rank.
+  - **`related`** = not in the FTS5 top 50, even if the chunk has every query word (ranked
+    51+). Its cue is always `start_ms` (spec §4.5), highlights or not.
+  - **Vectorize:** `topK: 50`, `returnValues: false`, `returnMetadata: "none"`; anything past
+    50 and ids that aren't digits are dropped. `year:` sends `$eq` alone (Vectorize can't
+    combine `$eq` with a range); D1 re-applies every filter and the exclusions when loading
+    related chunks, so a filter Vectorize misses (vectors from before the metadata index)
+    still holds.
+  - **D1 per smart search:** one query for the keyword list (in parallel with the
+    embedding), then one batch of two (related rows; their highlights) only when Vectorize
+    added new chunks. No count query, so fewer rows read than exact.
+  - **Degraded triggers:** `AI.run` or `VEC.query` throwing, a missing binding, or an AI
+    answer without a numeric embedding. One log line, `ai_unavailable` or
+    `vectorize_unavailable` (error text, no query). D1 errors still give 503.
+  - **Tests fake AI and Vectorize by passing them in the env to `worker.fetch()`** (the
+    unit style of Cloudflare's ai-vectorize recipe), not through miniflare options: each
+    test picks its own vector hits or failures. `exports.default.fetch()` has neither
+    binding, so smart mode through it is degraded. Tests were written alongside the code;
+    each key behaviour was then checked by mutation (pooling, exclusion, topK, date sort,
+    related cue/highlight/filters, RRF math): every mutation fails a test. The 100 cap
+    can't be reached (50 + 50) and has no test of its own.
+  - `wts search` prints `related` after the time on a meaning-only hit's title line; new
+    fixture `smart.json`.
+  - Open (plan 5): ep filter isn't in Vectorize (only `year` is indexed), so `ep:250` in
+    smart mode gets few meaning hits — only the corpus-wide top 50 that fall in ep 250.
+    A metadata index on `episode_id` would fix it if the test search set shows a need.
 
 Checkpoints still ahead: **F** after Task 13a (deploy, exact search, cue times), **G** after
 Task 16 (smart search, report, caching, `wts run --env staging` end to end). Plans 3–5

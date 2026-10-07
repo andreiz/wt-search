@@ -2,7 +2,7 @@ import { env, exports } from "cloudflare:workers";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import type { Env } from "../src/env";
-import type { SearchResponse } from "../src/search";
+import type { ExactResponse as SearchResponse } from "../src/search";
 import { seed, type SeedChunk, type SeedEpisode } from "./seed";
 
 const JSON_TYPE = "application/json; charset=utf-8";
@@ -451,28 +451,6 @@ describe("parameters", () => {
   it("treats any mode but exact as smart", async () => {
     const { body } = await search({ q: "chisel", mode: "bogus" });
     expect(body.mode).toBe("smart");
-  });
-});
-
-describe("smart mode (until Task 14)", () => {
-  it("returns the exact results with smart_degraded, whether mode is smart or missing", async () => {
-    const exactBody = await exact("dovetail", { sort: "newest" });
-    expect(exactBody).not.toHaveProperty("smart_degraded");
-    expect(exactBody.mode).toBe("exact");
-
-    const variants: Record<string, string>[] = [
-      { q: "dovetail", sort: "newest" },
-      { q: "dovetail", sort: "newest", mode: "smart" },
-    ];
-    for (const params of variants) {
-      const { response, body } = await search(params);
-      expect(response.status).toBe(200);
-      expect(body.mode).toBe("smart");
-      expect(body.smart_degraded).toBe(true);
-      const { smart_degraded: _flag, mode: _mode, ...rest } = body;
-      const { mode: _exactMode, ...exactRest } = exactBody;
-      expect(rest).toEqual(exactRest);
-    }
   });
 });
 

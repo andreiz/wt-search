@@ -1,0 +1,66 @@
+{
+  "page": 1,
+  "limit": 20,
+  "has_more": true,
+  "results": [
+    {
+      "episode": {
+        "id": 590,
+        "number": 590,
+        "title": "Hide Glue, Again",
+        "date": "2023-05-30",
+        "links": {
+          "youtube": "https://www.youtube.com/watch?v=Lm4yHs7KaPo&t=2103s",
+          "spotify": "https://open.spotify.com/episode/2bQe9xVd5LtRn8Fh3WzGcS?t=2103",
+          "page": "https://example.com/ep/590"
+        }
+      },
+      "chunk_id": 59031,
+      "text": "Hide glue gives you more open time if you keep the pot warm, but titebond is easier.",
+      "ranges": [[0, 4], [5, 9]],
+      "hit_ms": 2110000,
+      "cue_s": { "youtube": 2103, "apple": 2103, "spotify": 2103 },
+      "match": "keyword",
+      "more_in_episode": 1
+    },
+    {
+      "episode": {
+        "id": 404,
+        "number": 404,
+        "title": "Restoring a Chair",
+        "date": "2020-02-12",
+        "links": {
+          "apple": "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=1000460000404&t=1493",
+          "page": "https://example.com/ep/404"
+        }
+      },
+      "chunk_id": 40417,
+      "text": "Warm the pot to about 140 degrees and it stays workable for twenty minutes.",
+      "ranges": [],
+      "hit_ms": 1500000,
+      "cue_s": { "youtube": 1493, "apple": 1493, "spotify": 1493 },
+      "match": "related",
+      "more_in_episode": 0
+    },
+    {
+      "episode": {
+        "id": 77,
+        "number": null,
+        "title": "Listener Questions Extra",
+        "date": "2016-09-21",
+        "links": {
+          "page": "https://example.com/ep/extra-3"
+        }
+      },
+      "chunk_id": 7702,
+      "text": "Fish glue never gels, so you can use it straight from the bottle.",
+      "ranges": [[5, 9]],
+      "hit_ms": 61000,
+      "cue_s": { "youtube": 54, "apple": 54, "spotify": 54 },
+      "match": "related",
+      "more_in_episode": 0
+    }
+  ],
+  "mode": "smart",
+  "sort": "relevance"
+}

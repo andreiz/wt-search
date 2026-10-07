@@ -2,13 +2,19 @@
 // tested against hand-built responses in pipeline/tests/fixtures/search; this seeds a tiny
 // corpus, asks the real Worker, and checks that those fixtures have the same keys and value
 // types at every level. A change to the response shape fails here until the fixtures follow.
+//
+// Exact and smart responses differ at the top level (smart has no count, spec §4.4), so each
+// fixture is compared with a live response of its own mode.
 
 import { env, exports } from "cloudflare:workers";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import empty from "../../pipeline/tests/fixtures/search/empty.json";
 import exact from "../../pipeline/tests/fixtures/search/exact.json";
 import exactTruncated from "../../pipeline/tests/fixtures/search/exact_truncated.json";
+import smart from "../../pipeline/tests/fixtures/search/smart.json";
 import smartDegraded from "../../pipeline/tests/fixtures/search/smart_degraded.json";
+import type { Env } from "../src/env";
+import worker from "../src/index";
 import { seed, type SeedChunk, type SeedEpisode } from "./seed";
 
 const EPISODES: SeedEpisode[] = [
@@ -35,12 +41,24 @@ const CHUNKS: SeedChunk[] = [
   { id: 3, episode_id: 1, seq: 2, start_ms: 900_000, end_ms: 930_000, text: "Unrelated chatter about coffee" },
 ];
 
-const FIXTURES = { exact, exactTruncated, smartDegraded, empty };
+const EXACT_FIXTURES = { exact, exactTruncated, empty };
+const SMART_FIXTURES = { smart, smartDegraded };
 
 type Json = Record<string, unknown>;
 
 async function api(query: string): Promise<Json> {
   const res = await exports.default.fetch(`https://example.com/api/search?${query}`);
+  expect(res.status).toBe(200);
+  return (await res.json()) as Json;
+}
+
+/** Smart search with fake Workers AI and a Vectorize that finds chunk 3 (no keyword in it). */
+async function smartApi(query: string): Promise<Json> {
+  const res = await worker.fetch(new Request(`https://example.com/api/search?${query}`), {
+    DB: env.DB,
+    AI: { run: async () => ({ shape: [1, 3], data: [[0.1, 0.2, 0.3]], pooling: "cls" }) },
+    VEC: { query: async () => ({ count: 1, matches: [{ id: "3", score: 0.5 }] }) },
+  } as unknown as Env);
   expect(res.status).toBe(200);
   return (await res.json()) as Json;
 }
@@ -55,7 +73,7 @@ function expectResultTypes(r: Json): void {
   expect(typeof r.text).toBe("string");
   expect(typeof r.hit_ms).toBe("number");
   expect(typeof r.more_in_episode).toBe("number");
-  expect(r.match).toBe("keyword");
+  expect(["keyword", "related"]).toContain(r.match);
   expect(Array.isArray(r.ranges)).toBe(true);
   for (const range of r.ranges as unknown[]) {
     expect(Array.isArray(range)).toBe(true);
@@ -74,35 +92,79 @@ function expectResultTypes(r: Json): void {
   for (const seconds of Object.values(r.cue_s as Json)) expect(typeof seconds).toBe("number");
 }
 
-let live: Json;
+function expectResultsLike(fixture: Json, live: Json): void {
+  const real = (live.results as Json[])[0]!;
+  for (const r of fixture.results as unknown as Json[]) {
+    expect(keys(r)).toEqual(keys(real));
+    expect(keys(r.episode as Json)).toEqual(keys(real.episode as Json));
+    expect(keys(r.cue_s as Json)).toEqual(keys(real.cue_s as Json));
+    // links omit the platforms a result lacks, so its keys need only be known ones.
+    for (const name of Object.keys((r.episode as Json).links as Json)) {
+      expect(["youtube", "apple", "spotify", "page"]).toContain(name);
+    }
+    expectResultTypes(r);
+  }
+}
+
+let liveExact: Json;
+let liveSmart: Json;
+let liveDegraded: Json;
 
 beforeAll(async () => {
   await seed(env.DB, EPISODES, CHUNKS);
-  live = await api("q=dovetail&mode=exact");
+  liveExact = await api("q=dovetail&mode=exact");
+  liveSmart = await smartApi("q=dovetail&mode=smart");
+  // The test Worker has no AI or Vectorize binding: smart search falls back (and logs it).
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+  liveDegraded = await api("q=dovetail&mode=smart");
+  consoleError.mockRestore();
 });
 
-describe("the Worker's own response", () => {
-  it("is the seeded corpus's two dovetail hits, with every link", () => {
-    const results = live.results as Json[];
+describe("the Worker's own responses", () => {
+  it("exact: the seeded corpus's two dovetail hits, with every link", () => {
+    const results = liveExact.results as Json[];
     expect(results).toHaveLength(2);
     expect(Object.keys((results[0]!.episode as Json).links as Json).sort()).toEqual(
       ["apple", "page", "spotify", "youtube"],
     );
   });
 
-  it("has the value types the fixtures claim", () => {
-    for (const r of live.results as Json[]) expectResultTypes(r);
-    expect(typeof live.total).toBe("number");
-    for (const flag of ["total_capped", "truncated", "has_more"]) expect(typeof live[flag]).toBe("boolean");
-    expect(typeof live.page).toBe("number");
-    expect(live.mode).toBe("exact");
-    expect(live.sort).toBe("relevance");
+  it("exact: has the value types the fixtures claim", () => {
+    for (const r of liveExact.results as Json[]) expectResultTypes(r);
+    expect(typeof liveExact.total).toBe("number");
+    for (const flag of ["total_capped", "truncated", "has_more"]) expect(typeof liveExact[flag]).toBe("boolean");
+    expect(typeof liveExact.page).toBe("number");
+    expect(typeof liveExact.limit).toBe("number");
+    expect(liveExact.mode).toBe("exact");
+    expect(liveExact.sort).toBe("relevance");
+  });
+
+  it("smart: the two keyword hits and the related one", () => {
+    const results = liveSmart.results as Json[];
+    expect(results.map((r) => [r.chunk_id, r.match])).toEqual([
+      [1, "keyword"],
+      [3, "related"],
+      [2, "keyword"],
+    ]);
+    for (const r of results) expectResultTypes(r);
+    expect(typeof liveSmart.has_more).toBe("boolean");
+    expect(typeof liveSmart.page).toBe("number");
+    expect(typeof liveSmart.limit).toBe("number");
+    expect(liveSmart.mode).toBe("smart");
+    expect(liveSmart).not.toHaveProperty("smart_degraded");
+  });
+
+  it("smart responses have no count, degraded or not", () => {
+    for (const live of [liveSmart, liveDegraded]) {
+      for (const key of ["total", "total_capped", "truncated"]) expect(live).not.toHaveProperty(key);
+    }
+    expect(requiredKeys(liveDegraded)).toEqual(requiredKeys(liveSmart));
   });
 });
 
-describe.each(Object.entries(FIXTURES))("fixture %s", (_name, fixture) => {
-  it("has the response's keys", () => {
-    expect(requiredKeys(fixture)).toEqual(requiredKeys(live));
+describe.each(Object.entries(EXACT_FIXTURES))("exact fixture %s", (_name, fixture) => {
+  it("has the exact response's keys", () => {
+    expect(keys(fixture)).toEqual(keys(liveExact));
   });
 
   it("has the value types of a response", () => {
@@ -111,39 +173,47 @@ describe.each(Object.entries(FIXTURES))("fixture %s", (_name, fixture) => {
       expect(typeof fixture[flag]).toBe("boolean");
     }
     expect(typeof fixture.page).toBe("number");
-    expect(["smart", "exact"]).toContain(fixture.mode);
+    expect(fixture.mode).toBe("exact");
     expect(["relevance", "newest", "oldest"]).toContain(fixture.sort);
     expect(Array.isArray(fixture.results)).toBe(true);
   });
 
   it("has results shaped like the Worker's", () => {
-    const real = (live.results as Json[])[0]!;
-    for (const r of fixture.results as unknown as Json[]) {
-      expect(keys(r)).toEqual(keys(real));
-      expect(keys(r.episode as Json)).toEqual(keys(real.episode as Json));
-      expect(keys(r.cue_s as Json)).toEqual(keys(real.cue_s as Json));
-      // links omit the platforms a result lacks, so its keys need only be known ones.
-      for (const name of Object.keys((r.episode as Json).links as Json)) {
-        expect(["youtube", "apple", "spotify", "page"]).toContain(name);
-      }
-      expectResultTypes(r);
-    }
+    expectResultsLike(fixture as unknown as Json, liveExact);
+  });
+});
+
+describe.each(Object.entries(SMART_FIXTURES))("smart fixture %s", (_name, fixture) => {
+  it("has the smart response's keys", () => {
+    expect(requiredKeys(fixture)).toEqual(requiredKeys(liveSmart));
+  });
+
+  it("has the value types of a response", () => {
+    expect(typeof fixture.has_more).toBe("boolean");
+    expect(typeof fixture.page).toBe("number");
+    expect(typeof fixture.limit).toBe("number");
+    expect(fixture.mode).toBe("smart");
+    expect(["relevance", "newest", "oldest"]).toContain(fixture.sort);
+    expect(Array.isArray(fixture.results)).toBe(true);
+  });
+
+  it("has results shaped like the Worker's", () => {
+    expectResultsLike(fixture as unknown as Json, liveSmart);
   });
 });
 
 describe("smart_degraded", () => {
-  it("is set by the Worker exactly where the fixture has it", async () => {
-    const smart = await api("q=dovetail&mode=smart");
-    // Task 13 answers every smart search with the keyword results and the flag; Task 14 only
-    // sets it when Workers AI or Vectorize fail. Either way the fixture's flag is `true`.
-    expect(smart.smart_degraded).toBe(true);
+  it("is set by the Worker exactly where the fixtures have it", () => {
+    expect(liveDegraded.smart_degraded).toBe(true);
     expect(smartDegraded.smart_degraded).toBe(true);
-    expect(keys(smart)).toEqual(keys(smartDegraded));
+    expect(keys(liveDegraded)).toEqual(keys(smartDegraded));
+    expect("smart_degraded" in liveSmart).toBe(false);
+    expect("smart_degraded" in smart).toBe(false);
   });
 
   it("is absent from exact responses and their fixtures", () => {
-    expect("smart_degraded" in live).toBe(false);
-    for (const f of [exact, exactTruncated, empty]) expect("smart_degraded" in f).toBe(false);
+    expect("smart_degraded" in liveExact).toBe(false);
+    for (const f of Object.values(EXACT_FIXTURES)) expect("smart_degraded" in f).toBe(false);
   });
 });
 
@@ -155,5 +225,10 @@ describe("the fixtures' flags describe what they say", () => {
 
   it("empty has no results and no more", () => {
     expect(empty).toMatchObject({ total: 0, results: [], has_more: false });
+  });
+
+  it("smart has keyword and related results", () => {
+    expect(smart.results.map((r) => r.match)).toEqual(["keyword", "related", "related"]);
+    expect(smart.results[1]!.ranges).toEqual([]);
   });
 });

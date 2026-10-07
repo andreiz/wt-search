@@ -433,6 +433,39 @@ def test_no_footer_without_flags():
     assert not out.endswith("\n")
 
 
+def test_related_results_are_marked_on_the_title_line():
+    lines = format_results(response(result(match="related"), result(), mode="smart"),
+                           color=False).splitlines()
+    assert lines[2] == "#7 Hide Glue (2020-01-02)  0:00  related"
+    assert lines[5] == "#7 Hide Glue (2020-01-02)  0:00"
+
+
+def test_the_smart_fixture_end_to_end():
+    out = format_results(fixture("smart"), color=False)
+    assert out.splitlines() == [
+        "smart search; 3 results (1 folded into a nearby hit)",
+        "",
+        "#590 Hide Glue, Again (2023-05-30)  35:10",
+        "  [Hide] [glue] gives you more open time if you keep the pot warm, but titebond is easier.",
+        "  +1 more in episode",
+        "  youtube  https://www.youtube.com/watch?v=Lm4yHs7KaPo&t=2103s",
+        "  spotify  https://open.spotify.com/episode/2bQe9xVd5LtRn8Fh3WzGcS?t=2103",
+        "  page     https://example.com/ep/590",
+        "",
+        "#404 Restoring a Chair (2020-02-12)  25:00  related",
+        "  Warm the pot to about 140 degrees and it stays workable for twenty minutes.",
+        ("  apple    https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480"
+         "?i=1000460000404&t=1493"),
+        "  page     https://example.com/ep/404",
+        "",
+        "Listener Questions Extra (2016-09-21)  1:01  related",
+        "  Fish [glue] never gels, so you can use it straight from the bottle.",
+        "  page     https://example.com/ep/extra-3",
+        "",
+        "More: --page 2",
+    ]
+
+
 def test_the_degraded_fixture():
     out = format_results(fixture("smart_degraded"), color=False)
     assert out.splitlines()[0] == "smart search degraded: keyword results only"

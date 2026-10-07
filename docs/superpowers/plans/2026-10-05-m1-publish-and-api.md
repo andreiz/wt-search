@@ -659,6 +659,8 @@ A terminal client for the maintainer: searches a deployed environment through th
 - [ ] **Step 4: Run tests and type-check.**
 - [ ] **Step 5: Commit.** `worker: smart search (RRF of FTS5 and Vectorize), degraded mode`
 
+*Done 2026-10-07; calls beyond the plan are in `docs/HANDOFF.md` (Task 14) and spec §4.4. Also modified: `worker/src/index.ts`, `worker/test/search-contract.test.ts`, the search fixtures (`smart.json` added), `pipeline/src/wts/search.py` (`related` on the title line).*
+
 ---
 
 ### Task 15: Context, report, caching, logs and analytics
@@ -675,7 +677,7 @@ A terminal client for the maintainer: searches a deployed environment through th
   - Turnstile is verified with `POST https://challenges.cloudflare.com/turnstile/v0/siteverify` using `TURNSTILE_SECRET`.
   - On success: an insert into `reports` with status `open`, response `{ok: true}`.
   - Failures return 400 or 403 with a friendly `message`, and nothing is stored.
-- Caching: search responses go through the Cache API, keyed by the normalized `q`, `mode`, `sort`, `page`, `limit` (added 2026-10-07) and `corpus_version`, for 1 h. `corpus_version` is read from D1 at most once a minute per isolate.
+- Caching: search responses go through the Cache API, keyed by the normalized `q`, `mode`, `sort`, `page`, `limit` (added 2026-10-07) and `corpus_version`, for 1 h. `corpus_version` is read from D1 at most once a minute per isolate. A `smart_degraded` response is not cached (added at Task 14): a brief Workers AI outage would otherwise serve keyword-only answers for an hour.
 - Logging: one structured `console.log` per request with endpoint, query truncated to 80 characters, mode, sort, latency, result count and the degraded flag. No IP addresses.
 - Analytics Engine: `writeDataPoint` per search (blobs: query, mode, sort; doubles: results, latency) and per report.
   - Re-add the `ANALYTICS` binding to `env.staging` in `wrangler.jsonc` (removed at Checkpoint F: deploys failed with code 10089 even after enabling Analytics Engine) and check a staging deploy accepts it. `Env.ANALYTICS` is optional: a missing binding or a failed write is skipped (logged once), never an error.

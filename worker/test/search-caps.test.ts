@@ -1,6 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
-import { COUNT_CAP, MAX_EXACT_PAGE, MAX_EXACT_RESULTS, PAGE_SIZE, type SearchResponse } from "../src/search";
+import { COUNT_CAP, MAX_EXACT_PAGE, MAX_EXACT_RESULTS, PAGE_SIZE, type ExactResponse as SearchResponse } from "../src/search";
 import { seed, type SeedChunk } from "./seed";
 
 // Exact search shows at most MAX_EXACT_PAGE pages and counts at most COUNT_CAP matches

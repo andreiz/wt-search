@@ -168,6 +168,8 @@ def _result_lines(r: dict, color: bool) -> list[str]:
     number = episode.get("number")
     title = f"#{number} " if number is not None else ""
     title += f"{episode['title']} ({episode['date']})  {_clock(r.get('hit_ms', 0))}"
+    if r.get("match") == "related":  # smart mode: found by meaning only, not by the words
+        title += "  related"
     lines = [title, "  " + _highlight(r["text"], r.get("ranges") or [], color)]
     more = r.get("more_in_episode", 0)
     if more > 0:

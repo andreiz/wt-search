@@ -1,6 +1,15 @@
 import type { Env } from "./env";
 import { parseQuery } from "./query";
-import { exactSearch, maxExactPage, PAGE_SIZE, type SearchResponse, type Sort } from "./search";
+import {
+  exactSearch,
+  maxExactPage,
+  maxSmartPage,
+  PAGE_SIZE,
+  smartSearch,
+  type ExactResponse,
+  type SmartResponse,
+  type Sort,
+} from "./search";
 
 type Handler = (request: Request, env: Env) => Response | Promise<Response>;
 
@@ -54,9 +63,9 @@ function parseLimit(value: string | null): number {
 }
 
 /** Anything but a plain non-negative integer is page 1; a page past the cap is the cap. */
-function parsePage(value: string | null, limit: number): number {
+function parsePage(value: string | null, lastPage: number): number {
   if (value === null || !/^\d+$/.test(value)) return 1;
-  return Math.min(Math.max(Number(value), 1), maxExactPage(limit));
+  return Math.min(Math.max(Number(value), 1), lastPage);
 }
 
 /**
@@ -70,19 +79,22 @@ const search: Handler = async (request, env) => {
   const sortParam = (params.get("sort") ?? "").toLowerCase();
   const sort = SORTS.find((s) => s === sortParam) ?? "relevance";
   const limit = parseLimit(params.get("limit"));
-  const page = parsePage(params.get("page"), limit);
+  const page = parsePage(params.get("page"), mode === "exact" ? maxExactPage(limit) : maxSmartPage(limit));
+  const parsed = parseQuery(params.get("q") ?? "");
 
-  let response: SearchResponse;
+  let response: ExactResponse | SmartResponse;
   try {
-    response = await exactSearch(env.DB, parseQuery(params.get("q") ?? ""), sort, page, limit);
+    response =
+      mode === "exact"
+        ? await exactSearch(env.DB, parsed, sort, page, limit)
+        : // Workers AI or Vectorize failing is not an error: keyword results, smart_degraded.
+          await smartSearch(env, parsed, sort, page, limit, (stage, err) =>
+            logError(`${stage}_unavailable`, request, err),
+          );
   } catch (err) {
     logError("d1_unavailable", request, err);
     return json({ error: "unavailable" }, 503);
   }
-  // Task 14 replaces this: smart mode will merge the Vectorize results into the keyword ones,
-  // and set smart_degraded only when AI or Vectorize fail. Until then smart mode is the same
-  // keyword-only answer that Task 14 gives in that failure.
-  if (mode === "smart") response = { ...response, smart_degraded: true };
   return json({ ...response, mode, sort });
 };
 

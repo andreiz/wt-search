@@ -5,9 +5,9 @@ conversation. Read this, then [README.md](../README.md), then the spec sections 
 
 ## Start here (next session)
 
-1. **Plan 2, Tasks 1–10 and Checkpoint D are done** (third session). **Waiting on
-   Checkpoint E** (maintainer, below). After it: Task 11 (query parser), test-first, one commit
-   per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
+1. **Plan 2, Tasks 1–10 and Checkpoints D and E are done** (third session). Next: Task 11
+   (query parser), then 12–13 and Checkpoint F (deploy, exact search on staging). Test-first,
+   one commit per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
    (reviewed before commit), and for a short report after each task.
 2. Worker commands: `cd worker && npm test`, `npx tsc --noEmit`. **Add npm dependencies with
    `npx npm@11 install …`**: npm 10.9 crashes installing vitest 4.1 (`reading 'edgesOut'`);
@@ -63,6 +63,13 @@ vectors=4208 in 0:36` (the 2 missing vectors are the 2 boilerplate chunks). This
 open API questions: **D1 accepts JSON numbers as params, and Vectorize accepts the raw NDJSON
 upsert body** (no multipart needed). TOML gotcha seen on the way: keys must come before
 `[env.staging]`, or they land in that table.
+
+**Checkpoint E passed (2026-10-07).** Step 7: D1 has 36 episodes and 4,210 chunks,
+`corpus_version` `20261007040924`; `chunks_fts match 'dovetail'` returns rows (56, 106, 107,
+108, 110); Vectorize reports 4,208 vectors. Step 8: a second publish sent nothing. Staging D1
+id `74cacf06-bbbe-4112-b7b0-8206f3db367b` (the maintainer commits it to `wrangler.jsonc`).
+Quieter wrangler for the maintainer: `WRANGLER_HIDE_BANNER=true` (works, though missing from
+the env-var docs page) and a `d1 "<sql>"` shell function using `--json | jq -c '.[].results[]'`.
 
 ### Checkpoint D (maintainer, M1 Max): platform IDs on the real feed
 
@@ -170,7 +177,7 @@ up, so both get timed links.
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
 - Plan 1 (**done**, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
-- Plan 2 (Tasks 1–10 and Checkpoint D done; Checkpoint E next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–10 and Checkpoints D–E done; Task 11 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
 - Superpowers skills install from `.claude/settings.json`.

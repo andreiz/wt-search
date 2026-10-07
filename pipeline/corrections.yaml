@@ -33,6 +33,10 @@ global:
   rubo: Roubo
   rubo's: Roubo's
   rubos: Roubos
+  # Chris Schwarz (ep605 "the Swartz"; spelled right in ep595). Swartz is also a surname:
+  # re-check new matches as the archive grows.
+  swartz: Schwarz
+  swartz's: Schwarz's
   # Lumber thickness in quarters: "eight quarter" → 8/4. Only the spellings found in the 36
   # episodes. Not 3/4 ("three quarter inch plywood") or plurals ("12 quarters"); a "four
   # quarter inch …" would also match, so check new matches for "quarter inch".

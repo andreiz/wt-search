@@ -475,6 +475,9 @@ Parser rules (`worker/src/query.ts`):
   - Each result includes: episode (number, title, date, links), chunk ID and
     text, highlight ranges, `hit_ms`, per-platform `cue_s`,
     `match: keyword|related`.
+  - Highlight ranges are `[start, end)` offsets into `text` in UTF-16 code
+    units (JavaScript string indices, what the frontend slices with). Other
+    clients convert; Python indexes by code point.
 - `GET /api/context?chunk=&radius=3`: neighboring chunks, ±radius, with
   timestamps.
 - `POST /api/report`
@@ -494,6 +497,8 @@ Parser rules (`worker/src/query.ts`):
   `cue_s[p] = max(0, floor(hit_ms/1000) − 7 + episode.offset_<p>_s)`.
 - The Wood Talk page has no player, so it gets no cue; the card shows
   "jump to mm:ss" next to its link.
+- How word times, FTS5 highlights and cues fit together, with real
+  `highlight()` output: [`docs/word-times-and-highlights.md`](../../word-times-and-highlights.md).
 
 ### 4.6 Deep links
 

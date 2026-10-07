@@ -591,7 +591,7 @@ A terminal client for the maintainer: searches a deployed environment through th
 - Config: `[env.<name>] api_url` (for example `https://wts-api-staging.<account>.workers.dev`). Optional, so `wts publish` doesn't need it. `Config.api_url(name) -> str` raises `click.UsageError` naming the missing key.
 - `search(client, api_url, q, *, mode="smart", sort="relevance", page=1) -> dict` calls `GET <api_url>/api/search` with those parameters and returns the parsed JSON. A non-2xx response or invalid JSON raises `SearchError` with the status and the API's `error` field; network errors are retried like the other `wts` clients. It uses `wts.net.new_client()` (the bot User-Agent).
 - `format_results(response, *, color: bool) -> str`:
-  - Per result: `#<number> <title> (<YYYY-MM-DD>)  <mm:ss or h:mm:ss>`, then the text with each range in bold (ANSI) when `color`, or wrapped in `[` `]` otherwise, then `+N more in episode` when present, then the links in card order (YouTube, Apple, Spotify, page), one per line.
+  - Per result: `#<number> <title> (<YYYY-MM-DD>)  <mm:ss or h:mm:ss>`, then the text with each range in bold (ANSI) when `color`, or wrapped in `[` `]` otherwise (ranges are UTF-16 offsets, spec §4.4: convert before slicing a Python `str`), then `+N more in episode` when present, then the links in card order (YouTube, Apple, Spotify, page), one per line.
   - A header line: `total` in exact mode; `smart search degraded: keyword results only` when `smart_degraded`.
   - No results → `No results.`
 - CLI: `wts search "<query>" [--env staging|production] [--mode smart|exact] [--sort relevance|newest|oldest] [--page N] [--json]`. `--env` defaults to `run_env`; with neither, a usage error. `color` follows `click`'s TTY detection. `--json` prints the response as is.
@@ -599,7 +599,7 @@ A terminal client for the maintainer: searches a deployed environment through th
 
 - [ ] **Step 1: Write failing tests** (respx, with response fixtures in the spec §4.4 shape from Task 13):
   - The request URL and parameters (the query is URL-encoded, page and mode passed through).
-  - Highlight ranges in bold, and with brackets when color is off, including two ranges in one result and ranges at the start and end of the text.
+  - Highlight ranges in bold, and with brackets when color is off, including two ranges in one result, ranges at the start and end of the text, and an emoji before a range (UTF-16 offsets).
   - `mm:ss` from `hit_ms`, and `h:mm:ss` over an hour.
   - Links in card order; missing platforms are omitted.
   - `more_in_episode`, `total`, `smart_degraded` and empty results.

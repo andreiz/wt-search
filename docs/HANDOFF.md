@@ -9,7 +9,7 @@ then [README.md](../README.md), then the spec sections it points to.
 branch its cloud session was given, not `main`; the maintainer merges it. After that, work
 on `main` again (CLAUDE.md).
 
-**Plan 2: Tasks 1–14 and Checkpoint F are done** (F has two hand checks left, below).
+**Plan 2: Tasks 1–14 and Checkpoint F are done.**
 **Next: Task 15** (context, report, caching, logs, analytics), then Task 16, then
 Checkpoint G. **Staging still runs the Task 13 Worker** (smart = exact + `smart_degraded`)
 until the next `wrangler deploy --env staging`; Checkpoint G checks smart search there.
@@ -40,8 +40,12 @@ carry `&t=` too, in the form Apple's share sheet makes.
   such searches a day on Free (5M/day), negligible on Paid (25B/month), which the archive
   needs anyway. No change now; Task 15's edge cache absorbs repeats. If it ever matters:
   rank on `chunks_fts` alone in a subquery and join only the page's 20 rows.
-- Still open (maintainer, by hand, not blocking): five cue times against the audio; the
-  YouTube, Spotify and Apple links on phones (`docs/deep-links.md`).
+- **Links on the phone** (iOS assumed): YouTube precise, which also confirms the cue times
+  on the show's own timeline; Apple a little early; Spotify sometimes 30–60 s early. That is
+  the per-listen play-time ad gap (spec §4.6): early, never late, so no offset is applied.
+  For plan 3: a small "may start early because of ads" note by the Apple and Spotify
+  buttons, and YouTube first on the card (already in spec §5).
+- Checkpoint F is done. Android links remain unchecked (`docs/deep-links.md`).
 
 Checkpoint F testing also brought (2026-10-07): corrections for Titebond, Bessey, Roubo,
 Schwarz and lumber thickness (`eight quarter` → 8/4; 4/4–16/4), each checked with
@@ -442,4 +446,5 @@ Task 16 (smart search, report, caching, `wts run --env staging` end to end). Pla
 - ~~A feed fetch failure stops `wts run`~~ — fixed in plan 2 Task 8.
 - Process slips (all normal diffs): a heredoc append in plan 1 Task 12 and in plan 2 Task 3's
   tests; `sed` edits to `preroll_finder.py` (session 2) and two one-line handoff edits
-  (session 3).
+  (session 3); one `sed` edit to the handoff's plan-status line (session 4); a Python edit
+  to `worker/src/index.ts` and `sed` edits to two test imports (session 5, Task 14).

@@ -39,7 +39,7 @@
 					"database_name": "wts-staging",
 					// Placeholder. Checkpoint E: `wrangler d1 create wts-staging`, paste its
 					// database_id here, commit. IDs are not secrets.
-					"database_id": "00000000-0000-0000-0000-000000000000",
+					"database_id": "74cacf06-bbbe-4112-b7b0-8206f3db367b",
 					"migrations_dir": "../schema"
 				}
 			],

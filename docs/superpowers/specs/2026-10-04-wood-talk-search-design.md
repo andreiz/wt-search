@@ -531,12 +531,32 @@ Parser rules (`worker/src/query.ts`):
     shows once.
   - Bad parameters fall back to defaults (`sort` → relevance, `page` → 1);
     the only error is D1 being down (503).
-- `GET /api/context?chunk=&radius=3`: neighboring chunks, ±radius, with
-  timestamps.
+  - `debug=1` (smart mode only; added 2026-10-07, maintainer): each result
+    gets `debug: {keyword_rank, vector_rank, vector_score, rrf_score,
+    folded}` (ranks from 1 or null; `folded` the chunk ids collapsed into
+    it) and the response `debug: {keyword_hits, vector_hits, dropped}`
+    (`vector_hits` null when degraded; `dropped` the meaning hits excluded,
+    filtered out or gone). Same order as without it; never cached.
+    `wts search --debug` prints it.
+- `GET /api/context?chunk=&radius=3`: the chunk and its neighbours in the
+  same episode, ±radius (0–6; bad → 3), in episode order: `{chunk_id,
+  episode: {id, number, title, date, links}, chunks: [{chunk_id, seq,
+  start_ms, end_ms, text, boilerplate, cue_s, links}]}`, each chunk's cue
+  and links at its start. A bad `chunk` is 400, an unknown one 404. One D1
+  statement. *(Built 2026-10-07.)*
 - `POST /api/report`
   - Body: `{chunk_id, quoted_text, suggested_text?, note?, turnstile_token}`.
   - Checks the Cloudflare Turnstile token, limits lengths (quoted 500,
     suggested 500, note 1000 characters), then inserts into `reports`.
+  - As built (2026-10-07): the body is checked first (400 with a friendly
+    `message`; a Content-Length over 48 KB or a body over 16 K characters is
+    refused unread or unparsed), then siteverify (no client IP sent; 5 s
+    timeout), then one `INSERT … WHERE EXISTS` the chunk (an unknown chunk is
+    400, after the token is spent). A refused token is 403; siteverify
+    unreachable, or refusing *our* secret (`invalid-input-secret`,
+    `missing-input-secret`), is 503 and logged, so a misconfiguration isn't a
+    silent 403 for every listener. Characters count as code points, after
+    trimming; empty optional fields are NULL. Answer `{ok: true}`.
 - `GET /api/health`: `corpus_version` plus a single trivial D1 query.
 
 ### 4.5 Highlighting and cue time
@@ -616,6 +636,15 @@ these links are early, never late. Mitigations:
   `smart_degraded: true`.
 - Search responses are cached at the edge (Cache API) for 1 h, keyed by the
   normalized query, mode, sort and page, plus `corpus_version`.
+  *(As built, Task 15.)* Also `limit`; the parameters as the route read them
+  (`page=abc` shares page 1's entry); only whitespace in the query is
+  normalized (case matters: `OR`). `corpus_version` is read at most once a
+  minute per isolate. Degraded and `debug=1` answers are not stored, nor
+  errors. The TTL is the `SEARCH_CACHE_TTL_S` var (3600 in staging and
+  production; unset locally and in tests, so no caching). Every search answer
+  says `x-wts-cache: hit|miss|skip`; browsers get no `cache-control`.
+  Cloudflare's docs promise the Cache API on custom domains, so it may do
+  nothing on `workers.dev` (check at Checkpoint G; §10 item 7).
 - Cloudflare rate-limiting rules, per IP: 60 requests per minute on
   `/api/*`, and 10 per hour on `/api/report`.
 - `/api/report` requires a valid Turnstile token.
@@ -790,10 +819,20 @@ pings stop, which covers the Mini being off or launchd being broken.
 - **Cloudflare Workers Logs** enabled. One structured line per request:
   endpoint, shortened query, mode, sort, latency, result count, degraded
   flag. No IP addresses. Cloudflare's default retention, which is a few
-  days.
+  days. *(As built, Task 15.)* `{level: "info", event: "request", method,
+  path, status, ms}` for every request, plus for searches `q` (80 code
+  points), `mode`, `sort`, `page`, `results`, `degraded`, `cache`. Errors
+  keep their own `level: "error"` lines (`d1_unavailable`, `ai_unavailable`,
+  `vectorize_unavailable`, `turnstile_unavailable`, `analytics_unavailable`),
+  which never carry the query, report text or tokens.
 - **Cloudflare Workers Analytics Engine:** one data point per search (query,
   mode, sort, result count, latency) and per report. Retention is about 3
-  months.
+  months. Columns (`worker/src/analytics.ts`): search — index1 `search`,
+  blob1 query (≤ 200 characters), blob2 mode, blob3 sort, blob4 cache;
+  double1 results, double2 latency ms, double3 degraded, double4 page,
+  double5 status. Report — index1 `report`, double1 status. The binding is
+  optional; a failed write is logged once per isolate and never fails a
+  request.
 
 ### 8.4 Getting logs for analysis
 

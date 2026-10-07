@@ -696,6 +696,8 @@ A terminal client for the maintainer: searches a deployed environment through th
 - [ ] **Step 4: Run tests and type-check.**
 - [ ] **Step 5: Commit.** `worker: context, report (Turnstile), edge cache, logs, analytics`
 
+*Done 2026-10-07, in two commits (context and report by a Sonnet subagent; the rest in the main session), plus `?debug=1` / `wts search --debug` (maintainer's request). Calls beyond the plan: `docs/HANDOFF.md` (Task 15) and spec §4.4, §4.7, §8.3. Also created `worker/src/http.ts` (shared `json`, `logError`) and `worker/test/requests.test.ts`. Not done here: a real staging deploy with the `ANALYTICS` binding (needs the maintainer's credentials; Checkpoint G).*
+
 ---
 
 ### Task 16: Backups, `wts logs`, and `wts run --env`

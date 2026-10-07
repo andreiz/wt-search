@@ -45,11 +45,13 @@
 			],
 			"vectorize": [{ "binding": "VEC", "index_name": "wts-chunks-staging" }],
 			"ai": { "binding": "AI" },
-			// No ANALYTICS binding yet: with it, deploys failed with code 10089 ("You need to
-			// enable Analytics Engine") even after it was enabled in the dashboard (Checkpoint F,
-			// 2026-10-07). Nothing writes analytics before Task 15, which adds it back:
-			//   "analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_staging" }],
+			// Re-added in Task 15. At Checkpoint F deploys failed with code 10089 ("You need to
+			// enable Analytics Engine") even after it was enabled in the dashboard; if that
+			// happens again, comment this out: the Worker runs without it (Env.ANALYTICS is optional).
+			"analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_staging" }],
 			"vars": {
+				// Edge cache for /api/search, in seconds (spec §4.7); unset means no caching.
+				"SEARCH_CACHE_TTL_S": "3600",
 				// Placeholder: the public Turnstile site key (not a secret).
 				"TURNSTILE_SITE_KEY": "staging-turnstile-site-key-placeholder"
 				// TURNSTILE_SECRET is a secret, never put it here:
@@ -70,6 +72,7 @@
 			"ai": { "binding": "AI" },
 			"analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_production" }],
 			"vars": {
+				"SEARCH_CACHE_TTL_S": "3600",
 				"TURNSTILE_SITE_KEY": "production-turnstile-site-key-placeholder"
 				// TURNSTILE_SECRET is a secret:
 				//   wrangler secret put TURNSTILE_SECRET --env production

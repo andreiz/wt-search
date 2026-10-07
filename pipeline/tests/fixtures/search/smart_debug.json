@@ -1,0 +1,64 @@
+{
+  "page": 1,
+  "limit": 20,
+  "has_more": false,
+  "results": [
+    {
+      "episode": {
+        "id": 590,
+        "number": 590,
+        "title": "Hide Glue, Again",
+        "date": "2023-05-30",
+        "links": {
+          "page": "https://example.com/ep/590"
+        }
+      },
+      "chunk_id": 59031,
+      "text": "Hide glue gives you more open time if you keep the pot warm, but titebond is easier.",
+      "ranges": [[0, 4], [5, 9]],
+      "hit_ms": 2110000,
+      "cue_s": { "youtube": 2103, "apple": 2103, "spotify": 2103 },
+      "match": "keyword",
+      "more_in_episode": 2,
+      "debug": {
+        "keyword_rank": 3,
+        "vector_rank": 2,
+        "vector_score": 0.81234,
+        "rrf_score": 0.03199590834697218,
+        "folded": [59032, 59040]
+      }
+    },
+    {
+      "episode": {
+        "id": 404,
+        "number": 404,
+        "title": "Restoring a Chair",
+        "date": "2020-02-12",
+        "links": {
+          "page": "https://example.com/ep/404"
+        }
+      },
+      "chunk_id": 40417,
+      "text": "Warm the pot to about 140 degrees and it stays workable for twenty minutes.",
+      "ranges": [],
+      "hit_ms": 1500000,
+      "cue_s": { "youtube": 1493, "apple": 1493, "spotify": 1493 },
+      "match": "related",
+      "more_in_episode": 0,
+      "debug": {
+        "keyword_rank": null,
+        "vector_rank": 1,
+        "vector_score": 0.84561,
+        "rrf_score": 0.01639344262295082,
+        "folded": []
+      }
+    }
+  ],
+  "mode": "smart",
+  "sort": "relevance",
+  "debug": {
+    "keyword_hits": 3,
+    "vector_hits": 50,
+    "dropped": [7702, 999999]
+  }
+}

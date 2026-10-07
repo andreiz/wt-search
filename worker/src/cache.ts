@@ -1,0 +1,78 @@
+// Edge cache for /api/search (spec §4.7). A response is cached by the Cache API, keyed by the
+// normalized query and the parameters as the route read them (so `page=abc` and `page=1` share
+// an entry), plus corpus_version: a publish bumps the version, so old entries are simply never
+// asked for again and age out.
+//
+// The Cache API is per data centre and, by Cloudflare's docs, works on Workers with a custom
+// domain; `x-wts-cache` on every search response says what happened (hit, miss, skip).
+
+/** corpus_version is read from D1 at most this often per isolate. */
+export const VERSION_TTL_MS = 60_000;
+
+let memo: { value: string; at: number } | null = null;
+
+/** Forget the remembered corpus_version (tests; a new isolate starts without one). */
+export function forgetCorpusVersion(): void {
+  memo = null;
+}
+
+/** The current corpus_version, from D1 at most once per VERSION_TTL_MS. D1 errors propagate. */
+export async function corpusVersion(db: D1Database): Promise<string> {
+  const now = Date.now();
+  if (memo !== null && now - memo.at < VERSION_TTL_MS) return memo.value;
+  const row = await db
+    .prepare("SELECT value FROM meta WHERE key = 'corpus_version'")
+    .first<{ value: string | null }>();
+  memo = { value: row?.value ?? "", at: now };
+  return memo.value;
+}
+
+/** `SEARCH_CACHE_TTL_S` (a var per environment) as seconds; null (no caching) unless a positive integer. */
+export function cacheTtl(value: string | undefined): number | null {
+  if (value === undefined || !/^\d+$/.test(value) || Number(value) < 1) return null;
+  return Number(value);
+}
+
+export interface SearchKey {
+  q: string;
+  mode: string;
+  sort: string;
+  page: number;
+  limit: number;
+}
+
+/**
+ * The cache key: a GET on the request's own origin, so the entry belongs to this zone. Only
+ * runs of whitespace in the query are normalized: case matters (`OR` is an operator).
+ */
+export function cacheKey(requestUrl: string, key: SearchKey, version: string): Request {
+  const url = new URL("/api/search", requestUrl);
+  url.searchParams.set("q", key.q.trim().replace(/\s+/g, " "));
+  url.searchParams.set("mode", key.mode);
+  url.searchParams.set("sort", key.sort);
+  url.searchParams.set("page", String(key.page));
+  url.searchParams.set("limit", String(key.limit));
+  url.searchParams.set("v", version);
+  return new Request(url.toString());
+}
+
+/** A cached response, as served: the stored `cache-control` is the cache's, not the browser's. */
+export async function cached(key: Request): Promise<Response | null> {
+  const hit = await caches.default.match(key);
+  if (!hit) return null;
+  const response = new Response(hit.body, hit);
+  response.headers.delete("cache-control");
+  response.headers.set("x-wts-cache", "hit");
+  return response;
+}
+
+/** Store `body` (JSON text) under `key` for `ttl` seconds. A cache failure never fails a search. */
+export async function store(key: Request, body: string, headers: HeadersInit, ttl: number): Promise<void> {
+  try {
+    const response = new Response(body, { headers });
+    response.headers.set("cache-control", `public, max-age=${ttl}`);
+    await caches.default.put(key, response);
+  } catch {
+    // Not cached this time; the next request tries again.
+  }
+}

@@ -183,6 +183,36 @@ describe("Turnstile", () => {
     expect(await rows()).toEqual([]);
   });
 
+  it("answers 503, logged, when Turnstile says our own secret is wrong, not 403 for every listener", async () => {
+    for (const code of ["invalid-input-secret", "missing-input-secret"]) {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      answerWith(() => Response.json({ success: false, "error-codes": [code] }));
+      const { response, body } = await post(valid());
+      expect(response.status, code).toBe(503);
+      expect(body.error).toBe("unavailable");
+      expect(consoleError).toHaveBeenCalledTimes(1);
+      const line = String(consoleError.mock.calls[0]?.[0]);
+      expect(line).toContain("turnstile_unavailable");
+      expect(line).toContain(code);
+      expect(line).not.toContain(TOKEN);
+      consoleError.mockRestore();
+    }
+    expect(await rows()).toEqual([]);
+  });
+
+  it("refuses a body over a megabyte from its Content-Length, before reading it", async () => {
+    const big = new Request("https://example.com/api/report", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": String(1024 * 1024) },
+      body: JSON.stringify(valid({ note: "x".repeat(1024 * 1024) })),
+    });
+    const textSpy = vi.spyOn(Request.prototype, "text");
+    const response = await worker.fetch(big, env as unknown as Env);
+    expect(response.status).toBe(400);
+    expect(textSpy).not.toHaveBeenCalled();
+    expect(siteverifyCalls()).toBe(0);
+  });
+
   it("answers 503 when siteverify's JSON has no boolean success", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     for (const bad of [{}, { success: "true" }, { success: 1 }, null, [], "ok"]) {

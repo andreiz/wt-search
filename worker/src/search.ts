@@ -66,6 +66,31 @@ export interface SearchResult {
   match: Match;
   /** Other hits from the same episode, within COLLAPSE_MS of this one (exact: on this page). */
   more_in_episode: number;
+  /** Smart mode with `?debug=1` only. */
+  debug?: ResultDebug;
+}
+
+/** Why a smart result ranked where it did (`?debug=1`). Ranks count from 1. */
+export interface ResultDebug {
+  /** Rank in the FTS5 top SMART_LIST_SIZE (bm25), or null. */
+  keyword_rank: number | null;
+  /** Rank in the Vectorize top SMART_LIST_SIZE, or null. */
+  vector_rank: number | null;
+  /** Vectorize's similarity (cosine), or null. */
+  vector_score: number | null;
+  rrf_score: number;
+  /** The chunks collapsed into this result, in fused order. */
+  folded: number[];
+}
+
+/** What fed a smart response (`?debug=1`). */
+export interface SmartDebug {
+  /** Hits in the keyword list (at most SMART_LIST_SIZE). */
+  keyword_hits: number;
+  /** Hits Vectorize returned (after dropping non-chunk ids), or null when it wasn't asked (degraded). */
+  vector_hits: number | null;
+  /** Meaning-based hits not shown: excluded, filtered out, boilerplate, or no such chunk. */
+  dropped: number[];
 }
 
 export interface ExactResponse {
@@ -96,6 +121,8 @@ export interface SmartResponse {
   results: SearchResult[];
   /** Workers AI or Vectorize failed: these are the keyword hits only. */
   smart_degraded?: true;
+  /** `?debug=1` only. */
+  debug?: SmartDebug;
 }
 
 /** Which binding failed when smart search fell back to keywords. */
@@ -265,15 +292,15 @@ function embedding(output: Ai_Cf_Baai_Bge_Base_En_V1_5_Output): number[] {
 }
 
 /**
- * The ids of the nearest chunks to the query's meaning, best first; null when Workers AI or
- * Vectorize failed (reported through `onDegraded`). Ids that are not chunk ids are dropped,
- * and so is anything past `topK`.
+ * The nearest chunks to the query's meaning, best first, with Vectorize's similarity; null
+ * when Workers AI or Vectorize failed (reported through `onDegraded`). Ids that are not chunk
+ * ids are dropped, and so is anything past `topK`.
  */
 async function nearestChunks(
   env: Pick<Env, "AI" | "VEC">,
   parsed: ParsedQuery,
   onDegraded: (stage: SmartStage, err: unknown) => void,
-): Promise<number[] | null> {
+): Promise<{ id: number; score: number }[] | null> {
   let vector: number[];
   try {
     vector = embedding(await env.AI.run(EMBEDDING_MODEL, { text: [parsed.semantic], pooling: "cls" }));
@@ -292,7 +319,7 @@ async function nearestChunks(
     return matches
       .slice(0, SMART_LIST_SIZE)
       .filter((m) => /^\d+$/.test(m.id))
-      .map((m) => Number(m.id));
+      .map((m) => ({ id: Number(m.id), score: m.score }));
   } catch (err) {
     onDegraded("vectorize", err);
     return null;
@@ -346,32 +373,37 @@ WHERE chunks_fts MATCH ? AND rowid IN (SELECT value FROM json_each(?))`,
  *
  * D1: one query for the keyword hits (run while the query is embedded), then one batch of two
  * for the chunks only Vectorize found. D1 errors propagate (the route answers 503). If Workers
- * AI or Vectorize fail, the keyword hits alone are returned with `smart_degraded`.
+ * AI or Vectorize fail, the keyword hits alone are returned with `smart_degraded`. `debug`
+ * adds why each result ranked where it did (ResultDebug, SmartDebug); the order is the same.
  */
 export async function smartSearch(
   env: Pick<Env, "DB" | "AI" | "VEC">,
   parsed: ParsedQuery,
   sort: Sort,
   page: number,
-  limit: number = PAGE_SIZE,
-  onDegraded: (stage: SmartStage, err: unknown) => void = () => {},
+  options: {
+    limit?: number;
+    onDegraded?: (stage: SmartStage, err: unknown) => void;
+    debug?: boolean;
+  } = {},
 ): Promise<SmartResponse> {
+  const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false } = options;
   // Nothing to match means nothing to embed either: `semantic` holds the same positive terms.
   if (parsed.fts === null) return { page, limit, has_more: false, results: [] };
 
   const { sql, params } = matching({ ...parsed, fts: parsed.fts });
-  const [keywordRows, vectorIds] = await Promise.all([
+  const [keywordRows, nearest] = await Promise.all([
     env.DB.prepare(`${SELECT_PAGE} ${sql} ${ORDER_BY.relevance} LIMIT ?`)
       .bind(...params, SMART_LIST_SIZE)
       .all()
       .then((r) => r.results as unknown as Row[]),
     nearestChunks(env, parsed, onDegraded),
   ]);
+  const vectorIds = nearest?.map((n) => n.id) ?? [];
 
   const keyword = new Map(keywordRows.map((row) => [row.id, row]));
-  const fused = rrf([keywordRows.map((row) => row.id), vectorIds ?? []])
-    .slice(0, MAX_SMART_RESULTS)
-    .map((f) => f.id);
+  const fusedScores = rrf([keywordRows.map((row) => row.id), vectorIds]).slice(0, MAX_SMART_RESULTS);
+  const fused = fusedScores.map((f) => f.id);
   const relatedIds = fused.filter((id) => !keyword.has(id));
   const related = relatedIds.length > 0 ? await loadRelated(env.DB, parsed, relatedIds) : new Map<number, Row>();
 
@@ -383,7 +415,24 @@ export async function smartSearch(
   });
   if (sort !== "relevance") hits = sortByDate(hits, sort);
 
-  const results = collapse(hits.map((hit) => toResult(hit, hit.match)));
+  let all = hits.map((hit) => toResult(hit, hit.match));
+  if (debug) {
+    // 1-based ranks in each list, for the debug fields only.
+    const keywordRank = new Map(keywordRows.map((row, i) => [row.id, i + 1]));
+    const vectorRank = new Map((nearest ?? []).map((n, i) => [n.id, { rank: i + 1, score: n.score }]));
+    const rrfScore = new Map(fusedScores.map((f) => [f.id, f.score]));
+    all = all.map((r) => ({
+      ...r,
+      debug: {
+        keyword_rank: keywordRank.get(r.chunk_id) ?? null,
+        vector_rank: vectorRank.get(r.chunk_id)?.rank ?? null,
+        vector_score: vectorRank.get(r.chunk_id)?.score ?? null,
+        rrf_score: rrfScore.get(r.chunk_id) ?? 0,
+        folded: [],
+      },
+    }));
+  }
+  const results = collapse(all, (kept, folded) => kept.debug?.folded.push(folded.chunk_id));
   const offset = (page - 1) * limit;
   const response: SmartResponse = {
     page,
@@ -391,6 +440,13 @@ export async function smartSearch(
     has_more: offset + limit < results.length,
     results: results.slice(offset, offset + limit),
   };
-  if (vectorIds === null) response.smart_degraded = true;
+  if (nearest === null) response.smart_degraded = true;
+  if (debug) {
+    response.debug = {
+      keyword_hits: keywordRows.length,
+      vector_hits: nearest === null ? null : nearest.length,
+      dropped: vectorIds.filter((id) => !keyword.has(id) && !related.has(id)),
+    };
+  }
   return response;
 }

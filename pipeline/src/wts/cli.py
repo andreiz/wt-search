@@ -186,9 +186,12 @@ def check_embeddings_cmd(n: int) -> None:
 @click.option("--limit", type=click.IntRange(min=1), default=None,
               help="Show only the first N results of the page (after collapsing).")
 @click.option("--json", "as_json", is_flag=True, help="Print the API's response as JSON.")
+@click.option("--debug", is_flag=True,
+              help="Smart mode: show each result's keyword and meaning ranks, similarity, RRF "
+                   "score and folded hits, and the meaning hits that were dropped.")
 @click.argument("query", nargs=-1, required=True, type=click.UNPROCESSED)
 def search_cmd(env: str | None, mode: str, sort: str, page: int, limit: int | None,
-               as_json: bool, query: tuple[str, ...]) -> None:
+               as_json: bool, debug: bool, query: tuple[str, ...]) -> None:
     """Search a deployed environment through the Worker's API, as the web app does.
 
     The query syntax is the web app's: "a phrase", -exclude, year:2015, ep:613, include:ads.
@@ -210,7 +213,8 @@ def search_cmd(env: str | None, mode: str, sort: str, page: int, limit: int | No
     api_url = ctx.cfg.api_url(name)
     try:
         with new_client() as client:
-            response = run_search(client, api_url, " ".join(query), mode=mode, sort=sort, page=page)
+            response = run_search(client, api_url, " ".join(query), mode=mode, sort=sort,
+                                  page=page, debug=debug)
     except SearchError as exc:  # never holds the query string
         raise click.ClickException(str(exc)) from exc
     if as_json:

@@ -61,16 +61,20 @@ export interface Collapsible {
  * Collapse hits of one episode that are close in time: the first result in list order is
  * kept and counts the ones it absorbs. Only kept results are compared against, so a long run
  * of hits is not swallowed by a chain of near neighbours. Mutates the kept results'
- * `more_in_episode`; returns the kept ones in order.
+ * `more_in_episode`; returns the kept ones in order. `onFold` hears each fold (debug output).
  */
-export function collapse<T extends Collapsible>(results: readonly T[]): T[] {
+export function collapse<T extends Collapsible>(results: readonly T[], onFold?: (kept: T, folded: T) => void): T[] {
   const kept: T[] = [];
   for (const result of results) {
     const near = kept.find(
       (k) => k.episode.id === result.episode.id && Math.abs(k.hit_ms - result.hit_ms) < COLLAPSE_MS,
     );
-    if (near) near.more_in_episode++;
-    else kept.push(result);
+    if (near) {
+      near.more_in_episode++;
+      onFold?.(near, result);
+    } else {
+      kept.push(result);
+    }
   }
   return kept;
 }

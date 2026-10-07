@@ -5,6 +5,7 @@
 // The SQL is one fixed string; the chunk id and the radius are bound parameters.
 
 import type { Env } from "./env";
+import { json, logError } from "./http";
 import { cueTimes, deepLinks, type LinkEpisode } from "./links";
 
 /** Chunks either side of the hit when `radius` is missing or bad. */
@@ -105,27 +106,6 @@ export async function chunkContext(db: D1Database, chunkId: number, radius: numb
       links: deepLinks(row, row.start_ms),
     })),
   };
-}
-
-const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
-}
-
-// Same line as index.ts's logError (no IP, headers, query string or stack, spec §8.3); a
-// copy because that one is private to index.ts.
-function logError(event: string, request: Request, err: unknown): void {
-  const e = err instanceof Error ? err : new Error(String(err));
-  console.error(
-    JSON.stringify({
-      level: "error",
-      event,
-      method: request.method,
-      path: new URL(request.url).pathname,
-      error: `${e.name}: ${e.message}`.slice(0, 300),
-    }),
-  );
 }
 
 /**

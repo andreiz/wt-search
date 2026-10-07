@@ -95,6 +95,12 @@ def test_defaults_are_smart_relevance_page_one(route, sleeps):
         "q": "dovetail", "mode": "smart", "sort": "relevance", "page": "1"}
 
 
+def test_debug_asks_for_debug_1(route, sleeps):
+    route.mock(return_value=httpx.Response(200, json=fixture("smart_debug")))
+    run(sleeps, debug=True)
+    assert dict(route.calls.last.request.url.params)["debug"] == "1"
+
+
 def test_request_carries_the_bot_user_agent(route, sleeps):
     route.mock(return_value=httpx.Response(200, json=fixture("empty")))
     run(sleeps)
@@ -466,6 +472,36 @@ def test_the_smart_fixture_end_to_end():
     ]
 
 
+def test_the_debug_fixture():
+    lines = format_results(fixture("smart_debug"), color=False).splitlines()
+    assert lines[:2] == [
+        "smart search; 2 results (2 folded into nearby hits)",
+        "debug: 3 keyword hits, 50 meaning hits, 2 dropped (7702, 999999)",
+    ]
+    assert lines[3:8] == [
+        "#590 Hide Glue, Again (2023-05-30)  35:10",
+        "  [Hide] [glue] gives you more open time if you keep the pot warm, but titebond is easier.",
+        "  +2 more in episode",
+        "  debug    keyword #3, meaning #2 (0.812), rrf 0.0320; folded 59032, 59040",
+        "  page     https://example.com/ep/590",
+    ]
+    assert lines[11] == "  debug    meaning #1 (0.846), rrf 0.0164"
+
+
+def test_debug_summary_when_degraded_or_nothing_dropped():
+    degraded = response(result(), mode="smart",
+                        debug={"keyword_hits": 3, "vector_hits": None, "dropped": []})
+    assert format_results(degraded, color=False).splitlines()[1] == (
+        "debug: 3 keyword hits, no meaning search")
+    clean = response(result(), mode="smart", debug={"keyword_hits": 0, "vector_hits": 1, "dropped": []})
+    assert format_results(clean, color=False).splitlines()[1] == "debug: 0 keyword hits, 1 meaning hit"
+
+
+def test_no_debug_lines_without_debug_data():
+    out = format_results(fixture("smart"), color=False)
+    assert "debug" not in out
+
+
 def test_the_degraded_fixture():
     out = format_results(fixture("smart_degraded"), color=False)
     assert out.splitlines()[0] == "smart search degraded: keyword results only"
@@ -567,6 +603,17 @@ def test_cli_defaults_to_smart_search(cli_setup, route):
     assert result_.exit_code == 0, result_.output
     assert dict(route.calls.last.request.url.params)["mode"] == "smart"
     assert result_.output.startswith("smart search degraded: keyword results only")
+
+
+def test_cli_debug(cli_setup, route):
+    route.mock(return_value=httpx.Response(200, json=fixture("smart_debug")))
+    result_ = invoke("hide", "glue", "--debug")
+    assert result_.exit_code == 0, result_.output
+    assert dict(route.calls.last.request.url.params)["debug"] == "1"
+    assert result_.output.splitlines()[1].startswith("debug: 3 keyword hits")
+    plain = invoke("hide", "glue")
+    assert "debug" not in dict(route.calls.last.request.url.params)
+    assert plain.exit_code == 0
 
 
 def test_cli_json_prints_the_response_as_is(cli_setup, route):

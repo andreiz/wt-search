@@ -12,6 +12,7 @@ import empty from "../../pipeline/tests/fixtures/search/empty.json";
 import exact from "../../pipeline/tests/fixtures/search/exact.json";
 import exactTruncated from "../../pipeline/tests/fixtures/search/exact_truncated.json";
 import smart from "../../pipeline/tests/fixtures/search/smart.json";
+import smartDebug from "../../pipeline/tests/fixtures/search/smart_debug.json";
 import smartDegraded from "../../pipeline/tests/fixtures/search/smart_degraded.json";
 import type { Env } from "../src/env";
 import worker from "../src/index";
@@ -108,12 +109,14 @@ function expectResultsLike(fixture: Json, live: Json): void {
 
 let liveExact: Json;
 let liveSmart: Json;
+let liveDebug: Json;
 let liveDegraded: Json;
 
 beforeAll(async () => {
   await seed(env.DB, EPISODES, CHUNKS);
   liveExact = await api("q=dovetail&mode=exact");
   liveSmart = await smartApi("q=dovetail&mode=smart");
+  liveDebug = await smartApi("q=dovetail&mode=smart&debug=1");
   // The test Worker has no AI or Vectorize binding: smart search falls back (and logs it).
   const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
   liveDegraded = await api("q=dovetail&mode=smart");
@@ -199,6 +202,36 @@ describe.each(Object.entries(SMART_FIXTURES))("smart fixture %s", (_name, fixtur
 
   it("has results shaped like the Worker's", () => {
     expectResultsLike(fixture as unknown as Json, liveSmart);
+  });
+});
+
+describe("smart fixture smart_debug", () => {
+  it("has the debug response's keys, at the top and in every result", () => {
+    expect(keys(smartDebug)).toEqual(keys(liveDebug));
+    expect(keys(smartDebug.debug)).toEqual(keys(liveDebug.debug as Json));
+    const real = (liveDebug.results as Json[])[0]!;
+    for (const r of smartDebug.results as unknown as Json[]) {
+      expect(keys(r)).toEqual(keys(real));
+      expect(keys(r.debug as Json)).toEqual(keys(real.debug as Json));
+      expectResultTypes(r);
+    }
+  });
+
+  it("has the value types of the Worker's debug fields", () => {
+    for (const source of [liveDebug, smartDebug as unknown as Json]) {
+      const d = source.debug as Json;
+      expect(typeof d.keyword_hits).toBe("number");
+      expect(d.vector_hits === null || typeof d.vector_hits === "number").toBe(true);
+      expect(Array.isArray(d.dropped)).toBe(true);
+      for (const r of source.results as Json[]) {
+        const rd = r.debug as Json;
+        for (const k of ["keyword_rank", "vector_rank", "vector_score"]) {
+          expect(rd[k] === null || typeof rd[k] === "number", k).toBe(true);
+        }
+        expect(typeof rd.rrf_score).toBe("number");
+        expect(Array.isArray(rd.folded)).toBe(true);
+      }
+    }
   });
 });
 

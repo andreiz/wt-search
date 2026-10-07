@@ -9,20 +9,19 @@ then [README.md](../README.md), then the spec sections it points to.
 branch its cloud session was given, not `main`; the maintainer merges it. After that, work
 on `main` again (CLAUDE.md).
 
-**Plan 2: Tasks 1–14 and Checkpoint F are done.**
-**Next: Task 15** (context, report, caching, logs, analytics), then Task 16, then
-Checkpoint G. **Staging still runs the Task 13 Worker** (smart = exact + `smart_degraded`)
-until the next `wrangler deploy --env staging`; Checkpoint G checks smart search there.
+**Plan 2: Tasks 1–15 and Checkpoint F are done.**
+**Next: Task 16** (backups, `wts logs`, `wts run --env`, all pipeline), then Checkpoint G.
+Staging was redeployed during session 5 with Task 14's smart search (up to `b6e1a31`);
+later commits, including all of Task 15, are not deployed yet.
 
-**Task 15 pointers** (plan Task 15, spec §4.4, §4.7, §8.3):
-- **Don't cache `smart_degraded` responses** (added to plan Task 15): a short Workers AI
-  outage would otherwise serve keyword-only answers for the cache's hour.
-- The per-request log line's "degraded flag" is `smart_degraded` on the response; the
-  failure itself is already logged once (`ai_unavailable` / `vectorize_unavailable`).
-- Exact and smart responses differ at the top level now (smart has no `total`,
-  `total_capped`, `truncated`): `ExactResponse` / `SmartResponse` in `search.ts`. "Result
-  count" for analytics is `results.length` in both.
-- `Env.ANALYTICS` is optional and has no staging binding yet (below); Task 15 re-adds it.
+**Waiting on the maintainer (before or at Checkpoint G):**
+- `wrangler deploy --env staging` with the re-added `ANALYTICS` binding: if code 10089
+  returns, comment the binding out again (the Worker runs without it) and ask Cloudflare.
+- Turnstile: create a widget, put its site key in `wrangler.jsonc` (`TURNSTILE_SITE_KEY`),
+  `wrangler secret put TURNSTILE_SECRET --env staging`.
+- **A custom domain (spec §10 item 7):** Cloudflare's docs promise the Cache API only on
+  custom domains, and the per-IP rate-limit rules (§4.7) need a zone. On `workers.dev`
+  the cache may answer `x-wts-cache: miss` every time; Checkpoint G checks.
 
 Checkpoint F results (2026-10-07): Worker deployed to staging (`wts-api-staging`,
 without the Analytics binding, below); `wts search --env staging` works on the real corpus;
@@ -90,13 +89,15 @@ How the maintainer works:
 
 - **Pipeline** (`pipeline/`, `wts` CLI): plan 1 complete; plan 2 adds secrets, config for
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
-  `wts search` (with `--limit N`), hyphen joining in `wts chunk`. **590 tests**, ruff clean
+  `wts search` (with `--limit N`, `--debug`), hyphen joining in `wts chunk`. **595 tests**, ruff clean
   (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
   `/api/search` with result caps and `?limit=` (page size), smart search (RRF of FTS5 and
-  Vectorize) with degraded mode. **256 tests**, type-check clean. **Deployed to staging**
-  (the Task 13 version, before smart search):
+  Vectorize) with degraded mode and `?debug=1`, `/api/context`, `/api/report` (Turnstile),
+  the edge cache, request logs and Analytics Engine. **341 tests**, type-check clean.
+  **Deployed to staging** (Task 14, up to the related-hit stopwords `b6e1a31`; the
+  keyword-hit stopwords and all of Task 15 are not deployed yet):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;
@@ -299,6 +300,34 @@ How the maintainer works:
     vector hits (topK 50 → 20–30).
   - **For plan 3:** feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk
     598"), so a card's "Ep. N · Title" shows it twice; strip it for display.
+- **Task 15** `worker/src/{context,report}.ts` (Sonnet subagent, reviewed and amended),
+  `worker/src/{cache,analytics,http}.ts`, the router in `index.ts`, `?debug=1` in
+  `search.ts`, `wts search --debug`. Shapes and layouts in spec §4.4, §4.7, §8.3. Calls the
+  plan didn't spell out:
+  - **The cache is switched on by a var, `SEARCH_CACHE_TTL_S`** ("3600" in both deployed
+    envs), not always on: tests repeat queries with different fake Vectorize answers and
+    would otherwise get each other's cached results. Every search answer has
+    `x-wts-cache: hit|miss|skip` (for Checkpoint G). Key = whitespace-normalized `q` (case
+    kept: `OR`), mode, sort, page, limit as the route read them, `corpus_version` (read ≤ once
+    a minute per isolate). Not stored: degraded, `debug=1`, errors. The put is awaited, not
+    `waitUntil` (deterministic in tests, a millisecond-scale local write).
+  - **Logs and analytics live in the router**, from a `RequestInfo` the search route fills,
+    so every request gets exactly one line (404s and 503s too) and `report.ts` doesn't know
+    about analytics. Report data points carry only the status.
+  - **Debug output:** smart mode only (exact ignores `debug=1`). `dropped` lists meaning hits
+    not shown; `vector_hits` is null when degraded. `collapse()` takes an `onFold` callback.
+  - **Report, amended after review:** Turnstile refusing *our* secret
+    (`invalid-input-secret`, `missing-input-secret`) is 503 + log, not a silent 403 for
+    every listener (the subagent's flag); a Content-Length over 48 KB is refused before the
+    body is read. `json`/`logError` moved to `http.ts` (the subagent had copies).
+  - Subagent's calls kept: a chunk id must be a JSON number; lone surrogates in report text
+    → 400; siteverify gets a 5 s timeout and no client IP; an unknown chunk is found after
+    Turnstile (the frontend must reset the widget before a retry); mocking siteverify needs
+    a Response built inside the mock (`answerWith`), else "Cannot perform I/O on behalf of a
+    different request". The subagent's worktree was cut from `main`, not the session branch;
+    its commit was cherry-picked.
+  - Mutation-checked (cache degraded/debug/version/memo/headers, log cut, analytics
+    warn-once and report point): each fails a test.
   - **Vectorize:** `topK: 50`, `returnValues: false`, `returnMetadata: "none"`; anything past
     50 and ids that aren't digits are dropped. `year:` sends `$eq` alone (Vectorize can't
     combine `$eq` with a range); D1 re-applies every filter and the exclusions when loading

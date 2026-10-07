@@ -18,6 +18,11 @@ export interface Env {
    * and a missing or failing analytics write must never break a search.
    */
   ANALYTICS?: AnalyticsEngineDataset;
+  /**
+   * Seconds to cache search responses at the edge (a var in wrangler.jsonc, "3600" in each
+   * deployed environment). Unset or not a positive integer: no caching (local runs, tests).
+   */
+  SEARCH_CACHE_TTL_S?: string;
   /** Public Turnstile site key (a var in wrangler.jsonc). */
   TURNSTILE_SITE_KEY: string;
   /** Turnstile secret key: `wrangler secret put TURNSTILE_SECRET --env <env>`. Never in the repo. */

@@ -1,6 +1,9 @@
+import { recordReport, recordSearch } from "./analytics";
+import { cached, cacheKey, cacheTtl, corpusVersion, store } from "./cache";
 import { context } from "./context";
 import type { Env } from "./env";
-import { parseQuery } from "./query";
+import { JSON_HEADERS, json, logError } from "./http";
+import { MAX_QUERY_CHARS, parseQuery } from "./query";
 import { report } from "./report";
 import {
   exactSearch,
@@ -13,30 +16,28 @@ import {
   type Sort,
 } from "./search";
 
-type Handler = (request: Request, env: Env) => Response | Promise<Response>;
-
-const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
-
-export function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
-}
-
 /**
- * One structured line per error, for Workers Logs. Deliberately has no IP, no headers, no
- * query string and no stack: only what is needed to find the failing route (spec §8.3).
+ * What a route adds to its request's log line (spec §8.3). Only the search route fills it;
+ * the router writes the line, so every request gets exactly one, whatever happens.
  */
-function logError(event: string, request: Request, err: unknown): void {
-  const e = err instanceof Error ? err : new Error(String(err));
-  console.error(
-    JSON.stringify({
-      level: "error",
-      event,
-      method: request.method,
-      path: new URL(request.url).pathname,
-      error: `${e.name}: ${e.message}`.slice(0, 300),
-    }),
-  );
+interface RequestInfo {
+  /** The query as typed, cut like the parser cuts it (the log line shortens it further). */
+  q?: string;
+  mode?: "smart" | "exact";
+  sort?: Sort;
+  page?: number;
+  results?: number;
+  degraded?: boolean;
+  /** hit: served from the edge cache; miss: computed and stored; skip: not cacheable. */
+  cache?: "hit" | "miss" | "skip";
 }
+
+type Handler = (request: Request, env: Env, info: RequestInfo) => Response | Promise<Response>;
+
+/** The log line keeps this much of the query; Analytics Engine keeps MAX_QUERY_CHARS. */
+const LOG_QUERY_CHARS = 80;
+/** Carries the result count on a cached response, so a hit's log line has it too. */
+const RESULTS_HEADER = "x-wts-results";
 
 /** GET /api/health: the corpus version, from one trivial D1 query (spec §4.4). */
 const health: Handler = async (request, env) => {
@@ -71,33 +72,71 @@ function parsePage(value: string | null, lastPage: number): number {
 }
 
 /**
- * GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=&limit= (spec §4.4).
- * Bad parameters fall back to their defaults and bad query syntax is plain words (query.ts),
- * so the only error is D1 being down.
+ * GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=&limit=&debug= (spec
+ * §4.4). Bad parameters fall back to their defaults and bad query syntax is plain words
+ * (query.ts), so the only error is D1 being down.
+ *
+ * Answers are cached at the edge (cache.ts) unless smart search was degraded or `debug=1`
+ * (smart mode only) asked for the ranking details.
  */
-const search: Handler = async (request, env) => {
+const search: Handler = async (request, env, info) => {
   const params = new URL(request.url).searchParams;
   const mode = params.get("mode") === "exact" ? "exact" : "smart";
   const sortParam = (params.get("sort") ?? "").toLowerCase();
   const sort = SORTS.find((s) => s === sortParam) ?? "relevance";
   const limit = parseLimit(params.get("limit"));
   const page = parsePage(params.get("page"), mode === "exact" ? maxExactPage(limit) : maxSmartPage(limit));
-  const parsed = parseQuery(params.get("q") ?? "");
+  const q = params.get("q") ?? "";
+  const debug = mode === "smart" && params.get("debug") === "1";
+  Object.assign(info, {
+    q: Array.from(q).slice(0, MAX_QUERY_CHARS).join(""),
+    mode,
+    sort,
+    page,
+    results: 0,
+    degraded: false,
+    cache: "skip",
+  } satisfies RequestInfo);
 
+  const ttl = debug ? null : cacheTtl(env.SEARCH_CACHE_TTL_S);
+  let key: Request | null = null;
   let response: ExactResponse | SmartResponse;
   try {
+    if (ttl !== null) {
+      key = cacheKey(request.url, { q, mode, sort, page, limit }, await corpusVersion(env.DB));
+      const hit = await cached(key);
+      if (hit) {
+        info.cache = "hit";
+        info.results = Number(hit.headers.get(RESULTS_HEADER) ?? 0);
+        return hit;
+      }
+    }
+    const parsed = parseQuery(q);
     response =
       mode === "exact"
         ? await exactSearch(env.DB, parsed, sort, page, limit)
-        : // Workers AI or Vectorize failing is not an error: keyword results, smart_degraded.
-          await smartSearch(env, parsed, sort, page, limit, (stage, err) =>
-            logError(`${stage}_unavailable`, request, err),
-          );
+        : await smartSearch(env, parsed, sort, page, {
+            limit,
+            // Workers AI or Vectorize failing is not an error: keyword results, smart_degraded.
+            onDegraded: (stage, err) => logError(`${stage}_unavailable`, request, err),
+            debug,
+          });
   } catch (err) {
     logError("d1_unavailable", request, err);
     return json({ error: "unavailable" }, 503);
   }
-  return json({ ...response, mode, sort });
+
+  const body = JSON.stringify({ ...response, mode, sort });
+  const degraded = "smart_degraded" in response && response.smart_degraded === true;
+  info.results = response.results.length;
+  info.degraded = degraded;
+  const headers = { ...JSON_HEADERS, [RESULTS_HEADER]: String(response.results.length) };
+  // A degraded answer is not stored: a short Workers AI outage would otherwise last an hour.
+  if (key !== null && ttl !== null && !degraded) {
+    await store(key, body, headers, ttl);
+    info.cache = "miss";
+  }
+  return new Response(body, { headers: { ...headers, "x-wts-cache": info.cache ?? "skip" } });
 };
 
 // Keyed by "METHOD /path". A known path with another method is simply not found.
@@ -110,13 +149,49 @@ const routes = new Map<string, Handler>([
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const started = Date.now();
+    const path = new URL(request.url).pathname;
+    const route = `${request.method} ${path}`;
+    const info: RequestInfo = {};
+    let response: Response;
     try {
-      const handler = routes.get(`${request.method} ${new URL(request.url).pathname}`);
-      if (!handler) return json({ error: "not_found" }, 404);
-      return await handler(request, env);
+      const handler = routes.get(route);
+      response = handler ? await handler(request, env, info) : json({ error: "not_found" }, 404);
     } catch (err) {
       logError("unhandled_error", request, err);
-      return json({ error: "internal" }, 500);
+      response = json({ error: "internal" }, 500);
     }
+    const ms = Date.now() - started;
+
+    // One line per request (spec §8.3). Built from named fields only: never headers, so no IP.
+    const { q, ...rest } = info;
+    console.log(
+      JSON.stringify({
+        level: "info",
+        event: "request",
+        method: request.method,
+        path,
+        status: response.status,
+        ms,
+        ...(q === undefined ? {} : { q: Array.from(q).slice(0, LOG_QUERY_CHARS).join("") }),
+        ...rest,
+      }),
+    );
+    if (route === "GET /api/search" && info.mode !== undefined) {
+      recordSearch(env, {
+        q: q ?? "",
+        mode: info.mode,
+        sort: info.sort ?? "relevance",
+        cache: info.cache ?? "skip",
+        results: info.results ?? 0,
+        ms,
+        degraded: info.degraded ?? false,
+        page: info.page ?? 1,
+        status: response.status,
+      });
+    } else if (route === "POST /api/report") {
+      recordReport(env, response.status);
+    }
+    return response;
   },
 } satisfies ExportedHandler<Env>;

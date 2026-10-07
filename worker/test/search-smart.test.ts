@@ -355,6 +355,58 @@ describe("paging", () => {
   });
 });
 
+describe("debug output (?debug=1)", () => {
+  it("shows each result's ranks, Vectorize score and RRF score", async () => {
+    const k = await keywordOrder("dovetail");
+    // The fake scores are 0.9, 0.899, 0.898 in its order.
+    const b = await body({ q: "dovetail", debug: "1" }, [3002, k[2]!, 3102]);
+    expect(ids(b)).toEqual(ids(await body({ q: "dovetail" }, [3002, k[2]!, 3102])));
+    const d = Object.fromEntries(b.results.map((r) => [r.chunk_id, r.debug]));
+    expect(d[k[2]!]).toEqual({
+      keyword_rank: 3,
+      vector_rank: 2,
+      vector_score: 0.899,
+      rrf_score: expect.closeTo(1 / 63 + 1 / 62, 12),
+      folded: [],
+    });
+    expect(d[3002]).toEqual({ keyword_rank: null, vector_rank: 1, vector_score: 0.9, rrf_score: expect.closeTo(1 / 61, 12), folded: [] });
+    expect(d[k[0]!]).toMatchObject({ keyword_rank: 1, vector_rank: null, vector_score: null });
+    expect(b.debug).toEqual({ keyword_hits: 3, vector_hits: 3, dropped: [] });
+  });
+
+  it("lists the hits folded into each result", async () => {
+    const b = await body({ q: "dovetail", debug: "1" }, [3203]);
+    expect(b.results.find((r) => r.chunk_id === 3203)?.debug?.folded).toEqual([3201]);
+  });
+
+  it("lists the meaning-based hits that were dropped", async () => {
+    // 3202 is excluded (biscuit), 999999 has no chunk.
+    const b = await body({ q: "joints -biscuit", debug: "1" }, [3202, 999_999, 3002]);
+    expect(b.debug).toEqual({ keyword_hits: 1, vector_hits: 3, dropped: [3202, 999_999] });
+  });
+
+  it("says there were no meaning-based hits when degraded", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const vec = { query: vi.fn(async () => Promise.reject(new Error("VECTOR_QUERY_ERROR"))) };
+    const { body: b } = await smart({ q: "dovetail", debug: "1" }, { vec });
+    expect(b.smart_degraded).toBe(true);
+    expect(b.debug).toEqual({ keyword_hits: 3, vector_hits: null, dropped: [] });
+    expect(b.results[0]!.debug).toMatchObject({ keyword_rank: 1, vector_rank: null });
+  });
+
+  it("is off unless debug is exactly 1, and absent from exact mode", async () => {
+    for (const debug of ["0", "true", "", "yes"]) {
+      const b = await body({ q: "dovetail", debug }, [3002]);
+      expect(b, debug).not.toHaveProperty("debug");
+      for (const r of b.results) expect(r, debug).not.toHaveProperty("debug");
+    }
+    const res = await exports.default.fetch(url({ q: "dovetail", mode: "exact", debug: "1" }));
+    const exactBody = (await res.json()) as Body;
+    expect(exactBody).not.toHaveProperty("debug");
+    for (const r of exactBody.results) expect(r).not.toHaveProperty("debug");
+  });
+});
+
 describe("degraded mode", () => {
   it("answers with the keyword hits when Workers AI throws, and logs one line without the query", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});

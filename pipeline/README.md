@@ -28,6 +28,7 @@ uv run wts scope add seed          # M1: 20 most recent + 15 across the years
 uv run wts run                     # feed → download → transcribe → chunk → embed
 uv run wts status                  # counts per status, errors, recent runs
 uv run wts search '"hide glue" -titebond'   # search a deployed Worker (--env, --mode exact, --json)
+uv run wts search --debug 'flattening a bench top'   # plus each hit's ranks and scores (smart mode)
 ```
 
 `wts search` calls the Worker's `/api/search`, so it needs the Worker's URL as `api_url` under

@@ -38,15 +38,19 @@ def search(
     mode: str = "smart",
     sort: str = "relevance",
     page: int = 1,
+    debug: bool = False,
     sleep: Callable[[float], None] = time.sleep,
 ) -> dict:
     """GET `<api_url>/api/search` and return the parsed response.
 
+    `debug` asks smart mode for each result's ranks and scores (never cached by the Worker).
     Network errors, 429 and 5xx (a 503 is D1 being briefly unavailable) are retried once per
     `RETRY_S` entry; other 4xx fail at once. `sleep` is injectable for tests.
     """
     url = f"{api_url.rstrip('/')}/api/search"
     params = {"q": q, "mode": mode, "sort": sort, "page": page}
+    if debug:
+        params["debug"] = "1"
     for attempt in range(len(RETRY_S) + 1):
         try:
             resp = client.get(url, params=params, timeout=TIMEOUT_S)
@@ -116,6 +120,8 @@ def format_results(response: dict, *, color: bool, limit: int | None = None) -> 
     on_page = len(response.get("results") or [])
     response = limit_results(response, limit)
     lines = [_header(response)]
+    if isinstance(response.get("debug"), dict):
+        lines.append(_debug_summary(response["debug"]))
     results = response.get("results") or []
     if not results:
         lines.append("No results.")
@@ -174,9 +180,41 @@ def _result_lines(r: dict, color: bool) -> list[str]:
     more = r.get("more_in_episode", 0)
     if more > 0:
         lines.append(f"  +{more} more in episode")
+    if isinstance(r.get("debug"), dict):
+        lines.append(f"  {'debug':<7}  {_debug_line(r['debug'])}")
     links = episode.get("links") or {}
     lines += [f"  {name:<7}  {links[name]}" for name in LINK_ORDER if links.get(name)]
     return lines
+
+
+def _debug_summary(d: dict) -> str:
+    """`debug: 3 keyword hits, 50 meaning hits, 2 dropped (7702, 999999)` (`?debug=1`)."""
+    def hits(n: int, what: str) -> str:
+        return f"{n} {what} hit" + ("" if n == 1 else "s")
+
+    parts = [hits(d.get("keyword_hits", 0), "keyword")]
+    vector = d.get("vector_hits")
+    parts.append("no meaning search" if vector is None else hits(vector, "meaning"))
+    dropped = d.get("dropped") or []
+    if dropped:
+        parts.append(f"{len(dropped)} dropped ({', '.join(str(i) for i in dropped)})")
+    return "debug: " + ", ".join(parts)
+
+
+def _debug_line(d: dict) -> str:
+    """`keyword #3, meaning #2 (0.812), rrf 0.0320; folded 59032, 59040`: why a result ranked
+    where it did. A list the result wasn't in is left out."""
+    parts = []
+    if d.get("keyword_rank") is not None:
+        parts.append(f"keyword #{d['keyword_rank']}")
+    if d.get("vector_rank") is not None:
+        parts.append(f"meaning #{d['vector_rank']} ({d.get('vector_score', 0):.3f})")
+    parts.append(f"rrf {d.get('rrf_score', 0):.4f}")
+    line = ", ".join(parts)
+    folded = d.get("folded") or []
+    if folded:
+        line += "; folded " + ", ".join(str(i) for i in folded)
+    return line
 
 
 def _clock(ms: int) -> str:

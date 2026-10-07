@@ -6,10 +6,11 @@
 // the log lines carry only the event and the error message of the failing call.
 
 import type { Env } from "./env";
+import { json, logError } from "./http";
 
 /** Cloudflare's token check (Turnstile server-side validation). */
 export const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-/** The request body is checked against this before it is parsed, so a huge body costs nothing. */
+/** The body's length in UTF-16 units, checked before it is parsed (and its Content-Length before it is read). */
 export const MAX_BODY_CHARS = 16 * 1024;
 /** Lengths in characters (code points), after trimming. */
 export const MAX_QUOTED = 500;
@@ -111,10 +112,15 @@ export async function verifyTurnstile(secret: string, token: string): Promise<bo
     signal: AbortSignal.timeout(SITEVERIFY_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`siteverify answered ${response.status}`);
-  const result = (await response.json()) as { success?: unknown } | null;
+  const result = (await response.json()) as { success?: unknown; "error-codes"?: unknown } | null;
   if (typeof result !== "object" || result === null || typeof result.success !== "boolean") {
     throw new Error("siteverify answered something other than a verdict");
   }
+  // A refusal about our own secret is a misconfiguration, not a bot: every listener would get
+  // 403. Throw, so it is a 503 with a log line that says which.
+  const codes = Array.isArray(result["error-codes"]) ? result["error-codes"] : [];
+  const ours = codes.filter((c) => c === "invalid-input-secret" || c === "missing-input-secret");
+  if (!result.success && ours.length > 0) throw new Error(`siteverify refused the secret: ${ours.join(", ")}`);
   return result.success;
 }
 
@@ -124,27 +130,6 @@ const INSERT_REPORT = `INSERT INTO reports (chunk_id, created_at, quoted_text, s
 SELECT ?, ?, ?, ?, ?
 WHERE EXISTS (SELECT 1 FROM chunks WHERE id = ?)`;
 
-const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
-}
-
-// Same line as index.ts's logError (no IP, headers, query string or stack, spec §8.3); a
-// copy because that one is private to index.ts.
-function logError(event: string, request: Request, err: unknown): void {
-  const e = err instanceof Error ? err : new Error(String(err));
-  console.error(
-    JSON.stringify({
-      level: "error",
-      event,
-      method: request.method,
-      path: new URL(request.url).pathname,
-      error: `${e.name}: ${e.message}`.slice(0, 300),
-    }),
-  );
-}
-
 const unavailable = (message: string): Response => json({ error: "unavailable", message }, 503);
 
 /**
@@ -153,6 +138,11 @@ const unavailable = (message: string): Response => json({ error: "unavailable", 
  * Turnstile or D1 cannot be used. Nothing is stored unless the answer is 200.
  */
 export async function report(request: Request, env: Env): Promise<Response> {
+  // A declared size far past the limit is refused before the body is read at all. UTF-8 takes
+  // at most 3 bytes per UTF-16 unit; parseReport checks the real length.
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_CHARS * 3) {
+    return json({ error: "bad_request", message: "That report is too long." }, 400);
+  }
   const parsed = parseReport(await request.text());
   if (!parsed.ok) return json({ error: "bad_request", message: parsed.message }, 400);
   const { chunk_id, quoted_text, suggested_text, note, turnstile_token } = parsed.value;

@@ -33,6 +33,10 @@ global:
   rubo: Roubo
   rubo's: Roubo's
   rubos: Roubos
+  ruba: Roubo          # ep595 "split top Ruba design"
+  ruba's: Roubo's
+  # Split-top benches: Whisper writes "split top" (17 times in the 36 episodes, all the bench).
+  split top: split-top
   # Chris Schwarz (ep605 "the Swartz"; spelled right in ep595). Swartz is also a surname:
   # re-check new matches as the archive grows.
   swartz: Schwarz

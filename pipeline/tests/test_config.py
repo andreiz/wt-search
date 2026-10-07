@@ -17,6 +17,15 @@ def test_load_config(tmp_path):
     assert c.min_free_gb == 2.0
 
 
+def test_invalid_toml_names_the_file_without_a_traceback(wts_home):
+    (wts_home / "config.toml").write_text('feed_url = "x"\ncloudflare_account_id = abc123\n')
+    result = CliRunner().invoke(main, ["paths"])
+    assert result.exit_code == 1
+    assert str(wts_home / "config.toml") in result.output
+    assert "line 2" in result.output and "quote" in result.output
+    assert "Traceback" not in result.output
+
+
 def test_missing_config_gives_defaults(tmp_path):
     assert load_config(tmp_path / "nope.toml") == Config(feed_url=None, audio_dir=None)
 

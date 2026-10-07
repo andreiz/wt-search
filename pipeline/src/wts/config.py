@@ -61,7 +61,13 @@ def _path(value: str | None) -> Path | None:
 def load_config(path: Path) -> Config:
     if not path.exists():
         return Config()
-    data = tomllib.loads(path.read_text())
+    try:
+        data = tomllib.loads(path.read_text())
+    except tomllib.TOMLDecodeError as exc:
+        raise click.ClickException(
+            f"{path} is not valid TOML: {exc}. Strings need quotes, e.g. "
+            'cloudflare_account_id = "0123abcd…"'
+        ) from exc
     defaults = Config()
     return Config(
         feed_url=data.get("feed_url"),

@@ -52,6 +52,12 @@ From `pipeline/` unless it says `worker/`. Needs Node ≥ 22.12 for `worker/`.
      mutations are async, allow a minute.
 8. **Idempotence:** `uv run wts publish --env staging` again → `nothing to do`.
 
+**Progress (2026-10-07):** token created (D1 Read+Write, Vectorize Read+Write, Workers AI Read;
+1 year; stored in 1Password Homelab and the Keychain). Step 5 passed: `wts check-embeddings`
+cosine **1.0000** on all 5 chunks (ep085 2011, ep379 2017, ep598, ep605, ep612), so Workers AI
+`cls` pooling matches the Mac. A config typo (unquoted string) gave a traceback; `load_config`
+now names the file and says strings need quotes.
+
 ### Checkpoint D (maintainer, M1 Max): platform IDs on the real feed
 
 Run every `uv run wts …` command from `pipeline/` (`cd pipeline` first). From the repo root,

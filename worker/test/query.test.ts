@@ -72,7 +72,17 @@ const CASES: Case[] = [
   // Spec §4.3 syntax rows.
   { q: "dovetail", fts: '"dovetail"', semantic: "dovetail", terms: ['"dovetail"'], exclude: null, rows: [301, 304] },
   { q: "dovetail router", fts: '"dovetail" AND "router"', semantic: "dovetail router", rows: [304] },
-  { q: '"hide glue"', fts: '"hide glue"', semantic: "hide glue", terms: ['"hide glue"'], rows: [301] },
+  // terms (related-hit highlights) split a phrase into its words: a meaning-only hit that says
+  // "glue the hide" still shows why it matched.
+  { q: '"hide glue"', fts: '"hide glue"', semantic: "hide glue", terms: ['"hide"', '"glue"'], rows: [301] },
+  {
+    q: '"T-square  jig" -"router table" saw*',
+    fts: '("T-square jig" AND "saw"*) NOT "router table"',
+    semantic: "T-square jig saw",
+    terms: ['"T-square"', '"jig"', '"saw"*'],
+    exclude: '"router table"',
+  },
+  { q: '"hide ??? glue"', fts: '"hide ??? glue"', terms: ['"hide"', '"glue"'] },
   { q: '"glue hide"', fts: '"glue hide"', rows: [] },
   { q: "dovetail -router", fts: '"dovetail" NOT "router"', semantic: "dovetail", terms: ['"dovetail"'], exclude: '"router"', rows: [301] },
   { q: 'dovetail -"router jig"', fts: '"dovetail" NOT "router jig"', exclude: '"router jig"', rows: [301] },

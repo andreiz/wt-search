@@ -46,6 +46,7 @@ const CHUNKS: SeedChunk[] = [
   chunk(3203, 32, 1, 60_000, "half blind joints for drawers"),
   chunk(3202, 32, 2, 600_000, "biscuit joints are quick"),
   chunk(3103, 31, 2, 1_200_000, "this joinery segment is brought to you by a sponsor", { is_boilerplate: true }),
+  chunk(3003, 30, 3, 1_800_000, "then I spray lacquer on the cabinet doors"),
   // Caps. 4000..4049 tie on bm25 (same length), so they rank by id; 4100 is long and ranks last.
   ...Array.from({ length: 50 }, (_, i) => chunk(4000 + i, 40, i, i * 200_000, `veneer take ${i}`)),
   chunk(4100, 41, 0, 0, "and after a very long ramble about many other things we finally glue some veneer down"),
@@ -210,11 +211,22 @@ describe("meaning-only hits", () => {
     expect(r.cue_s).toEqual({ youtube: 593, apple: 593, spotify: 593 });
   });
 
-  it("highlight stemmed words, phrases and prefixes too", async () => {
+  it("highlight stemmed words, phrase words and prefixes too", async () => {
     const b = await body({ q: '"pins and tails" joint* drawer' }, [3102, 3203]);
     const marked = Object.fromEntries(b.results.map((r) => [r.chunk_id, r.ranges.map(([s, e]) => r.text.slice(s, e))]));
-    expect(marked[3102]).toEqual(["pins and tails"]);
+    // Word by word, so "and" is marked too: FTS5 has no stopwords.
+    expect(marked[3102]).toEqual(["pins", "and", "tails"]);
     expect(marked[3203]).toEqual(["joints", "drawers"]);
+  });
+
+  it("highlight each word of a quoted phrase, wherever it appears", async () => {
+    // Nobody says "lacquer spray", so the phrase has no keyword hit; the meaning hit says
+    // "spray lacquer" and shows both words.
+    const b = await body({ q: '"lacquer spray"' }, [3003]);
+    expect(tagged(b)).toEqual([[3003, "related"]]);
+    const r = b.results[0]!;
+    expect(r.ranges.map(([s, e]) => r.text.slice(s, e))).toEqual(["spray", "lacquer"]);
+    expect(r.hit_ms).toBe(1_800_000);
   });
 
   it("have no ranges when no query word appears, and carry the episode's links", async () => {

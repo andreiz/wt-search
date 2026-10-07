@@ -129,8 +129,11 @@ of range, or `word_times` doesn't decode.
 
 A hit that came only from Vectorize may contain none of the query's words. Smart search
 (`loadRelated` in `worker/src/search.ts`) runs one more FTS5 query over those chunks with
-the query's terms ORed (`rowid IN (…) AND "a" OR "b"`), to highlight any of them that do
-appear; when none do, there are no ranges. Either way the cue is the chunk's start (spec
+the query's words ORed (`rowid IN (…) AND "a" OR "b"`), to highlight any of them that do
+appear; when none do, there are no ranges. A quoted phrase counts word by word here
+(`parseQuery()`'s `terms`): a hit found by meaning rarely has the exact phrase, so
+`"lacquer spray"` marks both words in "then I spray lacquer". Keyword hits still mark the
+phrase as one span. Either way the cue is the chunk's start (spec
 §4.5): the passage as a whole is the hit, and a highlighted word may be anywhere in it.
 
 ## Links

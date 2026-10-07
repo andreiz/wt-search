@@ -95,7 +95,7 @@ How the maintainer works:
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
   `/api/search` with result caps and `?limit=` (page size), smart search (RRF of FTS5 and
-  Vectorize) with degraded mode. **241 tests**, type-check clean. **Deployed to staging**
+  Vectorize) with degraded mode. **244 tests**, type-check clean. **Deployed to staging**
   (the Task 13 version, before smart search):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
@@ -273,6 +273,12 @@ How the maintainer works:
     tie with a meaning hit of the same rank.
   - **`related`** = not in the FTS5 top 50, even if the chunk has every query word (ranked
     51+). Its cue is always `start_ms` (spec §4.5), highlights or not.
+  - **Related highlights split phrases into words** (maintainer, after staging showed
+    `"lacquer spray"` giving 20 unhighlighted `related` hits: the exact phrase is rare,
+    speakers say "spray lacquer"). `parseQuery().terms` now lists a phrase's words, not the
+    phrase; it has no other consumer. Side effect: a phrase's function words ("and", "the")
+    are marked too, as unquoted ones already were. If natural-language queries make that
+    noisy, a small stopword list for related highlights only is the fix (not done).
   - **Vectorize:** `topK: 50`, `returnValues: false`, `returnMetadata: "none"`; anything past
     50 and ids that aren't digits are dropped. `year:` sends `$eq` alone (Vectorize can't
     combine `$eq` with a range); D1 re-applies every filter and the exclusions when loading

@@ -24,7 +24,7 @@ export interface ParsedQuery {
   semantic: string;
   filters: Filters;
   includeAds: boolean;
-  /** Positive words and phrases as FTS5 strings (quoted; `*` kept on prefixes), for highlighting related hits: callers join them with " OR ". */
+  /** Positive words as FTS5 strings (quoted; `*` kept on prefixes; phrases split into their words), for highlighting related hits: callers join them with " OR ". */
   terms: string[];
   /** The excluded words and phrases ORed, as an FTS5 expression, or null. Smart search (Task 14) applies it to vector hits. */
   exclude: string | null;
@@ -116,11 +116,12 @@ function parse(input: unknown): ParsedQuery {
   const groups: string[][] = [];
   const neg: string[] = [];
   const semantic: string[] = [];
+  const terms: string[] = [];
   // `a OR b` joins b to a's group; OR needs a positive term right before it to mean anything.
   let pendingOr = false;
   let afterPositive = false;
 
-  const term = (stem: string, negated: boolean, prefix: boolean): void => {
+  const term = (stem: string, negated: boolean, prefix: boolean, phrase = false): void => {
     if (!SEARCHABLE.test(stem)) return;
     if (negated) {
       neg.push(quote(stem) + (prefix ? "*" : ""));
@@ -132,6 +133,9 @@ function parse(input: unknown): ParsedQuery {
     const last = groups.at(-1);
     if (pendingOr && last) last.push(expression);
     else groups.push([expression]);
+    // A phrase highlights word by word: a meaning-only hit rarely has the exact phrase.
+    if (phrase) terms.push(...stem.split(" ").filter((w) => SEARCHABLE.test(w)).map(quote));
+    else terms.push(expression);
     semantic.push(stem);
     pendingOr = false;
     afterPositive = true;
@@ -139,7 +143,7 @@ function parse(input: unknown): ParsedQuery {
 
   for (const token of scan(clean(input))) {
     if (token.kind === "phrase") {
-      term(token.text, token.negated, false);
+      term(token.text, token.negated, false, true);
       continue;
     }
     const word = token.text;
@@ -176,7 +180,7 @@ function parse(input: unknown): ParsedQuery {
     semantic: semantic.join(" "),
     filters,
     includeAds,
-    terms: groups.flat(),
+    terms,
     exclude: neg.length > 0 ? neg.join(" OR ") : null,
   };
 }

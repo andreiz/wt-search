@@ -5,8 +5,8 @@ conversation. Read this, then [README.md](../README.md), then the spec sections 
 
 ## Start here (next session)
 
-1. **Plan 2, Tasks 1–8 and Checkpoint D are done** (third session). Continue with Task 9
-   (`wts check-embeddings`), test-first, one commit per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
+1. **Plan 2, Tasks 1–9 and Checkpoint D are done** (third session). Continue with Task 10
+   (Worker scaffold, `/api/health`), then stop at Checkpoint E. Test-first, one commit per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
    (Task 5 was done that way, then reviewed before commit), and for a short report after each
    task.
 2. Before Task 7 (publish), check the plan's Review Focus. CLS pooling and FTS5 trigger
@@ -121,7 +121,7 @@ up, so both get timed links.
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
 - Plan 1 (**done**, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
-- Plan 2 (Tasks 1–8 and Checkpoint D done; Task 9 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–9 and Checkpoint D done; Task 10 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
 - Superpowers skills install from `.claude/settings.json`.
@@ -338,6 +338,12 @@ Plan 1 is finished; plan 2 is next.
      lists them). The quiet-feed note does repeat every run while the feed is quiet (default
      priority). `net.describe_http_error()` formats httpx errors without the query string.
      Task 16 must keep `notify_run` last in `run_all`, after publish and backup.
+   - Task 9: `wts check-embeddings [--n 5]` (`wts/embedcheck.py`, Sonnet subagent, reviewed).
+     Request/response checked against Cloudflare's model page: body `{text: [...], pooling:
+     "cls"}` (`mean` is the default and incompatible), result `{shape, data, pooling}`. One
+     middle chunk from each of up to n episodes spread by date, one request; cosine with both
+     sides normalised; exit 1 below 0.99. Needs `cloudflare_account_id` and the token (Workers
+     AI Read), not an `[env.*]` table.
    Its checkpoints:
    - **D** after Task 5: platform IDs on the real feed (Spotify/YouTube keys, no Cloudflare).
    - **E** after Task 10: staging D1 + Vectorize, pooling check, ntfy test, seed corpus published.
@@ -388,4 +394,5 @@ Plan 1 is finished; plan 2 is next.
   `+ 1` → `+ 5`) and a script-generated `preroll_finder_results.txt`. Both files are new in
   this commit, so the diff still shows everything.
 - Third session: the Task 3 config tests were appended to `test_config.py` with a shell heredoc
-  instead of the Edit tool (content is a normal diff).
+  instead of the Edit tool (content is a normal diff). Later, one `sed` edit to the handoff's
+  title and one to its "Start here" line (both one-line, normal diffs).

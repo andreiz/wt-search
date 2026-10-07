@@ -135,6 +135,45 @@ def publish(selector: str, env: str, dry_run: bool) -> None:
     _run_step("publish", selector, env=env, dry_run=dry_run)
 
 
+@main.command("check-embeddings")
+@click.option("--n", "n", type=click.IntRange(min=1), default=5, show_default=True,
+              help="How many chunks to compare (one per episode, spread by date).")
+def check_embeddings_cmd(n: int) -> None:
+    """Compare stored Mac vectors with Workers AI's (CLS pooling); exit 1 on a mismatch.
+
+    Run before the first publish: a pooling or model mismatch makes smart search quietly poor.
+    The API token needs the Workers AI Read permission. Needs cloudflare_account_id in
+    config.toml, but no [env.*] table: Workers AI is account-wide.
+    """
+    from wts.cloudflare import CloudflareApi, CloudflareError
+    from wts.embedcheck import MIN_COSINE, NothingEmbedded, check_embeddings, chunk_stems
+    from wts.net import new_client
+    from wts.secrets import KeychainError, MissingSecret, get_secret, get_store
+
+    ctx = _ctx()
+    if not ctx.cfg.cloudflare_account_id:
+        raise click.UsageError(f"cloudflare_account_id is not set in {ctx.paths.config_file}")
+    try:
+        token = get_secret(get_store(), "cloudflare_api_token")
+    except (MissingSecret, KeychainError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    ctx.logger()
+    conn = ctx.conn()
+    try:
+        with new_client() as client:
+            api = CloudflareApi(client, ctx.cfg.cloudflare_account_id, token)
+            results = check_embeddings(conn, ctx.paths, api, n)
+    except (NothingEmbedded, CloudflareError) as exc:  # CloudflareError never holds the token
+        raise click.ClickException(str(exc)) from exc
+    stems = chunk_stems(conn, [chunk_id for chunk_id, _ in results])
+    for chunk_id, cosine in results:
+        click.echo(f"chunk {chunk_id}  cosine {cosine:.4f}  {stems[chunk_id]}")
+    if any(cosine < MIN_COSINE for _, cosine in results):
+        click.echo(f"pooling or model mismatch: cosine below {MIN_COSINE}", err=True)
+        raise SystemExit(1)
+    click.echo("ok")
+
+
 @main.group()
 def scope() -> None:
     """Manage which episodes are in scope (the default selection)."""

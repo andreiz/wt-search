@@ -9,6 +9,11 @@ then [README.md](../README.md), then the spec sections it points to.
 deploy the Worker, add `api_url` under `[env.staging]`, exact search on staging with
 `wts search`, cue times, rows read), then Task 14 (smart search).
 
+Checkpoint F so far (2026-10-07): the first `wrangler deploy --env staging` failed with code
+10089 "You need to enable Analytics Engine", and again after enabling it in the dashboard.
+The `ANALYTICS` binding is out of `env.staging` until Task 15 (nothing writes analytics
+yet); `Env.ANALYTICS` is optional. Task 15 re-adds it and checks a deploy accepts it.
+
 How the maintainer works:
 - Test-first, one commit per task, straight to `main` (CLAUDE.md). Edit tool for changes.
 - Use **Sonnet subagents** where a task is well defined; review their diff, run both test

@@ -13,7 +13,11 @@ export interface Env {
    */
   VEC: Vectorize;
   AI: Ai;
-  ANALYTICS: AnalyticsEngineDataset;
+  /**
+   * Analytics Engine (Task 15). Optional: staging has no binding until Task 15 (wrangler.jsonc),
+   * and a missing or failing analytics write must never break a search.
+   */
+  ANALYTICS?: AnalyticsEngineDataset;
   /** Public Turnstile site key (a var in wrangler.jsonc). */
   TURNSTILE_SITE_KEY: string;
   /** Turnstile secret key: `wrangler secret put TURNSTILE_SECRET --env <env>`. Never in the repo. */

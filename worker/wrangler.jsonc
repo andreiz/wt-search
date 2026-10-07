@@ -45,7 +45,10 @@
 			],
 			"vectorize": [{ "binding": "VEC", "index_name": "wts-chunks-staging" }],
 			"ai": { "binding": "AI" },
-			"analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_staging" }],
+			// No ANALYTICS binding yet: with it, deploys failed with code 10089 ("You need to
+			// enable Analytics Engine") even after it was enabled in the dashboard (Checkpoint F,
+			// 2026-10-07). Nothing writes analytics before Task 15, which adds it back:
+			//   "analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_staging" }],
 			"vars": {
 				// Placeholder: the public Turnstile site key (not a secret).
 				"TURNSTILE_SITE_KEY": "staging-turnstile-site-key-placeholder"

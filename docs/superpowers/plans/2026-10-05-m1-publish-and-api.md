@@ -678,6 +678,7 @@ A terminal client for the maintainer: searches a deployed environment through th
 - Caching: search responses go through the Cache API, keyed by the normalized `q`, `mode`, `sort`, `page` and `corpus_version`, for 1 h. `corpus_version` is read from D1 at most once a minute per isolate.
 - Logging: one structured `console.log` per request with endpoint, query truncated to 80 characters, mode, sort, latency, result count and the degraded flag. No IP addresses.
 - Analytics Engine: `writeDataPoint` per search (blobs: query, mode, sort; doubles: results, latency) and per report.
+  - Re-add the `ANALYTICS` binding to `env.staging` in `wrangler.jsonc` (removed at Checkpoint F: deploys failed with code 10089 even after enabling Analytics Engine) and check a staging deploy accepts it. `Env.ANALYTICS` is optional: a missing binding or a failed write is skipped (logged once), never an error.
 - Limits: `q` over 200 characters is truncated, not rejected; `page` is clamped.
 - Rate limiting (spec §4.7) uses Cloudflare dashboard rules, set up in Checkpoint G, not code.
 

@@ -56,7 +56,9 @@ From `pipeline/` unless it says `worker/`. Needs Node ≥ 22.12 for `worker/`.
 1 year; stored in 1Password Homelab and the Keychain). Step 5 passed: `wts check-embeddings`
 cosine **1.0000** on all 5 chunks (ep085 2011, ep379 2017, ep598, ep605, ep612), so Workers AI
 `cls` pooling matches the Mac. A config typo (unquoted string) gave a traceback; `load_config`
-now names the file and says strings need quotes.
+now names the file and says strings need quotes. Step 4 passed: notifications go to the
+maintainer's own ntfy server (`ntfy_url` in config, topic `wts` in the Keychain), and
+`wts notify test` arrived on the phone.
 
 ### Checkpoint D (maintainer, M1 Max): platform IDs on the real feed
 

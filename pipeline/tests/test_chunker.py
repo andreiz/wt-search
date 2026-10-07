@@ -1,4 +1,6 @@
+import json
 from itertools import pairwise
+from pathlib import Path
 
 from wts.chunker import build_chunks, decode_word_times, encode_word_times
 from wts.words import Sentence, Word
@@ -32,6 +34,17 @@ def test_word_times_roundtrip():
     starts = [12_000, 12_300, 12_310, 13_000]
     enc = encode_word_times(starts, 12_000)
     assert enc == "0,300,10,690" and decode_word_times(enc, 12_000) == starts
+
+
+def test_word_times_match_worker_fixture():
+    # The Worker's decoder (worker/src/wordtimes.ts) is tested against the same cases.
+    path = Path(__file__).resolve().parents[2] / "worker/test/fixtures/word_times.json"
+    cases = json.loads(path.read_text())
+    assert cases
+    for case in cases:
+        times, start, encoded = case["times"], case["start_ms"], case["encoded"]
+        assert encode_word_times(times, start) == encoded, case["name"]
+        assert decode_word_times(encoded, start) == times, case["name"]
 
 
 def test_chunks_about_30s_with_one_sentence_overlap():

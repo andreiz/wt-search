@@ -5,9 +5,9 @@ then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-**Plan 2: Tasks 1–11 and Checkpoints D and E are done. Next: Task 12 (word times,
-highlights, cue times, deep links)**, then Task 13, Task 13a (`wts search`, added
-2026-10-07) and Checkpoint F (deploy the Worker, exact search on staging with `wts search`).
+**Plan 2: Tasks 1–12 and Checkpoints D and E are done. Next: Task 13 (exact search)**,
+then Task 13a (`wts search`, added 2026-10-07) and Checkpoint F (deploy the Worker, exact
+search on staging with `wts search`).
 
 How the maintainer works:
 - Test-first, one commit per task, straight to `main` (CLAUDE.md). Edit tool for changes.
@@ -40,8 +40,9 @@ How the maintainer works:
 - **Pipeline** (`pipeline/`, `wts` CLI): plan 1 complete; plan 2 adds secrets, config for
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`.
   **484 tests**, ruff clean (`cd pipeline && uv run pytest -q`).
-- **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser.
-  **77 tests**, type-check clean.
+- **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
+  word times, highlights, cue times and deep links. **125 tests**, type-check clean.
+  Pipeline: **485 tests**.
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;
   **36 in scope** (35 seed + ep71, added 2026-10-07 for its poor-audio call-ins — a good source
@@ -155,6 +156,18 @@ How the maintainer works:
   Wednesdays, every ~13 days (breaks up to 36 days in 2026, 68 in 2025); an idle run is a few
   requests and ~8 YouTube quota units; daily runs also catch YouTube uploads that land late.
 
+- **Task 12** `worker/src/{wordtimes,highlight,links}.ts` (Sonnet). How they fit together,
+  with real `highlight()` output: [`docs/word-times-and-highlights.md`](word-times-and-highlights.md).
+  - Codec contract `worker/test/fixtures/word_times.json`, checked by both halves
+    (`test_word_times_match_worker_fixture`). Decoding never throws; bad input → cue from
+    `start_ms`.
+  - Highlight ranges are UTF-16 offsets (spec §4.4); `firstToken` = spaces before the first
+    range. FTS5 marks a phrase (and a quoted `T-square`) as one span.
+  - `cueTimes()` gives the API's `cue_s`; `deepLinks()` omits a link whose ID (or
+    `page_url`) is null, so `page` is optional (the plan had it always present).
+  - Apple link `https://podcasts.apple.com/podcast/id251471480?i=<id>` (no country or slug:
+    to be checked by hand). Apple and Spotify carry no time until `docs/deep-links.md` says
+    a format works; a test pins that.
 - **Task 13a added (2026-10-07, maintainer's idea):** `wts search`, a terminal client of
   `/api/search` for the maintainer only (no listener tool, no offline search over `state.db`).
   It calls the deployed Worker rather than reimplementing search in Python, so it shows what
@@ -201,7 +214,7 @@ Task 16 (smart search, report, caching, `wts run --env staging` end to end). Pla
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 2 (Tasks 1–11, Checkpoints D–E done; Task 12 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–12, Checkpoints D–E done; Task 13 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Plan 1 (done, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md). Superpowers skills install from `.claude/settings.json`.
 

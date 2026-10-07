@@ -1,0 +1,38 @@
+[
+  {
+    "name": "one-word chunk",
+    "start_ms": 5000,
+    "times": [5000],
+    "encoded": "0"
+  },
+  {
+    "name": "typical chunk starting mid-episode",
+    "start_ms": 1234567,
+    "times": [1234567, 1234890, 1235210, 1235500, 1236100, 1236450, 1237000, 1237320],
+    "encoded": "0,323,320,290,600,350,550,320"
+  },
+  {
+    "name": "two words at the same ms",
+    "start_ms": 60000,
+    "times": [60000, 60400, 60400, 60900],
+    "encoded": "0,400,0,500"
+  },
+  {
+    "name": "negative delta",
+    "start_ms": 90000,
+    "times": [90000, 90500, 90480, 91000],
+    "encoded": "0,500,-20,520"
+  },
+  {
+    "name": "chunk at start_ms 0",
+    "start_ms": 0,
+    "times": [0, 250, 700, 1100, 1800],
+    "encoded": "0,250,450,400,700"
+  },
+  {
+    "name": "first word after the chunk start",
+    "start_ms": 1000,
+    "times": [1100, 1500],
+    "encoded": "100,400"
+  }
+]

@@ -41,7 +41,7 @@ How the maintainer works:
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`.
   **484 tests**, ruff clean (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
-  word times, highlights, cue times, deep links, exact `/api/search`. **166 tests**,
+  word times, highlights, cue times, deep links, exact `/api/search`. **173 tests**,
   type-check clean.
   Pipeline: **485 tests**.
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
@@ -177,12 +177,18 @@ How the maintainer works:
   - **Until Task 14, `mode=smart` (the default) returns the exact results with
     `smart_degraded: true`**, the same keyword-only answer smart mode gives when AI or
     Vectorize fail. Task 14 replaces it.
-  - `sort` is case-insensitive; `page` must be digits (else 1), clamped to 1–1000.
+  - `sort` is case-insensitive; `page` must be digits (else 1), clamped to 1–10.
   - bm25 favours short chunks, even with one occurrence (a test had to use `sort=oldest`
     to pin collapse behaviour).
-  - **Watch: rows read.** Counting and sorting read every matching chunk; on the archive
-    a common word could read most of ~72k chunks per search. Checkpoint F step 6 measures
-    it; Task 15's edge cache helps.
+  - **Result caps (maintainer, 2026-10-07):** exact shows at most 10 pages (200 results);
+    past that `truncated: true` and the client suggests narrowing ("Showing the best 200
+    of N matches — add words, a "phrase" or `year:`"). The count stops at 1,000
+    (`total_capped`, "1,000+"). Tests in `worker/test/search-caps.test.ts` (1,001 chunks).
+  - **Watch: rows read.** The count is capped now, but the sorts still look at every
+    matching chunk to find the best 20. Checkpoint F step 6 measures it; Task 15's edge
+    cache helps.
+  - The test search set gets a `collapse` tag (spec §7.2) for `more_in_episode`
+    scenarios — maintainer's request, for plan 5.
 - **Task 13a added (2026-10-07, maintainer's idea):** `wts search`, a terminal client of
   `/api/search` for the maintainer only (no listener tool, no offline search over `state.db`).
   It calls the deployed Worker rather than reimplementing search in Python, so it shows what

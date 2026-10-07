@@ -423,10 +423,10 @@ describe("parameters", () => {
     expect((await exact("bandsaw")).page).toBe(1);
   });
 
-  it("clamps a huge page to 1000", async () => {
-    for (const page of ["1000", "1001", "99999999999999999999"]) {
+  it("clamps a huge page to 10", async () => {
+    for (const page of ["10", "11", "99999999999999999999"]) {
       const body = await exact("bandsaw", { page });
-      expect(body, page).toMatchObject({ total: 25, page: 1000, results: [], has_more: false });
+      expect(body, page).toMatchObject({ total: 25, page: 10, results: [], has_more: false });
     }
   });
 

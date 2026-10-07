@@ -10,8 +10,17 @@ import { cueTimes, deepLinks, type LinkEpisode } from "./links";
 import type { ParsedQuery } from "./query";
 
 export const PAGE_SIZE = 20;
-/** Deeper pages are clamped to this one, so OFFSET stays bounded. */
-export const MAX_EXACT_PAGE = 1000;
+/**
+ * Exact search shows at most this many pages (200 results); deeper pages are clamped. Nobody
+ * reads further, so a broad query gets the best 200 and a notice to narrow it (`truncated`).
+ */
+export const MAX_EXACT_PAGE = 10;
+/**
+ * The count stops here ("1,000+", `total_capped`), so a common word doesn't read every
+ * matching row just to be counted. D1 bills rows read.
+ */
+export const COUNT_CAP = 1000;
+const MAX_SHOWN = MAX_EXACT_PAGE * PAGE_SIZE;
 /** Hits in one episode less than this far apart are shown as one result (spec §4.4). */
 export const COLLAPSE_MS = 120_000;
 
@@ -38,9 +47,14 @@ export interface SearchResult {
 }
 
 export interface SearchResponse {
-  /** Matching chunks, before collapsing. */
+  /** Matching chunks, before collapsing, up to COUNT_CAP. */
   total: number;
+  /** There are more than COUNT_CAP matches: show the total as "1,000+". */
+  total_capped: boolean;
+  /** There are more matches than the pages show (MAX_EXACT_PAGE): suggest narrowing the query. */
+  truncated: boolean;
   page: number;
+  /** Another page can be shown (never past MAX_EXACT_PAGE). */
   has_more: boolean;
   results: SearchResult[];
   /** Smart mode could not use meaning-based search and answered with keywords only. */
@@ -69,7 +83,8 @@ const ORDER_BY: Record<Sort, string> = {
   oldest: "ORDER BY e.published_at ASC, e.id, c.seq, c.id",
 };
 
-const SELECT_COUNT = "SELECT count(*) AS n";
+// The count reads at most COUNT_CAP + 1 matches: enough to tell "exactly 1000" from "more".
+const countSql = (matchingSql: string): string => `SELECT count(*) AS n FROM (SELECT 1 ${matchingSql} LIMIT ?)`;
 const SELECT_PAGE = `SELECT c.id, c.episode_id, c.seq, c.start_ms, c.word_times,
        highlight(chunks_fts, 0, char(1), char(2)) AS marked,
        e.number, e.title, e.published_at, e.youtube_video_id, e.apple_episode_id,
@@ -156,20 +171,24 @@ export async function exactSearch(
   page: number,
 ): Promise<SearchResponse> {
   // Nothing to match (empty, only filters, only exclusions): no D1 call at all.
-  if (parsed.fts === null) return { total: 0, page, results: [], has_more: false };
+  if (parsed.fts === null) {
+    return { total: 0, total_capped: false, truncated: false, page, results: [], has_more: false };
+  }
 
   const { sql, params } = matching({ ...parsed, fts: parsed.fts });
   const [count, rows] = await db.batch([
-    db.prepare(`${SELECT_COUNT} ${sql}`).bind(...params),
+    db.prepare(countSql(sql)).bind(...params, COUNT_CAP + 1),
     db
       .prepare(`${SELECT_PAGE} ${sql} ${ORDER_BY[sort]} LIMIT ? OFFSET ?`)
       .bind(...params, PAGE_SIZE, (page - 1) * PAGE_SIZE),
   ]);
-  const total = (count?.results[0] as { n: number } | undefined)?.n ?? 0;
+  const matches = (count?.results[0] as { n: number } | undefined)?.n ?? 0;
   return {
-    total,
+    total: Math.min(matches, COUNT_CAP),
+    total_capped: matches > COUNT_CAP,
+    truncated: matches > MAX_SHOWN,
     page,
-    has_more: page * PAGE_SIZE < total,
+    has_more: page * PAGE_SIZE < Math.min(matches, MAX_SHOWN),
     results: collapse((rows?.results ?? []) as unknown as Row[]),
   };
 }

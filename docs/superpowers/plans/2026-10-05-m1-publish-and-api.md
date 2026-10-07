@@ -555,7 +555,7 @@ Needs the seed corpus embedded (plan 1's Checkpoint C). The Worker isn't deploye
   - `newest` and `oldest` order by `published_at`, then `seq`.
   - Each row selects `highlight(chunks_fts, 0, char(1), char(2))`.
 - `total` comes from a `count(*)` over the same match and filters.
-- Collapsing: hits from the same episode less than 120 s apart become one result with `more_in_episode`. With date sorts, results are grouped by episode in date order. Exact mode pages through every match, 20 results per page; collapsing is applied per page and documented as such.
+- Collapsing: hits from the same episode less than 120 s apart become one result with `more_in_episode`. With date sorts, results are grouped by episode in date order. Exact mode shows at most 10 pages of 20 (revised 2026-10-07: `truncated` past 200 matches, `total` capped at 1,000 with `total_capped`); collapsing is applied per page and documented as such.
 - Result shape (spec §4.4): `{episode: {number, title, date, links}, chunk_id, text, ranges, hit_ms, cue_s: {youtube, apple, spotify}, match: "keyword"}`.
 - A query with `fts: null` → empty results, `total: 0`.
 
@@ -592,7 +592,8 @@ A terminal client for the maintainer: searches a deployed environment through th
 - `search(client, api_url, q, *, mode="smart", sort="relevance", page=1) -> dict` calls `GET <api_url>/api/search` with those parameters and returns the parsed JSON. A non-2xx response or invalid JSON raises `SearchError` with the status and the API's `error` field; network errors are retried like the other `wts` clients. It uses `wts.net.new_client()` (the bot User-Agent).
 - `format_results(response, *, color: bool) -> str`:
   - Per result: `#<number> <title> (<YYYY-MM-DD>)  <mm:ss or h:mm:ss>`, then the text with each range in bold (ANSI) when `color`, or wrapped in `[` `]` otherwise (ranges are UTF-16 offsets, spec §4.4: convert before slicing a Python `str`), then `+N more in episode` when present, then the links in card order (YouTube, Apple, Spotify, page), one per line.
-  - A header line: `total` in exact mode; `smart search degraded: keyword results only` when `smart_degraded`.
+  - A header line: `total` in exact mode (`1000+` when `total_capped`); `smart search degraded: keyword results only` when `smart_degraded`.
+  - When `truncated`, a footer: `Showing the best 200 of <total> matches; add words, a "phrase" or year: to narrow.` (spec §4.4).
   - No results → `No results.`
 - CLI: `wts search "<query>" [--env staging|production] [--mode smart|exact] [--sort relevance|newest|oldest] [--page N] [--json]`. `--env` defaults to `run_env`; with neither, a usage error. `color` follows `click`'s TTY detection. `--json` prints the response as is.
 - The same `search()` is what plan 5's `wts eval` and the smoke search after `wts run` call.
@@ -602,7 +603,7 @@ A terminal client for the maintainer: searches a deployed environment through th
   - Highlight ranges in bold, and with brackets when color is off, including two ranges in one result, ranges at the start and end of the text, and an emoji before a range (UTF-16 offsets).
   - `mm:ss` from `hit_ms`, and `h:mm:ss` over an hour.
   - Links in card order; missing platforms are omitted.
-  - `more_in_episode`, `total`, `smart_degraded` and empty results.
+  - `more_in_episode`, `total`, `total_capped`, `truncated`, `smart_degraded` and empty results.
   - 404/500 from the API → `SearchError` with the status; the CLI exits 1 with one line.
   - `--json` output parses back to the response.
   - A missing `api_url` names `[env.staging] api_url`; no `--env` and no `run_env` is a usage error.
@@ -624,7 +625,7 @@ A terminal client for the maintainer: searches a deployed environment through th
    - Search a sponsor read word for word: hidden by default, found with `include:ads`.
 4. **Cue times:** for five hits, play the episode file from `audio_dir` at `hit_ms` (and the YouTube link where there is one). The hit word should be spoken within about 7 s after the cue.
 5. **Latency:** `npx wrangler tail --env staging` during the searches; note typical latency.
-6. **Rows read** (D1 bills them; Free 5M/day): exact search counts and sorts every matching chunk, so a common word reads every row it matches. Run the search query for a common word (`wood`) with `wrangler d1 execute … --remote --json` and note `meta.rows_read`; scale by archive/seed size (~72k/4.2k chunks) to see whether the archive needs a cheaper count or edge caching first (Task 15).
+6. **Rows read** (D1 bills them; Free 5M/day): the count stops at 1,001 matches, but the relevance and date sorts still look at every matching chunk to find the best 20. Search a common word (`wood`) and a rare one, and note `meta.rows_read` from `wrangler d1 execute … --remote --json` with the Worker's two statements; scale by archive/seed size (~72k/4.2k chunks) to see whether the archive needs more (edge caching is Task 15).
 
 ---
 

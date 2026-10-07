@@ -457,7 +457,7 @@ Parser rules (`worker/src/query.ts`):
 - `GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=`
   - `exact`: FTS5 only. With `sort=relevance` it is ranked by BM25;
     otherwise it is ordered by `published_at`, then by position in the
-    episode. The response includes `total` (the full match count).
+    episode. The response includes `total` (the match count, up to 1,000).
   - `smart` (default):
     1. Take the FTS5 top 50, then embed the query with Workers AI (`pooling: "cls"`) and take
        the Vectorize top 50 (year filter applied in Vectorize).
@@ -470,23 +470,31 @@ Parser rules (`worker/src/query.ts`):
   - Collapse hits from the same episode that are less than 120 s apart into
     one result carrying `more_in_episode: n`. When sorting by date, results
     are grouped by episode in date order.
-  - 20 results per page, at most 100 in total (smart). Exact mode pages
-    through every match.
+  - 20 results per page, at most 100 in total (smart) and 200 (exact, 10
+    pages). *(Revised 2026-10-07, maintainer: nobody pages through a
+    thousand pages.)* A broad query gets its best 200, in the chosen sort,
+    and a notice to narrow it: "Showing the best 200 of 640 matches — add
+    words, a "phrase" or `year:` to narrow", or "1,000+ matches — …" past
+    the count cap. The API returns the flags (`truncated`, `total_capped`);
+    each client writes the sentence.
   - Each result includes: episode (number, title, date, links), chunk ID and
     text, highlight ranges, `hit_ms`, per-platform `cue_s`,
     `match: keyword|related`.
   - Highlight ranges are `[start, end)` offsets into `text` in UTF-16 code
     units (JavaScript string indices, what the frontend slices with). Other
     clients convert; Python indexes by code point.
-  - Response (as built in plan 2 Task 13): `{total, page, has_more, results,
-    mode, sort, smart_degraded?}`. Each result: `{episode: {id, number,
+  - Response (as built in plan 2 Task 13): `{total, total_capped,
+    truncated, page, has_more, results, mode, sort, smart_degraded?}`.
+    `total` stops at 1,000 (`total_capped` when there are more), so a
+    common word isn't read in full just to be counted; `truncated` when
+    there are more than 200 matches; `has_more` never runs past page 10. Each result: `{episode: {id, number,
     title, date, links}, chunk_id, text, ranges, hit_ms, cue_s, match,
     more_in_episode}`; `more_in_episode` is always present (0 when nothing
     collapsed).
   - Exact mode collapses **per page**: a hit is folded into an earlier *kept*
     result on the same page from the same episode less than 120 s away, so a
     page can show fewer than 20 results. `total` counts matching chunks
-    before collapsing. Pages past 1000 are clamped.
+    before collapsing. Pages past 10 are clamped.
   - Bad parameters fall back to defaults (`sort` → relevance, `page` → 1);
     the only error is D1 being down (503).
 - `GET /api/context?chunk=&radius=3`: neighboring chunks, ±radius, with
@@ -670,6 +678,17 @@ as the API.
   - `filter`: year and episode filters.
   - `negative`: things that should not come back, including boilerplate
     sponsor reads without `include:ads`.
+  - `collapse`: `more_in_episode` (§4.4). Cases assert the result count and
+    `more_in_episode` per episode, not just which episode comes back
+    (`expect: [{episode, at_s, more_in_episode}]`). Scenarios (maintainer's
+    request, 2026-10-07): a topic discussed for several minutes (adjacent
+    chunks fold into one card); the same word twice in one episode, more
+    than 120 s apart (two cards); the overlap sentence shared by two
+    chunks (one card, not two); a run of hits longer than 120 s (one card
+    per 120 s of distance from the kept hit); a run across a page boundary
+    in exact mode (appears on both pages, by design); hits in different
+    episodes on the same date (never folded); collapsing under each sort
+    and in smart mode, where related hits fold too.
 - **Where the cases come from:**
   1. About 30 written by the maintainer from memory.
   2. About 100 synthetic ones: a local LLM on the Mac paraphrases a question

@@ -5,11 +5,8 @@ then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-**Branch:** the fourth session (Tasks 11–13a, Checkpoint F, corrections) worked on
-`claude/practical-galileo-95lrqj` (its harness allowed pushes only there); `main` stops at
-`57c43eb`. The maintainer's Mac and the staging Worker run that branch. Before starting:
-check whether it has been merged into `main` (`git log origin/main..origin/claude/practical-galileo-95lrqj`)
-and ask the maintainer which branch to continue on.
+**Branch:** the fourth session worked on `claude/practical-galileo-95lrqj`; the maintainer
+merged it into `main` (`bebf6f1`) and it is deleted. Work on `main` again (CLAUDE.md).
 
 **Plan 2: Tasks 1–13a and Checkpoint F are done** (F has two hand checks left, below).
 **Next: Task 14 (smart search)**, then Task 15 and Task 16, then Checkpoint G.

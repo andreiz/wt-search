@@ -324,6 +324,11 @@ Task 16 (smart search, report, caching, `wts run --env staging` end to end). Pla
 7. ~~Boilerplate detection on real data~~ — deferred to phase 2 (spec §3.5, §9);
    `test_real_sponsor_reads_flagged` is `xfail(strict=True)`, so it errors once the rework
    makes it pass (then remove the mark).
+9. General listener feedback (raised 2026-10-07): transcript-error reports are designed
+   (spec §4.4, §5; Task 15 endpoint, plan 4 `wts reports`), but they need a passage. For
+   "search didn't find it" or ideas, `/api/report` could accept an empty `chunk_id` from a
+   footer "Send feedback" link. Decide when writing plan 3 (frontend). Corrections are an
+   ongoing effort; the maintainer wants them in the background while the app gets built.
 8. ~~Full transcripts in public history~~ — removed by rewriting `main` (second session).
    Left: ask GitHub Support to purge cached views of `a44eec9`. Clones from before the rewrite
    must `git fetch && git reset --hard origin/main` before committing.

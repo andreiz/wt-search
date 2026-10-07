@@ -15,7 +15,7 @@ from wts.chunker import build_chunks
 from wts.corrections import CorrectionRule, apply_corrections
 from wts.guards import clean_transcript
 from wts.state import Status, advance, fail, reset
-from wts.words import Sentence, split_sentences
+from wts.words import Sentence, join_hyphenated, split_sentences
 
 log = logging.getLogger("wts")
 _CHUNK_COLUMNS = "seq, start_ms, end_ms, text, word_times, is_boilerplate"
@@ -28,7 +28,8 @@ def prepare_episode(
     # The downloaded file's own length beats the feed's (inserted ads can make it longer).
     words, flags = clean_transcript(data, row["audio_duration_s"] or row["duration_s"])
     words = apply_corrections(words, corrections, row["stem"])
-    return split_sentences(words), flags
+    # After corrections, so a rule still sees "Rubo" on its own in "Rubo -style".
+    return split_sentences(join_hyphenated(words)), flags
 
 
 def chunk_episode(

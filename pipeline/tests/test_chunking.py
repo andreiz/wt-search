@@ -7,7 +7,7 @@ from conftest import force_status, seg, status_of, tx
 
 from wts.chunking import prepare_episode
 from wts.cli import main
-from wts.corrections import CORRECTIONS_FILE
+from wts.corrections import CORRECTIONS_FILE, CorrectionRule
 from wts.state import fail
 from wts.steps import run_chunk
 
@@ -236,6 +236,17 @@ def test_prepare_episode_returns_sentences_and_flags(conn, transcribed_episode):
     row = conn.execute("select * from episodes where id = ?", (transcribed_episode,)).fetchone()
     sentences, flags = prepare_episode(row, [])
     assert len(sentences) == 20 and isinstance(flags, list)
+
+
+def test_prepare_episode_joins_hyphenated_words_after_corrections(conn, paths, make_episode):
+    e = make_episode()
+    body = unique_sentences("solo", 20)
+    body[2] = "we built a rubo -style bench with a split -top"
+    write_transcript(conn, paths, e, body)
+    row = conn.execute("select * from episodes where id = ?", (e,)).fetchone()
+    # Corrections see "rubo" on its own first; joined first, "rubo-style" would not match.
+    sentences, _ = prepare_episode(row, [CorrectionRule(("rubo",), "Roubo", None)])
+    assert sentences[2].text == "we built a Roubo-style bench with a split-top."
 
 
 def test_chunk_cli(wts_home):

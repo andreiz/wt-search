@@ -9,6 +9,14 @@ then [README.md](../README.md), then the spec sections it points to.
 deploy the Worker, add `api_url` under `[env.staging]`, exact search on staging with
 `wts search`, cue times, rows read), then Task 14 (smart search).
 
+Checkpoint F testing also brought (2026-10-07): corrections for Titebond, Bessey, Roubo,
+Schwarz and lumber thickness (`eight quarter` → 8/4; 4/4–16/4), each checked with
+`check_corrections.py` on all 36 transcripts on the Mac; `wts search` saying when hits were
+folded; and `wts chunk` joining Whisper's split hyphenated words ("split -top" → "split-top",
+spec §3.3). Open ideas from that testing: a user-facing `docs/search-syntax.md`; fractions
+heard as `3-8` could become `3/8`; porter treats glue/glued/gluing as different words
+(`glu*` works) — measure in plan 5's test search set before changing anything.
+
 Checkpoint F so far (2026-10-07): the first `wrangler deploy --env staging` failed with code
 10089 "You need to enable Analytics Engine", and again after enabling it in the dashboard.
 The `ANALYTICS` binding is out of `env.staging` until Task 15 (nothing writes analytics

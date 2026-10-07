@@ -453,6 +453,26 @@ def test_the_exact_fixture_end_to_end():
     assert "  [dovetail] layouts and then more [dovetail]" in out
 
 
+def test_limit_shows_only_the_first_n_results():
+    out = format_results(fixture("exact"), color=False, limit=2)
+    assert "#612 Dovetails, Glue and Bandsaw Tuning" in out
+    assert "#598 Road Trip Special" in out
+    assert "Bonus: Shop Tour" not in out
+    assert "\nShowing 2 of 3 results on this page (--limit 2)." in out
+
+
+def test_limit_counts_only_the_results_shown():
+    # The first result folds two hits; with one shown, the header says so in the singular.
+    out = format_results(fixture("exact"), color=False, limit=1)
+    assert out.splitlines()[0] == "57 matches; 1 result (2 folded into nearby hits)"
+
+
+def test_limit_at_or_above_the_page_changes_nothing():
+    plain = format_results(fixture("exact"), color=False)
+    assert format_results(fixture("exact"), color=False, limit=3) == plain
+    assert format_results(fixture("exact"), color=False, limit=10) == plain
+
+
 def test_format_does_not_modify_the_response():
     data = fixture("exact")
     before = copy.deepcopy(data)
@@ -523,6 +543,24 @@ def test_cli_json_prints_the_response_as_is(cli_setup, route):
     assert json.loads(result_.output) == fixture("exact")
     assert result_.output.startswith('{\n  "total": 57')
     assert "🚗" in result_.output  # ensure_ascii is off: readable, not 🚗
+
+
+def test_cli_limit_trims_the_printed_results_and_sends_nothing_new(cli_setup, route):
+    route.mock(return_value=httpx.Response(200, json=fixture("exact")))
+    result_ = invoke("--limit", "1", "dovetail")
+    assert result_.exit_code == 0, result_.output
+    assert result_.output.rstrip("\n") == format_results(fixture("exact"), color=False, limit=1)
+    assert "limit" not in dict(route.calls.last.request.url.params)  # client-side only
+
+
+def test_cli_limit_trims_the_json_results_too(cli_setup, route):
+    route.mock(return_value=httpx.Response(200, json=fixture("exact")))
+    result_ = invoke("--json", "--limit", "2", "dovetail")
+    assert result_.exit_code == 0, result_.output
+    data = json.loads(result_.output)
+    assert data["results"] == fixture("exact")["results"][:2]
+    assert {k: v for k, v in data.items() if k != "results"} == {
+        k: v for k, v in fixture("exact").items() if k != "results"}
 
 
 def test_cli_words_are_joined_and_a_dash_word_is_part_of_the_query(cli_setup, route):
@@ -603,6 +641,7 @@ def test_cli_rejects_bad_choices_and_pages(cli_setup):
     assert invoke("--sort", "best", "x").exit_code == 2
     assert invoke("--env", "prod", "x").exit_code == 2
     assert invoke("--page", "0", "x").exit_code == 2
+    assert invoke("--limit", "0", "x").exit_code == 2
 
 
 def test_cli_an_api_error_is_one_error_line_without_the_query(cli_setup, route):

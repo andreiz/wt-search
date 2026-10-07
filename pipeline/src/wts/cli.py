@@ -183,10 +183,12 @@ def check_embeddings_cmd(n: int) -> None:
 @click.option("--sort", type=click.Choice(["relevance", "newest", "oldest"]),
               default="relevance", show_default=True)
 @click.option("--page", type=click.IntRange(min=1), default=1, show_default=True)
+@click.option("--limit", type=click.IntRange(min=1), default=None,
+              help="Show only the first N results of the page (after collapsing).")
 @click.option("--json", "as_json", is_flag=True, help="Print the API's response as JSON.")
 @click.argument("query", nargs=-1, required=True, type=click.UNPROCESSED)
-def search_cmd(env: str | None, mode: str, sort: str, page: int, as_json: bool,
-               query: tuple[str, ...]) -> None:
+def search_cmd(env: str | None, mode: str, sort: str, page: int, limit: int | None,
+               as_json: bool, query: tuple[str, ...]) -> None:
     """Search a deployed environment through the Worker's API, as the web app does.
 
     The query syntax is the web app's: "a phrase", -exclude, year:2015, ep:613, include:ads.
@@ -198,7 +200,7 @@ def search_cmd(env: str | None, mode: str, sort: str, page: int, as_json: bool,
     import json
 
     from wts.net import new_client
-    from wts.search import SearchError, format_results
+    from wts.search import SearchError, format_results, limit_results
     from wts.search import search as run_search
 
     ctx = _ctx()
@@ -212,10 +214,10 @@ def search_cmd(env: str | None, mode: str, sort: str, page: int, as_json: bool,
     except SearchError as exc:  # never holds the query string
         raise click.ClickException(str(exc)) from exc
     if as_json:
-        click.echo(json.dumps(response, indent=2, ensure_ascii=False))
+        click.echo(json.dumps(limit_results(response, limit), indent=2, ensure_ascii=False))
         return
     color = sys.stdout.isatty()  # click.get_text_stream is deprecated in click 8.5
-    click.echo(format_results(response, color=color), color=color)
+    click.echo(format_results(response, color=color, limit=limit), color=color)
 
 
 @main.group()

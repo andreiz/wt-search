@@ -99,11 +99,22 @@ def _parse(resp: httpx.Response) -> dict:
 # --- formatting --------------------------------------------------------------------------------
 
 
-def format_results(response: dict, *, color: bool) -> str:
+def limit_results(response: dict, limit: int | None) -> dict:
+    """The response with at most `limit` results (`wts search --limit`): the first ones, in the
+    page's order, after the Worker has collapsed them."""
+    if limit is None:
+        return response
+    return {**response, "results": (response.get("results") or [])[:limit]}
+
+
+def format_results(response: dict, *, color: bool, limit: int | None = None) -> str:
     """The response as plain text: a header, then one block per result, then footers.
 
-    Hits are bold when `color`, else wrapped in `[` `]`.
+    Hits are bold when `color`, else wrapped in `[` `]`. With `limit`, only the first `limit`
+    results are shown, and a footer says how many the page had.
     """
+    on_page = len(response.get("results") or [])
+    response = limit_results(response, limit)
     lines = [_header(response)]
     results = response.get("results") or []
     if not results:
@@ -113,6 +124,8 @@ def format_results(response: dict, *, color: bool) -> str:
         lines += ["", *_result_lines(r, color)]
     total = _total(response)
     footers = []
+    if len(results) < on_page:
+        footers.append(f"Showing {len(results)} of {on_page} results on this page (--limit {limit}).")
     if response.get("truncated"):
         footers.append(f'Showing the best 200 of {total} matches; '
                        'add words, a "phrase" or year: to narrow.')
@@ -145,7 +158,8 @@ def _header(response: dict) -> str:
     folded = sum(r.get("more_in_episode", 0) for r in results)
     if folded:
         what = "a nearby hit" if folded == 1 else "nearby hits"
-        head += f"; {len(results)} results ({folded} folded into {what})"
+        shown = f"{len(results)} result" + ("" if len(results) == 1 else "s")
+        head += f"; {shown} ({folded} folded into {what})"
     return head
 
 

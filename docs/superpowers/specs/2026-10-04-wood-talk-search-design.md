@@ -543,7 +543,12 @@ Parser rules (`worker/src/query.ts`):
 
 - Keyword hits: highlight ranges come from matching the query terms (stemmed
   the same way) against the chunk's words. `hit_ms` is the start time of the
-  first highlighted word, from `word_times`.
+  first highlighted word, from `word_times`. *(Revised 2026-10-07,
+  maintainer.)* Highlights of stopwords the query happened to contain
+  (`HIGHLIGHT_STOPWORDS` in `query.ts`: "a", "the", "I", …) are dropped, and
+  the cue is the first remaining one: "flattening a bench top" neither marks
+  every "a" nor cues on one. A phrase span stays whole, and if only stopwords
+  were marked they all stay.
 - Meaning-only hits: tagged `related`. Any query words that happen to appear
   are highlighted. `hit_ms` is the chunk's `start_ms`.
 - One function computes the cue time for each platform `p`:

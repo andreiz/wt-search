@@ -95,7 +95,7 @@ How the maintainer works:
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
   `/api/search` with result caps and `?limit=` (page size), smart search (RRF of FTS5 and
-  Vectorize) with degraded mode. **252 tests**, type-check clean. **Deployed to staging**
+  Vectorize) with degraded mode. **256 tests**, type-check clean. **Deployed to staging**
   (the Task 13 version, before smart search):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
@@ -280,9 +280,25 @@ How the maintainer works:
     (`query.ts`, ~100 function words, none with a shop meaning: "up", "top", "back", "off"
     stay; maintainer's call), so "how do I flatten a workbench top" marks only flatten,
     workbench, top. Prefixes (`the*`) are kept. All-stopword queries skip the highlight
-    statement (MATCH '' is an error). Matching, ranking, embedding and keyword highlights
-    are unchanged. Exact `"lacquer spray"` finds 0 on staging, so its all-`related`
-    answer was right.
+    statement (MATCH '' is an error). Matching, ranking and embedding are unchanged.
+    Exact `"lacquer spray"` finds 0 on staging, so its all-`related` answer was right.
+  - **Keyword hits drop stopword highlights too, and cue on the first remaining word**
+    (maintainer, after `flattening a bench top` on staging marked eight `[a]`s in one
+    chunk and cued #611 on "a job" ~15 words before "flatten"; spec §4.5 revised).
+    `withoutStopwords()` in `highlight.ts`; phrase spans stay whole; all-stopword
+    highlights are kept so a hit never loses its cue. Matching still requires the
+    stopwords (harmless: nearly every chunk has "a").
+  - **Relevance, for plan 5** (maintainer, same search): related hit **#127 at 44:28**
+    ("put the cup side down … into the bench top. And plane it") is about planing a
+    workpiece *on* a bench top, not flattening the top itself; the embedding matches the
+    vocabulary. Add it to the test search set as a non-relevant judgement for
+    `flattening a bench top`. Candidate fixes to measure there, not before: bge's query
+    instruction (`Represent this sentence for searching relevant passages: `, which BAAI
+    suggests for short queries; plan 2 chose none), a similarity floor for `related`
+    hits (needs Vectorize scores, so the debug output offered in session 5), or fewer
+    vector hits (topK 50 → 20–30).
+  - **For plan 3:** feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk
+    598"), so a card's "Ep. N · Title" shows it twice; strip it for display.
   - **Vectorize:** `topK: 50`, `returnValues: false`, `returnMetadata: "none"`; anything past
     50 and ids that aren't digits are dropped. `year:` sends `$eq` alone (Vectorize can't
     combine `$eq` with a range); D1 re-applies every filter and the exclusions when loading
@@ -457,4 +473,5 @@ Task 16 (smart search, report, caching, `wts run --env staging` end to end). Pla
 - Process slips (all normal diffs): a heredoc append in plan 1 Task 12 and in plan 2 Task 3's
   tests; `sed` edits to `preroll_finder.py` (session 2) and two one-line handoff edits
   (session 3); one `sed` edit to the handoff's plan-status line (session 4); a Python edit
-  to `worker/src/index.ts` and `sed` edits to two test imports (session 5, Task 14).
+  to `worker/src/index.ts`, `sed` edits to five import lines and the handoff's test count,
+  and a heredoc append to `highlight.test.ts` (session 5, Task 14 and its follow-ups).

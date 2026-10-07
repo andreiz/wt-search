@@ -134,8 +134,10 @@ appear; when none do, there are no ranges. A quoted phrase counts word by word h
 (`parseQuery()`'s `terms`): a hit found by meaning rarely has the exact phrase, so
 `"lacquer spray"` marks both words in "then I spray lacquer". Function words
 (`HIGHLIGHT_STOPWORDS`: "a", "the", "I", "how", …) are left out, so a question doesn't mark
-every "a"; a prefix like `the*` is kept. Keyword hits still mark the phrase as one span and
-their stopwords too, since those are what FTS5 matched. Either way the cue is the chunk's start (spec
+every "a"; a prefix like `the*` is kept. Keyword hits still mark a phrase as one span; their
+stopword highlights are dropped after FTS5 marks them (`withoutStopwords` in
+`highlight.ts`), so their cue is the first meaningful word, unless only stopwords were
+marked. For related hits the cue is the chunk's start (spec
 §4.5): the passage as a whole is the hit, and a highlighted word may be anywhere in it.
 
 ## Links

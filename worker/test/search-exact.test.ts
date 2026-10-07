@@ -79,6 +79,8 @@ const CHUNKS: SeedChunk[] = [
   chunk(1317, 13, 26, 5_200_000, "mortise third one"), // 100 s after 1316 but 200 s after 1315, the kept one: kept
   // Episode 14 (2023, no number).
   chunk(1401, 14, 0, 0, "Last thoughts on dovetails and then router tables"),
+  // Stopword highlights: "flatten" is the 12th word, after three "a"s.
+  chunk(1402, 14, 1, 600_000, "we took offcuts off a job and built a sled to flatten each side of a slab"),
   // 25 matches for one word, to page through: 200 s apart, so none of them collapse.
   ...Array.from({ length: 25 }, (_, i) =>
     chunk(2001 + i, 11, 10 + i, i * 200_000, `The bandsaw blade drifts again on cut ${i + 1}`),
@@ -344,6 +346,24 @@ describe("hit time and links", () => {
     // floor(1306 s) - 7 = 1299.
     expect(body.results[1]?.cue_s).toEqual({ youtube: 1309, apple: 1319, spotify: 1329 });
     expect(body.results[1]?.episode.links.youtube).toBe("https://www.youtube.com/watch?v=yt12&t=1309s");
+  });
+
+  it("doesn't highlight or cue on stopwords the query matched", async () => {
+    const body = await exact("flatten a slab");
+    expect(body.total).toBe(1);
+    const r = body.results[0]!;
+    expect(r.ranges.map(([s, e]) => r.text.slice(s, e))).toEqual(["flatten", "slab"]);
+    // The cue is "flatten" (11 words in), not the first "a" (4 words in).
+    expect(r.hit_ms).toBe(600_000 + 11 * 400);
+  });
+
+  it("keeps stopword highlights when there is nothing else, and phrases whole", async () => {
+    const a =(await exact("a year:2023")).results.find((x) => x.chunk_id === 1402)!;
+    expect(a.ranges.map(([s, e]) => a.text.slice(s, e))).toEqual(["a", "a", "a"]);
+    expect(a.hit_ms).toBe(600_000 + 4 * 400);
+    const phrase = (await exact('"a sled"')).results[0]!;
+    expect(phrase.ranges.map(([s, e]) => phrase.text.slice(s, e))).toEqual(["a sled"]);
+    expect(phrase.hit_ms).toBe(600_000 + 8 * 400);
   });
 
   it("allows a null episode number", async () => {

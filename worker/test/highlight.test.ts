@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
-import { highlightRanges, hitMs } from "../src/highlight";
+import { highlightRanges, hitMs, withoutStopwords } from "../src/highlight";
 import { seed } from "./seed";
 import type { SeedChunk, SeedEpisode } from "./seed";
 
@@ -224,5 +224,23 @@ describe("highlightRanges on real FTS5 output", () => {
     const { firstToken } = highlightRanges(await marked('"sawstop"'));
     // seed's wordTimes puts every word 400 ms after the one before, from start_ms.
     expect(hitMs(row, firstToken)).toBe(CHUNK.start_ms + 3 * 400);
+  });
+});
+
+describe("withoutStopwords", () => {
+  const STOP = new Set(["a", "the"]);
+  const m = (s: string): string => s.replaceAll("[", OPEN).replaceAll("]", CLOSE);
+
+  it("drops stopword ranges, any case, and moves the first token to what is left", () => {
+    const h = withoutStopwords(highlightRanges(m("[A] job and [the] [sled] to [flatten]")), STOP);
+    expect(h.ranges.map(([s, e]) => h.text.slice(s, e))).toEqual(["sled", "flatten"]);
+    expect(h.firstToken).toBe(4);
+  });
+
+  it("keeps everything when only stopwords are marked, and keeps phrase spans", () => {
+    const only = highlightRanges(m("[a] job and [the] sled"));
+    expect(withoutStopwords(only, STOP)).toEqual(only);
+    const phrase = highlightRanges(m("build [a sled] for [a] slab"));
+    expect(withoutStopwords(phrase, STOP).ranges.map(([s, e]) => phrase.text.slice(s, e))).toEqual(["a sled"]);
   });
 });

@@ -8,9 +8,9 @@
 
 import type { Env } from "./env";
 import { collapse, rrf, sortByDate } from "./fusion";
-import { highlightRanges, hitMs } from "./highlight";
+import { highlightRanges, hitMs, withoutStopwords } from "./highlight";
 import { cueTimes, deepLinks, type LinkEpisode } from "./links";
-import type { Filters, ParsedQuery } from "./query";
+import { HIGHLIGHT_STOPWORDS, type Filters, type ParsedQuery } from "./query";
 
 export const PAGE_SIZE = 20;
 /**
@@ -173,12 +173,13 @@ WHERE chunks_fts MATCH ?${filters.sql}`,
 }
 
 /**
- * A row as an API result. Keyword hits cue at their first highlighted word. Related hits
+ * A row as an API result. Stopword highlights are dropped unless nothing else is marked
+ * (`withoutStopwords`). Keyword hits cue at their first highlighted word. Related hits
  * highlight any query words they happen to contain, but cue at the chunk's start: the
  * passage as a whole is the hit (spec §4.5).
  */
 function toResult(row: Row, match: Match): SearchResult {
-  const { text, ranges, firstToken } = highlightRanges(row.marked);
+  const { text, ranges, firstToken } = withoutStopwords(highlightRanges(row.marked), HIGHLIGHT_STOPWORDS);
   const hit = match === "keyword" ? hitMs(row, firstToken) : row.start_ms;
   return {
     episode: {

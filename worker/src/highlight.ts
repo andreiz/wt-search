@@ -45,9 +45,25 @@ export function highlightRanges(marked: string): Highlighted {
   }
   close(text.length);
 
+  return { text, ranges, firstToken: firstTokenOf(text, ranges) };
+}
+
+/** Index of the space-separated token holding the first range's start; null with no ranges. */
+function firstTokenOf(text: string, ranges: [number, number][]): number | null {
   const first = ranges[0];
-  const firstToken = first === undefined ? null : text.slice(0, first[0]).split(" ").length - 1;
-  return { text, ranges, firstToken };
+  return first === undefined ? null : text.slice(0, first[0]).split(" ").length - 1;
+}
+
+/**
+ * Drop the ranges whose text is one of `stopwords` (compared lowercased), so a query like
+ * "flattening a bench top" neither marks every "a" nor cues on one. A multi-word span (a
+ * phrase) is never a stopword. If only stopwords were marked, all ranges stay: a hit keeps
+ * its highlights and its cue.
+ */
+export function withoutStopwords(h: Highlighted, stopwords: ReadonlySet<string>): Highlighted {
+  const kept = h.ranges.filter(([s, e]) => !stopwords.has(h.text.slice(s, e).toLowerCase()));
+  if (kept.length === 0 || kept.length === h.ranges.length) return h;
+  return { text: h.text, ranges: kept, firstToken: firstTokenOf(h.text, kept) };
 }
 
 /**

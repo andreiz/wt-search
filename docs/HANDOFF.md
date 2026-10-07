@@ -8,7 +8,7 @@ then [README.md](../README.md), then the spec sections it points to.
 **Branch:** the fourth session worked on `claude/practical-galileo-95lrqj`; the maintainer
 merged it into `main` (`bebf6f1`) and it is deleted. Work on `main` again (CLAUDE.md).
 
-**Plan 2: Tasks 1–13a and Checkpoint F are done** (F has two hand checks left, below).
+**Plan 2: Tasks 1–13a and Checkpoint F are done.**
 **Next: Task 14 (smart search)**, then Task 15 and Task 16, then Checkpoint G.
 
 **Task 14 pointers** (plan Task 14, spec §4.4, §4.7):
@@ -46,8 +46,12 @@ carry `&t=` too, in the form Apple's share sheet makes.
   such searches a day on Free (5M/day), negligible on Paid (25B/month), which the archive
   needs anyway. No change now; Task 15's edge cache absorbs repeats. If it ever matters:
   rank on `chunks_fts` alone in a subquery and join only the page's 20 rows.
-- Still open (maintainer, by hand, not blocking): five cue times against the audio; the
-  YouTube, Spotify and Apple links on phones (`docs/deep-links.md`).
+- **Links on the phone** (iOS assumed): YouTube precise, which also confirms the cue times
+  on the show's own timeline; Apple a little early; Spotify sometimes 30–60 s early. That is
+  the per-listen play-time ad gap (spec §4.6): early, never late, so no offset is applied.
+  For plan 3: a small "may start early because of ads" note by the Apple and Spotify
+  buttons, and YouTube first on the card (already in spec §5).
+- Checkpoint F is done. Android links remain unchecked (`docs/deep-links.md`).
 
 Checkpoint F testing also brought (2026-10-07): corrections for Titebond, Bessey, Roubo,
 Schwarz and lumber thickness (`eight quarter` → 8/4; 4/4–16/4), each checked with

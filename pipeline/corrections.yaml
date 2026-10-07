@@ -38,6 +38,11 @@ global:
   # quarter inch …" would also match, so check new matches for "quarter inch".
   four quarter: 4/4
   fourquarter: 4/4
+  # 6/4: the maintainer's request; no spelling of it in the 36 episodes yet.
+  six quarter: 6/4
+  sixquarter: 6/4
+  6 quarter: 6/4
+  6quarter: 6/4
   eight quarter: 8/4
   eightquarter: 8/4
   8 quarter: 8/4

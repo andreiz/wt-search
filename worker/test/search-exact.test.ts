@@ -336,7 +336,7 @@ describe("hit time and links", () => {
       date: "2019-09-20",
       links: {
         youtube: "https://www.youtube.com/watch?v=yt12&t=1005s",
-        apple: "https://podcasts.apple.com/podcast/id251471480?i=ap12",
+        apple: "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=ap12&t=1015",
         spotify: "https://open.spotify.com/episode/sp12?t=1025",
         page: "https://example.com/ep/201",
       },

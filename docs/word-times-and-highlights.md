@@ -137,15 +137,15 @@ chunk's start.
 `deepLinks` in `worker/src/links.ts` is the one place links are built (spec §4.6):
 
 - **YouTube:** `https://www.youtube.com/watch?v=<id>&t=<cue>s`.
-- **Apple Podcasts:** `https://podcasts.apple.com/podcast/id251471480?i=<id>`, with no time
-  parameter yet.
-- **Spotify:** `https://open.spotify.com/episode/<id>?t=<cue>`, the format Spotify's own share
-  sheet makes.
+- **Apple Podcasts:**
+  `https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=<id>&t=<cue>`.
+- **Spotify:** `https://open.spotify.com/episode/<id>?t=<cue>`.
 - **Episode page:** always shown, with no cue. The card shows "jump to mm:ss" next to it.
 
-Apple's time parameter is added only once it has been checked by hand on each device, in
-[`deep-links.md`](deep-links.md). Apple and Spotify links land early by however many ads
-the listener hears before that point (spec §4.6).
+The Apple and Spotify formats are the ones their own share sheets make when sharing from the
+current time; which devices honour them is tracked in [`deep-links.md`](deep-links.md).
+Those two links land early by however many ads the listener hears before that point
+(spec §4.6).
 
 ## Known limits
 

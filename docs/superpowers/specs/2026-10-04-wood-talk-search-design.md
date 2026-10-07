@@ -533,15 +533,15 @@ Built from the episode row and `cue_s`, in this order on the card:
    Shown first when the episode has a matched video that lines up (see
    below). YouTube ads are not spliced into the video, so if the audio is the
    same recording, the timestamp is exact.
-2. **Apple Podcasts:** the episode URL (`…/id251471480?i=<apple_episode_id>`)
-   plus a time parameter.
-3. **Spotify:** `https://open.spotify.com/episode/<spotify_episode_id>` plus a
-   time parameter.
+2. **Apple Podcasts:**
+   `https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=<apple_episode_id>&t=<cue>`.
+3. **Spotify:** `https://open.spotify.com/episode/<spotify_episode_id>?t=<cue>`.
 4. **Wood Talk page:** `page_url`, always shown.
 
-The exact time-parameter formats are checked by hand on iOS, Android and
-desktop during M1. Results go in `docs/deep-links.md`, and the link builder
-lives in one module.
+*(Settled 2026-10-07, Checkpoint F.)* The Apple and Spotify formats are the
+ones each app's own "share from current time" link uses. Which devices honour
+them (iOS, Android, desktop) is tracked in `docs/deep-links.md`, and the link
+builder lives in one module (`worker/src/links.ts`).
 
 **YouTube (findings 2026-10-05).** Channel: **@WoodTalk**. Videos exist
 sporadically from WT322 (2016) and regularly for recent episodes.

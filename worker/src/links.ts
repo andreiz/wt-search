@@ -3,6 +3,8 @@
 
 /** Wood Talk's Apple Podcasts show id. */
 export const APPLE_PODCAST_ID = 251471480;
+/** The show URL exactly as Apple's share sheet writes it (US storefront, the show's slug). */
+const APPLE_SHOW_URL = `https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id${APPLE_PODCAST_ID}`;
 
 /** The D1 `episodes` columns the links need, so a row can be passed as is. */
 export interface LinkEpisode {
@@ -30,10 +32,9 @@ export function cueTimes(episode: LinkEpisode, hitMs: number): { youtube: number
 
 /**
  * Deep links, keys in card order; a platform is left out when its ID (or page_url) is null or
- * empty. YouTube and Spotify carry a time: Spotify's `t=<seconds>` is what its own share
- * sheet makes ("share from current time", 2026-10-07). Apple's time parameter is filled in
- * from docs/deep-links.md once checked by hand (spec §4.6, §10 item 2); a test pins its
- * absence, so adding one is a deliberate change.
+ * empty. Every platform link carries the cue time (with that platform's offset), in the
+ * format the platform's own share sheet makes when sharing from the current time: Spotify
+ * `?t=<seconds>`, Apple `&t=<seconds>` (both 2026-10-07, docs/deep-links.md).
  */
 export function deepLinks(
   episode: LinkEpisode,
@@ -45,7 +46,8 @@ export function deepLinks(
     links.youtube = `https://www.youtube.com/watch?v=${encodeURIComponent(episode.youtube_video_id)}&t=${t}s`;
   }
   if (episode.apple_episode_id) {
-    links.apple = `https://podcasts.apple.com/podcast/id${APPLE_PODCAST_ID}?i=${encodeURIComponent(episode.apple_episode_id)}`;
+    const t = cueSeconds(hitMs, episode.offset_apple_s);
+    links.apple = `${APPLE_SHOW_URL}?i=${encodeURIComponent(episode.apple_episode_id)}&t=${t}`;
   }
   if (episode.spotify_episode_id) {
     const t = cueSeconds(hitMs, episode.offset_spotify_s);

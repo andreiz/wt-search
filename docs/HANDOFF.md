@@ -185,9 +185,9 @@ How the maintainer works:
     range. FTS5 marks a phrase (and a quoted `T-square`) as one span.
   - `cueTimes()` gives the API's `cue_s`; `deepLinks()` omits a link whose ID (or
     `page_url`) is null, so `page` is optional (the plan had it always present).
-  - Apple link `https://podcasts.apple.com/podcast/id251471480?i=<id>` (no country or slug:
-    to be checked by hand). Apple and Spotify carry no time until `docs/deep-links.md` says
-    a format works; a test pins that.
+  - All platform links carry the cue (revised at Checkpoint F): YouTube `&t=<s>s`, Spotify
+    `?t=<s>`, Apple `…/us/podcast/wood-talk-woodworking/id251471480?i=<id>&t=<s>`, the last
+    two copied from each app's own "share from current time" link (`docs/deep-links.md`).
 - **Task 13** `worker/src/search.ts`, `GET /api/search` (Sonnet). Response shape and
   collapsing rules in spec §4.4.
   - One `env.DB.batch()` of two statements (count, page) per search; none when `fts` is

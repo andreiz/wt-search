@@ -57,10 +57,15 @@ describe("deepLinks", () => {
     );
   });
 
-  // Apple's time parameter waits on docs/deep-links.md: adding one is a deliberate change.
-  it("builds the Apple link with no time parameter", () => {
+  // Apple's own share sheet makes `…/us/podcast/wood-talk-woodworking/id251471480?i=<id>&t=<seconds>`.
+  it("builds the Apple link in the share sheet's form, with t=<cue seconds> and its offset", () => {
     expect(APPLE_PODCAST_ID).toBe(251471480);
-    expect(deepLinks(FULL, 65_432).apple).toBe("https://podcasts.apple.com/podcast/id251471480?i=1000612345678");
+    expect(deepLinks(FULL, 65_432).apple).toBe(
+      "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=1000612345678&t=58",
+    );
+    expect(deepLinks({ ...FULL, offset_apple_s: 30 }, 65_432).apple).toBe(
+      "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=1000612345678&t=88",
+    );
   });
 
   // Spotify's own share sheet ("share from current time") makes `?…&t=<seconds>` links.
@@ -101,7 +106,9 @@ describe("deepLinks", () => {
       8000,
     );
     expect(links.youtube).toBe("https://www.youtube.com/watch?v=a%26b%3Dc%20d&t=1s");
-    expect(links.apple).toBe("https://podcasts.apple.com/podcast/id251471480?i=1%2F2%3Fx%23y");
+    expect(links.apple).toBe(
+      "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=1%2F2%3Fx%23y&t=1",
+    );
     expect(links.spotify).toBe("https://open.spotify.com/episode/s%20p%2Fq?t=1");
   });
 });

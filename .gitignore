@@ -2,3 +2,8 @@ pipeline/.venv/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+worker/node_modules/
+worker/.wrangler/
+# Local secrets for `wrangler dev` (e.g. TURNSTILE_SECRET); never commit
+worker/.dev.vars*
+worker/.env*

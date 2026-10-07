@@ -5,15 +5,52 @@ conversation. Read this, then [README.md](../README.md), then the spec sections 
 
 ## Start here (next session)
 
-1. **Plan 2, Tasks 1–9 and Checkpoint D are done** (third session). Continue with Task 10
-   (Worker scaffold, `/api/health`), then stop at Checkpoint E. Test-first, one commit per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
-   (Task 5 was done that way, then reviewed before commit), and for a short report after each
-   task.
-2. Before Task 7 (publish), check the plan's Review Focus. CLS pooling and FTS5 trigger
-   correctness are the two easiest things to get silently wrong. **Task 7 must upsert chunks
-   with `ON CONFLICT(id) DO UPDATE`, not the plan's `insert or replace`:** REPLACE doesn't fire
-   the FTS delete trigger (recursive triggers are off), so the index would keep stale words.
-   `test_fts_follows_upsert_on_conflict` covers the upsert path.
+1. **Plan 2, Tasks 1–10 and Checkpoint D are done** (third session). **Waiting on
+   Checkpoint E** (maintainer, below). After it: Task 11 (query parser), test-first, one commit
+   per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
+   (reviewed before commit), and for a short report after each task.
+2. Worker commands: `cd worker && npm test`, `npx tsc --noEmit`. **Add npm dependencies with
+   `npx npm@11 install …`**: npm 10.9 crashes installing vitest 4.1 (`reading 'edgesOut'`);
+   `npm ci` with npm 10 works from the lockfile.
+
+### Checkpoint E (maintainer, M1 Max): seed corpus in staging D1 and Vectorize
+
+From `pipeline/` unless it says `worker/`. Needs Node ≥ 22.12 for `worker/`.
+
+0. If not done yet: `git pull`, `uv run wts scope add ep:71`, `uv run wts run` (applies the
+   session-2 corrections, adds ep71; scope = 36).
+1. **Cloudflare resources** (`npx wrangler login` once):
+   - `npx wrangler d1 create wts-staging` → put its `database_id` in `worker/wrangler.jsonc`
+     under `env.staging` (replacing the zeros) and commit, or send it to the next session.
+   - `npx wrangler vectorize create wts-chunks-staging --dimensions=768 --metric=cosine`
+   - `npx wrangler vectorize create-metadata-index wts-chunks-staging --property-name=year
+     --type=number` — **before any publish** (earlier vectors aren't filterable by year).
+   - Schema: `cd worker && npm ci && npx wrangler d1 migrations apply wts-staging --env staging
+     --remote`. (Task 10 checked the same command with `--local`: it applies `0001_init.sql`.)
+2. **API token** (dashboard → My Profile → API Tokens → Custom, this account): D1 Edit,
+   Vectorize Edit, Workers AI Read. `uv run wts secrets set cloudflare_api_token`.
+3. **Config** (`uv run wts paths` shows `config.toml`): `cloudflare_account_id = "…"` and
+   `[env.staging]` with `d1_database_id` and `vectorize_index = "wts-chunks-staging"`.
+4. **Notifications:** `ntfy_url = "https://…"` (own server), `uv run wts secrets set
+   ntfy_topic` (and `ntfy_token` if the server needs one), subscribe on the phone,
+   `uv run wts notify test` → the push arrives.
+5. **Pooling check:** `uv run wts check-embeddings` → `ok`. **If it fails, stop**: smart search
+   would be wrong. Report the cosines.
+6. **Publish:** `uv run wts publish --env staging --dry-run` (expect 36), then without
+   `--dry-run`. Expect `ok=36`. First real use of the D1 and Vectorize APIs: if a call is
+   refused, the open questions are params as JSON numbers vs strings, and the upsert body
+   (raw NDJSON vs multipart); see "Cloudflare API, checked against the docs".
+7. **Inspect** (from `worker/`):
+   - `npx wrangler d1 execute wts-staging --env staging --remote --command "select count(*)
+     from episodes; select count(*) from chunks; select value from meta where
+     key='corpus_version'"` — counts match `state.db` for the 36 in scope.
+   - `… --command "select rowid from chunks_fts where chunks_fts match 'dovetail' limit 5"`
+     returns rows.
+   - `npx wrangler vectorize info wts-chunks-staging` — vector count equals the in-scope
+     non-boilerplate chunk count (`sqlite3 -init /dev/null "$DB" "select count(*) from chunks
+     c join episodes e on e.id = c.episode_id where e.in_scope = 1 and c.is_boilerplate = 0"`);
+     mutations are async, allow a minute.
+8. **Idempotence:** `uv run wts publish --env staging` again → `nothing to do`.
 
 ### Checkpoint D (maintainer, M1 Max): platform IDs on the real feed
 
@@ -121,7 +158,7 @@ up, so both get timed links.
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
 - Plan 1 (**done**, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
-- Plan 2 (Tasks 1–9 and Checkpoint D done; Task 10 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–10 and Checkpoint D done; Checkpoint E next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
 - Superpowers skills install from `.claude/settings.json`.
@@ -352,6 +389,25 @@ Plan 1 is finished; plan 2 is next.
      middle chunk from each of up to n episodes spread by date, one request; cosine with both
      sides normalised; exit 1 below 0.99. Needs `cloudflare_account_id` and the token (Workers
      AI Read), not an `[env.*]` table.
+   - Task 10: `worker/` (Sonnet subagent, reviewed). Calls not in the plan:
+     - `@cloudflare/vitest-plugin` (1.3.x) instead of `@cloudflare/vitest-pool-workers`:
+       Cloudflare's docs now recommend the plugin and have a migration guide from pool-workers.
+       vitest 4.1, wrangler 4.148, TypeScript 7. `readD1Migrations` is imported from the
+       package root (the docs say `/config`, which the package doesn't export).
+     - Runtime types come from `wrangler types` (`npm run types`; `types:check` in CI later),
+       committed as `worker-configuration.d.ts` (623 KB) as the docs suggest. `Env` is
+       hand-written in `src/env.ts`; `VEC` is typed `Vectorize` (v2), not `VectorizeIndex`.
+     - `wrangler.jsonc` top level is local/test only (just `DB`): with `ai` in the config the
+       tests load, the plugin opens a remote proxy and needs a token. Tests will fake AI,
+       Vectorize and Analytics through `miniflare` options (Cloudflare's ai-vectorize recipe).
+       `env.staging` / `env.production` declare all five bindings; deployed names are
+       `wts-api-staging` / `wts-api-production`. Never deploy without `--env`.
+     - Migrations in tests: `readD1Migrations("../schema")` in `vitest.config.ts`, applied by
+       `test/apply-migrations.ts` before each test file. FTS5 is available in the test runtime
+       and the triggers fire (plan Step 1 check passed).
+     - `/api/health`: one D1 query; a throwing query → 503 `unavailable` (spec §6); a missing
+       `corpus_version` row → 500 (schema broken). Unknown routes → 404 `not_found`. One JSON
+       `console.error` line per error, without IP, query string or stack.
    Its checkpoints:
    - **D** after Task 5: platform IDs on the real feed (Spotify/YouTube keys, no Cloudflare).
    - **E** after Task 10: staging D1 + Vectorize, pooling check, ntfy test, seed corpus published.

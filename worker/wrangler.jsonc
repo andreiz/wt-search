@@ -1,0 +1,76 @@
+// Wood Talk Search API. Spec §2, §4.4, §4.7.
+//
+// Layout: the top level is the LOCAL / TEST configuration and is never deployed. The two real
+// environments are `env.staging` and `env.production` (`wrangler deploy --env staging` deploys
+// a Worker named `wts-api-staging`). In wrangler, bindings and vars are non-inheritable, so every
+// environment declares all of its own.
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "wts-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-06",
+
+	// Workers Logs on; the Worker writes one structured line per request (spec §8.3).
+	"observability": { "enabled": true },
+
+	// Top-level (no --env) = what `npm test` and `wrangler dev` use. Only the D1 binding lives
+	// here: the Vitest runtime gives `DB` a local, throwaway SQLite. Workers AI is a
+	// remote-only binding: with `ai` in the config the tests load, Vitest opens a remote proxy
+	// session and fails without a CLOUDFLARE_API_TOKEN (checked with environment "staging"),
+	// and real AI calls would bill the account. So tests supply fakes for AI, Vectorize and
+	// Analytics through vitest.config.ts instead of declaring them here.
+	// The id is a dummy; local runs never contact Cloudflare.
+	// Never deploy this level: it has no AI/Vectorize/Analytics bindings (wrangler warns when
+	// `deploy` is run without --env).
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "wts-local",
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "../schema"
+		}
+	],
+
+	"env": {
+		"staging": {
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "wts-staging",
+					// Placeholder. Checkpoint E: `wrangler d1 create wts-staging`, paste its
+					// database_id here, commit. IDs are not secrets.
+					"database_id": "00000000-0000-0000-0000-000000000000",
+					"migrations_dir": "../schema"
+				}
+			],
+			"vectorize": [{ "binding": "VEC", "index_name": "wts-chunks-staging" }],
+			"ai": { "binding": "AI" },
+			"analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_staging" }],
+			"vars": {
+				// Placeholder: the public Turnstile site key (not a secret).
+				"TURNSTILE_SITE_KEY": "staging-turnstile-site-key-placeholder"
+				// TURNSTILE_SECRET is a secret, never put it here:
+				//   wrangler secret put TURNSTILE_SECRET --env staging
+			}
+		},
+		"production": {
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "wts-production",
+					// Placeholder until production is created (M2).
+					"database_id": "00000000-0000-0000-0000-000000000000",
+					"migrations_dir": "../schema"
+				}
+			],
+			"vectorize": [{ "binding": "VEC", "index_name": "wts-chunks-production" }],
+			"ai": { "binding": "AI" },
+			"analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_production" }],
+			"vars": {
+				"TURNSTILE_SITE_KEY": "production-turnstile-site-key-placeholder"
+				// TURNSTILE_SECRET is a secret:
+				//   wrangler secret put TURNSTILE_SECRET --env production
+			}
+		}
+	}
+}

@@ -22,4 +22,8 @@ global:
   boe shield: Boeshield
   t9: T-9
   container store: Container Store
+  # Titebond glue (ep044 "Tightbond", ep596 and ep604 "tight bond"). Checked on all 36
+  # transcripts: no plain-English "a tight bond" yet; re-check as the archive grows.
+  tight bond: Titebond
+  tightbond: Titebond
 episodes: {}

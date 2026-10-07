@@ -1,0 +1,183 @@
+// POST /api/report (spec §4.4, §5): a listener reports a transcript error on a passage.
+//
+// Order: check the body, then Turnstile, then one INSERT. Turnstile comes before anything is
+// written, so a bot gets no database work; the body comes before Turnstile, so a malformed
+// request costs no siteverify call. Report text and the token are never logged (spec §8.3):
+// the log lines carry only the event and the error message of the failing call.
+
+import type { Env } from "./env";
+
+/** Cloudflare's token check (Turnstile server-side validation). */
+export const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+/** The request body is checked against this before it is parsed, so a huge body costs nothing. */
+export const MAX_BODY_CHARS = 16 * 1024;
+/** Lengths in characters (code points), after trimming. */
+export const MAX_QUOTED = 500;
+export const MAX_SUGGESTED = 500;
+export const MAX_NOTE = 1000;
+export const MAX_TOKEN = 2048;
+/** siteverify normally answers in well under a second; past this the check fails closed. */
+const SITEVERIFY_TIMEOUT_MS = 5000;
+
+/** A report that passed the checks on its own: trimmed, optional fields NULL when empty. */
+export interface ReportFields {
+  chunk_id: number;
+  quoted_text: string;
+  suggested_text: string | null;
+  note: string | null;
+  turnstile_token: string;
+}
+
+/** Characters as a person counts them: an emoji is one, not two UTF-16 code units. */
+function length(s: string): number {
+  return Array.from(s).length;
+}
+
+// A lone surrogate half cannot be encoded as UTF-8, so D1 could not store it faithfully.
+const LONE_SURROGATE = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
+
+type Checked<T> = { ok: true; value: T } | { ok: false; message: string };
+
+/** A string field: trimmed, at most `max` characters. `required` rejects an empty one; optional ones become null. */
+function textField(value: unknown, label: string, max: number, required: boolean): Checked<string | null> {
+  if (value === undefined || value === null) {
+    return required ? { ok: false, message: `Please include the ${label}.` } : { ok: true, value: null };
+  }
+  if (typeof value !== "string") return { ok: false, message: `The ${label} must be text.` };
+  if (LONE_SURROGATE.test(value)) return { ok: false, message: `The ${label} has characters we can't store.` };
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return required ? { ok: false, message: `Please include the ${label}.` } : { ok: true, value: null };
+  }
+  if (length(trimmed) > max) return { ok: false, message: `The ${label} is too long (at most ${max} characters).` };
+  return { ok: true, value: trimmed };
+}
+
+/**
+ * Check the raw body text. The message says what to fix and never echoes what was sent.
+ * This does not look at the database, so it cannot tell whether the chunk exists.
+ */
+export function parseReport(raw: string): Checked<ReportFields> {
+  if (raw.length > MAX_BODY_CHARS) return { ok: false, message: "That report is too long." };
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return { ok: false, message: "That report couldn't be read." };
+  }
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return { ok: false, message: "That report couldn't be read." };
+  }
+  const fields = body as Record<string, unknown>;
+
+  const chunkId = fields.chunk_id;
+  if (typeof chunkId !== "number" || !Number.isSafeInteger(chunkId) || chunkId < 1) {
+    return { ok: false, message: "That passage couldn't be identified." };
+  }
+  const quoted = textField(fields.quoted_text, "quoted text", MAX_QUOTED, true);
+  if (!quoted.ok) return quoted;
+  const suggested = textField(fields.suggested_text, "suggested correction", MAX_SUGGESTED, false);
+  if (!suggested.ok) return suggested;
+  const note = textField(fields.note, "note", MAX_NOTE, false);
+  if (!note.ok) return note;
+
+  const token = fields.turnstile_token;
+  if (typeof token !== "string" || token === "" || length(token) > MAX_TOKEN) {
+    return { ok: false, message: "The human check is missing, please try again." };
+  }
+  return {
+    ok: true,
+    value: {
+      chunk_id: chunkId,
+      // Required, so never null; the type of textField does not say so.
+      quoted_text: quoted.value ?? "",
+      suggested_text: suggested.value,
+      note: note.value,
+      turnstile_token: token,
+    },
+  };
+}
+
+/**
+ * Ask Cloudflare whether the token is good. True or false is its answer; anything else (it
+ * cannot be reached, answers non-2xx or not JSON, or the JSON has no boolean `success`)
+ * throws, so the route fails closed with 503. The listener's IP is deliberately not sent
+ * (spec: no IPs); it is optional for siteverify.
+ */
+export async function verifyTurnstile(secret: string, token: string): Promise<boolean> {
+  const response = await fetch(SITEVERIFY_URL, {
+    method: "POST",
+    body: new URLSearchParams({ secret, response: token }),
+    signal: AbortSignal.timeout(SITEVERIFY_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`siteverify answered ${response.status}`);
+  const result = (await response.json()) as { success?: unknown } | null;
+  if (typeof result !== "object" || result === null || typeof result.success !== "boolean") {
+    throw new Error("siteverify answered something other than a verdict");
+  }
+  return result.success;
+}
+
+// One statement checks the chunk and inserts: no row is written when the chunk does not
+// exist (`changes` is 0). `status` takes its default, 'open'.
+const INSERT_REPORT = `INSERT INTO reports (chunk_id, created_at, quoted_text, suggested_text, note)
+SELECT ?, ?, ?, ?, ?
+WHERE EXISTS (SELECT 1 FROM chunks WHERE id = ?)`;
+
+const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
+}
+
+// Same line as index.ts's logError (no IP, headers, query string or stack, spec §8.3); a
+// copy because that one is private to index.ts.
+function logError(event: string, request: Request, err: unknown): void {
+  const e = err instanceof Error ? err : new Error(String(err));
+  console.error(
+    JSON.stringify({
+      level: "error",
+      event,
+      method: request.method,
+      path: new URL(request.url).pathname,
+      error: `${e.name}: ${e.message}`.slice(0, 300),
+    }),
+  );
+}
+
+const unavailable = (message: string): Response => json({ error: "unavailable", message }, 503);
+
+/**
+ * POST /api/report: `{chunk_id, quoted_text, suggested_text?, note?, turnstile_token}`.
+ * 400 for a bad body or an unknown chunk, 403 when Turnstile refuses the token, 503 when
+ * Turnstile or D1 cannot be used. Nothing is stored unless the answer is 200.
+ */
+export async function report(request: Request, env: Env): Promise<Response> {
+  const parsed = parseReport(await request.text());
+  if (!parsed.ok) return json({ error: "bad_request", message: parsed.message }, 400);
+  const { chunk_id, quoted_text, suggested_text, note, turnstile_token } = parsed.value;
+
+  let human: boolean;
+  try {
+    human = await verifyTurnstile(env.TURNSTILE_SECRET, turnstile_token);
+  } catch (err) {
+    logError("turnstile_unavailable", request, err);
+    return unavailable("We couldn't check that you're human just now, please try again in a minute.");
+  }
+  if (!human) {
+    return json({ error: "forbidden", message: "We couldn't verify you're human, please try again." }, 403);
+  }
+
+  let changes: number;
+  try {
+    const result = await env.DB.prepare(INSERT_REPORT)
+      .bind(chunk_id, new Date().toISOString(), quoted_text, suggested_text, note, chunk_id)
+      .run();
+    changes = result.meta.changes;
+  } catch (err) {
+    logError("d1_unavailable", request, err);
+    return unavailable("We couldn't save your report just now, please try again in a minute.");
+  }
+  if (changes === 0) return json({ error: "bad_request", message: "That passage couldn't be found." }, 400);
+  return json({ ok: true });
+}

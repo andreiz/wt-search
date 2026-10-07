@@ -1,5 +1,7 @@
+import { context } from "./context";
 import type { Env } from "./env";
 import { parseQuery } from "./query";
+import { report } from "./report";
 import {
   exactSearch,
   maxExactPage,
@@ -102,6 +104,8 @@ const search: Handler = async (request, env) => {
 const routes = new Map<string, Handler>([
   ["GET /api/health", health],
   ["GET /api/search", search],
+  ["GET /api/context", context],
+  ["POST /api/report", report],
 ]);
 
 export default {

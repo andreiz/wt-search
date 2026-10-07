@@ -3,7 +3,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 worker/node_modules/
-worker/.wrangler/
+# wrangler's local cache/state, created in whatever directory wrangler runs from
+.wrangler/
 # Local secrets for `wrangler dev` (e.g. TURNSTILE_SECRET); never commit
 worker/.dev.vars*
 worker/.env*

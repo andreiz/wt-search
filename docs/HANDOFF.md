@@ -1,15 +1,37 @@
-# Handoff — 2026-10-07 (after the third session)
+# Handoff — 2026-10-07 (after the fourth session)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-**Plan 2: Tasks 1–13a and Checkpoints D and E are done. Next: Checkpoint F** (maintainer:
-deploy the Worker, add `api_url` under `[env.staging]`, exact search on staging with
-`wts search`, cue times, rows read), then Task 14 (smart search).
+**Branch:** the fourth session (Tasks 11–13a, Checkpoint F, corrections) worked on
+`claude/practical-galileo-95lrqj` (its harness allowed pushes only there); `main` stops at
+`57c43eb`. The maintainer's Mac and the staging Worker run that branch. Before starting:
+check whether it has been merged into `main` (`git log origin/main..origin/claude/practical-galileo-95lrqj`)
+and ask the maintainer which branch to continue on.
 
-Checkpoint F done so far (2026-10-07): Worker deployed to staging (`wts-api-staging`,
+**Plan 2: Tasks 1–13a and Checkpoint F are done** (F has two hand checks left, below).
+**Next: Task 14 (smart search)**, then Task 15 and Task 16, then Checkpoint G.
+
+**Task 14 pointers** (plan Task 14, spec §4.4, §4.7):
+- Replace the stand-in in `worker/src/index.ts`: today `mode=smart` returns
+  `exactSearch()` results plus `smart_degraded: true` (marked "Task 14 replaces this").
+- `parseQuery()` already gives what smart search needs: `semantic` (text to embed),
+  `terms` (FTS5-quoted positive terms; join with ` OR ` for related-hit highlights) and
+  `exclude` (excluded terms as one FTS5 expression: drop vector hits with
+  `rowid NOT IN (… MATCH exclude)`). Never build FTS5 from user text yourself.
+- Collapse with the same rule as exact (`collapse()` in `search.ts`; spec §4.4); smart caps
+  at 5 pages / 100 results. Spec §4.4 now has `total_capped`/`truncated` for exact; decide
+  and record what smart returns instead of `total`.
+- **When smart mode stops returning `total`, `worker/test/search-contract.test.ts` fails on
+  purpose:** update `pipeline/tests/fixtures/search/smart_degraded.json` (and add a
+  `smart.json`) to the new shape; `wts search` prints the smart header from `format_results`.
+- Fake AI and Vectorize in tests through `miniflare` options (Task 10 note below); the AI
+  call must pass `pooling: "cls"`. Keep to a handful of D1 queries per request.
+- `Env.ANALYTICS` is optional and has no staging binding until Task 15 (below).
+
+Checkpoint F results (2026-10-07): Worker deployed to staging (`wts-api-staging`,
 without the Analytics binding, below); `wts search --env staging` works on the real corpus;
 YouTube and Spotify links open at the cue on desktop (Spotify now `?t=<s>`, the format its
 own share sheet makes; phones not checked yet; `docs/deep-links.md`). Apple links now
@@ -25,7 +47,8 @@ carry `&t=` too, in the form Apple's share sheet makes.
   such searches a day on Free (5M/day), negligible on Paid (25B/month), which the archive
   needs anyway. No change now; Task 15's edge cache absorbs repeats. If it ever matters:
   rank on `chunks_fts` alone in a subquery and join only the page's 20 rows.
-- Still open: five cue times against the audio, links on phones.
+- Still open (maintainer, by hand, not blocking): five cue times against the audio; the
+  YouTube, Spotify and Apple links on phones (`docs/deep-links.md`).
 
 Checkpoint F testing also brought (2026-10-07): corrections for Titebond, Bessey, Roubo,
 Schwarz and lumber thickness (`eight quarter` → 8/4; 4/4–16/4), each checked with
@@ -35,7 +58,7 @@ spec §3.3). Open ideas from that testing: a user-facing `docs/search-syntax.md`
 heard as `3-8` could become `3/8`; porter treats glue/glued/gluing as different words
 (`glu*` works) — measure in plan 5's test search set before changing anything.
 
-Checkpoint F so far (2026-10-07): the first `wrangler deploy --env staging` failed with code
+Analytics Engine (2026-10-07): the first `wrangler deploy --env staging` failed with code
 10089 "You need to enable Analytics Engine", and again after enabling it in the dashboard.
 The `ANALYTICS` binding is out of `env.staging` until Task 15 (nothing writes analytics
 yet); `Env.ANALYTICS` is optional. Task 15 re-adds it and checks a deploy accepts it.
@@ -69,12 +92,13 @@ How the maintainer works:
 ## State
 
 - **Pipeline** (`pipeline/`, `wts` CLI): plan 1 complete; plan 2 adds secrets, config for
-  environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`.
-  **484 tests**, ruff clean (`cd pipeline && uv run pytest -q`).
+  environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
+  `wts search`, hyphen joining in `wts chunk`. **583 tests**, ruff clean
+  (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
-  word times, highlights, cue times, deep links, exact `/api/search`. **191 tests**,
-  type-check clean.
-  Pipeline: **575 tests** (with `wts search`).
+  word times, highlights, cue times, deep links (all three platforms with a time), exact
+  `/api/search` with result caps. **192 tests**, type-check clean. **Deployed to staging**:
+  `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;
   **36 in scope** (35 seed + ep71, added 2026-10-07 for its poor-audio call-ins — a good source
@@ -277,7 +301,7 @@ Task 16 (smart search, report, caching, `wts run --env staging` end to end). Pla
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 2 (Tasks 1–13a, Checkpoints D–E done; Checkpoint F next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–13a, Checkpoints D–F done; Task 14 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Plan 1 (done, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md). Superpowers skills install from `.claude/settings.json`.
 

@@ -413,4 +413,4 @@ Task 16 (smart search, report, caching, `wts run --env staging` end to end). Pla
 - ~~A feed fetch failure stops `wts run`~~ — fixed in plan 2 Task 8.
 - Process slips (all normal diffs): a heredoc append in plan 1 Task 12 and in plan 2 Task 3's
   tests; `sed` edits to `preroll_finder.py` (session 2) and two one-line handoff edits
-  (session 3).
+  (session 3); one `sed` edit to the handoff's plan-status line (session 4).

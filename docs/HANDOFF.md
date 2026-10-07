@@ -58,7 +58,11 @@ cosine **1.0000** on all 5 chunks (ep085 2011, ep379 2017, ep598, ep605, ep612),
 `cls` pooling matches the Mac. A config typo (unquoted string) gave a traceback; `load_config`
 now names the file and says strings need quotes. Step 4 passed: notifications go to the
 maintainer's own ntfy server (`ntfy_url` in config, topic `wts` in the Keychain), and
-`wts notify test` arrived on the phone.
+`wts notify test` arrived on the phone. Step 6 passed: `publish: ok=36 chunks=4210
+vectors=4208 in 0:36` (the 2 missing vectors are the 2 boilerplate chunks). This settles both
+open API questions: **D1 accepts JSON numbers as params, and Vectorize accepts the raw NDJSON
+upsert body** (no multipart needed). TOML gotcha seen on the way: keys must come before
+`[env.staging]`, or they land in that table.
 
 ### Checkpoint D (maintainer, M1 Max): platform IDs on the real feed
 

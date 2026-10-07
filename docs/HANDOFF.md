@@ -70,8 +70,16 @@ up, so both get timed links.
    don't mix them into plan 2 work.
 
 **Pending with the maintainer** (not blocking plan 2's first tasks):
-- Apply the session-2 corrections to the seed corpus: `git pull`, `uv run wts chunk`,
-  `uv run wts embed`.
+- Apply the session-2 corrections to the seed corpus and add **ep71** to scope (maintainer's
+  request, 2026-10-07: call-ins with poor audio, a hard case for transcription and search):
+  `git pull`, `uv run wts scope add ep:71`, `uv run wts run`. Scope becomes **36** episodes,
+  so Checkpoint E expects 36 published, not the plan's 35. ep71 is a good source of plan 5
+  test-search-set queries (something said in a bad call-in).
+- Before Checkpoint E, the maintainer can set up the staging account pieces that need no new
+  code: `wrangler d1 create wts-staging`, the Vectorize index and its `year` metadata index
+  (before any upsert), an API token (D1 Edit, Vectorize Edit, Workers AI Read) stored with
+  `wts secrets set cloudflare_api_token`, and `cloudflare_account_id` + `[env.staging]` in
+  `config.toml`. Not the schema: Task 10's `wrangler d1 migrations apply` does that.
 - Ask GitHub Support to purge cached views of commit `a44eec9` (open decision 8).
 
 **Cloud session environment** (checked in session 3):

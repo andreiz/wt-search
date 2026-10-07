@@ -24,7 +24,7 @@ export interface ParsedQuery {
   semantic: string;
   filters: Filters;
   includeAds: boolean;
-  /** Positive words as FTS5 strings (quoted; `*` kept on prefixes; phrases split into their words), for highlighting related hits: callers join them with " OR ". */
+  /** Positive words as FTS5 strings (quoted; `*` kept on prefixes; phrases split into their words; no HIGHLIGHT_STOPWORDS), for highlighting related hits: callers join them with " OR ". Can be empty when `fts` isn't. */
   terms: string[];
   /** The excluded words and phrases ORed, as an FTS5 expression, or null. Smart search (Task 14) applies it to vector hits. */
   exclude: string | null;
@@ -32,6 +32,31 @@ export interface ParsedQuery {
 
 /** Tokens with no letter or digit (`-`, `*`, emoji, punctuation) match nothing and are dropped. */
 const SEARCHABLE = /[\p{L}\p{N}]/u;
+
+/**
+ * Words left out of `terms`, the highlights of meaning-only hits: FTS5 has no stopwords, and
+ * a question like "how do I flatten a workbench top" would otherwise mark every "a" and "I"
+ * in a related chunk. Matching, ranking and the embedding text keep them. Function words
+ * only: nothing that means something in a shop ("up", "top", "back", "off", "out", "set").
+ */
+export const HIGHLIGHT_STOPWORDS: ReadonlySet<string> = new Set([
+  "a", "an", "the", "and", "or", "but", "if", "then", "so", "than", "as", "because",
+  "of", "at", "by", "for", "from", "in", "into", "on", "onto", "to", "with", "about",
+  "is", "are", "was", "were", "be", "been", "being", "am",
+  "do", "does", "did", "doing", "have", "has", "had", "having",
+  "i", "me", "my", "we", "us", "our", "you", "your", "he", "him", "his", "she", "her",
+  "it", "its", "they", "them", "their", "this", "that", "these", "those", "there", "here",
+  "what", "which", "who", "whom", "whose", "when", "where", "why", "how",
+  "can", "could", "would", "should", "will", "shall", "may", "might", "must",
+  "not", "no", "just", "very", "any", "some", "also", "too",
+  "i'm", "i've", "i'd", "i'll", "it's", "that's", "there's", "what's", "let's", "you're",
+  "we're", "they're", "don't", "doesn't", "didn't", "can't", "won't", "isn't", "wasn't",
+]);
+
+/** Whether a word goes into `terms`. A prefix (`the*`) is deliberate, so it always does. */
+function highlightable(word: string, prefix: boolean): boolean {
+  return prefix || !HIGHLIGHT_STOPWORDS.has(word.toLowerCase());
+}
 
 const SMART_DOUBLE_QUOTES = new Set(["“", "”", "„", "‟", "″", "＂"]);
 const SMART_SINGLE_QUOTES = new Set(["‘", "’", "‚", "‛", "′"]);
@@ -134,8 +159,11 @@ function parse(input: unknown): ParsedQuery {
     if (pendingOr && last) last.push(expression);
     else groups.push([expression]);
     // A phrase highlights word by word: a meaning-only hit rarely has the exact phrase.
-    if (phrase) terms.push(...stem.split(" ").filter((w) => SEARCHABLE.test(w)).map(quote));
-    else terms.push(expression);
+    if (phrase) {
+      terms.push(...stem.split(" ").filter((w) => SEARCHABLE.test(w) && highlightable(w, false)).map(quote));
+    } else if (highlightable(stem, prefix)) {
+      terms.push(expression);
+    }
     semantic.push(stem);
     pendingOr = false;
     afterPositive = true;
@@ -195,8 +223,12 @@ export function fallbackQuery(input: string): ParsedQuery {
       .split(/[\s"]+/)
       .filter((w) => SEARCHABLE.test(w));
     if (words.length === 0) return emptyQuery();
-    const terms = words.map(quote);
-    return { ...emptyQuery(), fts: terms.join(" AND "), semantic: words.join(" "), terms };
+    return {
+      ...emptyQuery(),
+      fts: words.map(quote).join(" AND "),
+      semantic: words.join(" "),
+      terms: words.filter((w) => highlightable(w, false)).map(quote),
+    };
   } catch {
     return emptyQuery();
   }

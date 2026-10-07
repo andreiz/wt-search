@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
-import { MAX_QUERY_CHARS, fallbackQuery, parseQuery } from "../src/query";
+import { HIGHLIGHT_STOPWORDS, MAX_QUERY_CHARS, fallbackQuery, parseQuery } from "../src/query";
 import type { Filters } from "../src/query";
 import { seed } from "./seed";
 import type { SeedChunk, SeedEpisode } from "./seed";
@@ -83,6 +83,18 @@ const CASES: Case[] = [
     exclude: '"router table"',
   },
   { q: '"hide ??? glue"', fts: '"hide ??? glue"', terms: ['"hide"', '"glue"'] },
+  // terms leave out stopwords (any case), so related hits don't mark every "a" and "the".
+  // Matching and the embedding text keep them.
+  {
+    q: "How do I flatten a workbench top",
+    fts: '"How" AND "do" AND "I" AND "flatten" AND "a" AND "workbench" AND "top"',
+    semantic: "How do I flatten a workbench top",
+    terms: ['"flatten"', '"workbench"', '"top"'],
+  },
+  { q: '"pins and tails" don\'t', fts: '"pins and tails" AND "don\'t"', terms: ['"pins"', '"tails"'] },
+  // A prefix is deliberate, so it stays; a query of stopwords only has no terms at all.
+  { q: "the* glue", fts: '"the"* AND "glue"', terms: ['"the"*', '"glue"'] },
+  { q: '"to be or not to be"', fts: '"to be or not to be"', terms: [], rows: [] },
   { q: '"glue hide"', fts: '"glue hide"', rows: [] },
   { q: "dovetail -router", fts: '"dovetail" NOT "router"', semantic: "dovetail", terms: ['"dovetail"'], exclude: '"router"', rows: [301] },
   { q: 'dovetail -"router jig"', fts: '"dovetail" NOT "router jig"', exclude: '"router jig"', rows: [301] },
@@ -208,9 +220,11 @@ describe("parseQuery", () => {
     });
 
     it("stays within FTS5's expression depth at the most terms 200 characters allow", async () => {
-      const ands = parseQuery("a ".repeat(100));
+      // "b", not a stopword, so the terms (the related-hit highlight expression) are 100 too.
+      const ands = parseQuery("b ".repeat(100));
       expect(ands.terms).toHaveLength(100);
       await matchRows(ands.fts ?? "");
+      await matchRows(ands.terms.join(" OR "));
 
       const nots = parseQuery(`a${" -b".repeat(66)}`);
       expect(nots.exclude?.split(" OR ")).toHaveLength(66);
@@ -296,5 +310,23 @@ describe("fallbackQuery", () => {
   it("is empty when nothing is searchable", () => {
     const parsed = fallbackQuery("- * 🪚");
     expect(parsed).toEqual({ fts: null, semantic: "", filters: {}, includeAds: false, terms: [], exclude: null });
+  });
+
+  it("leaves stopwords out of terms too", () => {
+    const parsed = fallbackQuery("The glue AND the clamps");
+    expect(parsed.fts).toBe('"The" AND "glue" AND "AND" AND "the" AND "clamps"');
+    expect(parsed.terms).toEqual(['"glue"', '"clamps"']);
+  });
+});
+
+describe("HIGHLIGHT_STOPWORDS", () => {
+  it("is lowercase function words, and no shop words", () => {
+    expect(HIGHLIGHT_STOPWORDS.size).toBeGreaterThan(50);
+    for (const w of HIGHLIGHT_STOPWORDS) expect(w).toBe(w.toLowerCase());
+    for (const w of ["the", "a", "and", "i", "how", "don't", "it's"]) expect(HIGHLIGHT_STOPWORDS.has(w), w).toBe(true);
+    // Words that mean something in a woodshop ("glue up", "top coat", "back saw", "cut off").
+    for (const w of ["up", "top", "back", "off", "out", "down", "over", "cut", "square", "flat", "set"]) {
+      expect(HIGHLIGHT_STOPWORDS.has(w), w).toBe(false);
+    }
   });
 });

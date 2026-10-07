@@ -214,8 +214,8 @@ describe("meaning-only hits", () => {
   it("highlight stemmed words, phrase words and prefixes too", async () => {
     const b = await body({ q: '"pins and tails" joint* drawer' }, [3102, 3203]);
     const marked = Object.fromEntries(b.results.map((r) => [r.chunk_id, r.ranges.map(([s, e]) => r.text.slice(s, e))]));
-    // Word by word, so "and" is marked too: FTS5 has no stopwords.
-    expect(marked[3102]).toEqual(["pins", "and", "tails"]);
+    // Word by word, leaving out the stopword "and".
+    expect(marked[3102]).toEqual(["pins", "tails"]);
     expect(marked[3203]).toEqual(["joints", "drawers"]);
   });
 
@@ -227,6 +227,14 @@ describe("meaning-only hits", () => {
     const r = b.results[0]!;
     expect(r.ranges.map(([s, e]) => r.text.slice(s, e))).toEqual(["spray", "lacquer"]);
     expect(r.hit_ms).toBe(1_800_000);
+  });
+
+  it("don't highlight stopwords", async () => {
+    // "I" and "the" are in both the query and the chunk; only the shop words are marked.
+    const b = await body({ q: "how do I spray the lacquer" }, [3003]);
+    const r = b.results[0]!;
+    expect(r).toMatchObject({ chunk_id: 3003, match: "related" });
+    expect(r.ranges.map(([s, e]) => r.text.slice(s, e))).toEqual(["spray", "lacquer"]);
   });
 
   it("have no ranges when no query word appears, and carry the episode's links", async () => {
@@ -419,6 +427,18 @@ describe("D1 use", () => {
     expect(sql[1]).toMatch(/NOT IN/);
     expect(sql[2]).toMatch(/highlight\(chunks_fts/);
     expect(sql[3]).toBe("<batch>");
+  });
+
+  it("skips the highlight query when every query word is a stopword", async () => {
+    const { db, sql } = countingDb(env.DB);
+    const { response, body: b } = await smart({ q: '"to be or not to be"' }, { db, vec: fakeVec([3002]) });
+    expect(response.status).toBe(200);
+    expect(tagged(b)).toEqual([[3002, "related"]]);
+    expect(b.results[0]!.ranges).toEqual([]);
+    expect(sql).toHaveLength(3);
+    expect(sql[1]).toMatch(/json_each/);
+    expect(sql[1]).not.toMatch(/highlight/);
+    expect(sql[2]).toBe("<batch>");
   });
 
   it("runs only the keyword query when Vectorize adds nothing new", async () => {

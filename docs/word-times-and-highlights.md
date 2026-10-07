@@ -132,8 +132,10 @@ A hit that came only from Vectorize may contain none of the query's words. Smart
 the query's words ORed (`rowid IN (…) AND "a" OR "b"`), to highlight any of them that do
 appear; when none do, there are no ranges. A quoted phrase counts word by word here
 (`parseQuery()`'s `terms`): a hit found by meaning rarely has the exact phrase, so
-`"lacquer spray"` marks both words in "then I spray lacquer". Keyword hits still mark the
-phrase as one span. Either way the cue is the chunk's start (spec
+`"lacquer spray"` marks both words in "then I spray lacquer". Function words
+(`HIGHLIGHT_STOPWORDS`: "a", "the", "I", "how", …) are left out, so a question doesn't mark
+every "a"; a prefix like `the*` is kept. Keyword hits still mark the phrase as one span and
+their stopwords too, since those are what FTS5 matched. Either way the cue is the chunk's start (spec
 §4.5): the passage as a whole is the hit, and a highlighted word may be anywhere in it.
 
 ## Links

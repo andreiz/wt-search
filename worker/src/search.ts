@@ -315,15 +315,19 @@ WHERE c.id IN (SELECT value FROM json_each(?))${filters.sql}`;
     rowsSql += " AND c.id NOT IN (SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH ?)";
     rowParams.push(parsed.exclude);
   }
-  const [rows, highlights] = await db.batch([
-    db.prepare(rowsSql).bind(...rowParams),
-    db
-      .prepare(
-        `SELECT rowid AS id, highlight(chunks_fts, 0, char(1), char(2)) AS marked FROM chunks_fts
+  const statements = [db.prepare(rowsSql).bind(...rowParams)];
+  // No terms (every query word a stopword): nothing to highlight, and MATCH '' is an error.
+  if (parsed.terms.length > 0) {
+    statements.push(
+      db
+        .prepare(
+          `SELECT rowid AS id, highlight(chunks_fts, 0, char(1), char(2)) AS marked FROM chunks_fts
 WHERE chunks_fts MATCH ? AND rowid IN (SELECT value FROM json_each(?))`,
-      )
-      .bind(parsed.terms.join(" OR "), JSON.stringify(ids)),
-  ]);
+        )
+        .bind(parsed.terms.join(" OR "), JSON.stringify(ids)),
+    );
+  }
+  const [rows, highlights] = await db.batch(statements);
   const marked = new Map(
     ((highlights?.results ?? []) as { id: number; marked: string }[]).map((h) => [h.id, h.marked]),
   );

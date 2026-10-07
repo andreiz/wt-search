@@ -487,8 +487,10 @@ Parser rules (`worker/src/query.ts`):
       query word (they ranked past the FTS5 top 50); a second FTS5 query
       (`rowid IN (…)`, the query's words ORed, a quoted phrase split into its
       words) highlights any query words in them: `"lacquer spray"` marks
-      "spray lacquer". FTS5 has no stopwords, so a phrase's "and" or "the" is
-      marked too. D1: one query for the keyword list (run while the query is
+      "spray lacquer". FTS5 has no stopwords, so function words ("a", "the",
+      "how", "I"; `HIGHLIGHT_STOPWORDS` in `query.ts`) are left out of these
+      highlights, or a question would mark every "a"; matching, ranking and
+      the embedding keep them. D1: one query for the keyword list (run while the query is
       embedded), then one batch of two for the related chunks, if any.
     - When Workers AI or Vectorize fails (or AI returns no embedding), the
       keyword list alone goes through the same steps, with

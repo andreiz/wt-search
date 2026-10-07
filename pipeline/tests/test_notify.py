@@ -14,6 +14,7 @@ import respx
 from click.testing import CliRunner
 from conftest import FakeEmbedder, FakeTranscriber, status_of
 
+from wts import notify
 from wts.cli import main
 from wts.feed import parse_feed, upsert_episodes
 from wts.notify import NtfyNotifier, NullNotifier, get_notifier, notify_run
@@ -312,21 +313,65 @@ def test_published_and_failed_share_one_message_with_error_priority(conn, notifi
     assert "Published" in msg["body"]
 
 
-def test_quiet_feed_warns_after_21_days(conn, notifier, make_episode):
-    make_episode(published_at=iso(-timedelta(days=30)))
-    make_episode(published_at=iso(-timedelta(days=45)))
+def test_quiet_feed_warns_after_45_days(conn, notifier, make_episode):
+    make_episode(published_at=iso(-timedelta(days=50)))
+    make_episode(published_at=iso(-timedelta(days=65)))
     notify_run(notifier, conn, {"feed": Counter(added=0)}, iso(-timedelta(seconds=5)))
     (msg,) = notifier.sent
-    assert msg["title"] == "wts: no new episode in 21 days"
+    assert msg["title"] == "wts: no new episode in 45 days"
     assert msg["priority"] == "default"
-    assert "30 days" in msg["body"]
+    assert "50 days" in msg["body"]
 
 
-def test_feed_newer_than_21_days_is_quiet_about_it(conn, notifier, make_episode):
-    make_episode(published_at=iso(-timedelta(days=20)))
+def test_a_normal_break_is_not_a_quiet_feed(conn, notifier, make_episode):
+    # 2026 had a 36-day break between episodes, 2025 one of 68: 45 days is past a normal one.
+    make_episode(published_at=iso(-timedelta(days=40)))
     make_episode(published_at=iso(-timedelta(days=200)))
     notify_run(notifier, conn, {"feed": Counter()}, iso(-timedelta(seconds=5)))
     assert notifier.sent == []
+
+
+def quiet_run(conn, notifier, days_later=0):
+    now = datetime.now(UTC) + timedelta(days=days_later)
+    started = (now - timedelta(seconds=5)).isoformat(timespec="seconds")
+    notify_run(notifier, conn, {"feed": Counter()}, started, now=now)
+
+
+def test_quiet_feed_alerts_once_then_weekly(conn, notifier, make_episode):
+    make_episode(published_at=iso(-timedelta(days=50)))
+    quiet_run(conn, notifier)
+    quiet_run(conn, notifier, days_later=1)  # daily runs don't repeat it
+    quiet_run(conn, notifier, days_later=6)
+    assert len(notifier.sent) == 1
+    quiet_run(conn, notifier, days_later=7)
+    assert len(notifier.sent) == 2 and "57 days" in notifier.sent[1]["body"]
+
+
+def test_a_new_quiet_spell_alerts_at_once(conn, notifier, make_episode):
+    e = make_episode(published_at=iso(-timedelta(days=50)))
+    quiet_run(conn, notifier)
+    with conn:  # an episode arrives; the next run sees a fresh feed and forgets the spell
+        conn.execute("update episodes set published_at = ? where id = ?", (iso(), e))
+    quiet_run(conn, notifier, days_later=1)
+    with conn:
+        conn.execute("update episodes set published_at = ? where id = ?",
+                     (iso(-timedelta(days=60)), e))
+    quiet_run(conn, notifier, days_later=2)
+    assert len(notifier.sent) == 2
+
+
+def test_a_quiet_feed_alert_that_fails_to_send_is_retried_next_run(conn, make_episode):
+    class Down(FakeNotifier):
+        def send(self, *args, **kwargs) -> bool:
+            super().send(*args, **kwargs)
+            return False
+
+    make_episode(published_at=iso(-timedelta(days=50)))
+    down = Down()
+    quiet_run(conn, down)
+    notifier = FakeNotifier()
+    quiet_run(conn, notifier, days_later=1)
+    assert len(notifier.sent) == 1
 
 
 def test_no_episodes_at_all_is_not_a_quiet_feed(conn, notifier):
@@ -346,7 +391,7 @@ def test_quiet_feed_alongside_errors_is_one_high_priority_message(conn, notifier
     fail(conn, old, "embed", "boom")
     notify_run(notifier, conn, {}, started)
     (msg,) = notifier.sent
-    assert msg["priority"] == "high" and "21 days" in msg["body"] and "Old" in msg["body"]
+    assert msg["priority"] == "high" and "45 days" in msg["body"] and "Old" in msg["body"]
 
 
 def test_long_lists_are_capped(conn, notifier, fresh, make_episode):
@@ -388,6 +433,16 @@ def web(tmp_path):
         yield SimpleNamespace(feed=feed, audio=audio, ntfy=ntfy, probe=probe)
 
 
+@pytest.fixture
+def quiet_feed(monkeypatch):
+    """Any feed counts as quiet. Run-level tests re-read the fixture feed, whose newest item is
+    from 2026-09-15: whether that is 'quiet' must not depend on today's date."""
+    monkeypatch.setattr(notify, "QUIET_FEED_DAYS", 0)
+
+
+QUIET_TITLE = "wts: no new episode in 0 days"
+
+
 def go(conn, paths, cfg, web, **kwargs):
     return run_all(
         conn, paths, replace(cfg, feed_url=FEED_URL), "scope",
@@ -412,11 +467,11 @@ def test_run_with_errors_sends_one_high_priority_message(conn, paths, cfg, web, 
     assert "transcribe" in msg["message"] and "boom" in msg["message"]
 
 
-def test_run_on_a_quiet_feed_sends_one_message(conn, paths, cfg, web, topic):
-    scope(conn, "recent:1")  # the fixture feed's newest item is from 2017
+def test_run_on_a_quiet_feed_sends_one_message(conn, paths, cfg, web, topic, quiet_feed):
+    scope(conn, "recent:1")
     go(conn, paths, cfg, web)
     (msg,) = sent_json(web.ntfy)
-    assert msg["title"] == "wts: no new episode in 21 days"
+    assert msg["title"] == QUIET_TITLE
     assert msg["priority"] == 3
 
 
@@ -486,7 +541,8 @@ def test_mass_reset_still_stops_the_run(conn, paths, cfg, web, topic):
 
 
 def test_run_without_a_topic_logs_one_warning_and_sends_nothing(conn, paths, cfg, web,
-                                                                monkeypatch, wts_messages):
+                                                                monkeypatch, wts_messages,
+                                                                quiet_feed):
     monkeypatch.delenv("WTS_SECRET_NTFY_TOPIC", raising=False)
     scope(conn, "recent:1")
     go(conn, paths, cfg, web)
@@ -501,7 +557,7 @@ def test_run_without_a_topic_logs_one_warning_and_sends_nothing(conn, paths, cfg
     ids=["http-500", "connect-error"],
 )
 def test_ntfy_failure_does_not_fail_the_run_or_leak_the_topic(
-    conn, paths, cfg, web, topic, wts_messages, ntfy_failure
+    conn, paths, cfg, web, topic, wts_messages, ntfy_failure, quiet_feed
 ):
     ids = scope(conn, "recent:1")
     if isinstance(ntfy_failure, Exception):
@@ -522,10 +578,10 @@ def test_topic_never_appears_in_logs_on_success_paths(conn, paths, cfg, web, top
     assert TOPIC not in "\n".join(wts_messages)
 
 
-def test_run_takes_an_injected_notifier(conn, paths, cfg, web, notifier):
+def test_run_takes_an_injected_notifier(conn, paths, cfg, web, notifier, quiet_feed):
     scope(conn, "recent:1")
     go(conn, paths, cfg, web, notifier=notifier)
-    assert [m["title"] for m in notifier.sent] == ["wts: no new episode in 21 days"]
+    assert [m["title"] for m in notifier.sent] == [QUIET_TITLE]
     assert not web.ntfy.called
 
 

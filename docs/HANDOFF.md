@@ -332,11 +332,17 @@ Plan 1 is finished; plan 2 is next.
      JSON publishing (`POST https://ntfy.sh/` with topic/title/message/priority/tags), not the
      plan's headers: titles are non-ASCII, and the secret topic stays out of URLs and so out of
      httpx error text. `wts run` sends one summary at the end (published, failed this run,
-     feed quiet > 21 days), a high-priority message for a `MachineProblem` (then re-raises),
+     feed quiet > 45 days), a high-priority message for a `MachineProblem` (then re-raises),
      and one for a feed fetch failure, after which the run continues. An episode out of
      retries is reported only in the run that used its last retry (not every run; `wts status`
-     lists them). The quiet-feed note does repeat every run while the feed is quiet (default
-     priority). `net.describe_http_error()` formats httpx errors without the query string.
+     lists them). Quiet feed (maintainer's call, 2026-10-07; spec §8.2): 45 days, not 21
+     (episodes every ~13 days, normal breaks up to 36–68 days), alerted when a spell starts
+     and then weekly (`kv` `notify.quiet_feed_alerted_at`). Run-level tests pin the threshold
+     with a `quiet_feed` fixture so they don't depend on today's date.
+     `net.describe_http_error()` formats httpx errors without the query string.
+   - **Run cadence (for M2's launchd job):** daily, early morning local time. Releases are
+     mostly Wednesdays, every ~13 days; an idle run is a few requests and ~8 YouTube quota
+     units; daily runs also pick up YouTube uploads that land after the podcast.
      Task 16 must keep `notify_run` last in `run_all`, after publish and backup.
    - Task 9: `wts check-embeddings [--n 5]` (`wts/embedcheck.py`, Sonnet subagent, reviewed).
      Request/response checked against Cloudflare's model page: body `{text: [...], pooling:

@@ -683,7 +683,10 @@ push for:
 - Episodes that hit `error`, or ran out of retries.
 - A failed smoke search.
 - New transcript-error reports (a daily digest: count plus the first few).
-- No new feed item for 21 days (the feed may have moved).
+- No new feed item for 45 days (the feed may have moved): sent when the quiet spell is first
+  seen, then at most weekly. *(Revised 2026-10-07: episodes come out about every 13 days, with
+  normal breaks of up to 36 days in 2026 and 68 in 2025; 21 days fired on ordinary breaks, and
+  repeated on every daily run.)*
 - A weekly digest: top searches and zero-result searches.
 
 **Watchdog (Mac Mini only):** each successful scheduled run pings a

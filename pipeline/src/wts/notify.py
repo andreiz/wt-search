@@ -16,6 +16,7 @@ from typing import Protocol
 
 import httpx
 
+from wts.db import kv_get, kv_set
 from wts.log import plural
 from wts.net import describe_http_error
 from wts.secrets import KeychainError, SecretStore
@@ -25,7 +26,11 @@ log = logging.getLogger("wts")
 
 NTFY_URL = "https://ntfy.sh"
 PRIORITIES = {"min": 1, "low": 2, "default": 3, "high": 4, "urgent": 5}
-QUIET_FEED_DAYS = 21
+# Past a normal break (2026: up to 36 days between episodes; 2025: 68), so the alert means the
+# feed may have moved. Sent when a quiet spell is first seen, then weekly, not every daily run.
+QUIET_FEED_DAYS = 45
+QUIET_REPEAT = timedelta(days=7)
+QUIET_KEY = "notify.quiet_feed_alerted_at"
 MAX_LISTED = 10  # episodes listed per section; ntfy messages are limited to 4096 bytes
 MAX_REASON = 120
 
@@ -152,14 +157,24 @@ def notify_run(
 
     `run_started_at` is an ISO-8601 UTC string like state.db's timestamps, so strings compare.
     Covers episodes published and episodes that failed during the run (marked when that used
-    their last retry), and a feed with no item newer than 21 days. That last check is skipped when the
-    feed fetch failed (that has its own notification and the data is stale for a known reason).
-    Returns whether a message was sent.
+    their last retry), and a feed with no item newer than QUIET_FEED_DAYS: said when a quiet
+    spell is first seen, then at most weekly (the last alert's time is kept in `kv`). That
+    check is skipped when the feed fetch failed (that has its own notification and the data is
+    stale for a known reason). Returns whether a message was sent.
     """
     now = now or datetime.now(UTC)
     published = _newly_published(conn, run_started_at)
     errors = _in_error(conn, run_started_at)
-    quiet = None if results.get("feed", {}).get("error") else _quiet_days(conn, now)
+    quiet = None
+    if not results.get("feed", {}).get("error"):
+        quiet = _quiet_days(conn, now)
+        if quiet is None:
+            with conn:  # the spell is over: the next one alerts at once
+                conn.execute("delete from kv where key = ?", (QUIET_KEY,))
+        else:
+            last = kv_get(conn, QUIET_KEY)
+            if last is not None and now - datetime.fromisoformat(last) < QUIET_REPEAT:
+                quiet = None  # alerted within the week
     if not (published or errors or quiet):
         return False
 
@@ -190,5 +205,7 @@ def notify_run(
         title, priority, tags = (
             f"wts: no new episode in {QUIET_FEED_DAYS} days", "default", ("hourglass",)
         )
-    notifier.send(title, "\n\n".join(sections), priority=priority, tags=tags)
-    return True
+    sent = notifier.send(title, "\n\n".join(sections), priority=priority, tags=tags)
+    if sent and quiet:
+        kv_set(conn, QUIET_KEY, now.isoformat(timespec="seconds"))
+    return sent

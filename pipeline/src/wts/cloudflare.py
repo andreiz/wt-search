@@ -231,9 +231,10 @@ def chunked_inserts(
     and about `max_bytes` of SQL plus JSON params (8 columns → at most 12 rows per statement).
 
     With `upsert_on` (a column or columns), each statement ends with `on conflict(<key>) do
-    update set <other column> = excluded.<column>, …`. Use this, not `insert or replace`:
-    REPLACE doesn't fire the FTS5 delete trigger (schema/0001_init.sql). `upsert_on` columns
-    are never updated; with nothing else to update the conflict does nothing.
+    update set <other column> = excluded.<column>, … where <any of them changed>`, so an
+    unchanged row isn't written. Use this, not `insert or replace`: REPLACE doesn't fire the
+    FTS5 delete trigger (schema/0001_init.sql). `upsert_on` columns are never updated; with
+    nothing else to update the conflict does nothing.
     """
     columns = [_identifier(c) for c in columns]
     table = _identifier(table)
@@ -244,9 +245,13 @@ def chunked_inserts(
         raise ValueError(f"upsert_on {keys} must be among the columns {columns}")
     suffix = ""
     if keys:
-        updates = [f"{c} = excluded.{c}" for c in columns if c not in keys]
+        others = [c for c in columns if c not in keys]
+        # The WHERE skips rows whose values are unchanged: D1 bills rows written, and every
+        # chunk update also rewrites its FTS rows. `is not` treats NULLs as equal values.
         suffix = f" on conflict({', '.join(keys)}) " + (
-            f"do update set {', '.join(updates)}" if updates else "do nothing")
+            f"do update set {', '.join(f'{c} = excluded.{c}' for c in others)} "
+            f"where {' or '.join(f'{c} is not excluded.{c}' for c in others)}"
+            if others else "do nothing")
     prefix = f"insert into {table} ({', '.join(columns)}) values "
     placeholders = "(" + ", ".join("?" * len(columns)) + ")"
     max_rows = max_params // len(columns)

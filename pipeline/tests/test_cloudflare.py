@@ -494,9 +494,39 @@ def test_chunked_inserts_upsert_updates_every_other_column():
     (sql, _), = chunked_inserts("chunks", CHUNK_COLUMNS, [chunk_row(1)], upsert_on="id")
     assert sql.startswith("insert into chunks (id, episode_id, seq, ")
     assert " on conflict(id) do update set " in sql
-    update = sql.split(" do update set ")[1]
+    update, where = sql.split(" do update set ")[1].split(" where ")
     assert update == ", ".join(f"{c} = excluded.{c}" for c in CHUNK_COLUMNS[1:])
+    assert where == " or ".join(f"{c} is not excluded.{c}" for c in CHUNK_COLUMNS[1:])
     assert "insert or replace" not in sql and "replace" not in sql  # REPLACE skips the FTS trigger
+
+
+def test_chunked_inserts_upsert_skips_rows_that_did_not_change():
+    # D1 bills rows written, and each chunk update also rewrites its FTS rows.
+    db = sqlite3.connect(":memory:")
+    apply_schema(db)
+    add_episode(db)
+    db.execute("create temp table updated (id integer)")
+    db.execute("create temp trigger log_updates after update on chunks "
+               "begin insert into updated values (new.id); end")
+    rows = [chunk_row(1, "gluing dovetails"), chunk_row(2, "planing tenons")]
+    for sql, params in chunked_inserts("chunks", CHUNK_COLUMNS, rows, upsert_on="id"):
+        db.execute(sql, params)
+    rows[1] = chunk_row(2, "sharpening chisels")
+    rows.append(chunk_row(3, "cutting mortises"))
+    for sql, params in chunked_inserts("chunks", CHUNK_COLUMNS, rows, upsert_on="id"):
+        db.execute(sql, params)
+    assert [r[0] for r in db.execute("select id from updated")] == [2]
+    assert fts(db, "chisels") == [2] and fts(db, "tenons") == [] and fts(db, "mortises") == [3]
+    db.execute("insert into chunks_fts(chunks_fts, rank) values ('integrity-check', 1)")
+
+
+def test_chunked_inserts_upsert_sees_a_change_to_or_from_null():
+    db = sqlite3.connect(":memory:")
+    db.execute("create table t (id integer primary key, v text)")
+    for v in (None, "x", None):
+        for sql, params in chunked_inserts("t", ["id", "v"], [[1, v]], upsert_on="id"):
+            db.execute(sql, params)
+        assert db.execute("select v from t").fetchone() == (v,)
 
 
 def test_chunked_inserts_upsert_with_nothing_to_update_does_nothing():
@@ -506,7 +536,8 @@ def test_chunked_inserts_upsert_with_nothing_to_update_does_nothing():
 
 def test_chunked_inserts_upsert_on_several_columns():
     (sql, _), = chunked_inserts("t", ["env", "id", "v"], [["s", 1, 2]], upsert_on=("env", "id"))
-    assert sql.endswith(" on conflict(env, id) do update set v = excluded.v")
+    assert sql.endswith(" on conflict(env, id) do update set v = excluded.v "
+                        "where v is not excluded.v")
 
 
 def test_chunked_inserts_with_no_rows_makes_no_statements():

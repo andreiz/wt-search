@@ -265,7 +265,35 @@ def test_changing_only_an_offset_republishes_the_episode_row(conn, paths, embedd
     assert target.d1.rows("select offset_spotify_s from episodes where id = ?", (e,)) == [(42,)]
 
 
-@pytest.mark.parametrize(("video_s", "linked"), [(3605, False), (3602, True), (3597, True),
+def chunk_updates(target):
+    """Log chunk ids updated in the fake D1 from now on."""
+    target.d1.db.executescript(
+        "create temp table updated (id integer);"
+        "create temp trigger log_updates after update on chunks "
+        "begin insert into updated values (new.id); end;"
+    )
+    return lambda: [r[0] for r in target.d1.db.execute("select id from updated")]
+
+
+def test_republishing_writes_only_the_rows_that_changed(conn, paths, cfg, embedded):
+    # D1 bills rows written; a one-sentence correction mustn't rewrite the whole episode.
+    e = embedded()
+    target = Target()
+    pub(conn, paths, target, [e])
+    updated = chunk_updates(target)
+    conn.execute("update episodes set offset_apple_s = 5 where id = ?", (e,))
+    conn.commit()
+    pub(conn, paths, target, [e])
+    assert updated() == []  # only the episode row changed
+    second = local_chunks(conn, e)[2][0]
+    rechunk(conn, paths, cfg, e, [*CHUNKS[:2], ("then we talked about finishing cherry", False),
+                                  CHUNKS[3]])
+    pub(conn, paths, target, [e])
+    assert updated() == [second]
+    assert_published(conn, paths, target, e)
+
+
+@pytest.mark.parametrize(("video_s", "linked"),[(3605, False), (3602, True), (3597, True),
                                                  (3596, False), (None, False)])
 def test_youtube_length_rule(conn, paths, embedded, video_s, linked):
     e = embedded(duration_s=3600, youtube_video_id="vid123", youtube_duration_s=video_s)

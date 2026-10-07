@@ -1,5 +1,6 @@
 """The `wts` command line. Thin: each command delegates to a module."""
 
+import sys
 import uuid
 from dataclasses import dataclass, fields
 
@@ -172,6 +173,49 @@ def check_embeddings_cmd(n: int) -> None:
         click.echo(f"pooling or model mismatch: cosine below {MIN_COSINE}", err=True)
         raise SystemExit(1)
     click.echo("ok")
+
+
+@main.command("search", context_settings={"ignore_unknown_options": True})
+@click.option("--env", "env", type=click.Choice(ENV_NAMES), default=None,
+              help="Environment to search [default: run_env in config.toml].")
+@click.option("--mode", type=click.Choice(["smart", "exact"]), default="smart", show_default=True,
+              help="smart: keywords plus meaning; exact: keywords only.")
+@click.option("--sort", type=click.Choice(["relevance", "newest", "oldest"]),
+              default="relevance", show_default=True)
+@click.option("--page", type=click.IntRange(min=1), default=1, show_default=True)
+@click.option("--json", "as_json", is_flag=True, help="Print the API's response as JSON.")
+@click.argument("query", nargs=-1, required=True, type=click.UNPROCESSED)
+def search_cmd(env: str | None, mode: str, sort: str, page: int, as_json: bool,
+               query: tuple[str, ...]) -> None:
+    """Search a deployed environment through the Worker's API, as the web app does.
+
+    The query syntax is the web app's: "a phrase", -exclude, year:2015, ep:613, include:ads.
+    Quote it for the shell, e.g. wts search '"hide glue" -titebond'; words left unquoted are
+    joined with spaces, so a leading dash is fine. That also means a mistyped option (--sotr)
+    is searched for as words rather than rejected. The URL is `api_url` under [env.<name>]
+    in config.toml.
+    """
+    import json
+
+    from wts.net import new_client
+    from wts.search import SearchError, format_results
+    from wts.search import search as run_search
+
+    ctx = _ctx()
+    name = env or ctx.cfg.run_env
+    if not name:
+        raise click.UsageError(f"no environment: use --env or run_env in {ctx.paths.config_file}")
+    api_url = ctx.cfg.api_url(name)
+    try:
+        with new_client() as client:
+            response = run_search(client, api_url, " ".join(query), mode=mode, sort=sort, page=page)
+    except SearchError as exc:  # never holds the query string
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps(response, indent=2, ensure_ascii=False))
+        return
+    color = sys.stdout.isatty()  # click.get_text_stream is deprecated in click 8.5
+    click.echo(format_results(response, color=color), color=color)
 
 
 @main.group()

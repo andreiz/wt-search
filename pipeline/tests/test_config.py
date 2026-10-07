@@ -111,6 +111,49 @@ def test_unknown_env_name_is_refused():
     assert "staging" in str(exc.value) and "production" in str(exc.value)
 
 
+def test_api_url_is_read_and_loses_one_trailing_slash(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text('[env.staging]\napi_url = "https://wts-api-staging.example.workers.dev/"\n'
+                 '[env.production]\napi_url = "https://search.example.org"\n')
+    c = load_config(f)
+    assert c.api_url("staging") == "https://wts-api-staging.example.workers.dev"
+    assert c.api_url("production") == "https://search.example.org"
+
+
+def test_missing_api_url_names_the_key(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text(FULL)  # [env.staging] exists but has no api_url
+    for name in ("staging", "production"):
+        with pytest.raises(click.UsageError) as exc:
+            load_config(f).api_url(name)
+        assert f"[env.{name}] api_url" in str(exc.value)
+
+
+def test_api_url_refuses_an_unknown_env_name():
+    with pytest.raises(click.UsageError) as exc:
+        Config().api_url("prod")
+    assert "staging" in str(exc.value) and "production" in str(exc.value)
+
+
+def test_api_url_is_optional_for_the_cloudflare_settings(tmp_path):
+    """`wts publish` must keep working on a config written before `wts search` existed."""
+    f = tmp_path / "config.toml"
+    f.write_text(FULL)
+    c = load_config(f)
+    assert c.env("staging") == CloudflareEnv(
+        d1_database_id="d1-staging", vectorize_index="wts-chunks-staging"
+    )
+    assert set(c.envs) == {"staging"}
+
+
+def test_api_url_alongside_the_cloudflare_settings(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text(FULL + 'api_url = "https://wts-api-staging.example.workers.dev"\n')
+    c = load_config(f)
+    assert c.api_url("staging") == "https://wts-api-staging.example.workers.dev"
+    assert c.env("staging").d1_database_id == "d1-staging"
+
+
 def test_plan1_config_still_loads(tmp_path):
     f = tmp_path / "config.toml"
     f.write_text('feed_url = "https://example.com/feed"\nmin_free_gb = 5\n')

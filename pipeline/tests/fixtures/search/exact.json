@@ -1,0 +1,69 @@
+{
+  "total": 57,
+  "total_capped": false,
+  "truncated": false,
+  "page": 1,
+  "has_more": true,
+  "results": [
+    {
+      "episode": {
+        "id": 612,
+        "number": 612,
+        "title": "Dovetails, Glue and Bandsaw Tuning",
+        "date": "2024-03-12",
+        "links": {
+          "youtube": "https://www.youtube.com/watch?v=Xk2mQp9vLrA&t=1221s",
+          "apple": "https://podcasts.apple.com/podcast/id251471480?i=1000650000612",
+          "spotify": "https://open.spotify.com/episode/4rT7wPz0Hn2eVbJ6cYdA1k",
+          "page": "https://example.com/ep/612"
+        }
+      },
+      "chunk_id": 61204,
+      "text": "Honestly I think a hand cut dovetail is overrated, but a good dovetail saw is worth the money.",
+      "ranges": [[28, 36], [62, 70]],
+      "hit_ms": 1228000,
+      "cue_s": { "youtube": 1221, "apple": 1221, "spotify": 1221 },
+      "match": "keyword",
+      "more_in_episode": 2
+    },
+    {
+      "episode": {
+        "id": 598,
+        "number": 598,
+        "title": "Road Trip Special",
+        "date": "2023-08-02",
+        "links": {
+          "youtube": "https://www.youtube.com/watch?v=Qd8sNw3tUeF&t=3718s",
+          "page": "https://example.com/ep/598"
+        }
+      },
+      "chunk_id": 59877,
+      "text": "We drove 🚗 to the show and the dovetail jig 🔧 broke, so we cut the dovetail by hand.",
+      "ranges": [[32, 40], [69, 77]],
+      "hit_ms": 3725000,
+      "cue_s": { "youtube": 3718, "apple": 3718, "spotify": 3718 },
+      "match": "keyword",
+      "more_in_episode": 0
+    },
+    {
+      "episode": {
+        "id": 351,
+        "number": null,
+        "title": "Bonus: Shop Tour",
+        "date": "2022-11-05",
+        "links": {
+          "page": "https://example.com/ep/bonus-shop-tour"
+        }
+      },
+      "chunk_id": 35103,
+      "text": "dovetail layouts and then more dovetail",
+      "ranges": [[0, 8], [31, 39]],
+      "hit_ms": 7000,
+      "cue_s": { "youtube": 0, "apple": 0, "spotify": 0 },
+      "match": "keyword",
+      "more_in_episode": 0
+    }
+  ],
+  "mode": "exact",
+  "sort": "relevance"
+}

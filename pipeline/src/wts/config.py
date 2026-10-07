@@ -42,9 +42,7 @@ class Config:
 
     def env(self, name: str) -> CloudflareEnv:
         """The Cloudflare settings for `name`, or a UsageError naming what to add."""
-        if name not in ENV_NAMES:
-            raise click.UsageError(f"environment must be one of {', '.join(ENV_NAMES)}, "
-                                   f"not {name!r}")
+        _check_env_name(name)
         table = self.env_tables.get(name, {})
         missing = [f"[env.{name}] {k}" for k in _ENV_KEYS if not table.get(k)]
         if not self.cloudflare_account_id:
@@ -52,6 +50,24 @@ class Config:
         if missing:
             raise click.UsageError(f"config.toml is missing: {', '.join(missing)}")
         return self.envs[name]
+
+    def api_url(self, name: str) -> str:
+        """The Worker's base URL for `name` (`wts search`), without a trailing slash.
+
+        Optional, unlike the keys in `env()`: publishing doesn't call the Worker, so it is not
+        part of CloudflareEnv and a config without it still publishes.
+        """
+        _check_env_name(name)
+        url = self.env_tables.get(name, {}).get("api_url")
+        if not isinstance(url, str) or not url:
+            raise click.UsageError(f"config.toml is missing: [env.{name}] api_url")
+        return url.removesuffix("/")
+
+
+def _check_env_name(name: str) -> None:
+    if name not in ENV_NAMES:
+        raise click.UsageError(f"environment must be one of {', '.join(ENV_NAMES)}, "
+                               f"not {name!r}")
 
 
 def _path(value: str | None) -> Path | None:

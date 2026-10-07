@@ -9,6 +9,14 @@ export interface SeedEpisode {
   title: string;
   published_at: string;
   duration_s: number;
+  // Platform ids and cue offsets, for the link tests: null and 0 unless given.
+  page_url?: string | null;
+  youtube_video_id?: string | null;
+  apple_episode_id?: string | null;
+  spotify_episode_id?: string | null;
+  offset_youtube_s?: number;
+  offset_apple_s?: number;
+  offset_spotify_s?: number;
 }
 
 export interface SeedChunk {
@@ -18,6 +26,8 @@ export interface SeedChunk {
   start_ms: number;
   end_ms: number;
   text: string;
+  /** Encoded word times; defaults to wordTimes(text), 400 ms per word. */
+  word_times?: string;
   is_boilerplate?: boolean;
 }
 
@@ -86,10 +96,27 @@ export async function seed(
     statements.push(
       db
         .prepare(
-          `INSERT INTO episodes (id, guid, number, title, published_at, year, duration_s)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO episodes (id, guid, number, title, published_at, year, duration_s, page_url,
+                                 youtube_video_id, apple_episode_id, spotify_episode_id,
+                                 offset_youtube_s, offset_apple_s, offset_spotify_s)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(e.id, e.guid, e.number, e.title, e.published_at, Number(e.published_at.slice(0, 4)), e.duration_s),
+        .bind(
+          e.id,
+          e.guid,
+          e.number,
+          e.title,
+          e.published_at,
+          Number(e.published_at.slice(0, 4)),
+          e.duration_s,
+          e.page_url ?? null,
+          e.youtube_video_id ?? null,
+          e.apple_episode_id ?? null,
+          e.spotify_episode_id ?? null,
+          e.offset_youtube_s ?? 0,
+          e.offset_apple_s ?? 0,
+          e.offset_spotify_s ?? 0,
+        ),
     );
   }
   for (const c of chunks) {
@@ -99,7 +126,16 @@ export async function seed(
           `INSERT INTO chunks (id, episode_id, seq, start_ms, end_ms, text, word_times, is_boilerplate)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(c.id, c.episode_id, c.seq, c.start_ms, c.end_ms, c.text, wordTimes(c.text), c.is_boilerplate ? 1 : 0),
+        .bind(
+          c.id,
+          c.episode_id,
+          c.seq,
+          c.start_ms,
+          c.end_ms,
+          c.text,
+          c.word_times ?? wordTimes(c.text),
+          c.is_boilerplate ? 1 : 0,
+        ),
     );
   }
   await db.batch(statements);

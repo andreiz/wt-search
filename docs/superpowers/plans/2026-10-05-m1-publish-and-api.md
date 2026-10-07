@@ -624,6 +624,7 @@ A terminal client for the maintainer: searches a deployed environment through th
    - Search a sponsor read word for word: hidden by default, found with `include:ads`.
 4. **Cue times:** for five hits, play the episode file from `audio_dir` at `hit_ms` (and the YouTube link where there is one). The hit word should be spoken within about 7 s after the cue.
 5. **Latency:** `npx wrangler tail --env staging` during the searches; note typical latency.
+6. **Rows read** (D1 bills them; Free 5M/day): exact search counts and sorts every matching chunk, so a common word reads every row it matches. Run the search query for a common word (`wood`) with `wrangler d1 execute … --remote --json` and note `meta.rows_read`; scale by archive/seed size (~72k/4.2k chunks) to see whether the archive needs a cheaper count or edge caching first (Task 15).
 
 ---
 

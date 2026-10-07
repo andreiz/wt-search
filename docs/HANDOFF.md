@@ -5,9 +5,9 @@ then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-**Plan 2: Tasks 1–12 and Checkpoints D and E are done. Next: Task 13 (exact search)**,
-then Task 13a (`wts search`, added 2026-10-07) and Checkpoint F (deploy the Worker, exact
-search on staging with `wts search`).
+**Plan 2: Tasks 1–13 and Checkpoints D and E are done. Next: Task 13a (`wts search`,
+added 2026-10-07)**, then Checkpoint F (deploy the Worker, exact search on staging with
+`wts search`).
 
 How the maintainer works:
 - Test-first, one commit per task, straight to `main` (CLAUDE.md). Edit tool for changes.
@@ -41,7 +41,8 @@ How the maintainer works:
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`.
   **484 tests**, ruff clean (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
-  word times, highlights, cue times and deep links. **125 tests**, type-check clean.
+  word times, highlights, cue times, deep links, exact `/api/search`. **166 tests**,
+  type-check clean.
   Pipeline: **485 tests**.
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;
@@ -168,6 +169,20 @@ How the maintainer works:
   - Apple link `https://podcasts.apple.com/podcast/id251471480?i=<id>` (no country or slug:
     to be checked by hand). Apple and Spotify carry no time until `docs/deep-links.md` says
     a format works; a test pins that.
+- **Task 13** `worker/src/search.ts`, `GET /api/search` (Sonnet). Response shape and
+  collapsing rules in spec §4.4.
+  - One `env.DB.batch()` of two statements (count, page) per search; none when `fts` is
+    null. SQL only from fixed fragments (ORDER BY from a table); `fts`, filters, LIMIT and
+    OFFSET bound. A test checks query text never reaches the SQL.
+  - **Until Task 14, `mode=smart` (the default) returns the exact results with
+    `smart_degraded: true`**, the same keyword-only answer smart mode gives when AI or
+    Vectorize fail. Task 14 replaces it.
+  - `sort` is case-insensitive; `page` must be digits (else 1), clamped to 1–1000.
+  - bm25 favours short chunks, even with one occurrence (a test had to use `sort=oldest`
+    to pin collapse behaviour).
+  - **Watch: rows read.** Counting and sorting read every matching chunk; on the archive
+    a common word could read most of ~72k chunks per search. Checkpoint F step 6 measures
+    it; Task 15's edge cache helps.
 - **Task 13a added (2026-10-07, maintainer's idea):** `wts search`, a terminal client of
   `/api/search` for the maintainer only (no listener tool, no offline search over `state.db`).
   It calls the deployed Worker rather than reimplementing search in Python, so it shows what
@@ -214,7 +229,7 @@ Task 16 (smart search, report, caching, `wts run --env staging` end to end). Pla
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 2 (Tasks 1–12, Checkpoints D–E done; Task 13 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–13, Checkpoints D–E done; Task 13a next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Plan 1 (done, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md). Superpowers skills install from `.claude/settings.json`.
 

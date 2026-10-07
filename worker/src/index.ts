@@ -1,4 +1,6 @@
 import type { Env } from "./env";
+import { parseQuery } from "./query";
+import { exactSearch, MAX_EXACT_PAGE, type SearchResponse, type Sort } from "./search";
 
 type Handler = (request: Request, env: Env) => Response | Promise<Response>;
 
@@ -43,8 +45,45 @@ const health: Handler = async (request, env) => {
   return json({ ok: true, corpus_version: row.value });
 };
 
+const SORTS: readonly Sort[] = ["relevance", "newest", "oldest"];
+
+/** Anything but a plain non-negative integer is page 1; a page past the cap is the cap. */
+function parsePage(value: string | null): number {
+  if (value === null || !/^\d+$/.test(value)) return 1;
+  return Math.min(Math.max(Number(value), 1), MAX_EXACT_PAGE);
+}
+
+/**
+ * GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page= (spec §4.4).
+ * Bad parameters fall back to their defaults and bad query syntax is plain words (query.ts),
+ * so the only error is D1 being down.
+ */
+const search: Handler = async (request, env) => {
+  const params = new URL(request.url).searchParams;
+  const mode = params.get("mode") === "exact" ? "exact" : "smart";
+  const sortParam = (params.get("sort") ?? "").toLowerCase();
+  const sort = SORTS.find((s) => s === sortParam) ?? "relevance";
+  const page = parsePage(params.get("page"));
+
+  let response: SearchResponse;
+  try {
+    response = await exactSearch(env.DB, parseQuery(params.get("q") ?? ""), sort, page);
+  } catch (err) {
+    logError("d1_unavailable", request, err);
+    return json({ error: "unavailable" }, 503);
+  }
+  // Task 14 replaces this: smart mode will merge the Vectorize results into the keyword ones,
+  // and set smart_degraded only when AI or Vectorize fail. Until then smart mode is the same
+  // keyword-only answer that Task 14 gives in that failure.
+  if (mode === "smart") response = { ...response, smart_degraded: true };
+  return json({ ...response, mode, sort });
+};
+
 // Keyed by "METHOD /path". A known path with another method is simply not found.
-const routes = new Map<string, Handler>([["GET /api/health", health]]);
+const routes = new Map<string, Handler>([
+  ["GET /api/health", health],
+  ["GET /api/search", search],
+]);
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {

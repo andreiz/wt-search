@@ -478,6 +478,17 @@ Parser rules (`worker/src/query.ts`):
   - Highlight ranges are `[start, end)` offsets into `text` in UTF-16 code
     units (JavaScript string indices, what the frontend slices with). Other
     clients convert; Python indexes by code point.
+  - Response (as built in plan 2 Task 13): `{total, page, has_more, results,
+    mode, sort, smart_degraded?}`. Each result: `{episode: {id, number,
+    title, date, links}, chunk_id, text, ranges, hit_ms, cue_s, match,
+    more_in_episode}`; `more_in_episode` is always present (0 when nothing
+    collapsed).
+  - Exact mode collapses **per page**: a hit is folded into an earlier *kept*
+    result on the same page from the same episode less than 120 s away, so a
+    page can show fewer than 20 results. `total` counts matching chunks
+    before collapsing. Pages past 1000 are clamped.
+  - Bad parameters fall back to defaults (`sort` → relevance, `page` → 1);
+    the only error is D1 being down (503).
 - `GET /api/context?chunk=&radius=3`: neighboring chunks, ±radius, with
   timestamps.
 - `POST /api/report`

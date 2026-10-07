@@ -26,4 +26,7 @@ global:
   # transcripts: no plain-English "a tight bond" yet; re-check as the archive grows.
   tight bond: Titebond
   tightbond: Titebond
+  # Bessey clamps (ep044, ep598 x2). "Bessie" is also a first name: checked on all 36
+  # transcripts, every match is the brand; re-check as the archive grows.
+  bessie: Bessey
 episodes: {}

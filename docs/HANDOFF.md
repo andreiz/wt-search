@@ -9,6 +9,12 @@ then [README.md](../README.md), then the spec sections it points to.
 deploy the Worker, add `api_url` under `[env.staging]`, exact search on staging with
 `wts search`, cue times, rows read), then Task 14 (smart search).
 
+Checkpoint F done so far (2026-10-07): Worker deployed to staging (`wts-api-staging`,
+without the Analytics binding, below); `wts search --env staging` works on the real corpus;
+YouTube and Spotify links open at the cue (Spotify now `?t=<s>`, the format its own share
+sheet makes; `docs/deep-links.md`). Still open: five cue times against the audio, latency
+(`wrangler tail`), and `rows_read` for a common word (step 6).
+
 Checkpoint F testing also brought (2026-10-07): corrections for Titebond, Bessey, Roubo,
 Schwarz and lumber thickness (`eight quarter` → 8/4; 4/4–16/4), each checked with
 `check_corrections.py` on all 36 transcripts on the Mac; `wts search` saying when hits were

@@ -21,8 +21,14 @@ The bare Apple URL, `https://podcasts.apple.com/podcast/id251471480?i=<episode i
 no country or slug. Whether it opens the episode on each device is itself to be checked:
 the Apple rows below cover it as well as the time.
 
+**2026-10-07, Checkpoint F:** the maintainer opened YouTube and Spotify links from
+`wts search` on staging; both started at the cue. Devices weren't noted per row, so the rows
+below stay open until each is seen on its own.
+
 | Platform | Device | Format | Result |
 | --- | --- | --- | --- |
+| YouTube | any (maintainer's) | `&t=<s>s` | works (2026-10-07) |
+| Spotify | any (maintainer's) | `?t=<s>` | works (2026-10-07) |
 | YouTube | iOS app | `&t=<s>s` (what the Worker uses) | not checked |
 | YouTube | Android app | `&t=<s>s` (what the Worker uses) | not checked |
 | YouTube | Desktop web | `&t=<s>s` (what the Worker uses) | not checked |

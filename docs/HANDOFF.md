@@ -22,7 +22,9 @@ and ask the maintainer which branch to continue on.
   `exclude` (excluded terms as one FTS5 expression: drop vector hits with
   `rowid NOT IN (… MATCH exclude)`). Never build FTS5 from user text yourself.
 - Collapse with the same rule as exact (`collapse()` in `search.ts`; spec §4.4); smart caps
-  at 5 pages / 100 results. Spec §4.4 now has `total_capped`/`truncated` for exact; decide
+  at 100 results (5 pages at the default 20). `?limit=` (page size 1–20, added at the end of
+  session 4) must work in smart mode too: cap pages at `ceil(100 / limit)`, as exact does
+  with `maxExactPage()`. Spec §4.4 now has `total_capped`/`truncated` for exact; decide
   and record what smart returns instead of `total`.
 - **When smart mode stops returning `total`, `worker/test/search-contract.test.ts` fails on
   purpose:** update `pipeline/tests/fixtures/search/smart_degraded.json` (and add a
@@ -93,11 +95,11 @@ How the maintainer works:
 
 - **Pipeline** (`pipeline/`, `wts` CLI): plan 1 complete; plan 2 adds secrets, config for
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
-  `wts search`, hyphen joining in `wts chunk`. **583 tests**, ruff clean
+  `wts search` (with `--limit N`), hyphen joining in `wts chunk`. **588 tests**, ruff clean
   (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
-  `/api/search` with result caps. **192 tests**, type-check clean. **Deployed to staging**:
+  `/api/search` with result caps and `?limit=` (page size). **196 tests**, type-check clean. **Deployed to staging**:
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;

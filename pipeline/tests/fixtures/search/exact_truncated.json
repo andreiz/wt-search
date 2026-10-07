@@ -3,6 +3,7 @@
   "total_capped": true,
   "truncated": true,
   "page": 10,
+  "limit": 20,
   "has_more": false,
   "results": [
     {

@@ -423,6 +423,24 @@ describe("parameters", () => {
     expect((await exact("bandsaw")).page).toBe(1);
   });
 
+  it("takes a page size from limit, 1 to 20, and echoes it", async () => {
+    const one = await exact("bandsaw", { limit: "5" });
+    const two = await exact("bandsaw", { limit: "5", page: "2" });
+    expect(one).toMatchObject({ total: 25, limit: 5, page: 1, has_more: true });
+    expect(ids(one)).toEqual([2001, 2002, 2003, 2004, 2005]);
+    expect(ids(two)).toEqual([2006, 2007, 2008, 2009, 2010]);
+    expect((await exact("bandsaw", { limit: "5", page: "5" })).has_more).toBe(false);
+    expect((await exact("bandsaw", { limit: "1" })).results).toHaveLength(1);
+  });
+
+  it("treats a missing or bad limit as 20 and clamps a big one to 20", async () => {
+    for (const limit of [undefined, "0", "abc", "-5", "2.5", "", "21", "1000"]) {
+      const body = await exact("bandsaw", limit === undefined ? {} : { limit });
+      expect(body.limit, String(limit)).toBe(20);
+      expect(body.results, String(limit)).toHaveLength(20);
+    }
+  });
+
   it("clamps a huge page to 10", async () => {
     for (const page of ["10", "11", "99999999999999999999"]) {
       const body = await exact("bandsaw", { page });

@@ -455,7 +455,12 @@ Parser rules (`worker/src/query.ts`):
 
 ### 4.4 Endpoints
 
-- `GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=`
+- `GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=&limit=`
+  - `limit` is the page size, 1–20 (default 20; bigger is clamped, bad is
+    20), echoed in the response. The result caps stay in results, not pages:
+    exact mode's 200 is 10 pages at 20, 40 at 5; the last page stops at
+    result 200. *(Added 2026-10-07, maintainer.)* `wts search --limit N`
+    is separate: it trims the printed page after collapsing.
   - `exact`: FTS5 only. With `sort=relevance` it is ranked by BM25;
     otherwise it is ordered by `published_at`, then by position in the
     episode. The response includes `total` (the match count, up to 1,000).

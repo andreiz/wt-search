@@ -11,16 +11,22 @@ import type { ParsedQuery } from "./query";
 
 export const PAGE_SIZE = 20;
 /**
- * Exact search shows at most this many pages (200 results); deeper pages are clamped. Nobody
- * reads further, so a broad query gets the best 200 and a notice to narrow it (`truncated`).
+ * Exact search shows at most this many results; deeper pages are clamped. Nobody reads
+ * further, so a broad query gets the best 200 and a notice to narrow it (`truncated`).
  */
-export const MAX_EXACT_PAGE = 10;
+export const MAX_EXACT_RESULTS = 200;
+/** The last page at the default page size. */
+export const MAX_EXACT_PAGE = MAX_EXACT_RESULTS / PAGE_SIZE;
+
+/** The last page for a page size of `limit` (`?limit=`, 1–PAGE_SIZE): 10 at 20, 40 at 5. */
+export function maxExactPage(limit: number): number {
+  return Math.ceil(MAX_EXACT_RESULTS / limit);
+}
 /**
  * The count stops here ("1,000+", `total_capped`), so a common word doesn't read every
  * matching row just to be counted. D1 bills rows read.
  */
 export const COUNT_CAP = 1000;
-const MAX_SHOWN = MAX_EXACT_PAGE * PAGE_SIZE;
 /** Hits in one episode less than this far apart are shown as one result (spec §4.4). */
 export const COLLAPSE_MS = 120_000;
 
@@ -51,10 +57,12 @@ export interface SearchResponse {
   total: number;
   /** There are more than COUNT_CAP matches: show the total as "1,000+". */
   total_capped: boolean;
-  /** There are more matches than the pages show (MAX_EXACT_PAGE): suggest narrowing the query. */
+  /** There are more matches than the pages show (MAX_EXACT_RESULTS): suggest narrowing the query. */
   truncated: boolean;
   page: number;
-  /** Another page can be shown (never past MAX_EXACT_PAGE). */
+  /** The page size (`?limit=`, 1–PAGE_SIZE). */
+  limit: number;
+  /** Another page can be shown (never past MAX_EXACT_RESULTS). */
   has_more: boolean;
   results: SearchResult[];
   /** Smart mode could not use meaning-based search and answered with keywords only. */
@@ -145,7 +153,7 @@ function toResult(row: Row): SearchResult {
  * Collapse hits of one episode that are close in time, per page: the first result in page
  * order is kept and counts the ones it absorbs. Only kept results are compared against, so
  * a long run of hits is not swallowed by a chain of near neighbours. A page can therefore
- * hold fewer than PAGE_SIZE results, and a hit on the next page is not merged into this one.
+ * hold fewer than `limit` results, and a hit on the next page is not merged into this one.
  */
 function collapse(rows: Row[]): SearchResult[] {
   const kept: SearchResult[] = [];
@@ -169,26 +177,32 @@ export async function exactSearch(
   parsed: ParsedQuery,
   sort: Sort,
   page: number,
+  limit: number = PAGE_SIZE,
 ): Promise<SearchResponse> {
   // Nothing to match (empty, only filters, only exclusions): no D1 call at all.
   if (parsed.fts === null) {
-    return { total: 0, total_capped: false, truncated: false, page, results: [], has_more: false };
+    return { total: 0, total_capped: false, truncated: false, page, limit, results: [], has_more: false };
   }
 
+  // The route clamps page to maxExactPage(limit), so offset < MAX_EXACT_RESULTS; the last page
+  // stops at result 200 even when limit doesn't divide it.
+  const offset = (page - 1) * limit;
+  const rowLimit = Math.max(0, Math.min(limit, MAX_EXACT_RESULTS - offset));
   const { sql, params } = matching({ ...parsed, fts: parsed.fts });
   const [count, rows] = await db.batch([
     db.prepare(countSql(sql)).bind(...params, COUNT_CAP + 1),
     db
       .prepare(`${SELECT_PAGE} ${sql} ${ORDER_BY[sort]} LIMIT ? OFFSET ?`)
-      .bind(...params, PAGE_SIZE, (page - 1) * PAGE_SIZE),
+      .bind(...params, rowLimit, offset),
   ]);
   const matches = (count?.results[0] as { n: number } | undefined)?.n ?? 0;
   return {
     total: Math.min(matches, COUNT_CAP),
     total_capped: matches > COUNT_CAP,
-    truncated: matches > MAX_SHOWN,
+    truncated: matches > MAX_EXACT_RESULTS,
     page,
-    has_more: page * PAGE_SIZE < Math.min(matches, MAX_SHOWN),
+    limit,
+    has_more: page * limit < Math.min(matches, MAX_EXACT_RESULTS),
     results: collapse((rows?.results ?? []) as unknown as Row[]),
   };
 }

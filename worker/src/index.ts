@@ -1,6 +1,6 @@
 import type { Env } from "./env";
 import { parseQuery } from "./query";
-import { exactSearch, MAX_EXACT_PAGE, type SearchResponse, type Sort } from "./search";
+import { exactSearch, maxExactPage, PAGE_SIZE, type SearchResponse, type Sort } from "./search";
 
 type Handler = (request: Request, env: Env) => Response | Promise<Response>;
 
@@ -47,14 +47,20 @@ const health: Handler = async (request, env) => {
 
 const SORTS: readonly Sort[] = ["relevance", "newest", "oldest"];
 
+/** The page size: a plain integer, 1–PAGE_SIZE; anything else is PAGE_SIZE, bigger is clamped. */
+function parseLimit(value: string | null): number {
+  if (value === null || !/^\d+$/.test(value) || Number(value) < 1) return PAGE_SIZE;
+  return Math.min(Number(value), PAGE_SIZE);
+}
+
 /** Anything but a plain non-negative integer is page 1; a page past the cap is the cap. */
-function parsePage(value: string | null): number {
+function parsePage(value: string | null, limit: number): number {
   if (value === null || !/^\d+$/.test(value)) return 1;
-  return Math.min(Math.max(Number(value), 1), MAX_EXACT_PAGE);
+  return Math.min(Math.max(Number(value), 1), maxExactPage(limit));
 }
 
 /**
- * GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page= (spec §4.4).
+ * GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=&limit= (spec §4.4).
  * Bad parameters fall back to their defaults and bad query syntax is plain words (query.ts),
  * so the only error is D1 being down.
  */
@@ -63,11 +69,12 @@ const search: Handler = async (request, env) => {
   const mode = params.get("mode") === "exact" ? "exact" : "smart";
   const sortParam = (params.get("sort") ?? "").toLowerCase();
   const sort = SORTS.find((s) => s === sortParam) ?? "relevance";
-  const page = parsePage(params.get("page"));
+  const limit = parseLimit(params.get("limit"));
+  const page = parsePage(params.get("page"), limit);
 
   let response: SearchResponse;
   try {
-    response = await exactSearch(env.DB, parseQuery(params.get("q") ?? ""), sort, page);
+    response = await exactSearch(env.DB, parseQuery(params.get("q") ?? ""), sort, page, limit);
   } catch (err) {
     logError("d1_unavailable", request, err);
     return json({ error: "unavailable" }, 503);

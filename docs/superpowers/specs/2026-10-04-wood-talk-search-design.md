@@ -436,6 +436,21 @@ for meaning-based search is the query with operators, exclusions and filters
 removed. If the input can't be parsed, fall back to plain quoted words;
 never return an error for bad syntax.
 
+Parser rules (`worker/src/query.ts`):
+- User text reaches FTS5 only inside double-quoted strings (`"` doubled);
+  operators come only from parsed syntax. FTS5 syntax typed by a user
+  (`text:foo`, `NEAR(`, `^x`) is plain text.
+- Input is cut to 200 code points. Curly quotes act as straight ones;
+  control characters and lone surrogates become spaces.
+- `OR` is uppercase only and is ignored when either side isn't a word
+  (start, end, next to an exclusion or a filter). An unbalanced `"` is
+  dropped. Words with no letter or digit (emoji, lone `-` or `*`) are dropped.
+- A malformed filter (`year:abc`, `ep:` with no number) is searched as a
+  plain word. A repeated filter: the last one wins.
+- Only exclusions, or only filters → nothing to match (no results).
+- The parser also returns the excluded terms as their own expression, so
+  smart search can drop excluded vector hits.
+
 ### 4.4 Endpoints
 
 - `GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=`

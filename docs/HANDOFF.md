@@ -5,8 +5,9 @@ then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-**Plan 2: Tasks 1–10 and Checkpoints D and E are done. Next: Task 11 (query parser)**, then
-Tasks 12–13 and Checkpoint F (deploy the Worker, exact search on staging with `curl`).
+**Plan 2: Tasks 1–11 and Checkpoints D and E are done. Next: Task 12 (word times,
+highlights, cue times, deep links)**, then Task 13 and Checkpoint F (deploy the Worker, exact
+search on staging with `curl`).
 
 How the maintainer works:
 - Test-first, one commit per task, straight to `main` (CLAUDE.md). Edit tool for changes.
@@ -17,15 +18,14 @@ How the maintainer works:
   call made that the plan didn't spell out.
 - Record design changes in the spec (source of truth) and in this file.
 
-**Task 11 pointers** (plan Task 11, Review Focus 4, spec §4.3):
-- The parser must **never** let user input reach `MATCH` unquoted and must never throw: every
-  term double-quoted with `"` doubled; operators only from parsed syntax. The plan lists the
-  hostile inputs (`text:foo`, `NEAR(a b)`, `^x`, unbalanced quotes, lone `-`, `OR` at the
-  ends, `year:abc`, emoji, smart quotes, 500 characters).
-- Each test case also runs its `fts` against the test D1 to prove FTS5 accepts it. Pattern:
-  `worker/test/health.test.ts` (imports `env` from `cloudflare:workers`, seeds with
-  `test/seed.ts`; storage is isolated per test file; `test/apply-migrations.ts` applies
-  `schema/` before each file). Use `env.DB.prepare(...).bind(...).all()`.
+**Worker test pointers:**
+- Pattern: `worker/test/health.test.ts` and `query.test.ts` (import `env` from
+  `cloudflare:workers`, seed with `test/seed.ts`; storage is isolated per test file;
+  `test/apply-migrations.ts` applies `schema/` before each file). Use
+  `env.DB.prepare(...).bind(...).all()`.
+- **Never put a raw lone surrogate or NUL in a test name**: Vitest's WebSocket rejects it as
+  invalid UTF-8 and the whole file silently drops out of the run (title with
+  `JSON.stringify`). Check the test count after a run.
 - Workers on the Free plan get only **50 D1 queries per invocation**: keep search to a
   handful of queries per request (Tasks 13–15).
 - Commands: `cd worker && npm test`, `npx tsc --noEmit` (strict, `noUncheckedIndexedAccess`).
@@ -40,8 +40,8 @@ How the maintainer works:
 - **Pipeline** (`pipeline/`, `wts` CLI): plan 1 complete; plan 2 adds secrets, config for
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`.
   **484 tests**, ruff clean (`cd pipeline && uv run pytest -q`).
-- **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`. **9 tests**,
-  type-check clean.
+- **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser.
+  **77 tests**, type-check clean.
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;
   **36 in scope** (35 seed + ep71, added 2026-10-07 for its poor-audio call-ins — a good source
@@ -140,6 +140,17 @@ How the maintainer works:
   - `/api/health`: one D1 query; query throws → 503 `unavailable`; missing `corpus_version` →
     500; unknown route → 404 `not_found`; one JSON `console.error` line per error, no IP,
     query string or stack.
+- **Task 11** `worker/src/query.ts` (Sonnet): `parseQuery()` → `{fts, semantic, filters,
+  includeAds, terms, exclude}`; rules in spec §4.3. Calls beyond the plan:
+  - `exclude` (excluded terms ORed, an FTS5 expression) added for Task 14, which must drop
+    excluded vector hits (`rowid not in (… match exclude)`).
+  - `terms` are already FTS5-quoted (`"pref"*` keeps its star): Task 14 joins them with
+    ` OR ` and never quotes user text itself.
+  - Malformed filters (`year:abc`, `ep:`) are searched as plain words; `OR` with nothing on
+    one side is ignored; `"phrase"*` drops the `*` (prefixes are on words only).
+  - Tests: 63 table cases, each run against the test D1 (with expected rows where it
+    matters); 500 seeded fuzz inputs checked to be quoted strings plus operators only and
+    accepted by FTS5; the worst case (100 ANDed terms, 66 exclusions) within FTS5's depth.
 - **Run cadence (for M2's launchd job):** daily, early morning local time. Releases are mostly
   Wednesdays, every ~13 days (breaks up to 36 days in 2026, 68 in 2025); an idle run is a few
   requests and ~8 YouTube quota units; daily runs also catch YouTube uploads that land late.
@@ -184,7 +195,7 @@ Task 16 (smart search, report, caching, `wts run --env staging` end to end). Pla
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 2 (Tasks 1–10, Checkpoints D–E done; Task 11 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–11, Checkpoints D–E done; Task 12 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Plan 1 (done, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md). Superpowers skills install from `.claude/settings.json`.
 

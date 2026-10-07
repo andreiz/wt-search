@@ -306,7 +306,7 @@ committed:
   account.
 - The Spotify client credentials.
 - The YouTube Data API key.
-- The ntfy topic name.
+- The ntfy topic name, and an access token when the ntfy server requires one.
 
 ### 3.7 Review tool (`wts review`)
 
@@ -674,10 +674,12 @@ as the API.
   sent to the target environment. Each must return its expected episode in
   the top 10.
 
-### 8.2 Notifications (ntfy.sh)
+### 8.2 Notifications (ntfy)
 
-A private, hard-to-guess topic name, stored in the Keychain. `wts` sends a
-push for:
+A private, hard-to-guess topic name, stored in the Keychain. The server is
+ntfy.sh unless `ntfy_url` in `config.toml` names another; the maintainer runs
+their own, which can require an access token (Keychain `ntfy_token`, sent as a
+bearer header). *(Revised 2026-10-07.)* `wts` sends a push for:
 
 - New episodes published (number, title, chunk count).
 - Episodes that hit `error`, or ran out of retries.

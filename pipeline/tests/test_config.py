@@ -62,6 +62,13 @@ def test_platform_defaults():
     assert c.youtube_handle == "@WoodTalk"
     assert c.spotify_show_id is None and c.backup_dir is None and c.run_env is None
     assert c.envs == {}
+    assert c.ntfy_url == "https://ntfy.sh"
+
+
+def test_ntfy_url_for_a_self_hosted_server(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text('ntfy_url = "https://ntfy.example.net/"\n')
+    assert load_config(f).ntfy_url == "https://ntfy.example.net/"
 
 
 def test_missing_env_names_what_to_add(tmp_path):

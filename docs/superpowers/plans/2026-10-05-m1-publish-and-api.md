@@ -465,7 +465,7 @@ Needs the seed corpus embedded (plan 1's Checkpoint C). The Worker isn't deploye
    - Apply the schema: `cd worker && npx wrangler d1 migrations apply wts-staging --env staging --remote`.
 2. **API token** scoped to this account, with D1 Edit, Vectorize Edit and Workers AI Read. Then `uv run wts secrets set cloudflare_api_token`.
 3. **Config:** `cloudflare_account_id` and `[env.staging]` in `config.toml`.
-4. **Notifications:** `uv run wts secrets set ntfy_topic`, subscribe to the topic on the phone, then `uv run wts notify test` — the push should arrive.
+4. **Notifications:** `ntfy_url = "https://…"` in `config.toml` for the maintainer's own ntfy server; `uv run wts secrets set ntfy_topic` (and `ntfy_token` if the server requires an access token with write access to that topic); subscribe to the topic on the phone, then `uv run wts notify test` — the push should arrive.
 5. **Pooling check:** `uv run wts check-embeddings` must pass (cosine ≥ 0.99). If it fails, stop: smart search would be wrong.
 6. **Publish:** `uv run wts publish --env staging --dry-run`, then without `--dry-run`. Expect 35 episodes published.
 7. **Inspect:**

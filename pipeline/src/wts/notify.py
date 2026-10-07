@@ -1,4 +1,5 @@
-"""Push notifications through ntfy.sh (spec §6, §8.2).
+"""Push notifications through ntfy (spec §6, §8.2): ntfy.sh, or a self-hosted server set as
+`ntfy_url` in config.toml, with an optional access token (secret `ntfy_token`).
 
 Messages are sent with ntfy's JSON publishing: the topic, title and priority go in the request
 body. Episode titles contain non-ASCII characters that HTTP headers can't carry safely, and
@@ -44,10 +45,16 @@ class Notifier(Protocol):
 
 
 class NtfyNotifier:
-    def __init__(self, client: httpx.Client, topic: str, base_url: str = NTFY_URL):
+    def __init__(
+        self, client: httpx.Client, topic: str, base_url: str = NTFY_URL, *,
+        token: str | None = None,
+    ):
         self._client = client
         self._topic = topic
         self._url = base_url.rstrip("/") + "/"
+        # A self-hosted server with access control wants a token (ntfy's `tk_…`), sent only in
+        # the header: httpx error messages carry the URL, never headers.
+        self._headers = {"Authorization": f"Bearer {token}"} if token else {}
 
     def send(
         self, title: str, body: str, *, priority: str = "default", tags: Sequence[str] = ()
@@ -59,7 +66,9 @@ class NtfyNotifier:
             "priority": PRIORITIES[priority], "tags": list(tags),
         }
         try:
-            self._client.post(self._url, json=payload, timeout=10).raise_for_status()
+            self._client.post(
+                self._url, json=payload, headers=self._headers, timeout=10
+            ).raise_for_status()
         except httpx.HTTPError as exc:
             log.warning(f"could not send notification: {describe_http_error(exc)}")
             return False
@@ -79,10 +88,14 @@ class NullNotifier:
         return False
 
 
-def get_notifier(client: httpx.Client, store: SecretStore) -> Notifier:
-    """NtfyNotifier when `ntfy_topic` is set, else NullNotifier with a warning (once per call)."""
+def get_notifier(
+    client: httpx.Client, store: SecretStore, base_url: str = NTFY_URL
+) -> Notifier:
+    """NtfyNotifier for the server at `base_url` (config `ntfy_url`) when `ntfy_topic` is set,
+    with `ntfy_token` if set; else NullNotifier with a warning (once per call)."""
     try:
         topic = store.get("ntfy_topic")
+        token = store.get("ntfy_token") if topic is not None else None
     except KeychainError as exc:  # its message names the secret and the exit code only
         log.warning(f"notifications are off: {exc}")
         return NullNotifier()
@@ -91,7 +104,7 @@ def get_notifier(client: httpx.Client, store: SecretStore) -> Notifier:
             "notifications are off: ntfy_topic is not set (run `wts secrets set ntfy_topic`)"
         )
         return NullNotifier()
-    return NtfyNotifier(client, topic)
+    return NtfyNotifier(client, topic, base_url, token=token)
 
 
 def _label(row: sqlite3.Row) -> str:

@@ -29,6 +29,7 @@ class Config:
     apple_podcast_id: int = 251471480
     spotify_show_id: str | None = None
     youtube_handle: str = "@WoodTalk"
+    ntfy_url: str = "https://ntfy.sh"  # or a self-hosted server; its token is a secret
 
     @property
     def envs(self) -> dict[str, CloudflareEnv]:
@@ -73,4 +74,5 @@ def load_config(path: Path) -> Config:
         apple_podcast_id=int(data.get("apple_podcast_id", defaults.apple_podcast_id)),
         spotify_show_id=data.get("spotify_show_id"),
         youtube_handle=data.get("youtube_handle", defaults.youtube_handle),
+        ntfy_url=data.get("ntfy_url", defaults.ntfy_url),
     )

@@ -364,7 +364,7 @@ def run_all(
     episodes already downloaded. A machine problem is notified and re-raised.
     """
     started = datetime.now(UTC).isoformat(timespec="seconds")
-    notifier = notifier or get_notifier(client or new_client(), get_store())
+    notifier = notifier or get_notifier(client or new_client(), get_store(), cfg.ntfy_url)
     results: dict[str, Counter] = {}
     try:
         if cfg.feed_url:

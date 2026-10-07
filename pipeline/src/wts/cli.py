@@ -239,7 +239,7 @@ def notify() -> None:
 
 @notify.command("test")
 def notify_test() -> None:
-    """Send one test message to the ntfy topic."""
+    """Send one test message to the ntfy topic (on `ntfy_url`, with `ntfy_token` if set)."""
     import platform
 
     from wts.net import new_client
@@ -248,13 +248,15 @@ def notify_test() -> None:
 
     ctx = _ctx()
     ctx.logger()
+    store = get_store()
     try:
-        topic = get_store().get("ntfy_topic")
+        topic = store.get("ntfy_topic")
+        token = store.get("ntfy_token")
     except KeychainError as exc:
         raise click.ClickException(str(exc)) from exc
     if topic is None:
         raise click.ClickException("ntfy_topic is not set; run `wts secrets set ntfy_topic`")
-    sent = NtfyNotifier(new_client(), topic).send(
+    sent = NtfyNotifier(new_client(), topic, ctx.cfg.ntfy_url, token=token).send(
         "wts: test notification", f"Notifications from {platform.node()} are working.",
         tags=("white_check_mark",),
     )

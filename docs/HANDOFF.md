@@ -328,8 +328,10 @@ Plan 1 is finished; plan 2 is next.
        refresh (`refresh_chunks` takes chunked/embedded/published only). A publish failure on
        an already-published episode puts it in `error` until a publish succeeds.
      - Follow-up: upserts skip unchanged rows (D1 bills rows written; see the pricing note).
-   - Task 8: `wts/notify.py` (Sonnet subagent, reviewed), `wts notify test`. Sent with ntfy's
-     JSON publishing (`POST https://ntfy.sh/` with topic/title/message/priority/tags), not the
+   - Task 8: `wts/notify.py` (Sonnet subagent, reviewed), `wts notify test`. The maintainer
+     runs their own ntfy server: config `ntfy_url` (default `https://ntfy.sh`) and optional
+     secret `ntfy_token` (bearer header). Sent with ntfy's
+     JSON publishing (`POST <ntfy_url>/` with topic/title/message/priority/tags), not the
      plan's headers: titles are non-ASCII, and the secret topic stays out of URLs and so out of
      httpx error text. `wts run` sends one summary at the end (published, failed this run,
      feed quiet > 45 days), a high-priority message for a `MachineProblem` (then re-raises),

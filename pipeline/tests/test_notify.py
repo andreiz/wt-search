@@ -108,6 +108,25 @@ def test_ntfy_posts_to_a_self_hosted_base_url():
     assert route.called
 
 
+def test_ntfy_sends_an_access_token_for_a_protected_server(wts_messages):
+    token = "tk_secret0123456789abcdef"
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.post("https://ntfy.example.net/").mock(return_value=httpx.Response(403))
+        with httpx.Client() as client:
+            ok = NtfyNotifier(client, TOPIC, base_url="https://ntfy.example.net",
+                              token=token).send("t", "b")
+    assert route.calls[0].request.headers["Authorization"] == f"Bearer {token}"
+    assert ok is False and token not in "\n".join(wts_messages)
+
+
+def test_ntfy_sends_no_authorization_without_a_token():
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.post(NTFY).mock(return_value=httpx.Response(200))
+        with httpx.Client() as client:
+            NtfyNotifier(client, TOPIC).send("t", "b")
+    assert "Authorization" not in route.calls[0].request.headers
+
+
 def test_ntfy_http_error_is_logged_without_raising_or_leaking(wts_messages):
     with respx.mock() as mock:
         mock.post(NTFY).mock(return_value=httpx.Response(500, text=f"oops {TOPIC}"))
@@ -158,6 +177,16 @@ def test_get_notifier_with_a_topic_is_ntfy(wts_messages):
         result = get_notifier(client, EnvStore({"WTS_SECRET_NTFY_TOPIC": TOPIC}))
     assert isinstance(result, NtfyNotifier)
     assert wts_messages == []
+
+
+def test_get_notifier_uses_the_configured_server_and_token():
+    store = EnvStore({"WTS_SECRET_NTFY_TOPIC": TOPIC, "WTS_SECRET_NTFY_TOKEN": "tk_abc"})
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.post("https://ntfy.example.net/").mock(return_value=httpx.Response(200))
+        with httpx.Client() as client:
+            get_notifier(client, store, "https://ntfy.example.net").send("t", "b")
+    assert route.calls[0].request.headers["Authorization"] == "Bearer tk_abc"
+    assert json.loads(route.calls[0].request.content)["topic"] == TOPIC
 
 
 def test_get_notifier_survives_an_unreadable_keychain(wts_messages):
@@ -430,7 +459,7 @@ def web(tmp_path):
                 row = db.execute("select duration_s from episodes where stem = ?", (path.stem,))
                 return float(row.fetchone()[0])
 
-        yield SimpleNamespace(feed=feed, audio=audio, ntfy=ntfy, probe=probe)
+        yield SimpleNamespace(feed=feed, audio=audio, ntfy=ntfy, probe=probe, router=mock)
 
 
 @pytest.fixture
@@ -608,6 +637,22 @@ def test_notify_test_without_a_topic_exits_1_naming_the_fix(wts_home, ntfy, monk
     assert r.exit_code == 1
     assert "ntfy_topic" in r.output and "wts secrets set ntfy_topic" in r.output
     assert not ntfy.called
+
+
+def test_notify_test_uses_the_configured_server_and_token(wts_home):
+    (wts_home / "config.toml").write_text('ntfy_url = "https://ntfy.example.net"\n')
+    with respx.mock(assert_all_called=False) as mock:
+        route = mock.post("https://ntfy.example.net/").mock(return_value=httpx.Response(200))
+        r = invoke(wts_home, "test", WTS_SECRET_NTFY_TOPIC=TOPIC, WTS_SECRET_NTFY_TOKEN="tk_x")
+    assert r.exit_code == 0, r.output
+    assert route.calls[0].request.headers["Authorization"] == "Bearer tk_x"
+
+
+def test_run_uses_the_configured_server(conn, paths, cfg, web, topic, quiet_feed):
+    scope(conn, "recent:1")
+    own = web.router.post("https://ntfy.example.net/").mock(return_value=httpx.Response(200))
+    go(conn, paths, replace(cfg, ntfy_url="https://ntfy.example.net"), web)
+    assert own.called and not web.ntfy.called  # not ntfy.sh
 
 
 def test_notify_test_reports_a_failed_send_without_the_topic(wts_home, ntfy):

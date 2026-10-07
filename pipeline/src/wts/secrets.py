@@ -16,6 +16,7 @@ SECRET_NAMES = (
     "spotify_client_secret",
     "youtube_api_key",
     "ntfy_topic",
+    "ntfy_token",  # optional: an access token for a self-hosted ntfy server that requires one
 )
 _NOT_FOUND = 44  # `security find-generic-password` exit code for a missing item
 

@@ -18,8 +18,14 @@ carry `&t=` too, in the form Apple's share sheet makes.
   cache yet, 5 queries × 3): typical 74–141 ms (median ~112 ms), worst 251 ms (the first
   request, a cold start). The common word `wood` (92–132 ms) is no slower than rare ones on
   the 36-episode corpus; the archive has ~17× the chunks.
-- Still open: five cue times against the audio, links on phones, and `rows_read` for a
-  common word (step 6).
+- **Rows read** (step 6, D1 `meta.rows_read` of the count query): ~3 per matching chunk
+  (FTS + `chunks` + `episodes`): `wood` 638 matches → 1,914 rows, `spokeshave` 2 → 6. The
+  page query ranks every match, so a search costs ~6 rows per match (count capped at 1,001
+  matches). Archive estimate for `wood` (~10,800 matches): ~35k rows per search, i.e. ~140
+  such searches a day on Free (5M/day), negligible on Paid (25B/month), which the archive
+  needs anyway. No change now; Task 15's edge cache absorbs repeats. If it ever matters:
+  rank on `chunks_fts` alone in a subquery and join only the page's 20 rows.
+- Still open: five cue times against the audio, links on phones.
 
 Checkpoint F testing also brought (2026-10-07): corrections for Titebond, Bessey, Roubo,
 Schwarz and lumber thickness (`eight quarter` → 8/4; 4/4–16/4), each checked with

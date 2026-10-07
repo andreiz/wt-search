@@ -137,7 +137,16 @@ def _header(response: dict) -> str:
     else:
         head = "smart search"
     page = response.get("page", 1)
-    return f"{head}, page {page}" if page > 1 else head
+    if page > 1:
+        head += f", page {page}"
+    # Matches count chunks; nearby hits in one episode share a result (`more_in_episode`). Say
+    # so, or "5 matches" over 4 results looks like a lost hit.
+    results = response.get("results") or []
+    folded = sum(r.get("more_in_episode", 0) for r in results)
+    if folded:
+        what = "a nearby hit" if folded == 1 else "nearby hits"
+        head += f"; {len(results)} results ({folded} folded into {what})"
+    return head
 
 
 def _result_lines(r: dict, color: bool) -> list[str]:

@@ -373,6 +373,29 @@ def test_degraded_smart_header():
         "smart search degraded: keyword results only, page 2")
 
 
+def folded_header(*folds: int, **overrides) -> str:
+    """The header of a page whose results fold `folds` nearby hits each."""
+    results = [result(chunk_id=i, more_in_episode=n) for i, n in enumerate(folds)]
+    return format_results(response(*results, **overrides), color=False).splitlines()[0]
+
+
+def test_header_says_when_matches_were_folded_into_fewer_results():
+    # "5 matches" over 4 cards confused the maintainer at Checkpoint F: say why.
+    assert folded_header(1, 0, 0, 0, total=5) == "5 matches; 4 results (1 folded into a nearby hit)"
+    assert folded_header(2, 1, 0, total=6) == "6 matches; 3 results (3 folded into nearby hits)"
+
+
+def test_folded_header_with_a_page_and_in_smart_mode():
+    assert folded_header(1, 0, total=57, page=2) == (
+        "57 matches, page 2; 2 results (1 folded into a nearby hit)")
+    assert folded_header(1, 0, mode="smart") == (
+        "smart search; 2 results (1 folded into a nearby hit)")
+
+
+def test_header_unchanged_when_nothing_was_folded():
+    assert folded_header(0, 0, 0, total=3) == "3 matches"
+
+
 def test_no_results():
     assert format_results(fixture("empty"), color=False) == "0 matches\nNo results."
     smart = response(mode="smart", total=0)
@@ -419,7 +442,7 @@ def test_the_degraded_fixture():
 def test_the_exact_fixture_end_to_end():
     out = format_results(fixture("exact"), color=False)
     assert out.splitlines()[:5] == [
-        "57 matches",
+        "57 matches; 3 results (2 folded into nearby hits)",
         "",
         "#612 Dovetails, Glue and Bandsaw Tuning (2024-03-12)  20:28",
         "  Honestly I think a hand cut [dovetail] is overrated, but a good [dovetail] saw is worth the money.",

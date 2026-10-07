@@ -495,6 +495,11 @@ Parser rules (`worker/src/query.ts`):
     result on the same page from the same episode less than 120 s away, so a
     page can show fewer than 20 results. `total` counts matching chunks
     before collapsing. Pages past 10 are clamped.
+  - Clients say when hits were folded, or "5 matches" over 4 results looks
+    like a lost hit (Checkpoint F): `wts search` prints "5 matches; 4
+    results (1 folded into a nearby hit)", and the web app does the same.
+    A phrase in the sentence two chunks share counts twice in `total` and
+    shows once.
   - Bad parameters fall back to defaults (`sort` → relevance, `page` → 1);
     the only error is D1 being down (503).
 - `GET /api/context?chunk=&radius=3`: neighboring chunks, ±radius, with

@@ -97,6 +97,15 @@ up, so both get timed links.
   (what `wts` sends, raw), but its example and the Python guide upload the NDJSON as a multipart
   file (`files={"vectors": f}`). If the raw body is refused at Checkpoint E, switch to multipart.
 - Vectorize query `topK`: at most 50 with values or metadata, 100 without (Task 14 uses 50).
+- **Pricing that matters for republishing** (pricing pages, session 3): D1 bills *rows
+  written* — Free 100,000/day, Paid 50M/month included. Each chunk write also writes its index
+  row and several FTS rows (~5–10 rows per chunk, estimated). Publish upserts skip unchanged
+  rows (`614c6be`), so a one-sentence correction writes one chunk, and an offset change writes
+  only the episode row. A full re-chunk of the archive (~72k chunks) would still be
+  ~400–700k rows: over Free's daily limit, trivial on Paid. Vectorize bills stored and
+  queried dimensions, not upserts (re-sending vectors costs only upload time, ~1 GB for the
+  archive); Free stores 5M dimensions (~6,500 vectors at 768) — enough for the seed (~4k), not
+  the archive (~55M), which needs Workers Paid (cents a month).
 - Only the 15-minute fixtures of ep001 and ep610–615 are available; full transcripts, audio and
   `state.db` live on the maintainer's Mac.
 

@@ -57,12 +57,18 @@ describe("deepLinks", () => {
     );
   });
 
-  // Apple and Spotify time parameters wait on docs/deep-links.md: adding one is a deliberate change.
-  it("builds the Apple and Spotify links with no time parameter", () => {
+  // Apple's time parameter waits on docs/deep-links.md: adding one is a deliberate change.
+  it("builds the Apple link with no time parameter", () => {
     expect(APPLE_PODCAST_ID).toBe(251471480);
-    const links = deepLinks(FULL, 65_432);
-    expect(links.apple).toBe("https://podcasts.apple.com/podcast/id251471480?i=1000612345678");
-    expect(links.spotify).toBe("https://open.spotify.com/episode/4rOoJ6Egrf8K2IrywzwOMk");
+    expect(deepLinks(FULL, 65_432).apple).toBe("https://podcasts.apple.com/podcast/id251471480?i=1000612345678");
+  });
+
+  // Spotify's own share sheet ("share from current time") makes `?…&t=<seconds>` links.
+  it("builds the Spotify link with t=<cue seconds> and its offset", () => {
+    expect(deepLinks(FULL, 65_432).spotify).toBe("https://open.spotify.com/episode/4rOoJ6Egrf8K2IrywzwOMk?t=58");
+    expect(deepLinks({ ...FULL, offset_spotify_s: 30 }, 65_432).spotify).toBe(
+      "https://open.spotify.com/episode/4rOoJ6Egrf8K2IrywzwOMk?t=88",
+    );
   });
 
   it("passes the page URL as is", () => {
@@ -96,6 +102,6 @@ describe("deepLinks", () => {
     );
     expect(links.youtube).toBe("https://www.youtube.com/watch?v=a%26b%3Dc%20d&t=1s");
     expect(links.apple).toBe("https://podcasts.apple.com/podcast/id251471480?i=1%2F2%3Fx%23y");
-    expect(links.spotify).toBe("https://open.spotify.com/episode/s%20p%2Fq");
+    expect(links.spotify).toBe("https://open.spotify.com/episode/s%20p%2Fq?t=1");
   });
 });

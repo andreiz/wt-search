@@ -139,12 +139,13 @@ chunk's start.
 - **YouTube:** `https://www.youtube.com/watch?v=<id>&t=<cue>s`.
 - **Apple Podcasts:** `https://podcasts.apple.com/podcast/id251471480?i=<id>`, with no time
   parameter yet.
-- **Spotify:** `https://open.spotify.com/episode/<id>`, with no time parameter yet.
+- **Spotify:** `https://open.spotify.com/episode/<id>?t=<cue>`, the format Spotify's own share
+  sheet makes.
 - **Episode page:** always shown, with no cue. The card shows "jump to mm:ss" next to it.
 
-The Apple and Spotify time parameters are added only once they've been checked by hand on
-each device, in [`deep-links.md`](deep-links.md). Those links land early by however many
-ads the listener hears before that point (spec §4.6).
+Apple's time parameter is added only once it has been checked by hand on each device, in
+[`deep-links.md`](deep-links.md). Apple and Spotify links land early by however many ads
+the listener hears before that point (spec §4.6).
 
 ## Known limits
 

@@ -337,7 +337,7 @@ describe("hit time and links", () => {
       links: {
         youtube: "https://www.youtube.com/watch?v=yt12&t=1005s",
         apple: "https://podcasts.apple.com/podcast/id251471480?i=ap12",
-        spotify: "https://open.spotify.com/episode/sp12",
+        spotify: "https://open.spotify.com/episode/sp12?t=1025",
         page: "https://example.com/ep/201",
       },
     });

@@ -30,8 +30,9 @@ export function cueTimes(episode: LinkEpisode, hitMs: number): { youtube: number
 
 /**
  * Deep links, keys in card order; a platform is left out when its ID (or page_url) is null or
- * empty. Only YouTube carries a time. The Apple and Spotify time parameters are filled in
- * from docs/deep-links.md once checked by hand (spec §4.6, §10 item 2); a test pins their
+ * empty. YouTube and Spotify carry a time: Spotify's `t=<seconds>` is what its own share
+ * sheet makes ("share from current time", 2026-10-07). Apple's time parameter is filled in
+ * from docs/deep-links.md once checked by hand (spec §4.6, §10 item 2); a test pins its
  * absence, so adding one is a deliberate change.
  */
 export function deepLinks(
@@ -47,7 +48,8 @@ export function deepLinks(
     links.apple = `https://podcasts.apple.com/podcast/id${APPLE_PODCAST_ID}?i=${encodeURIComponent(episode.apple_episode_id)}`;
   }
   if (episode.spotify_episode_id) {
-    links.spotify = `https://open.spotify.com/episode/${encodeURIComponent(episode.spotify_episode_id)}`;
+    const t = cueSeconds(hitMs, episode.offset_spotify_s);
+    links.spotify = `https://open.spotify.com/episode/${encodeURIComponent(episode.spotify_episode_id)}?t=${t}`;
   }
   if (episode.page_url) links.page = episode.page_url;
   return links;

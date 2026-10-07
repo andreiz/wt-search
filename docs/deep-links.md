@@ -3,9 +3,12 @@
 Which time-parameter formats actually open each platform at a given time (spec §4.6,
 §10 item 2). Checked by hand, because none of the platforms documents this.
 
-`worker/src/links.ts` builds every link. Today only YouTube carries a time (`&t=<s>s`).
-Apple and Spotify links carry no time until a row below says a format works; then the
-format goes into `links.ts` and its test is changed on purpose.
+`worker/src/links.ts` builds every link. YouTube carries a time (`&t=<s>s`) and so does
+Spotify (`?t=<s>`): Spotify's own share sheet, with "share from current time" on, made
+`https://open.spotify.com/episode/<id>?si=…&utm_source=copy-link&t=1057` (2026-10-07), so
+the Worker uses that parameter without the tracking ones. Apple links carry no time until a
+row below says a format works; then the format goes into `links.ts` and its test is changed
+on purpose.
 
 On Apple Podcasts and Spotify a link lands early, whatever the format: ads are inserted at
 play time into a pre-roll slot and, on many episodes, one or two mid-roll slots, each 0–4
@@ -26,9 +29,6 @@ the Apple rows below cover it as well as the time.
 | Apple Podcasts | iOS app | `&t=<s>` appended to the `?i=` URL | not checked |
 | Apple Podcasts | Android app | `&t=<s>` appended to the `?i=` URL | not checked |
 | Apple Podcasts | Desktop web | `&t=<s>` appended to the `?i=` URL | not checked |
-| Spotify | iOS app | `?t=<s>` | not checked |
-| Spotify | iOS app | `#t=<m:ss>` | not checked |
-| Spotify | Android app | `?t=<s>` | not checked |
-| Spotify | Android app | `#t=<m:ss>` | not checked |
-| Spotify | Desktop web | `?t=<s>` | not checked |
-| Spotify | Desktop web | `#t=<m:ss>` | not checked |
+| Spotify | iOS app | `?t=<s>` (what the Worker uses; the app's own share format) | not checked |
+| Spotify | Android app | `?t=<s>` (what the Worker uses) | not checked |
+| Spotify | Desktop web | `?t=<s>` (what the Worker uses) | not checked |

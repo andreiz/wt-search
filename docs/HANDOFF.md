@@ -5,8 +5,8 @@ conversation. Read this, then [README.md](../README.md), then the spec sections 
 
 ## Start here (next session)
 
-1. **Plan 2, Tasks 1–7 and Checkpoint D are done** (third session). Continue with Task 8
-   (ntfy notifications), test-first, one commit per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
+1. **Plan 2, Tasks 1–8 and Checkpoint D are done** (third session). Continue with Task 9
+   (`wts check-embeddings`), test-first, one commit per task, straight to `main`. The maintainer asked for Sonnet subagents where it makes sense
    (Task 5 was done that way, then reviewed before commit), and for a short report after each
    task.
 2. Before Task 7 (publish), check the plan's Review Focus. CLS pooling and FTS5 trigger
@@ -121,7 +121,7 @@ up, so both get timed links.
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
 - Plan 1 (**done**, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
-- Plan 2 (Tasks 1–7 and Checkpoint D done; Task 8 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–8 and Checkpoint D done; Task 9 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md) — Edit tool for changes, test-first, brainstorm → spec →
   plan before new features, commit straight to `main` (maintainer's choice for initial build).
 - Superpowers skills install from `.claude/settings.json`.
@@ -327,6 +327,17 @@ Plan 1 is finished; plan 2 is next.
      - Known gap (pre-existing): an episode in `error` isn't re-chunked by a corrections
        refresh (`refresh_chunks` takes chunked/embedded/published only). A publish failure on
        an already-published episode puts it in `error` until a publish succeeds.
+     - Follow-up: upserts skip unchanged rows (D1 bills rows written; see the pricing note).
+   - Task 8: `wts/notify.py` (Sonnet subagent, reviewed), `wts notify test`. Sent with ntfy's
+     JSON publishing (`POST https://ntfy.sh/` with topic/title/message/priority/tags), not the
+     plan's headers: titles are non-ASCII, and the secret topic stays out of URLs and so out of
+     httpx error text. `wts run` sends one summary at the end (published, failed this run,
+     feed quiet > 21 days), a high-priority message for a `MachineProblem` (then re-raises),
+     and one for a feed fetch failure, after which the run continues. An episode out of
+     retries is reported only in the run that used its last retry (not every run; `wts status`
+     lists them). The quiet-feed note does repeat every run while the feed is quiet (default
+     priority). `net.describe_http_error()` formats httpx errors without the query string.
+     Task 16 must keep `notify_run` last in `run_all`, after publish and backup.
    Its checkpoints:
    - **D** after Task 5: platform IDs on the real feed (Spotify/YouTube keys, no Cloudflare).
    - **E** after Task 10: staging D1 + Vectorize, pooling check, ntfy test, seed corpus published.
@@ -368,7 +379,8 @@ Plan 1 is finished; plan 2 is next.
 - Boilerplate 6-word minimum counts tokens, not distinct words.
 - Correction matches can cross a sentence end.
 - Embedding cache doesn't record model/dim; a corrupt `.npz` fails the episode instead of being ignored.
-- A feed fetch failure stops `wts run` entirely (downloaded backlog isn't processed).
+- ~~A feed fetch failure stops `wts run` entirely~~ — fixed in plan 2 Task 8: it is logged,
+  counted, notified, and the run continues with the downloaded backlog.
 - Weak ETags can't be used with `If-Range` (resume restarts); Ctrl-C can wait up to the 60 s timeout.
 - One process slip: in Task 12 `run_chunk` was appended with a shell heredoc instead of the Edit
   tool (content is a normal diff).

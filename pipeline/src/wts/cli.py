@@ -193,6 +193,37 @@ def secrets_check() -> None:
         click.echo(f"{name} {'set' if store.get(name) is not None else 'missing'}")
 
 
+@main.group()
+def notify() -> None:
+    """Push notifications (ntfy)."""
+
+
+@notify.command("test")
+def notify_test() -> None:
+    """Send one test message to the ntfy topic."""
+    import platform
+
+    from wts.net import new_client
+    from wts.notify import NtfyNotifier
+    from wts.secrets import KeychainError, get_store
+
+    ctx = _ctx()
+    ctx.logger()
+    try:
+        topic = get_store().get("ntfy_topic")
+    except KeychainError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if topic is None:
+        raise click.ClickException("ntfy_topic is not set; run `wts secrets set ntfy_topic`")
+    sent = NtfyNotifier(new_client(), topic).send(
+        "wts: test notification", f"Notifications from {platform.node()} are working.",
+        tags=("white_check_mark",),
+    )
+    if not sent:
+        raise click.ClickException("not sent; see the log for the reason")
+    click.echo("sent")
+
+
 @main.command()
 @click.option("--force", is_flag=True, help="Allow resetting many episodes whose audio URL moved.")
 def feed(force: bool) -> None:

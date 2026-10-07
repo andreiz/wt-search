@@ -9,6 +9,7 @@ import time
 from collections import Counter
 from collections.abc import Callable, Collection
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -28,14 +29,15 @@ from wts.download import (
 from wts.embed import Embedder, embed_episode, get_embedder
 from wts.feed import parse_feed, upsert_episodes
 from wts.log import clock, plural, run_record
-from wts.net import new_client
+from wts.net import describe_http_error, new_client
+from wts.notify import Notifier, get_notifier, notify_run
 from wts.paths import Paths
 from wts.platforms import match_platform_ids
 from wts.publish import run_publish as publish_to
 from wts.secrets import SecretStore, get_store
 from wts.selection import resolve_selector
 from wts.state import Status, advance, episodes_for_step, fail, reset
-from wts.storage import ToolMissing
+from wts.storage import MachineProblem, ToolMissing
 from wts.transcribe import VOCAB_FILE, Transcriber, get_transcriber, transcribe_episode
 
 log = logging.getLogger("wts")
@@ -354,24 +356,43 @@ def run_all(
     transcriber: Transcriber | None = None,
     embedder: Embedder | None = None,
     probe: Callable[[Path], float] = probe_duration_s,
+    notifier: Notifier | None = None,
 ) -> dict[str, Counter]:
-    """feed → download → transcribe → chunk → embed. Publish is added in plan 2."""
+    """feed → download → transcribe → chunk → embed, then one notification (spec §6, §8.2).
+
+    A feed fetch failure is logged, counted and notified, and the run goes on with the
+    episodes already downloaded. A machine problem is notified and re-raised.
+    """
+    started = datetime.now(UTC).isoformat(timespec="seconds")
+    notifier = notifier or get_notifier(client or new_client(), get_store())
     results: dict[str, Counter] = {}
-    if cfg.feed_url:
-        with run_record(conn, "feed") as run:
-            run.counts.update(run_feed(conn, cfg, client=client))
-        results["feed"] = run.counts
-    else:
-        log.warning("feed_url is not set; skipping the feed step", extra={"step": "feed"})
-    ids = resolve_selector(conn, selector)
-    steps = [
-        ("download", lambda: run_download(conn, paths, cfg, ids, client=client, probe=probe)),
-        ("transcribe", lambda: run_transcribe(conn, paths, cfg, ids, transcriber=transcriber)),
-        ("chunk", lambda: run_chunk(conn, paths, cfg, ids)),
-        ("embed", lambda: run_embed(conn, paths, cfg, ids, embedder=embedder)),
-    ]
-    for name, step in steps:
-        with run_record(conn, name) as run:
-            run.counts.update(step())
-        results[name] = run.counts
+    try:
+        if cfg.feed_url:
+            with run_record(conn, "feed") as run:
+                try:
+                    run.counts.update(run_feed(conn, cfg, client=client))
+                except httpx.HTTPError as exc:  # not MassReset: that still stops the run
+                    run.counts["error"] += 1
+                    what = describe_http_error(exc)
+                    log.error(f"feed fetch failed: {what}", extra={"step": "feed"})
+                    notifier.send("wts: feed fetch failed", what, priority="high",
+                                  tags=("warning",))
+            results["feed"] = run.counts
+        else:
+            log.warning("feed_url is not set; skipping the feed step", extra={"step": "feed"})
+        ids = resolve_selector(conn, selector)
+        steps = [
+            ("download", lambda: run_download(conn, paths, cfg, ids, client=client, probe=probe)),
+            ("transcribe", lambda: run_transcribe(conn, paths, cfg, ids, transcriber=transcriber)),
+            ("chunk", lambda: run_chunk(conn, paths, cfg, ids)),
+            ("embed", lambda: run_embed(conn, paths, cfg, ids, embedder=embedder)),
+        ]
+        for name, step in steps:
+            with run_record(conn, name) as run:
+                run.counts.update(step())
+            results[name] = run.counts
+    except MachineProblem as exc:  # its message names folders or tools, never secrets
+        notifier.send("wts: run stopped", str(exc), priority="high", tags=("rotating_light",))
+        raise
+    notify_run(notifier, conn, results, started)
     return results

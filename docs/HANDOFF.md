@@ -154,7 +154,8 @@ How the maintainer works:
   `corpus_version` misses within a minute.
 - **Latency** (`time_starttransfer` from the Mac, default smart mode, 5 queries × 3): first
   request 122–250 ms (worst `wood`, 250 ms), repeats mostly 41–97 ms (cache hits; one 142 ms).
-  `after:2019` isn't a filter: it was searched as words.
+  `glue after:2019` used the `after:` filter (exclusive: 2020 on), which smart mode also
+  sends to Vectorize as a `$gt` range (spec §4.4).
 - **End to end:** `pytest -m mac -k real_rsync` passed with macOS's rsync. `wts run --env
   staging` with nothing new: every step, `backup: ok=1` to the SMB share (`-a` was fine, no
   exit 23). A second run took the new #616 (scoped by hand) through download, transcription

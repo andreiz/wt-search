@@ -521,7 +521,9 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 2 (Tasks 1–16, Checkpoints D–F done; Checkpoint G next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–19, Checkpoints D–F done; G all but the §4.8 parts): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- M2 plan A, moving the pipeline to the Mac Mini (draft 2026-10-08, four decisions open; dev
+  stays on the M1): [`docs/superpowers/plans/2026-10-08-m2-mac-mini-migration.md`](superpowers/plans/2026-10-08-m2-mac-mini-migration.md)
 - Plan 1 (done, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md). Superpowers skills install from `.claude/settings.json`.
 

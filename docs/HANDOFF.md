@@ -12,7 +12,9 @@ the maintainer's request.
 **Work in flight (2026-10-08), in separate sessions:**
 - **Plan 3 (frontend)**: brainstorm done, spec §5 revised and the plan written
   (2026-10-08, seventh session): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
-  **Next:** the maintainer reviews the plan, then Task 1. See "Plan 3: start here" below.
+  **Tasks 1–4 (the Worker changes) are done** on branch `claude/plan-3-handoff-etfwwc` (the
+  maintainer asked for a branch this time), not yet merged to `main` or deployed. **Next:**
+  merge, then Task 5 (the `web/` scaffold). Notes under "Plan 3 task notes" below.
 - **Rate limits not triggering on staging**: the maintainer's desktop session (see "Open:
   rate limits…" below).
 - **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions.
@@ -95,6 +97,26 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
 - **Extras:** j/k kept; Enter-plays-first-platform and the 400 ms hover preview dropped.
 - **Designs:** not started, so Tasks 1–15 use neutral placeholder tokens; Task 16 applies the
   design system and screens.
+
+### Plan 3 task notes (calls the plan didn't spell out)
+
+Tasks 1–4 were written by four Sonnet subagents in parallel worktrees (none committed),
+reviewed, applied and committed one per task in the main session. Worker **470 tests** in 18
+files, pipeline **685**, type-check and ruff clean. Deploying them to staging needs only
+`npx wrangler deploy --env staging` (no migration).
+- **Task 1** `year:A-B`: each filter key keeps its last value, so a range (two keys) and a
+  single year (one key) intersect: `year:2010-2012 year:2015` matches nothing (pinned in the
+  parser table). The web app's chip rewrites every year token, so it never produces this.
+  Malformed spans (`year:2015-`, `year:2015-20`, three parts, mixed dashes) are plain words.
+- **Task 2** `folded`: on every result (degraded too); exact lists only that page's folds.
+  The Python fixtures' folded ids are invented (`README` says hand-built).
+- **Task 3** `/api/info`: with the cache on, a miss on a cold `corpus_version` memo costs two
+  D1 statements (version, then info); a warm hit none. `cache.ts` gained `pathCacheKey`;
+  search keys are byte-identical. `TURNSTILE_SITE_KEY` unset or `""` → null.
+- **Task 4** feedback: `quoted_text`/`suggested_text` keys are refused when present at all
+  (even `null` or `""`), so the web form must omit them; the check runs before the note and
+  the token, so a bad body never costs a siteverify call. robots.txt opens only for exactly
+  `WTS_ENV` = `production`.
 
 The notes below were gathered before the brainstorm; the spec now supersedes them where they
 differ (e.g. Pages, the domain list).
@@ -636,7 +658,7 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 3 (frontend; written 2026-10-08, not started): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
+- Plan 3 (frontend; written 2026-10-08, Tasks 1–4 done on a branch): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
 - Plan 2 (Tasks 1–19, Checkpoints D–F done; G all but the §4.8 parts): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - M2 plan A, moving the pipeline to the Mac Mini (draft 2026-10-08, four decisions open; dev
   stays on the M1): [`docs/superpowers/plans/2026-10-08-m2-mac-mini-migration.md`](superpowers/plans/2026-10-08-m2-mac-mini-migration.md)
@@ -754,4 +776,5 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
   to `worker/src/index.ts`, `sed` edits to five import lines and the handoff's test count,
   and a heredoc append to `highlight.test.ts` (session 5, Task 14 and its follow-ups); a
   heredoc append of Task 16's tests to `test_run.py` and `sed` edits to the handoff's test
-  count and title line (session 6).
+  count and title line (session 6); a `sed` edit to the handoff's plan 3 line in "Read
+  first" (session 7).

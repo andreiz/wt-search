@@ -297,7 +297,12 @@ How the maintainer works:
     instruction (`Represent this sentence for searching relevant passages: `, which BAAI
     suggests for short queries; plan 2 chose none), a similarity floor for `related`
     hits (needs Vectorize scores, so the debug output offered in session 5), or fewer
-    vector hits (topK 50 → 20–30).
+    vector hits (topK 50 → 20–30). **`--debug` on staging (2026-10-08): #127 is meaning
+    #1 at cosine 0.734**, above another related hit at #4 (0.708), so no floor can drop it
+    without dropping every meaning hit for this query; it folds 3 more chunks (the
+    episode planes a cupped board on the bench for ~2 minutes). RRF already holds it at
+    1/61 below hits found both ways (~0.03). Maintainer: leave the fix to plan 5; test the
+    query instruction first, then keyword-weighted RRF; smaller chunks only if both fail.
   - **For plan 3:** feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk
     598"), so a card's "Ep. N · Title" shows it twice; strip it for display.
 - **Task 15** `worker/src/{context,report}.ts` (Sonnet subagent, reviewed and amended),

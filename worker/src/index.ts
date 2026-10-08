@@ -2,6 +2,7 @@ import { recordReport, recordSearch } from "./analytics";
 import { cached, cacheKey, cacheTtl, corpusVersion, store } from "./cache";
 import { context } from "./context";
 import type { Env } from "./env";
+import { robots, searchOverride, withSecurityHeaders } from "./guard";
 import { JSON_HEADERS, json, logError } from "./http";
 import { MAX_QUERY_CHARS, parseQuery } from "./query";
 import { report } from "./report";
@@ -120,6 +121,8 @@ const search: Handler = async (request, env, info) => {
             // Workers AI or Vectorize failing is not an error: keyword results, smart_degraded.
             onDegraded: (stage, err) => logError(`${stage}_unavailable`, request, err),
             debug,
+            // The kill switch (spec §4.8 item 3): keyword-only, no AI or Vectorize call.
+            ...(searchOverride(env) === "exact" ? { skipMeaning: "off" as const } : {}),
           });
   } catch (err) {
     logError("d1_unavailable", request, err);
@@ -127,7 +130,7 @@ const search: Handler = async (request, env, info) => {
   }
 
   const body = JSON.stringify({ ...response, mode, sort });
-  const degraded = "smart_degraded" in response && response.smart_degraded === true;
+  const degraded = "smart_degraded" in response && response.smart_degraded !== undefined;
   info.results = response.results.length;
   info.degraded = degraded;
   const headers = { ...JSON_HEADERS, [RESULTS_HEADER]: String(response.results.length) };
@@ -146,7 +149,13 @@ const routes = new Map<string, Handler>([
   ["GET /api/search", search],
   ["GET /api/context", context],
   ["POST /api/report", report],
+  ["GET /robots.txt", robots],
 ]);
+
+const MAINTENANCE = {
+  error: "maintenance",
+  message: "Search is down for maintenance. Please try again later.",
+};
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -157,11 +166,16 @@ export default {
     let response: Response;
     try {
       const handler = routes.get(request.method === "HEAD" ? `GET ${path}` : route);
-      response = handler ? await handler(request, env, info) : json({ error: "not_found" }, 404);
+      if (path.startsWith("/api/") && searchOverride(env) === "maintenance") {
+        response = json(MAINTENANCE, 503); // the kill switch (spec §4.8 item 3); no D1
+      } else {
+        response = handler ? await handler(request, env, info) : json({ error: "not_found" }, 404);
+      }
     } catch (err) {
       logError("unhandled_error", request, err);
       response = json({ error: "internal" }, 500);
     }
+    response = withSecurityHeaders(response);
     const ms = Date.now() - started;
 
     // One line per request (spec §8.3). Built from named fields only: never headers, so no IP.

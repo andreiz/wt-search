@@ -13,6 +13,11 @@
 	// Workers Logs on; the Worker writes one structured line per request (spec §8.3).
 	"observability": { "enabled": true },
 
+	// `wrangler deploy` would otherwise reset vars changed in the dashboard. The kill switch,
+	// SEARCH_OVERRIDE (spec §4.8 item 3), is set there in an emergency and must survive a
+	// deploy, so it is never declared in this file.
+	"keep_vars": true,
+
 	// Top-level (no --env) = what `npm test` and `wrangler dev` use. Only the D1 binding lives
 	// here: the Vitest runtime gives `DB` a local, throwaway SQLite. Workers AI is a
 	// remote-only binding: with `ai` in the config the tests load, Vitest opens a remote proxy
@@ -53,9 +58,13 @@
 				// Edge cache for /api/search, in seconds (spec §4.7); unset means no caching.
 				"SEARCH_CACHE_TTL_S": "3600",
 				// Placeholder: the public Turnstile site key (not a secret).
-				"TURNSTILE_SITE_KEY": "staging-turnstile-site-key-placeholder"
+				"TURNSTILE_SITE_KEY": "staging-turnstile-site-key-placeholder",
+				// Origins allowed to send reports (spec §4.8 item 6): Vite's dev server until
+				// plan 3's site has a domain. curl tests add -H 'origin: http://localhost:5173'.
+				"REPORT_ORIGINS": "http://localhost:5173"
 				// TURNSTILE_SECRET is a secret, never put it here:
 				//   wrangler secret put TURNSTILE_SECRET --env staging
+				// SEARCH_OVERRIDE is set in the dashboard only (see keep_vars above).
 			}
 		},
 		"production": {
@@ -74,6 +83,7 @@
 			"vars": {
 				"SEARCH_CACHE_TTL_S": "3600",
 				"TURNSTILE_SITE_KEY": "production-turnstile-site-key-placeholder"
+				// No REPORT_ORIGINS yet: every report is refused until plan 3 sets the site's.
 				// TURNSTILE_SECRET is a secret:
 				//   wrangler secret put TURNSTILE_SECRET --env production
 			}

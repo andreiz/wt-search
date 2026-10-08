@@ -25,5 +25,5 @@
   ],
   "mode": "smart",
   "sort": "relevance",
-  "smart_degraded": true
+  "smart_degraded": "unavailable"
 }

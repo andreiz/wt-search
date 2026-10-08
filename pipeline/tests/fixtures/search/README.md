@@ -14,5 +14,5 @@ there until these files follow it.
 | `exact_truncated.json` | `total_capped` and `truncated`: page 10 of a 1000+ match query. |
 | `smart.json` | Smart mode (no `total`, `total_capped` or `truncated`): a keyword hit with `more_in_episode` 1, then two `related` hits, one with no ranges and one (no episode number) with a query word highlighted; `has_more`. |
 | `smart_debug.json` | Smart mode with `?debug=1`: per-result `debug` (ranks, Vectorize score, RRF score, folded chunk ids) and the response's `debug` (list sizes, dropped meaning hits). |
-| `smart_degraded.json` | Smart mode that fell back to keyword results (`smart_degraded`). |
+| `smart_degraded.json` | Smart mode that fell back to keyword results (`smart_degraded: "unavailable"`; the other reasons are `"budget"` and `"off"`). |
 | `empty.json` | No results. |

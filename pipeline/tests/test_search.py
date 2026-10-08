@@ -373,10 +373,18 @@ def test_smart_header():
 
 
 def test_degraded_smart_header():
+    # The Worker says why (spec §4.4, §4.8): "unavailable", "budget" or "off".
+    assert header(mode="smart", smart_degraded="unavailable") == (
+        "smart search degraded (Workers AI or Vectorize unavailable): keyword results only")
+    assert header(mode="smart", smart_degraded="budget", page=2) == (
+        "smart search degraded (daily budget used up): keyword results only, page 2")
+    assert header(mode="smart", smart_degraded="off") == (
+        "smart search degraded (switched off): keyword results only")
+    # An older Worker said `true`; an unknown reason is shown as is.
     assert header(mode="smart", smart_degraded=True) == (
         "smart search degraded: keyword results only")
-    assert header(mode="smart", smart_degraded=True, page=2) == (
-        "smart search degraded: keyword results only, page 2")
+    assert header(mode="smart", smart_degraded="quota") == (
+        "smart search degraded (quota): keyword results only")
 
 
 def folded_header(*folds: int, **overrides) -> str:
@@ -504,7 +512,8 @@ def test_no_debug_lines_without_debug_data():
 
 def test_the_degraded_fixture():
     out = format_results(fixture("smart_degraded"), color=False)
-    assert out.splitlines()[0] == "smart search degraded: keyword results only"
+    assert out.splitlines()[0] == (
+        "smart search degraded (Workers AI or Vectorize unavailable): keyword results only")
     assert "[Hide] [glue] gives you more open time" in out
 
 
@@ -602,7 +611,7 @@ def test_cli_defaults_to_smart_search(cli_setup, route):
     result_ = invoke("hide", "glue")
     assert result_.exit_code == 0, result_.output
     assert dict(route.calls.last.request.url.params)["mode"] == "smart"
-    assert result_.output.startswith("smart search degraded: keyword results only")
+    assert result_.output.startswith("smart search degraded (Workers AI")
 
 
 def test_cli_debug(cli_setup, route):

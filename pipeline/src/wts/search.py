@@ -20,6 +20,13 @@ RETRY_S = (1, 2)  # one retry per entry, on network errors, 429 and 5xx
 TIMEOUT_S = 30
 LINK_ORDER = ("youtube", "apple", "spotify", "page")  # card order (spec §4.6)
 MAX_ERROR_CHARS = 100
+# Why smart search answered keyword-only (`smart_degraded`, spec §4.4, §4.8); an unknown reason
+# is shown as is, and an older Worker's `true` without one.
+DEGRADED_REASONS = {
+    "unavailable": "Workers AI or Vectorize unavailable",
+    "budget": "daily budget used up",
+    "off": "switched off",
+}
 
 
 class SearchError(Exception):
@@ -151,8 +158,9 @@ def _header(response: dict) -> str:
     if response.get("mode") == "exact":
         one = response.get("total") == 1 and not response.get("total_capped")
         head = f"{_total(response)} {'match' if one else 'matches'}"
-    elif response.get("smart_degraded"):
-        head = "smart search degraded: keyword results only"
+    elif reason := response.get("smart_degraded"):
+        why = DEGRADED_REASONS.get(reason, reason) if isinstance(reason, str) else None
+        head = f"smart search degraded{f' ({why})' if why else ''}: keyword results only"
     else:
         head = "smart search"
     page = response.get("page", 1)

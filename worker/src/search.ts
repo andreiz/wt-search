@@ -119,11 +119,18 @@ export interface SmartResponse {
   /** Another page of the collapsed results can be shown. */
   has_more: boolean;
   results: SearchResult[];
-  /** Workers AI or Vectorize failed: these are the keyword hits only. */
-  smart_degraded?: true;
+  /** These are the keyword hits only, and why (spec §4.4, §4.8). */
+  smart_degraded?: DegradedReason;
   /** `?debug=1` only. */
   debug?: SmartDebug;
 }
+
+/**
+ * Why smart search answered with keyword hits only: Workers AI or Vectorize failed
+ * ("unavailable"), the daily budget is used up ("budget"), or the kill switch turned it off
+ * ("off").
+ */
+export type DegradedReason = "unavailable" | "budget" | "off";
 
 /** Which binding failed when smart search fell back to keywords. */
 export type SmartStage = "ai" | "vectorize";
@@ -373,8 +380,10 @@ WHERE chunks_fts MATCH ? AND rowid IN (SELECT value FROM json_each(?))`,
  *
  * D1: one query for the keyword hits (run while the query is embedded), then one batch of two
  * for the chunks only Vectorize found. D1 errors propagate (the route answers 503). If Workers
- * AI or Vectorize fail, the keyword hits alone are returned with `smart_degraded`. `debug`
- * adds why each result ranked where it did (ResultDebug, SmartDebug); the order is the same.
+ * AI or Vectorize fail, the keyword hits alone are returned with `smart_degraded:
+ * "unavailable"`; `skipMeaning` asks for that answer up front, with its own reason, and calls
+ * neither. `debug` adds why each result ranked where it did (ResultDebug, SmartDebug); the
+ * order is the same.
  */
 export async function smartSearch(
   env: Pick<Env, "DB" | "AI" | "VEC">,
@@ -385,9 +394,11 @@ export async function smartSearch(
     limit?: number;
     onDegraded?: (stage: SmartStage, err: unknown) => void;
     debug?: boolean;
+    /** Answer with the keyword hits only, for this reason, without asking AI or Vectorize. */
+    skipMeaning?: Exclude<DegradedReason, "unavailable">;
   } = {},
 ): Promise<SmartResponse> {
-  const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false } = options;
+  const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false, skipMeaning } = options;
   // Nothing to match means nothing to embed either: `semantic` holds the same positive terms.
   if (parsed.fts === null) return { page, limit, has_more: false, results: [] };
 
@@ -397,7 +408,7 @@ export async function smartSearch(
       .bind(...params, SMART_LIST_SIZE)
       .all()
       .then((r) => r.results as unknown as Row[]),
-    nearestChunks(env, parsed, onDegraded),
+    skipMeaning ? Promise.resolve(null) : nearestChunks(env, parsed, onDegraded),
   ]);
   const vectorIds = nearest?.map((n) => n.id) ?? [];
 
@@ -440,7 +451,7 @@ export async function smartSearch(
     has_more: offset + limit < results.length,
     results: results.slice(offset, offset + limit),
   };
-  if (nearest === null) response.smart_degraded = true;
+  if (nearest === null) response.smart_degraded = skipMeaning ?? "unavailable";
   if (debug) {
     response.debug = {
       keyword_hits: keywordRows.length,

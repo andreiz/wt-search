@@ -114,7 +114,7 @@ describe("search cache", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const broken = { run: vi.fn(async () => Promise.reject(new Error("InferenceUpstreamError"))) };
     const first = await get("q=collection", bindings({ AI: broken }).env);
-    expect(((await first.json()) as { smart_degraded?: boolean }).smart_degraded).toBe(true);
+    expect(((await first.json()) as { smart_degraded?: string }).smart_degraded).toBe("unavailable");
     expect(first.headers.get("x-wts-cache")).toBe("skip");
     const healthy = bindings();
     const second = await get("q=collection", healthy.env);

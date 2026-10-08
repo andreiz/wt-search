@@ -389,7 +389,7 @@ describe("debug output (?debug=1)", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const vec = { query: vi.fn(async () => Promise.reject(new Error("VECTOR_QUERY_ERROR"))) };
     const { body: b } = await smart({ q: "dovetail", debug: "1" }, { vec });
-    expect(b.smart_degraded).toBe(true);
+    expect(b.smart_degraded).toBe("unavailable");
     expect(b.debug).toEqual({ keyword_hits: 3, vector_hits: null, dropped: [] });
     expect(b.results[0]!.debug).toMatchObject({ keyword_rank: 1, vector_rank: null });
   });
@@ -414,7 +414,7 @@ describe("degraded mode", () => {
     const vec = fakeVec([3002]);
     const { response, body: b } = await smart({ q: "secretword OR dovetail" }, { ai, vec });
     expect(response.status).toBe(200);
-    expect(b.smart_degraded).toBe(true);
+    expect(b.smart_degraded).toBe("unavailable");
     expect(tagged(b).map(([, match]) => match)).toEqual(["keyword", "keyword", "keyword"]);
     expect(ids(b)).toEqual(await keywordOrder("dovetail"));
     expect(vec.query).not.toHaveBeenCalled();
@@ -428,7 +428,7 @@ describe("degraded mode", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const vec = { query: vi.fn(async () => Promise.reject(new Error("VECTOR_QUERY_ERROR"))) };
     const { body: b } = await smart({ q: "dovetail", sort: "oldest" }, { vec });
-    expect(b.smart_degraded).toBe(true);
+    expect(b.smart_degraded).toBe("unavailable");
     expect(ids(b)).toEqual([3001, 3101, 3201]);
     expect(consoleError).toHaveBeenCalledTimes(1);
     expect(String(consoleError.mock.calls[0]?.[0])).toContain("vectorize_unavailable");
@@ -439,7 +439,7 @@ describe("degraded mode", () => {
     for (const output of [{}, { data: [] }, { data: [[]] }, { request_id: "x" }, { data: [["a"]] }]) {
       const vec = fakeVec([3002]);
       const { body: b } = await smart({ q: "dovetail" }, { ai: fakeAi(output), vec });
-      expect(b.smart_degraded, JSON.stringify(output)).toBe(true);
+      expect(b.smart_degraded, JSON.stringify(output)).toBe("unavailable");
       expect(vec.query).not.toHaveBeenCalled();
     }
   });
@@ -448,7 +448,7 @@ describe("degraded mode", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const res = await exports.default.fetch(url({ q: "dovetail" }));
     expect(res.status).toBe(200);
-    expect(((await res.json()) as Body).smart_degraded).toBe(true);
+    expect(((await res.json()) as Body).smart_degraded).toBe("unavailable");
   });
 });
 

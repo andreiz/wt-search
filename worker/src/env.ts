@@ -28,4 +28,15 @@ export interface Env {
   TURNSTILE_SITE_KEY: string;
   /** Turnstile secret key: `wrangler secret put TURNSTILE_SECRET --env <env>`. Never in the repo. */
   TURNSTILE_SECRET: string;
+  /**
+   * Origins allowed to send reports, comma-separated, exact match (spec §4.8 item 6). A var:
+   * staging allows Vite's dev server until plan 3's site exists. Unset refuses every report.
+   */
+  REPORT_ORIGINS?: string;
+  /**
+   * The kill switch (spec §4.8 item 3): "exact" turns smart search off, "maintenance" takes
+   * /api/* down; anything else is normal. Set in the dashboard only, never in wrangler.jsonc,
+   * whose `keep_vars: true` keeps a deploy from resetting it.
+   */
+  SEARCH_OVERRIDE?: string;
 }

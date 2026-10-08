@@ -34,9 +34,12 @@ function bindings(overrides: Record<string, unknown> = {}): Env {
     AI: { run: async () => ({ shape: [1, 3], data: [[0.1, 0.2, 0.3]], pooling: "cls" }) },
     VEC: { query: async () => ({ count: 1, matches: [{ id: "202", score: 0.5 }] }) },
     TURNSTILE_SECRET: "test-secret",
+    REPORT_ORIGINS: "http://localhost:5173",
     ...overrides,
   } as unknown as Env;
 }
+
+const FROM_SITE = { origin: "http://localhost:5173" };
 
 function call(path: string, e: Env, init: RequestInit = {}): Promise<Response> {
   const headers = { "cf-connecting-ip": IP, "x-forwarded-for": IP, "x-real-ip": IP, ...(init.headers ?? {}) };
@@ -146,9 +149,12 @@ describe("Analytics Engine", () => {
       call("/api/report", bindings({ ANALYTICS: a }), {
         method: "POST",
         body: JSON.stringify({ chunk_id: 201, quoted_text: "hide glue", turnstile_token: "t" }),
+        headers: FROM_SITE,
       }),
     );
-    await logLines(() => call("/api/report", bindings({ ANALYTICS: a }), { method: "POST", body: "not json" }));
+    await logLines(() =>
+      call("/api/report", bindings({ ANALYTICS: a }), { method: "POST", body: "not json", headers: FROM_SITE }),
+    );
     expect(a.writeDataPoint.mock.calls.map((c) => c[0])).toEqual([
       { indexes: ["report"], blobs: [], doubles: [200] },
       { indexes: ["report"], blobs: [], doubles: [400] },

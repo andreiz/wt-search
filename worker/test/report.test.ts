@@ -42,7 +42,8 @@ afterEach(() => {
 function request(body: unknown, init: RequestInit = {}): Request {
   return new Request("https://example.com/api/report", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    // The origin vitest.config.ts allows (REPORT_ORIGINS); guard.test.ts covers the check.
+    headers: { "content-type": "application/json", origin: "http://localhost:5173" },
     body: typeof body === "string" ? body : JSON.stringify(body),
     ...init,
   });
@@ -203,7 +204,11 @@ describe("Turnstile", () => {
   it("refuses a body over a megabyte from its Content-Length, before reading it", async () => {
     const big = new Request("https://example.com/api/report", {
       method: "POST",
-      headers: { "content-type": "application/json", "content-length": String(1024 * 1024) },
+      headers: {
+        "content-type": "application/json",
+        "content-length": String(1024 * 1024),
+        origin: "http://localhost:5173",
+      },
       body: JSON.stringify(valid({ note: "x".repeat(1024 * 1024) })),
     });
     const textSpy = vi.spyOn(Request.prototype, "text");
@@ -416,6 +421,7 @@ describe("D1", () => {
     const response = await worker.fetch(request(valid({ note: "zzmarker note" })), {
       DB: db,
       TURNSTILE_SECRET: "test-secret",
+      REPORT_ORIGINS: env.REPORT_ORIGINS,
     } as Env);
     expect(response.status).toBe(200);
     expect(sql).toHaveLength(1);
@@ -428,6 +434,7 @@ describe("D1", () => {
     const first = await worker.fetch(request(valid({ chunk_id: 424242 })), {
       DB: unknown.db,
       TURNSTILE_SECRET: "test-secret",
+      REPORT_ORIGINS: env.REPORT_ORIGINS,
     } as Env);
     expect(first.status).toBe(400);
     expect(unknown.sql).toHaveLength(1);
@@ -436,6 +443,7 @@ describe("D1", () => {
     const second = await worker.fetch(request(valid({ quoted_text: "" })), {
       DB: invalid.db,
       TURNSTILE_SECRET: "test-secret",
+      REPORT_ORIGINS: env.REPORT_ORIGINS,
     } as Env);
     expect(second.status).toBe(400);
     expect(invalid.sql).toEqual([]);
@@ -448,7 +456,11 @@ describe("D1", () => {
         throw new Error("D1_ERROR: network connection lost");
       },
     } as unknown as D1Database;
-    const response = await worker.fetch(request(valid()), { DB: failingDb, TURNSTILE_SECRET: "test-secret" } as Env);
+    const response = await worker.fetch(request(valid()), {
+      DB: failingDb,
+      TURNSTILE_SECRET: "test-secret",
+      REPORT_ORIGINS: env.REPORT_ORIGINS,
+    } as Env);
     expect(response.status).toBe(503);
     const body = (await response.json()) as Record<string, unknown>;
     expect(body.error).toBe("unavailable");

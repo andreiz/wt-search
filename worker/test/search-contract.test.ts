@@ -237,8 +237,8 @@ describe("smart fixture smart_debug", () => {
 
 describe("smart_degraded", () => {
   it("is set by the Worker exactly where the fixtures have it", () => {
-    expect(liveDegraded.smart_degraded).toBe(true);
-    expect(smartDegraded.smart_degraded).toBe(true);
+    expect(liveDegraded.smart_degraded).toBe("unavailable");
+    expect(smartDegraded.smart_degraded).toBe("unavailable");
     expect(keys(liveDegraded)).toEqual(keys(smartDegraded));
     expect("smart_degraded" in liveSmart).toBe(false);
     expect("smart_degraded" in smart).toBe(false);

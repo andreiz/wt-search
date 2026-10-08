@@ -6,6 +6,7 @@
 // the log lines carry only the event and the error message of the failing call.
 
 import type { Env } from "./env";
+import { originAllowed } from "./guard";
 import { json, logError } from "./http";
 
 /** Cloudflare's token check (Turnstile server-side validation). */
@@ -138,6 +139,14 @@ const unavailable = (message: string): Response => json({ error: "unavailable", 
  * Turnstile or D1 cannot be used. Nothing is stored unless the answer is 200.
  */
 export async function report(request: Request, env: Env): Promise<Response> {
+  // Only the site may send reports (spec §4.8 item 6): checked first, so a report from
+  // anywhere else costs no body read, no Turnstile call and no D1.
+  if (!originAllowed(request, env)) {
+    return json(
+      { error: "forbidden", message: "Reports can only be sent from the Wood Talk search page." },
+      403,
+    );
+  }
   // A declared size far past the limit is refused before the body is read at all. UTF-8 takes
   // at most 3 bytes per UTF-16 unit; parseReport checks the real length.
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_CHARS * 3) {

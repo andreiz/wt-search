@@ -335,6 +335,12 @@ How the maintainer works:
     episode planes a cupped board on the bench for ~2 minutes). RRF already holds it at
     1/61 below hits found both ways (~0.03). Maintainer: leave the fix to plan 5; test the
     query instruction first, then keyword-weighted RRF; smaller chunks only if both fail.
+    **Second data point (2026-10-08):** `how do I flatten a workbench top` returned #171's
+    listener-question answer on strengthening miters (glue size, sanding) as a `related`
+    hit: meaning #26 at cosine 0.660, RRF 0.0116, folding chunk 623. The off-topic hits span
+    0.734 (#1) to 0.660 (#26), so a floor still can't separate them; topK 20–30 would drop
+    this one. The question form ("how do I…") seems to pull in Q&A answers by tone, which is
+    what bge's query instruction targets. Add it to the test search set as non-relevant.
   - **For plan 3:** feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk
     598"), so a card's "Ep. N · Title" shows it twice; strip it for display.
 - **Task 15** `worker/src/{context,report}.ts` (Sonnet subagent, reviewed and amended),

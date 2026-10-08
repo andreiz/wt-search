@@ -11,9 +11,12 @@ the maintainer's request.
 
 **Plan 2: Tasks 1–16 and Checkpoint F are done; Checkpoint G is done except the parts
 that wait on §4.8** (results below). Staging runs Task 16 (deployed 2026-10-08).
-**Next: the §4.8 tasks** (below; to be written into plan 2 first), then Checkpoint G's
-rest: the rate-limit binding (replacing step 2) and the three paraphrase queries of step 3,
-which the maintainer hasn't run yet. Then plans 3–5 are written.
+**Next: plan 2 Tasks 17–19** (spec §4.8, written into the plan 2026-10-08, awaiting the
+maintainer's OK), then Checkpoint G's rest: its revised step 2 (rate limits, kill switch,
+budget) and the three paraphrase queries of step 3. Then plans 3–5 are written. §4.8
+decisions (maintainer, 2026-10-08): `smart_degraded` reason strings; `REPORT_ORIGINS` with
+`http://localhost:5173` on staging; `keep_vars: true` for the kill switch; the 5xx alert is a
+homelab monitor on `/api/health`, not Worker code.
 
 **Since Checkpoint G (session 6, not yet on the Mac):** new releases join the scope in
 `wts feed` (open decision 3, option a; spec §3.1). The next `wts run` after a release shows

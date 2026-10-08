@@ -511,8 +511,11 @@ Parser rules (`worker/src/query.ts`):
       embedded), then one batch of two for the related chunks, if any.
     - When Workers AI or Vectorize fails (or AI returns no embedding), the
       keyword list alone goes through the same steps, with
-      `smart_degraded: true`, and one log line (`ai_unavailable` or
-      `vectorize_unavailable`).
+      `smart_degraded: "unavailable"`, and one log line (`ai_unavailable` or
+      `vectorize_unavailable`). The value says why: `"unavailable"`,
+      `"budget"` (§4.8 item 2) or `"off"` (the kill switch, §4.8 item 3), so
+      the frontend can explain it. *(Revised 2026-10-08: was `true`; a reason
+      string is still truthy for clients that test it as a flag.)*
   - Collapse hits from the same episode that are less than 120 s apart into
     one result carrying `more_in_episode: n`. When sorting by date, results
     are grouped by episode in date order.
@@ -650,7 +653,7 @@ these links are early, never late. Mitigations:
 
 - Queries are capped at 200 characters; smart-mode `page` at 5.
 - If Workers AI or Vectorize fails, return keyword-only results with
-  `smart_degraded: true`.
+  `smart_degraded: "unavailable"` (§4.4).
 - Search responses are cached at the edge (Cache API) for 1 h, keyed by the
   normalized query, mode, sort and page, plus `corpus_version`.
   *(As built, Task 15.)* Also `limit`; the parameters as the route read them
@@ -672,7 +675,8 @@ these links are early, never late. Mitigations:
 ### 4.8 Abuse and cost protection
 
 *(Added 2026-10-08, maintainer. Builds on §4.7; not yet in plan 2's tasks:
-add them before Checkpoint G.)*
+add them before Checkpoint G.)* *(Settled 2026-10-08, maintainer: plan 2
+Tasks 17–19; the 5xx alert moved to an external check, item 4.)*
 
 The threat that matters most is **cost**, not downtime. Cloudflare absorbs
 raw traffic, and there is no spending cap. Every **uncached** smart search
@@ -694,10 +698,18 @@ and the free zone plan allows only one short-window rule.
 
 The binding counts per Cloudflare location and is approximate. That is
 enough for this purpose; exact counting would need a Durable Object.
+Cloudflare's docs advise against IP keys because many people can share
+one address (mobile carriers, offices); 60 a minute is generous enough for
+that. The binding's `period` must be 10 or 60, and bindings that share a
+`namespace_id` share counters account-wide, so each environment gets its own
+ids. Without the binding (local runs, tests that don't set it) nothing is
+limited.
 
 **2. A global daily budget for smart search.** A D1 table, `usage(day TEXT
-PRIMARY KEY, smart INTEGER)`, counts uncached smart searches per UTC day
-with one `INSERT … ON CONFLICT … RETURNING` per uncached smart search.
+PRIMARY KEY, smart INTEGER, alerted_half INTEGER, alerted_full INTEGER)`
+(`schema/0002_usage.sql`), counts uncached smart searches per UTC day
+with one `INSERT … ON CONFLICT … RETURNING` per uncached smart search, made
+before the embedding is asked for (one more D1 round trip on a cache miss).
 - Past `SMART_DAILY_BUDGET` (a Worker var, default **20,000**), searches
   run keyword-only, the existing degraded path, with
   `smart_degraded: "budget"`, until midnight UTC.
@@ -707,24 +719,42 @@ with one `INSERT … ON CONFLICT … RETURNING` per uncached smart search.
 
 **3. Kill switch.** A Worker var, `SEARCH_OVERRIDE`, changed in the
 dashboard with no code deploy:
-- `""`: normal.
-- `"exact"`: smart search off for everyone.
+- unset or `""`: normal.
+- `"exact"`: smart search off for everyone: keyword-only answers with
+  `smart_degraded: "off"`, no AI or Vectorize call, nothing counted.
 - `"maintenance"`: every `/api/*` returns 503 `{error: "maintenance"}`,
   and the frontend shows a notice.
+- Any other value is treated as unset, with one log line.
 
-**4. Alerts.** The Worker posts to ntfy (topic in a Worker secret) once per
-UTC day each when:
-- the smart-search counter passes 50% of the budget;
-- it passes 100% of the budget;
-- more than 5% of requests in the last hour returned 5xx.
+`wrangler deploy` overwrites dashboard vars unless the config sets
+`keep_vars: true` (Cloudflare docs, 2026-10-08), which it does; so
+`SEARCH_OVERRIDE` (and any dashboard override of `SMART_DAILY_BUDGET`) is
+never in `wrangler.jsonc`, and a deploy during an incident leaves the
+switch where it was.
 
-The `usage` row records which alerts were sent, so nothing repeats.
+**4. Alerts.** The Worker posts to ntfy once per UTC day each when the
+smart-search counter passes 50% of the budget and when it passes 100%. The
+server is the var `NTFY_URL` (the maintainer's own), the topic and optional
+token are Worker secrets (`NTFY_TOPIC`, `NTFY_TOKEN`); without a topic,
+alerts are only logged. The `usage` row records which alerts were sent (an
+`UPDATE … WHERE alerted_half = 0` decides which request sends), so nothing
+repeats. The post runs after the response (`waitUntil`) and its failure is
+only logged.
+
+Errors are watched from outside *(revised 2026-10-08, maintainer)*: a
+monitor in the maintainer's homelab (e.g. Uptime Kuma, which posts to ntfy
+itself) polls `/api/health`, whose one D1 query fails when the Worker or
+D1 is down. The planned in-Worker "5xx over 5% in an hour" alert is
+dropped: the Worker can't see global request counts without a write per
+request, and counting in D1 goes blind exactly when D1 is the failure.
 Together with Cloudflare's own usage notifications for Workers, Workers AI
 and Vectorize (where the account offers them), a spike or attack reaches
 the maintainer's phone while it's happening, not in the weekly digest.
 
 **5. Bots, crawlers and probes.**
-- `robots.txt` on the site: allow the pages, `Disallow: /api/`.
+- `robots.txt` on the site: allow the pages, `Disallow: /api/`. Until the
+  site exists, the Worker answers `/robots.txt` itself with `Disallow: /`
+  (on `workers.dev` the API host is all there is).
 - Once there is a custom domain: turn on Cloudflare's **block AI
   crawlers**. Turn on **Bot Fight Mode** only after checking it doesn't
   challenge `wts search`, which sends the bot User-Agent, or the frontend's
@@ -741,7 +771,11 @@ the maintainer's phone while it's happening, not in the weekly digest.
   can't use the API from browsers. `wts search` isn't a browser and is
   unaffected.
 - `POST /api/report` also requires an `Origin` header matching the site
-  (403 otherwise), on top of Turnstile.
+  (403 otherwise), on top of Turnstile. The allowed origins are the var
+  `REPORT_ORIGINS` (comma-separated, exact match). Until plan 3's site,
+  staging allows `http://localhost:5173` (Vite's dev server); a curl test
+  adds `-H 'origin: http://localhost:5173'`. Unset (production for now)
+  refuses every report, like a missing Turnstile secret.
 - Every response sets `X-Content-Type-Options: nosniff` and
   `Referrer-Policy: no-referrer`.
 - The frontend's CSP includes `frame-ancestors 'none'`.
@@ -758,8 +792,9 @@ later: a lower `/api/context` limit, or Turnstile on `/api/context`.
 - Budget exhaustion gives `smart_degraded: "budget"` with no AI call.
 - Each `SEARCH_OVERRIDE` value behaves as described.
 - Alerts are sent once per day per threshold (ntfy mocked).
-- A wrong `Origin` on report gets 403.
-- The security headers are present on every route.
+- A wrong or missing `Origin` on report gets 403.
+- The security headers are present on every route, and no
+  `Access-Control-Allow-Origin` on any.
 
 ## 5. Frontend (`web/`)
 

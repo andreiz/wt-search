@@ -735,12 +735,121 @@ A terminal client for the maintainer: searches a deployed environment through th
 
 ---
 
+### Tasks 17–19: Abuse and cost protection (spec §4.8; added 2026-10-08)
+
+Decisions (maintainer, 2026-10-08): `smart_degraded` becomes a reason string; reports need an
+`Origin` from `REPORT_ORIGINS` (staging: `http://localhost:5173` until plan 3); the kill switch
+survives deploys through `keep_vars: true`; the 5xx alert is an external homelab check on
+`/api/health`, not Worker code. Worker tests: `cd worker && npm test`, `npx tsc --noEmit`.
+
+### Task 17: Kill switch, reason strings, headers, Origin and robots.txt
+
+**Files:**
+- Create: `worker/src/guard.ts` (override, origin and header helpers) with `worker/test/guard.test.ts`
+- Modify: `worker/src/{index,search,report,env}.ts`, `worker/wrangler.jsonc`,
+  `pipeline/src/wts/search.py`, `pipeline/tests/fixtures/search/smart_degraded.json`,
+  `worker/test/search-contract.test.ts`
+
+**Interfaces:**
+- `smart_degraded?: "unavailable" | "budget" | "off"` replaces `true`. `wts search` prints
+  `smart search degraded (<reason>): keyword results only`, with a plain word for each reason.
+- `SEARCH_OVERRIDE` (optional var, never in `wrangler.jsonc`): `"exact"` → smart searches take the
+  degraded path with `"off"`, no AI or Vectorize call; `"maintenance"` → every `/api/*` route
+  (health included) answers 503 `{error: "maintenance", message}`; anything else → normal, with
+  one log line per isolate for an unknown value. `wrangler.jsonc` gets top-level `keep_vars: true`.
+- Every response (404s, 429s, 503s, errors) gets `X-Content-Type-Options: nosniff` and
+  `Referrer-Policy: no-referrer`, set once in the router; none gets `Access-Control-Allow-Origin`.
+- `GET /robots.txt` → `text/plain` `User-agent: *` / `Disallow: /`, outside `/api/*` (no rate
+  limit, no maintenance).
+- `POST /api/report` checks `Origin` against `REPORT_ORIGINS` (comma-separated, exact match)
+  before reading the body: missing, wrong or no var → 403 `{error: "forbidden", message}`, no
+  Turnstile call. Staging `vars`: `REPORT_ORIGINS: "http://localhost:5173"`; production none.
+
+- [ ] **Step 1: Write failing tests:** override `exact` (no AI call, `"off"`, not cached),
+  `maintenance` (503 on each route, robots.txt still served), unknown value (normal); AI failure
+  gives `"unavailable"`; headers on a 200, 404, 503 and 500 and no CORS header; robots.txt; report
+  with no/wrong/allowed `Origin` and with `REPORT_ORIGINS` unset; contract test and the Python
+  fixture use a reason string; `format_results` prints the reason.
+- [ ] **Step 2: Run and confirm they fail.**
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run both suites, type-check, ruff.**
+- [ ] **Step 5: Commit.** `worker: kill switch, degraded reasons, security headers, report Origin, robots.txt`
+
+### Task 18: Per-IP rate limits
+
+**Files:**
+- Create: `worker/src/ratelimit.ts` with `worker/test/ratelimit.test.ts`
+- Modify: `worker/src/{index,env}.ts`, `worker/wrangler.jsonc`
+
+**Interfaces:**
+- Bindings `RL_READ` (60 per 60 s) and `RL_REPORT` (3 per 60 s) in `env.staging` and
+  `env.production`, with distinct `namespace_id`s per environment (staging `"1001"`, `"1002"`;
+  production `"2001"`, `"2002"`): bindings that share an id share counters account-wide.
+  Optional in `Env`: no binding, no limit (tests, local).
+- Key: `cf-connecting-ip`, read only to call `limit()`, never logged or stored. No header → no
+  limit (not a request through Cloudflare).
+- In the router, before the route runs: `POST /api/report` → `RL_REPORT`; every other `/api/*`
+  request (unknown paths and HEAD too) → `RL_READ`. Over → 429 with `retry-after: 60`:
+  `{error: "rate_limited"}` for reads, `{error: "rate_limited", message: "Too many reports;
+  please wait a minute."}` for reports. The log line and analytics record the 429 (no IP).
+- A `limit()` that throws lets the request through (logged once): the limiter is never a
+  reason to fail a search.
+
+- [ ] **Step 1: Write failing tests** with fake bindings: 429 and `retry-after` past the limit;
+  report and read limits are separate; the key is the IP and never appears in the log; no
+  binding or no IP → no limit; a throwing binding lets requests through; robots.txt isn't limited.
+- [ ] **Step 2: Run and confirm they fail.**
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run tests and type-check.**
+- [ ] **Step 5: Commit.** `worker: per-IP rate limits (rate-limiting binding)`
+
+### Task 19: Daily smart-search budget and alerts
+
+**Files:**
+- Create: `schema/0002_usage.sql`, `worker/src/budget.ts` with `worker/test/budget.test.ts`
+- Modify: `worker/src/{index,search,env}.ts`, `worker/wrangler.jsonc`,
+  `pipeline/tests/test_schema_contract.py`
+
+**Interfaces:**
+- `usage(day TEXT PRIMARY KEY, smart INTEGER NOT NULL DEFAULT 0, alerted_half INTEGER NOT NULL
+  DEFAULT 0, alerted_full INTEGER NOT NULL DEFAULT 0)`; `day` is the UTC date `YYYY-MM-DD`.
+- On an uncached, non-overridden smart search, before the embedding: `INSERT INTO usage (day,
+  smart) VALUES (?, 1) ON CONFLICT (day) DO UPDATE SET smart = smart + 1 RETURNING smart,
+  alerted_half, alerted_full`. Over `SMART_DAILY_BUDGET` (var; unset or not a positive integer →
+  20,000) → the degraded path with `"budget"`, no AI or Vectorize call, not cached. Debug
+  searches count; exact mode, cache hits and the `"exact"` override don't. A D1 error here is a
+  D1 error (503), as for the keyword query.
+- Alerts: when `smart` reaches half the budget (and again past the budget), one request wins
+  `UPDATE usage SET alerted_half = 1 WHERE day = ? AND alerted_half = 0` (`changes = 1`) and
+  posts to ntfy in `ctx.waitUntil`: JSON publishing to `NTFY_URL` (var) with `NTFY_TOPIC` and
+  optional bearer `NTFY_TOKEN` (secrets), as the pipeline's `NtfyNotifier` does. No topic → a
+  log line instead. A failed post is logged, never retried, never fails the search.
+- `fetch(request, env, ctx)` gains `ctx` for `waitUntil`.
+
+- [ ] **Step 1: Write failing tests:** the counter counts uncached smart searches only (not exact,
+  cache hits, `"exact"` override); past the budget → `"budget"`, no AI or Vectorize call, not
+  cached; the next UTC day starts again; each alert is posted once per day (ntfy mocked, two
+  concurrent requests at the threshold post once); no topic → logged; ntfy failing doesn't fail
+  the search; the D1 statement count per smart search stays within the Free plan's 50; the
+  schema contract test covers `usage`.
+- [ ] **Step 2: Run and confirm they fail.**
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run both suites and type-check.**
+- [ ] **Step 5: Commit.** `worker: daily smart-search budget and ntfy alerts`
+
+**After Tasks 17–19 (maintainer):** `cd worker && npx wrangler d1 migrations apply wts-staging
+--env staging --remote` (adds `usage`), `npx wrangler secret put NTFY_TOPIC --env staging` (and
+`NTFY_TOKEN` if the server needs one), set `NTFY_URL` in `wrangler.jsonc`, then deploy. Set up the
+homelab monitor on `<staging>/api/health`.
+
+---
+
 ### Checkpoint G: Everything on staging (maintainer, M1 Max)
 
 1. **Deploy:**
    - `npx wrangler secret put TURNSTILE_SECRET --env staging` with Cloudflare's always-pass **test** secret `1x0000000000000000000000000000000AA` (revised 2026-10-08: the real widget is postponed to plan 3, which has the web app's domain).
    - `npx wrangler deploy --env staging`.
-2. **Route and rate limits:** route `/api/*` on the staging domain (spec §10 item 7); add the rate-limiting rules (60/min on `/api/*`, 10/h on `/api/report`).
+2. **Rate limits and cost protection** (revised 2026-10-08: Tasks 17–19 replace the dashboard rules): 61 quick requests from one machine → 429 with `retry-after`; 4 reports in a minute → the 4th is 429; set `SEARCH_OVERRIDE` to `exact` in the dashboard, check `smart_degraded: "off"`, then deploy and check it's still `exact` (`keep_vars`); `maintenance` → 503; clear it. Set `SMART_DAILY_BUDGET` to `3` in the dashboard, run 4 uncached smart searches: alerts at 2 and 4 arrive once each, the 4th says `"budget"`; then remove it. The homelab monitor alerts when `/api/health` fails.
 3. **Smart search:**
    - `curl '<staging>/api/search?q=how+do+I+flatten+a+workbench+top'` → results with some `related` hits, not `smart_degraded`.
    - Three paraphrase queries of your own, about topics you remember from the seed episodes; note whether the right episode is in the top 10. (This previews plan 5's test search set.)

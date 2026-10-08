@@ -39,4 +39,10 @@ export interface Env {
    * whose `keep_vars: true` keeps a deploy from resetting it.
    */
   SEARCH_OVERRIDE?: string;
+  /**
+   * Rate-limiting bindings (spec §4.8 item 1): 60 /api/* requests and 3 reports per 60 s per
+   * client IP. Optional: without them nothing is limited (tests, local runs).
+   */
+  RL_READ?: RateLimit;
+  RL_REPORT?: RateLimit;
 }

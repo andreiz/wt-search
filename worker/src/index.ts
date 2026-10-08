@@ -5,6 +5,7 @@ import type { Env } from "./env";
 import { robots, searchOverride, withSecurityHeaders } from "./guard";
 import { JSON_HEADERS, json, logError } from "./http";
 import { MAX_QUERY_CHARS, parseQuery } from "./query";
+import { rateLimited } from "./ratelimit";
 import { report } from "./report";
 import {
   exactSearch,
@@ -169,7 +170,9 @@ export default {
       if (path.startsWith("/api/") && searchOverride(env) === "maintenance") {
         response = json(MAINTENANCE, 503); // the kill switch (spec §4.8 item 3); no D1
       } else {
-        response = handler ? await handler(request, env, info) : json({ error: "not_found" }, 404);
+        response =
+          (await rateLimited(request, env, path)) ??
+          (handler ? await handler(request, env, info) : json({ error: "not_found" }, 404));
       }
     } catch (err) {
       logError("unhandled_error", request, err);

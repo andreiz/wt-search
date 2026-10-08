@@ -54,6 +54,12 @@
 			// enable Analytics Engine") even after it was enabled in the dashboard; if that
 			// happens again, comment this out: the Worker runs without it (Env.ANALYTICS is optional).
 			"analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_staging" }],
+			// Per-IP limits (spec §4.8 item 1). `period` must be 10 or 60. Bindings that share a
+			// namespace_id share counters account-wide, so each environment has its own ids.
+			"ratelimits": [
+				{ "name": "RL_READ", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
+				{ "name": "RL_REPORT", "namespace_id": "1002", "simple": { "limit": 3, "period": 60 } }
+			],
 			"vars": {
 				// Edge cache for /api/search, in seconds (spec §4.7); unset means no caching.
 				"SEARCH_CACHE_TTL_S": "3600",
@@ -80,6 +86,10 @@
 			"vectorize": [{ "binding": "VEC", "index_name": "wts-chunks-production" }],
 			"ai": { "binding": "AI" },
 			"analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_production" }],
+			"ratelimits": [
+				{ "name": "RL_READ", "namespace_id": "2001", "simple": { "limit": 60, "period": 60 } },
+				{ "name": "RL_REPORT", "namespace_id": "2002", "simple": { "limit": 3, "period": 60 } }
+			],
 			"vars": {
 				"SEARCH_CACHE_TTL_S": "3600",
 				"TURNSTILE_SITE_KEY": "production-turnstile-site-key-placeholder"

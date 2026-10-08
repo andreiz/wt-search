@@ -11,9 +11,10 @@ that, work on `main` again (CLAUDE.md). If the merge hasn't happened, ask before
 
 **Plan 2: Tasks 1–16 and Checkpoint F are done.** Staging runs Task 15 (deployed
 2026-10-08); Task 16's Worker change (HEAD routing) is **not deployed yet**.
-**Next: Checkpoint G** (maintainer, on the Mac; plan 2), then plans 3–5 are written.
+**Next: the §4.8 tasks** (below; to be added to plan 2), **then Checkpoint G** (maintainer,
+on the Mac), then plans 3–5 are written.
 
-**Before Checkpoint G (maintainer):**
+**For Checkpoint G (maintainer):**
 - `npx wrangler deploy --env staging` (HEAD routing, so `curl -sI` shows `x-wts-cache`).
 - Optional `config.toml` keys, top level (before any `[env.*]`): `backup_dir` (e.g.
   `/Volumes/media/wts/backup`; without it `wts run` logs "no backup") and `run_env =
@@ -24,7 +25,21 @@ that, work on `main` again (CLAUDE.md). If the merge hasn't happened, ask before
   episodes aren't added to scope, so a scheduled run skips them. Options: auto-scope new
   episodes in `wts feed`, or make `wts run` default to `--select all`.
 
-**Waiting on the maintainer (none blocks Checkpoint G):**
+**Before Checkpoint G: new spec §4.8, Abuse and cost protection** (maintainer, 2026-10-08).
+Add plan 2 tasks for it:
+- Per-IP limits use the Workers rate-limiting binding in code. This **replaces** the
+  dashboard rules in Checkpoint G step 2, which don't apply on `workers.dev` and are limited
+  on the free plan.
+- A daily smart-search budget in D1 (`usage` table, `SMART_DAILY_BUDGET`, past it
+  `smart_degraded: "budget"`).
+- A `SEARCH_OVERRIDE` kill switch.
+- ntfy alerts at 50% and 100% of the budget and on a 5xx spike.
+- `robots.txt`.
+- An `Origin` check on report, no CORS headers, and `nosniff` / `no-referrer` headers.
+
+The tests are listed in §4.8.
+
+**Waiting on the maintainer (none blocks the §4.8 tasks or Checkpoint G):**
 - **Turnstile is postponed to plan 3** (maintainer, 2026-10-08). A widget is tied to the
   hostname of the page that embeds it, and there is no web app or domain yet. Use "Add
   widget manually", not the dashboard's AI "Spin" setup, which edits code. Plan 3: one

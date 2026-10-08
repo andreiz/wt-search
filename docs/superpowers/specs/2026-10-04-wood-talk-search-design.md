@@ -663,6 +663,98 @@ these links are early, never late. Mitigations:
 - The frontend sets a strict CSP. There are no cookies and no secrets. The
   only stored user input is report text and anonymous search analytics.
 
+### 4.8 Abuse and cost protection
+
+*(Added 2026-10-08, maintainer. Builds on §4.7; not yet in plan 2's tasks:
+add them before Checkpoint G.)*
+
+The threat that matters most is **cost**, not downtime. Cloudflare absorbs
+raw traffic, and there is no spending cap. Every **uncached** smart search
+costs a Workers AI embedding and a Vectorize query, so a bot sending unique
+queries from many IPs gets past both the edge cache and per-IP limits. The
+design keeps the worst case bounded and cheap rather than trying to stop
+every bot.
+
+**1. Per-IP rate limits in code.** Use the Workers rate-limiting binding
+(`ratelimits` in `wrangler.toml`), keyed by the client IP, which isn't
+stored. This replaces the dashboard rules planned for Checkpoint G, for two
+reasons: dashboard rules don't apply on `workers.dev`, where staging runs,
+and the free zone plan allows only one short-window rule.
+
+| Limit | Binding (period ≤ 60 s) | Over the limit |
+|---|---|---|
+| `/api/*` reads | 60 per 60 s | 429 `{error: "rate_limited"}` with `retry-after` |
+| `POST /api/report` | 3 per 60 s (with Turnstile; replaces "10 per hour") | 429 with a friendly `message` |
+
+The binding counts per Cloudflare location and is approximate. That is
+enough for this purpose; exact counting would need a Durable Object.
+
+**2. A global daily budget for smart search.** A D1 table, `usage(day TEXT
+PRIMARY KEY, smart INTEGER)`, counts uncached smart searches per UTC day
+with one `INSERT … ON CONFLICT … RETURNING` per uncached smart search.
+- Past `SMART_DAILY_BUDGET` (a Worker var, default **20,000**), searches
+  run keyword-only, the existing degraded path, with
+  `smart_degraded: "budget"`, until midnight UTC.
+- At 20,000 a day the AI and Vectorize cost is a few dollars a month at
+  most (§11.2), so a runaway bot can't produce a surprise bill.
+- Cached answers and exact-mode searches don't count.
+
+**3. Kill switch.** A Worker var, `SEARCH_OVERRIDE`, changed in the
+dashboard with no code deploy:
+- `""`: normal.
+- `"exact"`: smart search off for everyone.
+- `"maintenance"`: every `/api/*` returns 503 `{error: "maintenance"}`,
+  and the frontend shows a notice.
+
+**4. Alerts.** The Worker posts to ntfy (topic in a Worker secret) once per
+UTC day each when:
+- the smart-search counter passes 50% of the budget;
+- it passes 100% of the budget;
+- more than 5% of requests in the last hour returned 5xx.
+
+The `usage` row records which alerts were sent, so nothing repeats.
+Together with Cloudflare's own usage notifications for Workers, Workers AI
+and Vectorize (where the account offers them), a spike or attack reaches
+the maintainer's phone while it's happening, not in the weekly digest.
+
+**5. Bots, crawlers and probes.**
+- `robots.txt` on the site: allow the pages, `Disallow: /api/`.
+- Once there is a custom domain: turn on Cloudflare's **block AI
+  crawlers**. Turn on **Bot Fight Mode** only after checking it doesn't
+  challenge `wts search`, which sends the bot User-Agent, or the frontend's
+  own requests.
+- Unknown paths already get a cheap JSON 404 (plan 2 Task 10), so probes
+  for `/wp-admin`, `/.env` and the like cost one Worker invocation and no
+  D1 or AI. Logs count 404s per path prefix, without IPs.
+- No endpoint writes anything except `/api/report`. Publishing goes
+  through the Cloudflare API with the Mac's scoped token (spec §3.6),
+  never through the Worker.
+
+**6. Browser and cross-site rules.**
+- API responses send no `Access-Control-Allow-Origin`, so other sites
+  can't use the API from browsers. `wts search` isn't a browser and is
+  unaffected.
+- `POST /api/report` also requires an `Origin` header matching the site
+  (403 otherwise), on top of Turnstile.
+- Every response sets `X-Content-Type-Options: nosniff` and
+  `Referrer-Policy: no-referrer`.
+- The frontend's CSP includes `frame-ancestors 'none'`.
+
+**7. Bulk scraping (accepted risk).** Search plus `/api/context` (±6
+chunks) could be paged through slowly to copy the transcripts. The rate
+limits and the 100/200 result caps make that slow, but can't prevent it.
+That's acceptable if the hosts are happy for the transcripts to be public;
+ask them when getting their blessing (§10 item 1). Mitigations if needed
+later: a lower `/api/context` limit, or Turnstile on `/api/context`.
+
+**Tests:**
+- The rate limit returns 429 (binding mocked).
+- Budget exhaustion gives `smart_degraded: "budget"` with no AI call.
+- Each `SEARCH_OVERRIDE` value behaves as described.
+- Alerts are sent once per day per threshold (ntfy mocked).
+- A wrong `Origin` on report gets 403.
+- The security headers are present on every route.
+
 ## 5. Frontend (`web/`)
 
 Vite + TypeScript + Preact, deployed to Cloudflare Pages on the same domain

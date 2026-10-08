@@ -26,7 +26,7 @@ import yaml
 from wts.corrections import CORRECTIONS_FILE, apply_corrections, load_corrections
 from wts.guards import clean_transcript
 from wts.transcribe import VOCAB_FILE, build_initial_prompt
-from wts.words import join_hyphenated, split_sentences
+from wts.words import join_split_words, split_sentences
 
 PROMPT_CAP = 150
 
@@ -56,7 +56,7 @@ def tried_rules(specs: list[str]):
 def sentences(data: dict, rules, stem: str) -> dict[int, str]:
     words, _ = clean_transcript(data, data["meta"].get("duration_s"))
     # The same order as wts chunk (chunking.prepare_episode), so the preview is the chunk text.
-    corrected = join_hyphenated(apply_corrections(words, rules, stem))
+    corrected = join_split_words(apply_corrections(words, rules, stem))
     return {s.start_ms: s.text for s in split_sentences(corrected)}
 
 

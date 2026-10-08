@@ -21,6 +21,12 @@ on the Mac), then plans 3–5 are written.
   "staging"` (else pass `--env staging`).
 - `uv run pytest -m mac -k real_rsync` runs the backup with the Mac's own rsync (openrsync
   on macOS 15.4+, whose exclude handling we haven't seen); here it passed with rsync 3.2.7.
+- **Re-chunk for split numbers** (session 6): `wts chunk` now joins "22 .5", "45 ,000",
+  "10 %" (spec §3.3). Apply with `uv run wts chunk --force`, `uv run wts embed`, then
+  `uv run wts publish --env staging` (only chunks whose text changed are rewritten). Then
+  `uv run wts search --mode exact '10%'` should show `10%`, not `10 %`.
+- **Corrections candidate** (for the corrections session): "Urlex HV2900" in #71 at ~1:09:51
+  is very likely **Earlex** HV2900 (an HVLP sprayer); check with `check_corrections.py`.
 - **Open decision 3 needs an answer before `wts run` goes on a schedule** (M2): new feed
   episodes aren't added to scope, so a scheduled run skips them. Options: auto-scope new
   episodes in `wts feed`, or make `wts run` default to `--select all`.
@@ -121,7 +127,8 @@ How the maintainer works:
 - **Pipeline** (`pipeline/`, `wts` CLI): plan 1 complete; plan 2 adds secrets, config for
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
   `wts search` (with `--limit N`, `--debug`), hyphen joining in `wts chunk`, `wts run --env`
-  (publish, backup), `wts backup`, `wts logs`, `wts links`. **675 tests**, ruff clean
+  (publish, backup), `wts backup`, `wts logs`, `wts links`, split-number joining in `wts
+  chunk`. **677 tests**, ruff clean
   (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact

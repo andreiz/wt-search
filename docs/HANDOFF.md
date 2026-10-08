@@ -34,6 +34,20 @@ logs, Analytics Engine).
 - Open decision 3 (below) matters once `wts run` publishes on a schedule: new feed episodes
   aren't auto-scoped. Raise it with the maintainer when Task 16 is done; don't decide it.
 
+**Before Checkpoint G: new spec §4.8, Abuse and cost protection** (maintainer, 2026-10-08).
+Add plan 2 tasks for it:
+- Per-IP limits use the Workers rate-limiting binding in code. This **replaces** the
+  dashboard rules in Checkpoint G step 2, which don't apply on `workers.dev` and are limited
+  on the free plan.
+- A daily smart-search budget in D1 (`usage` table, `SMART_DAILY_BUDGET`, past it
+  `smart_degraded: "budget"`).
+- A `SEARCH_OVERRIDE` kill switch.
+- ntfy alerts at 50% and 100% of the budget and on a 5xx spike.
+- `robots.txt`.
+- An `Origin` check on report, no CORS headers, and `nosniff` / `no-referrer` headers.
+
+The tests are listed in §4.8.
+
 **Waiting on the maintainer (none blocks Task 16):**
 - **Turnstile is postponed to plan 3** (maintainer, 2026-10-08). A widget is tied to the
   hostname of the page that embeds it, and there is no web app or domain yet. Use "Add

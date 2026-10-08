@@ -146,6 +146,7 @@ describe("matching", () => {
       cue_s: { youtube: 0, apple: 0, spotify: 0 },
       match: "keyword",
       more_in_episode: 0,
+      folded: [],
     });
   });
 
@@ -312,6 +313,26 @@ describe("collapsing (per page)", () => {
   it("always has more_in_episode", async () => {
     const body = await exact("dovetail");
     expect(body.results.every((r) => r.more_in_episode === 0)).toBe(true);
+  });
+
+  it("lists the folded chunk ids, as many as more_in_episode", async () => {
+    const tenon = await exact("tenon", { sort: "oldest" });
+    expect(tenon.results.map((r) => [r.chunk_id, r.folded])).toEqual([[1311, [1312]]]);
+    // 1316 folds into 1315; 1317 is kept (200 s from the kept one), with nothing folded.
+    const mortise = await exact("mortise", { sort: "oldest" });
+    expect(mortise.results.map((r) => [r.chunk_id, r.folded])).toEqual([
+      [1315, [1316]],
+      [1317, []],
+    ]);
+    for (const body of [tenon, mortise, await exact("dovetail")]) {
+      for (const r of body.results) expect(r.folded).toHaveLength(r.more_in_episode);
+    }
+  });
+
+  it("folded lists only this page's folds", async () => {
+    // 1 result per page: the neighbour that would fold in is on the next page, so nothing folds.
+    const one = await exact("tenon", { sort: "oldest", limit: "1" });
+    expect(one.results.map((r) => [r.chunk_id, r.more_in_episode, r.folded])).toEqual([[1311, 0, []]]);
   });
 });
 

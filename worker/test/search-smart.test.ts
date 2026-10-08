@@ -298,6 +298,27 @@ describe("collapsing", () => {
     expect(ids(b)).toEqual([3001, 3203, 3101]);
     expect(inEpisode[0]!.chunk_id).toBe(3203);
   });
+
+  it("lists the folded chunk ids on every result, with or without debug", async () => {
+    for (const debug of [undefined, "1"]) {
+      const b = await body({ q: "dovetail", ...(debug ? { debug } : {}) }, [3203]);
+      expect(b.results.map((r) => [r.chunk_id, r.folded]), String(debug)).toEqual([
+        [3001, []],
+        [3203, [3201]],
+        [3101, []],
+      ]);
+      for (const r of b.results) expect(r.folded).toHaveLength(r.more_in_episode);
+    }
+  });
+
+  it("has folded on degraded results too", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const vec = { query: vi.fn(async () => Promise.reject(new Error("VECTOR_QUERY_ERROR"))) };
+    const { body: b } = await smart({ q: "dovetail" }, { vec });
+    expect(b.smart_degraded).toBe("unavailable");
+    expect(b.results.length).toBeGreaterThan(0);
+    for (const r of b.results) expect(r.folded).toHaveLength(r.more_in_episode);
+  });
 });
 
 describe("date sorts", () => {
@@ -372,16 +393,16 @@ describe("debug output (?debug=1)", () => {
       vector_rank: 2,
       vector_score: 0.899,
       rrf_score: expect.closeTo(1 / 63 + 1 / 62, 12),
-      folded: [],
     });
-    expect(d[3002]).toEqual({ keyword_rank: null, vector_rank: 1, vector_score: 0.9, rrf_score: expect.closeTo(1 / 61, 12), folded: [] });
+    expect(d[3002]).toEqual({ keyword_rank: null, vector_rank: 1, vector_score: 0.9, rrf_score: expect.closeTo(1 / 61, 12) });
     expect(d[k[0]!]).toMatchObject({ keyword_rank: 1, vector_rank: null, vector_score: null });
     expect(b.debug).toEqual({ keyword_hits: 3, vector_hits: 3, dropped: [] });
   });
 
-  it("lists the hits folded into each result", async () => {
+  it("no longer lists folded hits in the debug object (they are on the result)", async () => {
     const b = await body({ q: "dovetail", debug: "1" }, [3203]);
-    expect(b.results.find((r) => r.chunk_id === 3203)?.debug?.folded).toEqual([3201]);
+    for (const r of b.results) expect(r.debug).not.toHaveProperty("folded");
+    expect(b.results.find((r) => r.chunk_id === 3203)?.folded).toEqual([3201]);
   });
 
   it("lists the meaning-based hits that were dropped", async () => {

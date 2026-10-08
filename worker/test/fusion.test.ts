@@ -86,7 +86,13 @@ describe("sortByDate", () => {
 });
 
 describe("collapse", () => {
-  const result = (id: number, episode: number, hit_ms: number) => ({ id, episode: { id: episode }, hit_ms, more_in_episode: 0 });
+  const result = (chunk_id: number, episode: number, hit_ms: number) => ({
+    chunk_id,
+    episode: { id: episode },
+    hit_ms,
+    more_in_episode: 0,
+    folded: [] as number[],
+  });
 
   it("folds hits of one episode less than 120 s from a kept one into it", () => {
     expect(COLLAPSE_MS).toBe(120_000);
@@ -97,10 +103,26 @@ describe("collapse", () => {
       result(4, 10, 1_121_000), // 121 s from 1, the kept one (2 is not kept): kept
       result(5, 10, 881_000), // 119 s before 1: folded into 1
     ]);
-    expect(kept.map((r) => [r.id, r.more_in_episode])).toEqual([
+    expect(kept.map((r) => [r.chunk_id, r.more_in_episode])).toEqual([
       [1, 2],
       [3, 0],
       [4, 0],
     ]);
+  });
+
+  it("records the folded chunk ids on the kept result, in fold order", () => {
+    const kept = collapse([
+      result(1, 10, 1_000_000),
+      result(2, 10, 1_050_000),
+      result(3, 20, 1_000_000),
+      result(5, 10, 950_000),
+      result(4, 10, 1_121_000),
+    ]);
+    expect(kept.map((r) => [r.chunk_id, r.folded])).toEqual([
+      [1, [2, 5]],
+      [3, []],
+      [4, []],
+    ]);
+    for (const r of kept) expect(r.folded).toHaveLength(r.more_in_episode);
   });
 });

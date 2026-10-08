@@ -189,7 +189,7 @@ def _result_lines(r: dict, color: bool) -> list[str]:
     if more > 0:
         lines.append(f"  +{more} more in episode")
     if isinstance(r.get("debug"), dict):
-        lines.append(f"  {'debug':<7}  {_debug_line(r['debug'])}")
+        lines.append(f"  {'debug':<7}  {_debug_line(r['debug'], r.get('folded') or [])}")
     links = episode.get("links") or {}
     lines += [f"  {name:<7}  {links[name]}" for name in LINK_ORDER if links.get(name)]
     return lines
@@ -209,9 +209,9 @@ def _debug_summary(d: dict) -> str:
     return "debug: " + ", ".join(parts)
 
 
-def _debug_line(d: dict) -> str:
+def _debug_line(d: dict, folded: list) -> str:
     """`keyword #3, meaning #2 (0.812), rrf 0.0320; folded 59032, 59040`: why a result ranked
-    where it did. A list the result wasn't in is left out."""
+    where it did. A list the result wasn't in is left out. `folded` is the result's own field."""
     parts = []
     if d.get("keyword_rank") is not None:
         parts.append(f"keyword #{d['keyword_rank']}")
@@ -219,7 +219,6 @@ def _debug_line(d: dict) -> str:
         parts.append(f"meaning #{d['vector_rank']} ({d.get('vector_score', 0):.3f})")
     parts.append(f"rrf {d.get('rrf_score', 0):.4f}")
     line = ", ".join(parts)
-    folded = d.get("folded") or []
     if folded:
         line += "; folded " + ", ".join(str(i) for i in folded)
     return line

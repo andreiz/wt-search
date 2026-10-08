@@ -20,12 +20,12 @@
       "cue_s": { "youtube": 2103, "apple": 2103, "spotify": 2103 },
       "match": "keyword",
       "more_in_episode": 2,
+      "folded": [59032, 59040],
       "debug": {
         "keyword_rank": 3,
         "vector_rank": 2,
         "vector_score": 0.81234,
-        "rrf_score": 0.03199590834697218,
-        "folded": [59032, 59040]
+        "rrf_score": 0.03199590834697218
       }
     },
     {
@@ -45,12 +45,12 @@
       "cue_s": { "youtube": 1493, "apple": 1493, "spotify": 1493 },
       "match": "related",
       "more_in_episode": 0,
+      "folded": [],
       "debug": {
         "keyword_rank": null,
         "vector_rank": 1,
         "vector_score": 0.84561,
-        "rrf_score": 0.01639344262295082,
-        "folded": []
+        "rrf_score": 0.01639344262295082
       }
     }
   ],

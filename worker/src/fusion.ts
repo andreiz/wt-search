@@ -52,18 +52,21 @@ export function sortByDate<T extends Dated>(hits: readonly T[], sort: "newest" |
 
 /** What collapsing reads from a result. */
 export interface Collapsible {
+  chunk_id: number;
   episode: { id: number };
   hit_ms: number;
   more_in_episode: number;
+  /** The chunk ids folded into this result, in fold order; as many as `more_in_episode`. */
+  folded: number[];
 }
 
 /**
  * Collapse hits of one episode that are close in time: the first result in list order is
  * kept and counts the ones it absorbs. Only kept results are compared against, so a long run
  * of hits is not swallowed by a chain of near neighbours. Mutates the kept results'
- * `more_in_episode`; returns the kept ones in order. `onFold` hears each fold (debug output).
+ * `more_in_episode` and `folded` (the absorbed chunk ids); returns the kept ones in order.
  */
-export function collapse<T extends Collapsible>(results: readonly T[], onFold?: (kept: T, folded: T) => void): T[] {
+export function collapse<T extends Collapsible>(results: readonly T[]): T[] {
   const kept: T[] = [];
   for (const result of results) {
     const near = kept.find(
@@ -71,7 +74,7 @@ export function collapse<T extends Collapsible>(results: readonly T[], onFold?: 
     );
     if (near) {
       near.more_in_episode++;
-      onFold?.(near, result);
+      near.folded.push(result.chunk_id);
     } else {
       kept.push(result);
     }

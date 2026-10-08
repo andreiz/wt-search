@@ -21,7 +21,8 @@
       "hit_ms": 2110000,
       "cue_s": { "youtube": 2103, "apple": 2103, "spotify": 2103 },
       "match": "keyword",
-      "more_in_episode": 1
+      "more_in_episode": 1,
+      "folded": [59032]
     },
     {
       "episode": {
@@ -40,7 +41,8 @@
       "hit_ms": 1500000,
       "cue_s": { "youtube": 1493, "apple": 1493, "spotify": 1493 },
       "match": "related",
-      "more_in_episode": 0
+      "more_in_episode": 0,
+      "folded": []
     },
     {
       "episode": {
@@ -58,7 +60,8 @@
       "hit_ms": 61000,
       "cue_s": { "youtube": 54, "apple": 54, "spotify": 54 },
       "match": "related",
-      "more_in_episode": 0
+      "more_in_episode": 0,
+      "folded": []
     }
   ],
   "mode": "smart",

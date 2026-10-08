@@ -66,6 +66,8 @@ export interface SearchResult {
   match: Match;
   /** Other hits from the same episode, within COLLAPSE_MS of this one (exact: on this page). */
   more_in_episode: number;
+  /** The chunk ids collapsed into this result, in fold order; `folded.length === more_in_episode`. */
+  folded: number[];
   /** Smart mode with `?debug=1` only. */
   debug?: ResultDebug;
 }
@@ -79,8 +81,6 @@ export interface ResultDebug {
   /** Vectorize's similarity (cosine), or null. */
   vector_score: number | null;
   rrf_score: number;
-  /** The chunks collapsed into this result, in fused order. */
-  folded: number[];
 }
 
 /** What fed a smart response (`?debug=1`). */
@@ -231,6 +231,7 @@ function toResult(row: Row, match: Match): SearchResult {
     cue_s: cueTimes(row, hit),
     match,
     more_in_episode: 0,
+    folded: [],
   };
 }
 
@@ -439,11 +440,10 @@ export async function smartSearch(
         vector_rank: vectorRank.get(r.chunk_id)?.rank ?? null,
         vector_score: vectorRank.get(r.chunk_id)?.score ?? null,
         rrf_score: rrfScore.get(r.chunk_id) ?? 0,
-        folded: [],
       },
     }));
   }
-  const results = collapse(all, (kept, folded) => kept.debug?.folded.push(folded.chunk_id));
+  const results = collapse(all);
   const offset = (page - 1) * limit;
   const response: SmartResponse = {
     page,

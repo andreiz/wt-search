@@ -36,6 +36,7 @@ def result(**overrides) -> dict:
         "cue_s": {"youtube": 0, "apple": 0, "spotify": 0},
         "match": "keyword",
         "more_in_episode": 0,
+        "folded": [],
     }
     return {**base, **overrides}
 
@@ -389,7 +390,7 @@ def test_degraded_smart_header():
 
 def folded_header(*folds: int, **overrides) -> str:
     """The header of a page whose results fold `folds` nearby hits each."""
-    results = [result(chunk_id=i, more_in_episode=n) for i, n in enumerate(folds)]
+    results = [result(chunk_id=i, more_in_episode=n, folded=list(range(n))) for i, n in enumerate(folds)]
     return format_results(response(*results, **overrides), color=False).splitlines()[0]
 
 
@@ -494,6 +495,17 @@ def test_the_debug_fixture():
         "  page     https://example.com/ep/590",
     ]
     assert lines[11] == "  debug    meaning #1 (0.846), rrf 0.0164"
+
+
+def test_debug_line_reads_folded_from_the_result_not_its_debug_object():
+    debug = {"keyword_rank": 3, "vector_rank": None, "vector_score": None, "rrf_score": 0.032}
+    folded = format_results(response(result(more_in_episode=2, folded=[7, 9], debug=debug),
+                                     mode="smart"), color=False).splitlines()
+    assert "  debug    keyword #3, rrf 0.0320; folded 7, 9" in folded
+    # An older Worker's debug.folded is no longer read.
+    old = format_results(response(result(debug={**debug, "folded": [7, 9]}), mode="smart"),
+                         color=False).splitlines()
+    assert "  debug    keyword #3, rrf 0.0320" in old
 
 
 def test_debug_summary_when_degraded_or_nothing_dropped():

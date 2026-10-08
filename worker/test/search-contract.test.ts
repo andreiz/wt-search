@@ -74,6 +74,10 @@ function expectResultTypes(r: Json): void {
   expect(typeof r.text).toBe("string");
   expect(typeof r.hit_ms).toBe("number");
   expect(typeof r.more_in_episode).toBe("number");
+  // The chunk ids behind more_in_episode: always present, one per fold.
+  expect(Array.isArray(r.folded)).toBe(true);
+  for (const id of r.folded as unknown[]) expect(typeof id).toBe("number");
+  expect(r.folded).toHaveLength(r.more_in_episode as number);
   expect(["keyword", "related"]).toContain(r.match);
   expect(Array.isArray(r.ranges)).toBe(true);
   for (const range of r.ranges as unknown[]) {
@@ -229,7 +233,7 @@ describe("smart fixture smart_debug", () => {
           expect(rd[k] === null || typeof rd[k] === "number", k).toBe(true);
         }
         expect(typeof rd.rrf_score).toBe("number");
-        expect(Array.isArray(rd.folded)).toBe(true);
+        expect(rd).not.toHaveProperty("folded");
       }
     }
   });

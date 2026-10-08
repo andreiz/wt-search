@@ -20,7 +20,8 @@
       "hit_ms": 2110000,
       "cue_s": { "youtube": 2103, "apple": 2103, "spotify": 2103 },
       "match": "keyword",
-      "more_in_episode": 0
+      "more_in_episode": 0,
+      "folded": []
     }
   ],
   "mode": "smart",

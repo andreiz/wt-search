@@ -121,7 +121,7 @@ How the maintainer works:
 - **Pipeline** (`pipeline/`, `wts` CLI): plan 1 complete; plan 2 adds secrets, config for
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
   `wts search` (with `--limit N`, `--debug`), hyphen joining in `wts chunk`, `wts run --env`
-  (publish, backup), `wts backup`, `wts logs`. **654 tests**, ruff clean
+  (publish, backup), `wts backup`, `wts logs`, `wts links`. **675 tests**, ruff clean
   (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
@@ -426,6 +426,11 @@ How the maintainer works:
     fill the cache.
   - `test_real_rsync_copies_the_app_folder_but_not_audio` is `mac`-marked (handoff: no real
     rsync in the default run); it also passes on Linux with rsync installed.
+- **`wts links <ep> [--at 12:34]`** (after Task 16, maintainer's request): an episode's
+  links from `state.db`, by the Worker's rules (`wts/links.py` mirrors `links.ts`; YouTube
+  via `publish.youtube_id_for_publish`), plus the feed's audio URL. A YouTube match that
+  fails the 3 s rule is printed with its drift instead of a link. `--at` applies the
+  platform offsets but no 7 s lead-in. Takes a number or any selector.
 
 Checkpoint still ahead: **G** after Task 16 (smart search, report with the Turnstile test
 secret, caching, `wts run --env staging` end to end). Plans 3–5
@@ -512,7 +517,10 @@ secret, caching, `wts run --env staging` end to end). Plans 3–5
 ## Spikes (`pipeline/spikes/`)
 
 - **Keep** until plan 4's review tool replaces them: `transcript_peek.py` (`read <ep>`,
-  `suspects`, `issues <ep>`) and `check_corrections.py`.
+  `suspects`, `issues <ep>`, `worst <ep>`) and `check_corrections.py`. `worst` (session 6,
+  for finding ep71's call-ins) ranks 60 s stretches by the share of words below probability
+  0.5, every word counted, stretches under 20 words skipped; plan 4's review tool could
+  borrow it to point reviewers at poor audio.
 - **Done, deletable:** `ad_fingerprint.py` (pair comparison by Chromaprint; its cross-episode
   mode is untested) and `preroll_finder.py` + results (finds the pre-roll on 2014–2026 copies,
   but mid-rolls make it insufficient). Ad-free downloads made timeline correction unnecessary;
@@ -579,4 +587,5 @@ secret, caching, `wts run --env staging` end to end). Plans 3–5
   (session 3); one `sed` edit to the handoff's plan-status line (session 4); a Python edit
   to `worker/src/index.ts`, `sed` edits to five import lines and the handoff's test count,
   and a heredoc append to `highlight.test.ts` (session 5, Task 14 and its follow-ups); a
-  heredoc append of Task 16's tests to `test_run.py` (session 6).
+  heredoc append of Task 16's tests to `test_run.py` and a `sed` edit to the handoff's test
+  count (session 6).

@@ -229,6 +229,44 @@ def search_cmd(env: str | None, mode: str, sort: str, page: int, limit: int | No
     click.echo(format_results(response, color=color, limit=limit), color=color)
 
 
+@main.command("links")
+@click.argument("episode")
+@click.option("--at", "at", default=None,
+              help="Start at this time: 12:34, 1:02:03 or seconds (each platform's offset is "
+                   "applied).")
+def links_cmd(episode: str, at: str | None) -> None:
+    """An episode's links (YouTube, Apple, Spotify, show page, audio), as the site builds them.
+
+    EPISODE is a number (71) or a selector (stem:S, recent:3, ep:71,ep:171). YouTube is linked
+    only when the video's length is within 3 s of the feed's; otherwise the match is shown
+    with the reason.
+    """
+    from wts.links import episode_links, parse_time, youtube_note
+    from wts.log import clock
+    from wts.selection import resolve_selector
+
+    at_s = None
+    if at is not None:
+        try:
+            at_s = parse_time(at)
+        except ValueError as exc:
+            raise click.BadParameter(str(exc), param_hint="--at") from exc
+    conn = _ctx().conn()
+    ids = resolve_selector(conn, f"ep:{episode}" if episode.isdigit() else episode)
+    if not ids:
+        raise click.ClickException(f"no episode matches {episode!r}")
+    for i, episode_id in enumerate(ids):
+        row = conn.execute("select * from episodes where id = ?", (episode_id,)).fetchone()
+        title = f"#{row['number']} {row['title']}" if row["number"] else row["title"]
+        when = f", at {clock(at_s)}" if at_s is not None else ""
+        click.echo(("\n" if i else "") + f"{title} ({row['published_at'][:10]}){when}")
+        note = youtube_note(row)
+        if note:
+            click.echo(f"  {'youtube':8} {note}")
+        for name, url in episode_links(row, at_s).items():
+            click.echo(f"  {name:8} {url}")
+
+
 @main.group()
 def scope() -> None:
     """Manage which episodes are in scope (the default selection)."""

@@ -4,12 +4,16 @@
     uv run python spikes/transcript_peek.py read 613 [--from 12:00] [--to 15:00]
     uv run python spikes/transcript_peek.py suspects [--top 60]
     uv run python spikes/transcript_peek.py issues 602     # what loop_cut / bad_word_times caught
+    uv run python spikes/transcript_peek.py worst 71 [--window 60] [--top 15]
 
 `read` prints the raw Whisper text with timestamps; words Whisper gave a probability below 0.5
 are shown «like this», except short and common words (`--all` marks those too). It also prints an ffplay command to hear the audio from any point.
 `suspects` ranks words across every transcript by the share of times Whisper was unsure of them
 (at least 2 unsure and 25% of uses), with one example each: the usual source of corrections.yaml
 and vocab.txt entries.
+`worst` ranks an episode's stretches (60 s by default) by the share of words Whisper was unsure
+of, every word counted: poor audio, such as call-ins on a phone line, comes out on top. Follow
+up with `read --from … --to …` and the ffplay command.
 
 Raw means before `wts chunk`: corrections.yaml and the guards are not applied here.
 """
@@ -118,6 +122,32 @@ def issues(path: Path, duration_s: float | None) -> None:
     print(f"\n{found} issue(s) in {path.stem}")
 
 
+MIN_WORDS = 20  # a stretch with fewer words is mostly music or silence: its share means little
+
+
+def worst(path: Path, audio_dir: Path | None, window_s: int, top: int) -> None:
+    """The episode's stretches with the most unsure words, worst first."""
+    probs: defaultdict[int, list[float]] = defaultdict(list)
+    first: dict[int, str] = {}
+    for seg in json.loads(path.read_text())["segments"]:
+        for w in seg.get("words") or []:
+            probs[int(w["start"] // window_s)].append(w["probability"])
+        first.setdefault(int(seg["start"] // window_s), seg["text"].strip())
+    stretches = [
+        (k, sum(p < LOW for p in ps), len(ps), sum(ps) / len(ps))
+        for k, ps in probs.items() if len(ps) >= MIN_WORDS
+    ]
+    stretches.sort(key=lambda s: (-s[1] / s[2], s[3]))
+    print(f"{path.stem}: {len(stretches)} stretches of {window_s} s, worst {min(top, len(stretches))}")
+    print(f"{'stretch':17} {'unsure':>6} {'words':>9} {'mean p':>6}  starts with")
+    for k, low, n, mean in stretches[:top]:
+        span = f"{mmss(k * window_s)}–{mmss((k + 1) * window_s)}"
+        print(f"{span:17} {low / n:6.0%} {f'{low} of {n}':>9} {mean:6.2f}  {first.get(k, '')[:70]}")
+    print(f"\nread one: uv run python spikes/transcript_peek.py read {path.stem} --from M:SS --to M:SS")
+    if audio_dir is not None:
+        print(f"listen:   ffplay -nodisp -autoexit -ss <seconds> '{audio_dir / f'{path.stem}.mp3'}'")
+
+
 def suspects(transcripts_dir: Path, top: int) -> None:
     low: Counter = Counter()
     total: Counter = Counter()
@@ -161,6 +191,11 @@ def main() -> None:
     s = sub.add_parser("suspects")
     s.add_argument("--top", type=int, default=60)
     s.add_argument("--dir", help="transcript folder (default: wts paths' transcripts_dir)")
+    w = sub.add_parser("worst")
+    w.add_argument("episode", help="episode number, part of a stem, or a transcript path")
+    w.add_argument("--window", type=int, default=60, help="stretch length in seconds")
+    w.add_argument("--top", type=int, default=15)
+    w.add_argument("--dir", help="transcript folder (default: wts paths' transcripts_dir)")
     r.add_argument("--dir", help="transcript folder (default: wts paths' transcripts_dir)")
     args = parser.parse_args()
 
@@ -179,6 +214,8 @@ def main() -> None:
     elif args.cmd == "issues":
         # The audio's probed length is in state.db; the transcript's meta has the feed's.
         issues(find(transcripts_dir, args.episode), None)
+    elif args.cmd == "worst":
+        worst(find(transcripts_dir, args.episode), audio_dir, args.window, args.top)
     else:
         suspects(transcripts_dir, args.top)
 

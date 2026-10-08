@@ -11,17 +11,18 @@ on `main` again (CLAUDE.md).
 
 **Plan 2: Tasks 1–15 and Checkpoint F are done.**
 **Next: Task 16** (backups, `wts logs`, `wts run --env`, all pipeline), then Checkpoint G.
-Staging was redeployed during session 5 with Task 14's smart search (up to `b6e1a31`);
-later commits, including all of Task 15, are not deployed yet.
+Staging runs Task 15 (deployed 2026-10-08 from the session branch: `--debug` and
+`x-wts-cache` work there).
 
 **Waiting on the maintainer (before or at Checkpoint G):**
 - `wrangler deploy --env staging` with the re-added `ANALYTICS` binding: if code 10089
   returns, comment the binding out again (the Worker runs without it) and ask Cloudflare.
 - Turnstile: create a widget, put its site key in `wrangler.jsonc` (`TURNSTILE_SITE_KEY`),
   `wrangler secret put TURNSTILE_SECRET --env staging`.
-- **A custom domain (spec §10 item 7):** Cloudflare's docs promise the Cache API only on
-  custom domains, and the per-IP rate-limit rules (§4.7) need a zone. On `workers.dev`
-  the cache may answer `x-wts-cache: miss` every time; Checkpoint G checks.
+- **A custom domain (spec §10 item 7)** for the per-IP rate-limit rules (§4.7), which
+  need a zone. Not needed for the cache: on `workers.dev` a repeated search answered
+  `x-wts-cache: hit` (2026-10-08). Check headers with a GET (`curl -s -D - -o /dev/null
+  …`): `curl -I` sends HEAD, which the router doesn't route yet (404; fix with Task 16).
 
 Checkpoint F results (2026-10-07): Worker deployed to staging (`wts-api-staging`,
 without the Analytics binding, below); `wts search --env staging` works on the real corpus;
@@ -96,8 +97,7 @@ How the maintainer works:
   `/api/search` with result caps and `?limit=` (page size), smart search (RRF of FTS5 and
   Vectorize) with degraded mode and `?debug=1`, `/api/context`, `/api/report` (Turnstile),
   the edge cache, request logs and Analytics Engine. **341 tests**, type-check clean.
-  **Deployed to staging** (Task 14, up to the related-hit stopwords `b6e1a31`; the
-  keyword-hit stopwords and all of Task 15 are not deployed yet):
+  **Deployed to staging** (Task 15, 2026-10-08):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;

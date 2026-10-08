@@ -643,8 +643,9 @@ these links are early, never late. Mitigations:
   errors. The TTL is the `SEARCH_CACHE_TTL_S` var (3600 in staging and
   production; unset locally and in tests, so no caching). Every search answer
   says `x-wts-cache: hit|miss|skip`; browsers get no `cache-control`.
-  Cloudflare's docs promise the Cache API on custom domains, so it may do
-  nothing on `workers.dev` (check at Checkpoint G; §10 item 7).
+  Cloudflare's docs only promise the Cache API on custom domains, but it
+  works on `workers.dev` too: a repeated staging search answered
+  `x-wts-cache: hit` (2026-10-08).
 - Cloudflare rate-limiting rules, per IP: 60 requests per minute on
   `/api/*`, and 10 per hour on `/api/report`.
 - `/api/report` requires a valid Turnstile token.

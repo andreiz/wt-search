@@ -18,15 +18,21 @@ Create `~/Library/Application Support/wts/config.toml`:
 ```toml
 feed_url = "https://…"       # the show's RSS feed
 # audio_dir = "/Volumes/media/wts/audio"   # from M2: audio on the NAS (default: local)
+# backup_dir = "/Volumes/media/wts/backup" # wts run copies the app folder here (not audio)
+# run_env = "staging"                      # where wts run publishes (else: --env)
 ```
+
+Top-level keys go before any `[env.*]` table, or TOML puts them inside it.
 
 ## Everyday use
 
 ```sh
 uv run wts feed                    # add/update episodes from the feed
 uv run wts scope add seed          # M1: 20 most recent + 15 across the years
-uv run wts run                     # feed → download → transcribe → chunk → embed
+uv run wts run --env staging       # feed → download → transcribe → chunk → embed → publish → backup
 uv run wts status                  # counts per status, errors, recent runs
+uv run wts logs --since 1d --level warning  # log lines (--run ID, --episode ep312, --json)
+uv run wts backup                  # back up to backup_dir now
 uv run wts search '"hide glue" -titebond'   # search a deployed Worker (--env, --mode exact, --json)
 uv run wts search --debug 'flattening a bench top'   # plus each hit's ranks and scores (smart mode)
 ```
@@ -48,6 +54,10 @@ Everything is safe to re-run and to stop with Ctrl-C.
 - Whisper's spelling hints: `vocab.txt`.
 - If the audio folder is missing, unwritable or under 2 GB free, or `ffprobe` is missing, steps
   stop with exit code 3 and no episode is marked as failed.
+- `wts run` publishes to `--env`, else `run_env`; with neither it skips publishing (a warning).
+  It then backs up to `backup_dir` (a consistent `state.db` snapshot plus `rsync` of the app
+  folder, without audio) and sends one summary notification. A failed backup is a warning and
+  a notification, not a failed run.
 - `wts feed` refuses to reset more than 5 episodes whose audio URL changed; use `--force`
   if the show really moved its audio.
 
@@ -56,5 +66,5 @@ Everything is safe to re-run and to stop with Ctrl-C.
 ```sh
 uv run pytest -q          # Linux or Mac; ML backends are faked
 uv run ruff check .
-uv run pytest -m mac      # Mac only: real MLX Whisper and bge models
+uv run pytest -m mac      # Mac only: real MLX Whisper and bge models, and the Mac's rsync
 ```

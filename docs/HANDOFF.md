@@ -1,40 +1,30 @@
-# Handoff — 2026-10-08 (after the fifth session)
+# Handoff — 2026-10-08 (after the sixth session)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-**Branch:** the fifth session worked on `claude/task-14-handoff-vtk18e` (the branch its
-cloud session was given), not `main`. The maintainer merges it into `main` (it merges
-cleanly: `main`'s two Checkpoint F doc commits are already merged in). After that, work on
-`main` again (CLAUDE.md). If the merge hasn't happened, ask before starting.
+**Branch:** the sixth session worked on `claude/great-hopper-nm593s` (the branch its cloud
+session was given), not `main`, as the fifth did. The maintainer merges it into `main`; after
+that, work on `main` again (CLAUDE.md). If the merge hasn't happened, ask before starting.
 
-**Plan 2: Tasks 1–15 and Checkpoint F are done.** Staging runs Task 15 (deployed
-2026-10-08: smart search, `?debug=1`, edge cache, `/api/context`, `/api/report`, request
-logs, Analytics Engine).
-**Next: Task 16** (backups, `wts logs`, `wts run --env`; pipeline only), then
-**Checkpoint G** (maintainer, on the Mac), then plans 3–5 are written.
+**Plan 2: Tasks 1–16 and Checkpoint F are done.** Staging runs Task 15 (deployed
+2026-10-08); Task 16's Worker change (HEAD routing) is **not deployed yet**.
+**Next: Checkpoint G** (maintainer, on the Mac; plan 2), then plans 3–5 are written.
 
-**Task 16 pointers** (plan Task 16, spec §3.2, §8.1, §8.2):
-- `run_all()` in `pipeline/src/wts/steps.py` runs feed → download → transcribe → chunk →
-  embed, then `notify_run()`. Add publish and backup **before** `notify_run`, which must stay
-  last (Task 8 note) so the summary includes them. `run_publish(conn, paths, cfg, env, ids)`
-  already exists (`publish.py`); a publish failure is per episode and already handled
-  there. Without `--env` and without `run_env`, skip publish with a warning (plan).
-- A backup failure (`BackupFailed`) is a warning plus a notification, not a failed run.
-  `cfg.backup_dir` already exists in `config.py` (optional); `paths.log_dir` holds the
-  daily `wts-YYYY-MM-DD.log` files of JSON lines (`log.py` `JsonFormatter`: `ts`, `run_id`,
-  `level`, `msg`, `error`, plus `_FIELDS` such as `step` and `episode`). `wts logs` reads
-  those; mirror `ConsoleFormatter` for the readable output.
-- `rsync`: fake the runner in tests (no real rsync calls); Linux CI has no Mac paths.
-- **Fold in a Worker fix:** route `HEAD` like `GET` with an empty body, so `curl -I` works
-  (today `HEAD /api/search` is a 404; the router in `worker/src/index.ts` keys on
-  `"METHOD /path"`). Worker tests: `cd worker && npm test`.
-- Open decision 3 (below) matters once `wts run` publishes on a schedule: new feed episodes
-  aren't auto-scoped. Raise it with the maintainer when Task 16 is done; don't decide it.
+**Before Checkpoint G (maintainer):**
+- `npx wrangler deploy --env staging` (HEAD routing, so `curl -sI` shows `x-wts-cache`).
+- Optional `config.toml` keys, top level (before any `[env.*]`): `backup_dir` (e.g.
+  `/Volumes/media/wts/backup`; without it `wts run` logs "no backup") and `run_env =
+  "staging"` (else pass `--env staging`).
+- `uv run pytest -m mac -k real_rsync` runs the backup with the Mac's own rsync (openrsync
+  on macOS 15.4+, whose exclude handling we haven't seen); here it passed with rsync 3.2.7.
+- **Open decision 3 needs an answer before `wts run` goes on a schedule** (M2): new feed
+  episodes aren't added to scope, so a scheduled run skips them. Options: auto-scope new
+  episodes in `wts feed`, or make `wts run` default to `--select all`.
 
-**Waiting on the maintainer (none blocks Task 16):**
+**Waiting on the maintainer (none blocks Checkpoint G):**
 - **Turnstile is postponed to plan 3** (maintainer, 2026-10-08). A widget is tied to the
   hostname of the page that embeds it, and there is no web app or domain yet. Use "Add
   widget manually", not the dashboard's AI "Spin" setup, which edits code. Plan 3: one
@@ -46,7 +36,7 @@ logs, Analytics Engine).
 - **A custom domain (spec §10 item 7)** for the per-IP rate-limit rules (§4.7), which need
   a zone. The edge cache doesn't need one: on `workers.dev` a repeated search answered
   `x-wts-cache: hit` (2026-10-08). Check headers with a GET (`curl -s -D - -o /dev/null
-  …`) until the HEAD fix lands.
+  …`) until Task 16's HEAD routing is deployed, then `curl -sI`.
 - ~~Deploy with the re-added `ANALYTICS` binding~~ — done 2026-10-08, no code 10089.
 
 Checkpoint F results (2026-10-07): Worker deployed to staging (`wts-api-staging`,
@@ -115,13 +105,15 @@ How the maintainer works:
 
 - **Pipeline** (`pipeline/`, `wts` CLI): plan 1 complete; plan 2 adds secrets, config for
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
-  `wts search` (with `--limit N`, `--debug`), hyphen joining in `wts chunk`. **595 tests**, ruff clean
+  `wts search` (with `--limit N`, `--debug`), hyphen joining in `wts chunk`, `wts run --env`
+  (publish, backup), `wts backup`, `wts logs`. **654 tests**, ruff clean
   (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
   `/api/search` with result caps and `?limit=` (page size), smart search (RRF of FTS5 and
   Vectorize) with degraded mode and `?debug=1`, `/api/context`, `/api/report` (Turnstile),
-  the edge cache, request logs and Analytics Engine. **341 tests**, type-check clean.
+  the edge cache, request logs and Analytics Engine; HEAD answered like GET (Task 16).
+  **345 tests**, type-check clean.
   **Deployed to staging** (Task 15, 2026-10-08):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
@@ -382,6 +374,38 @@ How the maintainer works:
     smart mode gets few meaning hits — only the corpus-wide top 50 that fall in ep 250.
     A metadata index on `episode_id` would fix it if the test search set shows a need.
 
+- **Task 16** `pipeline/src/wts/{backup,logs}.py`, `run_all(…, env=)`, `wts run --env`,
+  `wts backup`, `wts logs`; Worker HEAD routing. Written in the main session. Calls the plan
+  didn't spell out:
+  - **Order:** publish → backup → `notify_run` (still last). Backup runs whether or not
+    anything was published, and also without an env; a `MachineProblem` still stops the run
+    before publish and backup (the NAS is likely gone for both).
+  - **The CLI resolves the env** (`--env`, else `run_env`) and checks config and token
+    before starting, like `wts publish`: a bad `run_env` or missing token fails at once
+    (exit 2 or 1), not after hours of transcribing. `run_all(env=None)` skips publish.
+  - **Backup:** `backup_dir` is created if its parent exists, else `BackupFailed` "not
+    reachable (is the share mounted?)", like the audio folder. The snapshot is written as a
+    single file (`journal_mode = DELETE`): copied from a WAL database it would otherwise
+    stay WAL, and opening the backup would leave `-wal`/`-shm` beside it — which the next
+    rsync keeps (excluded files are safe from `--delete`), a stale `-wal` beside a newer
+    snapshot. Excludes also cover the live `state.db-wal` and `-shm`. rsync exit 24 (files
+    vanished mid-copy) is a logged warning, not a failure; 30-minute timeout; missing rsync
+    → `BackupFailed`. Counts: `backup: ok=1`, `error=1`, or nothing when `backup_dir` is
+    unset. **Watch at Checkpoint G:** `-a` sets permissions; if the SMB share refuses
+    (`failed to set permissions`, exit 23), switch to `-rlt`.
+  - **`wts logs`:** `--episode` matches part of a stem (`ep312`), not only the whole stem;
+    `--run` is exact (the id printed after the time). Readable lines are `local time, run
+    id, [level step episode] msg` plus the last line of any traceback. `--since` takes a
+    positive number and `m`/`h`/`d`; anything else is a usage error. A line without string
+    `ts`, `level` and `msg` is skipped; with `--since`, so is one whose `ts` doesn't parse.
+    Note: log `run_id`s (one per command) are not the `runs` table's ids (one per step).
+  - **HEAD** runs the GET route; workerd drops the body itself (checked by mutation: an
+    explicit empty body changed no test, so it isn't there). The log line says `HEAD`; a
+    HEAD search writes no Analytics Engine point (a header check isn't a search), but does
+    fill the cache.
+  - `test_real_rsync_copies_the_app_folder_but_not_audio` is `mac`-marked (handoff: no real
+    rsync in the default run); it also passes on Linux with rsync installed.
+
 Checkpoint still ahead: **G** after Task 16 (smart search, report with the Turnstile test
 secret, caching, `wts run --env staging` end to end). Plans 3–5
 (frontend, review tool, test search set) are written after Checkpoint G.
@@ -422,7 +446,7 @@ secret, caching, `wts run --env staging` end to end). Plans 3–5
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 2 (Tasks 1–15, Checkpoints D–F done; Task 16 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–16, Checkpoints D–F done; Checkpoint G next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Plan 1 (done, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md). Superpowers skills install from `.claude/settings.json`.
 
@@ -533,4 +557,5 @@ secret, caching, `wts run --env staging` end to end). Plans 3–5
   tests; `sed` edits to `preroll_finder.py` (session 2) and two one-line handoff edits
   (session 3); one `sed` edit to the handoff's plan-status line (session 4); a Python edit
   to `worker/src/index.ts`, `sed` edits to five import lines and the handoff's test count,
-  and a heredoc append to `highlight.test.ts` (session 5, Task 14 and its follow-ups).
+  and a heredoc append to `highlight.test.ts` (session 5, Task 14 and its follow-ups); a
+  heredoc append of Task 16's tests to `test_run.py` (session 6).

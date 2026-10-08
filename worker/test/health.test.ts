@@ -124,6 +124,21 @@ describe("routing", () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "not_found" });
   });
+
+  it("answers HEAD like GET, with the same status and headers and no body (curl -I)", async () => {
+    for (const path of ["/api/health", "/api/search?q=dovetails&mode=exact", "/api/context?chunk=3005", "/api/nope"]) {
+      const get = await exports.default.fetch(`https://example.com${path}`);
+      const head = await exports.default.fetch(`https://example.com${path}`, { method: "HEAD" });
+      expect(head.status, path).toBe(get.status);
+      expect(head.headers.get("content-type"), path).toBe(get.headers.get("content-type"));
+      expect(await head.text(), path).toBe("");
+    }
+  });
+
+  it("does not answer HEAD on a POST-only route", async () => {
+    const response = await exports.default.fetch("https://example.com/api/report", { method: "HEAD" });
+    expect(response.status).toBe(404);
+  });
 });
 
 describe("test D1 (schema/*.sql applied by the migrations helper)", () => {

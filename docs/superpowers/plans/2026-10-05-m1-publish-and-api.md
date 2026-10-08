@@ -748,8 +748,8 @@ A terminal client for the maintainer: searches a deployed environment through th
 4. **Context and report:**
    - `curl '<staging>/api/context?chunk=<id>'` returns neighbouring chunks with cues.
    - A report with any token (the always-pass test secret accepts it) is stored: `npx wrangler d1 execute wts-staging --remote --command "select * from reports"`. Delete the test row afterwards. The test secret stays until plan 3's real widget.
-5. **Caching:** the same search twice — the second answers `x-wts-cache: hit` (`curl -s -D - -o /dev/null '<staging>/api/search?q=…'`; already seen 2026-10-08). A re-publish (new `corpus_version`) misses within a minute.
-6. **End to end:** `uv run wts run --env staging` with nothing new. It should run every step, publish nothing, write a backup to `backup_dir` (or log that it's unset), and send no error notification. Check `uv run wts logs --since 1h` and `uv run wts logs --level warning`.
+5. **Caching:** the same search twice — the second answers `x-wts-cache: hit` (`curl -sI '<staging>/api/search?q=…'`, which works once Task 16's HEAD routing is deployed; already seen with a GET 2026-10-08). A re-publish (new `corpus_version`) misses within a minute.
+6. **End to end:** first `uv run pytest -m mac -k real_rsync` (backups with the Mac's own rsync, openrsync on macOS 15.4+; added with Task 16). Then `uv run wts run --env staging` with nothing new. It should run every step, publish nothing, write a backup to `backup_dir` (or log that it's unset), and send no error notification. Check `uv run wts logs --since 1h` and `uv run wts logs --level warning`.
 7. **Record** in `docs/HANDOFF.md`:
    - Platform ID coverage (from Checkpoint D) and YouTube links shown after the length rule.
    - Search latency (p50 and worst seen) for exact and smart modes.

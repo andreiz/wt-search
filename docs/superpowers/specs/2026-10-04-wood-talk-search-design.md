@@ -141,6 +141,16 @@ the Application Support folder; the audio is already on the NAS.
   (state, transcripts, chunks, embeddings, corrections overrides: under
   1 GB) is copied with `rsync` to `backup_dir`. Transcripts are the
   expensive part to recreate, so they also get a copy on the NAS.
+  *(Implemented 2026-10-08, plan 2 Task 16:)* `state.db` is first
+  snapshotted with SQLite's backup API (safe while another connection
+  writes) and saved as a single file (rollback journal, not WAL); then
+  `rsync -a --delete` copies the folder to `<backup_dir>/wts/`, leaving out
+  `audio/`, the live `state.db` and its `-wal`/`-shm`, `*.tmp` and
+  `.partial/`; only after rsync succeeds does the snapshot replace
+  `state.db` there, so it never sits beside transcripts that weren't all
+  copied. An unreachable `backup_dir` or an rsync error is a warning and a
+  notification, not a failed run; no `backup_dir` means no backup.
+  `wts backup` runs one by hand.
 
 #### 3.0.2 Audio retention: originals now, compact copies later
 
@@ -195,7 +205,8 @@ system.
 | `wts chunk` | Applies `corrections.yaml` (§3.3), marks boilerplate (§3.5), and builds windows of about 30 s cut on sentence boundaries and overlapping by one sentence. Each chunk records `start_ms`, `end_ms`, its text, `word_times`, and `is_boilerplate`. |
 | `wts embed` | `bge-base-en-v1.5` (768 dimensions) through `sentence-transformers` on the Mac's GPU (MPS). It must be the same model Workers AI runs for query embeddings (`@cf/baai/bge-base-en-v1.5`), **with `pooling: "cls"`**: sentence-transformers uses CLS pooling for bge, while Workers AI defaults to `mean`, and the two aren't compatible. `wts check-embeddings` compares the two before publishing. Boilerplate chunks are not embedded. |
 | `wts publish --env staging\|production` | Sends only the episodes that changed, per environment: `state.db` keeps a `publications` row (episode, environment, digest) for each, and an episode is due when the digest of what it would send (D1 row with platform IDs and offsets, chunks, vectors) differs. Per episode: a Vectorize upsert of its non-boilerplate chunks by chunk ID; one D1 batch (upsert the episode row, delete its chunks that are gone, upsert its chunks with `ON CONFLICT DO UPDATE`, never `INSERT OR REPLACE`, which would skip the FTS delete trigger); a Vectorize delete of vectors for chunks that were removed or became boilerplate (ids from `published_vectors`, which lists every id that may be in that environment's index). Bumps `meta.corpus_version`. *(Revised 2026-10-06, plan 2 decisions 1–2: D1's REST API is not atomic across a batch's statements, so publishing is idempotent instead; before production, D1 writes move to an authenticated Worker route using the atomic `env.DB.batch()`, §10.)* `--dry-run` shows what would be sent. |
-| `wts run` | Runs `feed → download → transcribe → chunk → embed → publish` for the selected environment, then a smoke search (§8.1) and notifications. |
+| `wts run [--env staging\|production]` | Runs `feed → download → transcribe → chunk → embed → publish → backup` (§3.0.1) for the selected environment, then a smoke search (§8.1) and notifications; the summary notification goes last, so it covers publish and backup. The environment defaults to `run_env`; with neither, publish is skipped with a warning. Config and the API token are checked before the run starts. *(Revised 2026-10-08, plan 2 Task 16; the smoke search comes in plan 5.)* |
+| `wts backup` | Backs up the Application Support folder to `backup_dir` now (§3.0.1). |
 | `wts search "<query>" [--env staging\|production] [--mode smart\|exact] [--sort relevance\|newest\|oldest] [--page N] [--json]` | Searches a deployed environment from the terminal, for the maintainer. A thin client of the Worker's `/api/search` (§4.4), so results are exactly what the web app shows: the query syntax, ranking, collapsing, cue times and links all stay in the Worker, with no second implementation in Python. Prints one block per result (episode number, title, date, `mm:ss` and `related` for a meaning-only hit, the text with hits in bold, `+N more in episode`, then the links); `--json` prints the raw response. The environment defaults to `run_env`; its URL is `[env.<name>] api_url` in `config.toml`. The same client serves `wts eval` and the smoke search after `wts run` (§7.2, §8.1). *(Added 2026-10-07.)* |
 | `wts status` | Episode counts by status, episodes in `error` with their reasons, and the last 10 runs. |
 | `wts reports` | Lists listener transcript-error reports (§4.4) and marks them resolved. |
@@ -839,7 +850,7 @@ pings stop, which covers the Mini being off or launchd being broken.
 
 | Source | How |
 |---|---|
-| Pipeline logs | `wts logs [--run ID] [--episode STEM] [--level error] [--since 7d]` for day-to-day use. For ad-hoc analysis, query the files directly: `duckdb -c "select … from read_json_auto('~/Library/Logs/wts/*.log')"` or `jq`. |
+| Pipeline logs | `wts logs [--run ID] [--episode STEM] [--level error] [--since 7d] [--json]` for day-to-day use: one readable line each (local time, run id, `[level step episode]`, message, the last line of any traceback), or the JSON lines. `--episode` also takes part of a stem (`ep312`); `--level` is a minimum. For ad-hoc analysis, query the files directly: `duckdb -c "select … from read_json_auto('~/Library/Logs/wts/*.log')"` or `jq`. |
 | Pipeline run history | `wts status`, or SQL on `state.db` (location from `wts paths`). |
 | Worker, live | `wrangler tail --env production` (filterable by status or text). |
 | Worker, last few days | Workers Logs query builder in the Cloudflare dashboard. |

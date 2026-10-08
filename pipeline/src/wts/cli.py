@@ -125,15 +125,20 @@ def embed(selector: str) -> None:
 @click.option("--dry-run", is_flag=True, help="Show what would be sent; call nothing.")
 def publish(selector: str, env: str, dry_run: bool) -> None:
     """Send changed episodes to D1 and Vectorize (safe to re-run)."""
+    if not dry_run:
+        _check_publish_config(_ctx().cfg, env)
+    _run_step("publish", selector, env=env, dry_run=dry_run)
+
+
+def _check_publish_config(cfg: Config, env: str) -> None:
+    """Fail before a run starts, naming what to set: config for `env`, and the API token."""
     from wts.secrets import MissingSecret, get_secret, get_store
 
-    if not dry_run:  # fail before the run starts, naming what to set
-        _ctx().cfg.env(env)
-        try:
-            get_secret(get_store(), "cloudflare_api_token")
-        except MissingSecret as exc:
-            raise click.ClickException(str(exc)) from exc
-    _run_step("publish", selector, env=env, dry_run=dry_run)
+    cfg.env(env)
+    try:
+        get_secret(get_store(), "cloudflare_api_token")
+    except MissingSecret as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 @main.command("check-embeddings")
@@ -342,20 +347,81 @@ def feed(force: bool) -> None:
 
 @main.command("run")
 @select_option
-def run_cmd(selector: str) -> None:
-    """Run feed → download → transcribe → chunk → embed for the selected episodes."""
+@click.option("--env", "env", type=click.Choice(ENV_NAMES), default=None,
+              help="Environment to publish to [default: run_env in config.toml; with neither, "
+                   "nothing is published].")
+def run_cmd(selector: str, env: str | None) -> None:
+    """Run feed → download → transcribe → chunk → embed → publish → backup, then notify.
+
+    Steps take the selected episodes. A backup failure is a warning and a notification, not a
+    failed run; with no backup_dir in config.toml there is no backup.
+    """
     from wts.feed import MassReset
     from wts.log import describe_run
     from wts.steps import run_all
     from wts.storage import MachineProblem
 
     ctx = _ctx()
+    env = env or ctx.cfg.run_env
+    if env:
+        _check_publish_config(ctx.cfg, env)
     ctx.logger()
     try:
-        results = run_all(ctx.conn(), ctx.paths, ctx.cfg, selector)
+        results = run_all(ctx.conn(), ctx.paths, ctx.cfg, selector, env=env)
     except MachineProblem as exc:
         click.echo(f"Stopped: {exc}", err=True)
         raise SystemExit(3) from exc
     except MassReset as exc:
         raise click.ClickException(f"{exc} (use `wts feed --force`)") from exc
     click.echo(describe_run(results))
+
+
+@main.command("backup")
+def backup_cmd() -> None:
+    """Back up the app folder (state, transcripts, chunks, embeddings; not audio) to backup_dir.
+
+    `wts run` does this at the end of every run.
+    """
+    from wts.backup import BackupFailed, backup
+    from wts.log import run_record
+
+    ctx = _ctx()
+    if ctx.cfg.backup_dir is None:
+        raise click.UsageError(f"backup_dir is not set in {ctx.paths.config_file}")
+    ctx.logger()
+    with run_record(ctx.conn(), "backup") as run:
+        try:
+            dest = backup(ctx.paths, ctx.cfg)
+        except BackupFailed as exc:
+            run.counts["error"] += 1
+            raise click.ClickException(str(exc)) from exc
+        run.counts["ok"] += 1
+    click.echo(f"backed up to {dest}")
+
+
+@main.command("logs")
+@click.option("--run", "run_id", default=None, help="Only this run (the id after the time).")
+@click.option("--episode", default=None, help="Only this episode: its stem, or part (ep312).")
+@click.option("--level", type=click.Choice(["info", "warning", "error"], case_sensitive=False),
+              default=None, help="At least this level (warning includes error).")
+@click.option("--since", default=None, help="Only the last 30m, 12h, 7d, …")
+@click.option("--json", "as_json", is_flag=True, help="Print the log lines as JSON.")
+def logs_cmd(run_id: str | None, episode: str | None, level: str | None, since: str | None,
+             as_json: bool) -> None:
+    """Show pipeline log lines (kept 30 days), oldest first, filtered."""
+    import json
+
+    from wts.logs import format_line, parse_since, read_logs
+
+    if since is not None:
+        try:
+            parse_since(since)
+        except ValueError as exc:
+            raise click.BadParameter(str(exc), param_hint="--since") from exc
+    found = False
+    for line in read_logs(_ctx().paths.log_dir, run=run_id, episode=episode, level=level,
+                          since=since):
+        found = True
+        click.echo(json.dumps(line, ensure_ascii=False) if as_json else format_line(line))
+    if not found:
+        click.echo("no log lines match", err=True)

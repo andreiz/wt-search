@@ -139,7 +139,8 @@ const search: Handler = async (request, env, info) => {
   return new Response(body, { headers: { ...headers, "x-wts-cache": info.cache ?? "skip" } });
 };
 
-// Keyed by "METHOD /path". A known path with another method is simply not found.
+// Keyed by "METHOD /path". A known path with another method is simply not found, except that
+// HEAD runs the GET route (so `curl -I` shows its headers); the runtime drops the body.
 const routes = new Map<string, Handler>([
   ["GET /api/health", health],
   ["GET /api/search", search],
@@ -155,7 +156,7 @@ export default {
     const info: RequestInfo = {};
     let response: Response;
     try {
-      const handler = routes.get(route);
+      const handler = routes.get(request.method === "HEAD" ? `GET ${path}` : route);
       response = handler ? await handler(request, env, info) : json({ error: "not_found" }, 404);
     } catch (err) {
       logError("unhandled_error", request, err);

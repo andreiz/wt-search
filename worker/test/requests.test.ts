@@ -108,6 +108,11 @@ describe("the request log line", () => {
     for (const l of lines) expect(l).not.toHaveProperty("q");
   });
 
+  it("says HEAD for a HEAD request", async () => {
+    const [line] = await logLines(() => call("/api/search?q=glue&mode=exact", bindings(), { method: "HEAD" }));
+    expect(line).toMatchObject({ method: "HEAD", path: "/api/search", status: 200, q: "glue" });
+  });
+
   it("is written for a 503 too", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const failing = { prepare: () => ({ bind: () => ({ all: () => Promise.reject(new Error("D1_ERROR")) }) }) };
@@ -157,6 +162,12 @@ describe("Analytics Engine", () => {
       await call("/api/context?chunk=201", bindings({ ANALYTICS: a }));
       await call("/nope", bindings({ ANALYTICS: a }));
     });
+    expect(a.writeDataPoint).not.toHaveBeenCalled();
+  });
+
+  it("gets nothing for a HEAD search: a header check (curl -I) is not a search", async () => {
+    const a = analytics();
+    await logLines(() => call("/api/search?q=glue&mode=exact", bindings({ ANALYTICS: a }), { method: "HEAD" }));
     expect(a.writeDataPoint).not.toHaveBeenCalled();
   });
 

@@ -15,6 +15,7 @@ from pathlib import Path
 import httpx
 
 from wts import storage
+from wts.backup import BackupFailed, backup
 from wts.boilerplate import BoilerplateIndex
 from wts.chunking import chunk_episode, refresh_chunks
 from wts.config import Config
@@ -352,16 +353,20 @@ def run_all(
     cfg: Config,
     selector: str,
     *,
+    env: str | None = None,
     client: httpx.Client | None = None,
     transcriber: Transcriber | None = None,
     embedder: Embedder | None = None,
     probe: Callable[[Path], float] = probe_duration_s,
     notifier: Notifier | None = None,
 ) -> dict[str, Counter]:
-    """feed → download → transcribe → chunk → embed, then one notification (spec §6, §8.2).
+    """feed → download → transcribe → chunk → embed → publish → backup, then one notification
+    (spec §3.2, §6, §8.2).
 
-    A feed fetch failure is logged, counted and notified, and the run goes on with the
-    episodes already downloaded. A machine problem is notified and re-raised.
+    Publishes to `env`; with none (the CLI has already fallen back to `run_env`), publish is
+    skipped with a warning. A feed fetch failure is logged, counted and notified, and the run
+    goes on with the episodes already downloaded; a backup failure likewise. A machine problem
+    is notified and re-raised. The summary goes last, so it covers publish and backup.
     """
     started = datetime.now(UTC).isoformat(timespec="seconds")
     notifier = notifier or get_notifier(client or new_client(), get_store(), cfg.ntfy_url)
@@ -387,6 +392,12 @@ def run_all(
             ("chunk", lambda: run_chunk(conn, paths, cfg, ids)),
             ("embed", lambda: run_embed(conn, paths, cfg, ids, embedder=embedder)),
         ]
+        if env:
+            steps.append(("publish", lambda: run_publish(conn, paths, cfg, ids, env=env,
+                                                         client=client)))
+        else:
+            log.warning("no environment (--env or run_env in config.toml); not publishing",
+                        extra={"step": "publish"})
         for name, step in steps:
             with run_record(conn, name) as run:
                 run.counts.update(step())
@@ -394,5 +405,14 @@ def run_all(
     except MachineProblem as exc:  # its message names folders or tools, never secrets
         notifier.send("wts: run stopped", str(exc), priority="high", tags=("rotating_light",))
         raise
+    with run_record(conn, "backup") as run:
+        try:
+            if backup(paths, cfg) is not None:
+                run.counts["ok"] += 1
+        except BackupFailed as exc:  # a warning, not a failed run (plan 2, Task 16)
+            run.counts["error"] += 1
+            log.warning(f"backup failed: {exc}", extra={"step": "backup"})
+            notifier.send("wts: backup failed", str(exc), priority="high", tags=("warning",))
+    results["backup"] = run.counts
     notify_run(notifier, conn, results, started)
     return results

@@ -33,7 +33,7 @@ packages = ["src/wts"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-m 'not mac'"
-markers = ["mac: needs Apple Silicon ML backends (run manually on the Mac)"]
+markers = ["mac: needs Apple Silicon ML backends or the Mac's rsync (run manually on the Mac)"]
 
 [tool.ruff]
 line-length = 100

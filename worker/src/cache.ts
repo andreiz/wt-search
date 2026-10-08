@@ -1,10 +1,10 @@
-// Edge cache for /api/search (spec §4.7). A response is cached by the Cache API, keyed by the
-// normalized query and the parameters as the route read them (so `page=abc` and `page=1` share
-// an entry), plus corpus_version: a publish bumps the version, so old entries are simply never
-// asked for again and age out.
+// Edge cache for /api/search and /api/info (spec §4.7). A response is cached by the Cache API,
+// keyed by the normalized query and the parameters as the route read them (so `page=abc` and
+// `page=1` share an entry; /api/info has none), plus corpus_version: a publish bumps the
+// version, so old entries are simply never asked for again and age out.
 //
 // The Cache API is per data centre and, by Cloudflare's docs, works on Workers with a custom
-// domain; `x-wts-cache` on every search response says what happened (hit, miss, skip).
+// domain; `x-wts-cache` on every search and info response says what happened (hit, miss, skip).
 
 /** corpus_version is read from D1 at most this often per isolate. */
 export const VERSION_TTL_MS = 60_000;
@@ -52,6 +52,15 @@ export function cacheKey(requestUrl: string, key: SearchKey, version: string): R
   url.searchParams.set("sort", key.sort);
   url.searchParams.set("page", String(key.page));
   url.searchParams.set("limit", String(key.limit));
+  return versioned(url, version);
+}
+
+/** The cache key for a route with no parameters (`/api/info`): the path and corpus_version. */
+export function pathCacheKey(requestUrl: string, path: string, version: string): Request {
+  return versioned(new URL(path, requestUrl), version);
+}
+
+function versioned(url: URL, version: string): Request {
   url.searchParams.set("v", version);
   return new Request(url.toString());
 }

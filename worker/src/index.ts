@@ -5,6 +5,7 @@ import { context } from "./context";
 import type { Env } from "./env";
 import { robots, searchOverride, withSecurityHeaders } from "./guard";
 import { JSON_HEADERS, json, logError } from "./http";
+import { info as infoRoute } from "./info";
 import { MAX_QUERY_CHARS, parseQuery } from "./query";
 import { rateLimited } from "./ratelimit";
 import { report } from "./report";
@@ -20,8 +21,9 @@ import {
 } from "./search";
 
 /**
- * What a route adds to its request's log line (spec §8.3). Only the search route fills it;
- * the router writes the line, so every request gets exactly one, whatever happens.
+ * What a route adds to its request's log line (spec §8.3). Only the search route fills it
+ * (and /api/info, its `cache` field); the router writes the line, so every request gets
+ * exactly one, whatever happens.
  */
 interface RequestInfo {
   /** The query as typed, cut like the parser cuts it (the log line shortens it further). */
@@ -166,6 +168,7 @@ const search: Handler = async (request, env, info, ctx) => {
 // HEAD runs the GET route (so `curl -I` shows its headers); the runtime drops the body.
 const routes = new Map<string, Handler>([
   ["GET /api/health", health],
+  ["GET /api/info", infoRoute],
   ["GET /api/search", search],
   ["GET /api/context", context],
   ["POST /api/report", report],

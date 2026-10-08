@@ -21,12 +21,12 @@ and the Wood Talk site, and can expand to show more of the transcript.
 | Search | Keyword search with query syntax, combined with meaning-based search (§4.3). Started on Enter or the Search button, not while typing. |
 | Result order | Relevance (default), Newest, Oldest. |
 | Repeated content | Sponsor reads, plugs, the standard intro and outro, and inserted ads are detected and hidden by default (`include:ads` shows them). |
-| Hosting | Cloudflare Workers paid plan: Pages, one Worker, D1, Vectorize and Workers AI. Estimated about $8–9 a month (§11). |
+| Hosting | Cloudflare Workers paid plan: one Worker (the site's static files and the API), D1, Vectorize and Workers AI. Estimated about $8–9 a month (§11). |
 | Upkeep | As close to zero as possible: no servers to patch. |
 | Heavy compute | The maintainer's M1 Max desktop at first; the Mac Mini (M5 Pro) once it's set up. |
 | Pipeline language | Python. |
 | Notifications | Push notifications through ntfy.sh. |
-| Listener feedback | A "Report transcript error" form on each result. |
+| Listener feedback | A "Report transcript error" form on each result, and a "Send feedback" link in the footer. |
 
 ### Milestones
 
@@ -69,21 +69,21 @@ Mac (offline, batch)                           Cloudflare (online, serving)
 ────────────────────                           ────────────────────────────
 feed → download → transcribe → chunk → embed ──publish──▶ D1 (episodes, chunks, FTS5, reports)
                                                          Vectorize (chunk vectors)
-                                                         Worker /api/* ◀── Pages frontend
+                                                         Worker: /api/* + the site's static files
 ```
 
 The two halves share only data: the D1 schema and the Vectorize index. They
 can be developed and tested separately. There are two Cloudflare
 environments, `staging` and `production`. Each has its own D1 database,
-Vectorize index and Worker. The frontend is deployed to the same domain as
-the API.
+Vectorize index and Worker. The Worker serves the frontend's static files
+and the API on one host (§5.1).
 
 ### Repository layout
 
 ```
 pipeline/     Python package + `wts` CLI (runs on the Mac)
 worker/       Cloudflare Worker (TypeScript)
-web/          Frontend (Vite + TypeScript + Preact) → Cloudflare Pages
+web/          Frontend (Vite + TypeScript + Preact) → the Worker's static assets
 schema/       D1 SQL migrations (shared contract)
 eval/         Test search set, baseline, eval reports
 docs/         Specs, plans, deep-link format notes
@@ -446,6 +446,7 @@ AI with `pooling: "cls"` (§3.2 `wts embed`).
 | `a OR b` | Either. |
 | `pref*` | Prefix. |
 | `year:2015`, `before:2018`, `after:2020` | Filter by publish year (before/after are exclusive). |
+| `year:2015-2020` | Years 2015 to 2020, both included: the same as `after:2014 before:2021`. Either order; one year (`year:2015-2015`) is `year:2015`. *(Added 2026-10-08, plan 3: what the year chip writes, §5.2.)* |
 | `ep:250` | Limit to one episode. |
 | `include:ads` | Include boilerplate chunks (keyword search only). |
 
@@ -538,8 +539,11 @@ Parser rules (`worker/src/query.ts`):
     common word isn't read in full just to be counted; `truncated` when
     there are more than 200 matches; `has_more` never runs past page 10. Each result: `{episode: {id, number,
     title, date, links}, chunk_id, text, ranges, hit_ms, cue_s, match,
-    more_in_episode}`; `more_in_episode` is always present (0 when nothing
-    collapsed).
+    more_in_episode, folded}`; `more_in_episode` is always present (0 when nothing
+    collapsed). `folded` is the chunk ids collapsed into the result, in
+    the order they were folded (`[]` when none; its length is
+    `more_in_episode`), so the web app can mark them (§5.4). *(Added
+    2026-10-08, plan 3; was `debug.folded` only.)*
   - Exact mode collapses **per page**: a hit is folded into an earlier *kept*
     result on the same page from the same episode less than 120 s away, so a
     page can show fewer than 20 results. `total` counts matching chunks
@@ -552,9 +556,9 @@ Parser rules (`worker/src/query.ts`):
   - Bad parameters fall back to defaults (`sort` → relevance, `page` → 1);
     the only error is D1 being down (503).
   - `debug=1` (smart mode only; added 2026-10-07, maintainer): each result
-    gets `debug: {keyword_rank, vector_rank, vector_score, rrf_score,
-    folded}` (ranks from 1 or null; `folded` the chunk ids collapsed into
-    it) and the response `debug: {keyword_hits, vector_hits, dropped}`
+    gets `debug: {keyword_rank, vector_rank, vector_score, rrf_score}`
+    (ranks from 1 or null; `folded` moved out to every result, 2026-10-08)
+    and the response `debug: {keyword_hits, vector_hits, dropped}`
     (`vector_hits` null when degraded; `dropped` the meaning hits excluded,
     filtered out or gone). Same order as without it; never cached.
     `wts search --debug` prints it.
@@ -577,7 +581,20 @@ Parser rules (`worker/src/query.ts`):
     `missing-input-secret`), is 503 and logged, so a misconfiguration isn't a
     silent 403 for every listener. Characters count as code points, after
     trimming; empty optional fields are NULL. Answer `{ok: true}`.
+  - **General feedback** *(added 2026-10-08, plan 3; open decision 9)*: a
+    body with no `chunk_id` (absent or `null`) is feedback from the
+    footer's "Send feedback": `{note, turnstile_token}`, `note` required
+    (1–1000), `quoted_text` and `suggested_text` not allowed (400). Same
+    Turnstile, Origin and rate limit; stored with `chunk_id` NULL (no chunk
+    check). Plan 4's `wts reports` lists these as feedback.
 - `GET /api/health`: `corpus_version` plus a single trivial D1 query.
+- `GET /api/info` *(added 2026-10-08, plan 3)*: what the web app needs on
+  load, `{episodes, latest_episode_date, corpus_version,
+  turnstile_site_key}`: the number of episodes in D1, the newest one's
+  `published_at` date ("625 episodes indexed through Sep 17, 2026", §5.6),
+  and the `TURNSTILE_SITE_KEY` var (so one web build serves every
+  environment, §5.1). One D1 statement; edge-cached like a search (keyed by
+  `corpus_version`, same TTL var).
 
 ### 4.5 Highlighting and cue time
 
@@ -756,7 +773,11 @@ the maintainer's phone while it's happening, not in the weekly digest.
 **5. Bots, crawlers and probes.**
 - `robots.txt` on the site: allow the pages, `Disallow: /api/`. Until the
   site exists, the Worker answers `/robots.txt` itself with `Disallow: /`
-  (on `workers.dev` the API host is all there is).
+  (on `workers.dev` the API host is all there is). *(Revised 2026-10-08,
+  plan 3: the site is served by the same Worker, §5.1, so `/robots.txt`
+  stays a Worker route and depends on the environment: production allows
+  the pages and disallows `/api/`; every other environment, staging
+  included, answers `Disallow: /`.)*
 - Once there is a custom domain: turn on Cloudflare's **block AI
   crawlers**. Turn on **Bot Fight Mode** only after checking it doesn't
   challenge `wts search`, which sends the bot User-Agent, or the frontend's
@@ -777,10 +798,15 @@ the maintainer's phone while it's happening, not in the weekly digest.
   `REPORT_ORIGINS` (comma-separated, exact match). Until plan 3's site,
   staging allows `http://localhost:5173` (Vite's dev server); a curl test
   adds `-H 'origin: http://localhost:5173'`. Unset (production for now)
-  refuses every report, like a missing Turnstile secret.
+  refuses every report, like a missing Turnstile secret. *(Revised
+  2026-10-08, plan 3: the site and the API share a host, §5.1, so a report
+  whose `Origin` equals the request's own origin is allowed too;
+  `REPORT_ORIGINS` lists only extra origins, such as the dev server. The
+  domain then lives only in `routes`.)*
 - Every response sets `X-Content-Type-Options: nosniff` and
-  `Referrer-Policy: no-referrer`.
-- The frontend's CSP includes `frame-ancestors 'none'`.
+  `Referrer-Policy: no-referrer`. Static files get them from
+  `web/public/_headers` (§5.1).
+- The frontend's CSP includes `frame-ancestors 'none'` (§5.1).
 
 **7. Bulk scraping (accepted risk).** Search plus `/api/context` (±6
 chunks) could be paged through slowly to copy the transcripts. The rate
@@ -800,49 +826,178 @@ later: a lower `/api/context` limit, or Turnstile on `/api/context`.
 
 ## 5. Frontend (`web/`)
 
-Vite + TypeScript + Preact, deployed to Cloudflare Pages on the same domain
-as the API. *(2026-10-08:)* the look comes from a design system and UI
-designs made in Claude Design from `docs/design/BRIEF.md`, which elaborates
-this section (its *proposed* items are settled in plan 3; this spec wins on
-any conflict).
+Vite + TypeScript + Preact, built to static files that **the Worker serves
+as static assets** on the same host as the API. *(Revised 2026-10-08, plan 3
+brainstorm, maintainer: was Cloudflare Pages plus a Worker route.)* The look
+comes from a design system and UI designs made in Claude Design from
+`docs/design/BRIEF.md`, which elaborates this section screen by screen; this
+spec wins on any conflict, and the brief's *proposed* items are settled
+below.
 
-- **Search bar**, pinned to the top:
-  - A large input, a **Search** button (Enter also searches).
-  - A Smart/Exact switch, a sort menu (Relevance / Newest / Oldest), a `?`
-    syntax popover, and year-range chips.
-  - Searching happens only on Enter or the button; changing the mode, sort
-    or filters re-runs the current search.
-  - The whole state is in the URL (`?q=&mode=&sort=&page=`), so searches can
-    be shared.
-- **Result card:**
-  - **Ep. N · Title** · date · **at mm:ss**.
-  - A 2–3 line excerpt with `<mark>` highlights, and a `related` tag for
-    meaning-only hits.
-  - Buttons: **▶ YouTube**, **▶ Apple**, **▶ Spotify** (each shown only when
-    the episode has that ID), **Wood Talk page**, **More transcript**, and
-    **+n more in this episode** when hits were collapsed.
-  - A small **Report transcript error** link that opens an inline form: the
-    quoted text is pre-filled, plus an optional suggested correction and a
-    note. Submitted with a Turnstile check; on success it shows "Thanks —
-    we'll review it".
-- **More transcript:**
-  - Expands the card in place with about ±90 s of transcript from
-    `/api/context`, each paragraph labelled with its timestamp and each label
-    a deep link.
-  - On desktop, hovering over the excerpt for 400 ms shows a preview; on
-    touch devices, a tap expands.
-- **Other states:**
-  - Before any search: example searches plus "N episodes indexed through
-    <date>".
-  - No results: suggest Smart mode, looser filters, or `include:ads`.
-  - Degraded: a subtle note. Error: a friendly retry message.
-- **Look and feel:**
-  - Warm wood-tone accent, automatic dark mode.
-  - `/` focuses search; arrow keys move through results.
-  - Works on phones and meets WCAG AA.
-  - Footer: "Unofficial · made with the hosts' blessing", show links
-    (YouTube, podcast, site), and "searches are logged anonymously to improve
-    results".
+### 5.1 Hosting and configuration
+
+*(Settled 2026-10-08, maintainer.)*
+- **One Worker per environment serves both** (`wts-api-staging`,
+  `wts-api-production`): `assets.directory` is `web/dist`, and
+  `run_worker_first: ["/api/*", "/robots.txt"]` sends the API and robots.txt
+  to the Worker code; every other path is a static file. Static requests are
+  free, don't invoke the Worker and don't count against the rate limits
+  (§4.8). One deploy (`wrangler deploy --env <env>` after `vite build`)
+  ships both halves, so they can't drift apart.
+- Staging's `workers.dev` URL serves the whole site, so it can be used
+  before a domain is chosen.
+- **The domain is configured in one place:** each environment's
+  `wrangler.jsonc` `routes` (`{pattern: "<host>", custom_domain: true}`).
+  The frontend calls relative `/api/...` and holds no host. Reports accept
+  the request's own origin (§4.8 item 6), so `REPORT_ORIGINS` is only for
+  extra origins (Vite's dev server on staging). The Turnstile widget's
+  hostname is set in the Cloudflare dashboard. `api_url` in the Mac's
+  `config.toml` follows the domain by hand. Once production has its domain,
+  it sets `workers_dev: false`, so the site isn't also served from a second
+  host.
+- **One build serves every environment:** nothing environment-specific is
+  baked into `web/dist`. The Turnstile site key comes from `GET /api/info`
+  (§4.4), which reads the existing `TURNSTILE_SITE_KEY` var.
+- **Headers on static files** come from `web/public/_headers` (the Worker's
+  own header code doesn't see static responses): `X-Content-Type-Options:
+  nosniff`, `Referrer-Policy: no-referrer`, and a strict CSP: `default-src
+  'self'`, scripts and frames from `'self'` and
+  `https://challenges.cloudflare.com` (Turnstile) only, no inline scripts or
+  `style` attributes, `connect-src 'self'`, `frame-ancestors 'none'`,
+  `base-uri 'none'`, `object-src 'none'`. Hashed asset files get a long
+  `Cache-Control: immutable`; `index.html` keeps the default revalidation.
+
+### 5.2 Search bar
+
+Pinned to the top (compacting on scroll on phones):
+- A large input with a clear button, and a **Search** button (Enter also
+  searches). Searching happens only on Enter or the button, not while
+  typing; changing mode, sort or years re-runs the current search.
+- A row: a **Smart / Exact** segmented switch (one-line tooltips), a sort
+  menu (Relevance / Newest / Oldest), a **year range** chip, and a `?`
+  syntax popover (the table in §4.3 as examples, as in the brief §5).
+- **Year range** *(settled 2026-10-08)*: a chip "Any year" opens from–to
+  pickers (2007 to this year); once set it reads "2015–2020 ×". The chip
+  and the query box are two views of one state: setting the chip removes
+  any `year:`, `before:` and `after:` from the box and appends `year:2015-2020`
+  (or `year:2015` when both ends are one year); × removes them. The chip
+  always shows the box's effective range (`after:2019` shows "2020–<this
+  year>"). No API parameter: the range travels in `q` (§4.3).
+- **The whole state is in the URL**: `?q=&mode=&sort=&page=` (defaults
+  omitted), so searches can be shared; Back and Forward re-run them.
+- Below the bar, one summary line: Smart: "Smart search" (+ "page n");
+  Exact: "**318 matches**" or "**1,000+ matches**", and when hits were
+  folded on the page, "5 matches; 4 results (1 folded into a nearby hit)"
+  (§4.4).
+
+### 5.3 Result card
+
+- **Ep. N · Title** · date · timestamp chip **mm:ss** (or h:mm:ss).
+  Feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk
+  598"); the card strips it (one tested function over the known title
+  styles, §3.4). Unnumbered episodes show the title only.
+- **Excerpt**, about 2–3 lines on a phone: a window of the chunk's text
+  around the first highlight (whole words, "…" at cut ends), with `<mark>`
+  on the ranges (UTF-16 offsets, §4.4). **Related** hits: no marks unless
+  the API sent ranges, a "Related" tag by the timestamp, quieter styling.
+- **Actions:** ▶ YouTube, ▶ Apple, ▶ Spotify, only those in `episode.links`,
+  YouTube first, each named for screen readers ("Play on YouTube at
+  1:09:44"); Apple and Spotify carry a small info note "May start a bit
+  early because of ads" (§4.6). Then **Episode page** (with "jump to
+  mm:ss", it has no player) · **More transcript** · **+n more nearby** when
+  hits were folded. Links come from the API only; the frontend never
+  builds one (§4.6).
+- A small **Report transcript error** link (§5.5).
+
+### 5.4 More transcript and "+n more nearby"
+
+- **More transcript** expands the card in place with `/api/context`
+  (radius 3, about ±90 s): paragraphs labelled with their timestamp, each
+  label a play link (the first platform the episode has) at that moment;
+  the hit's paragraph emphasised. Collapsing returns to the excerpt.
+- **+n more nearby** *(settled 2026-10-08, replaces "+n more in this
+  episode")*: folded hits are always within 120 s of the card's hit (§4.4),
+  so searching the episode would fold them into the same card again.
+  Instead it opens the same expanded view at radius 6 (about ±180 s) and
+  marks the paragraphs of the folded chunks (`folded` in each result, §4.4).
+  For a numbered episode, the expanded view also offers **Search this
+  episode** (the query plus `ep:N`).
+- The brief's 400 ms hover preview is dropped *(maintainer, 2026-10-08)*:
+  More transcript does the same, and hovering gets in the way of selecting
+  text to report.
+
+### 5.5 Reports and feedback
+
+- **Report transcript error** opens an inline form in the card: **Quoted
+  text** (pre-filled from the user's selection inside the card, else the
+  excerpt; editable, ≤ 500), **Suggested correction** (optional, ≤ 500),
+  **Note** (optional, ≤ 1000), with live counters; the Turnstile widget
+  (Managed mode, rendered explicitly when the form opens); **Send**.
+  Success: "Thanks — we'll review it." Errors are inline, keep what was
+  typed and use the API's `message` (400/403/429/503); after any failed
+  send the widget is reset before the next try (§4.4).
+- **Send feedback** *(settled 2026-10-08, open decision 9)*: a footer link
+  opening the same kind of form with only a **Message** (≤ 1000) and
+  Turnstile, for "search didn't find it" and ideas. It posts to
+  `/api/report` without a `chunk_id` (§4.4).
+- The Turnstile script loads only when a form first opens.
+
+### 5.6 States
+
+As in the brief §4.5; the wording there is the copy. In short:
+- **Before any search:** example searches as chips, and "625 episodes
+  indexed through Sep 17, 2026" from `GET /api/info`.
+- **Loading:** skeleton cards; the controls stay usable, and a newer search
+  cancels an older one (its answer is ignored).
+- **Only related hits** (every result `related`): "No exact matches —
+  passages about similar things:" before them.
+- **No results:** suggest Smart mode, fewer words or looser years, or
+  `include:ads`.
+- **Exact, truncated:** "Showing the best 200 of N matches — add words, a
+  "phrase" or a year to narrow it" (or "1,000+ matches — …").
+- **Degraded** (`smart_degraded`): a subtle notice by reason —
+  `unavailable`: "Meaning search is unavailable right now; these are keyword
+  matches."; `budget` and `off`: "Meaning search is paused; these are
+  keyword matches."
+- **Maintenance** (503 `maintenance` from any `/api/*`): a banner.
+- **Rate limited** (429): "Too many searches from here; try again in a
+  minute." with a countdown from `retry-after`.
+- **Error** (other failures, network): "Something went wrong." with Retry.
+- **Pagination:** Previous / Next; Exact also shows page numbers up to 10.
+
+### 5.7 Look, keyboard and accessibility
+
+- Warm wood-tone accent on calm neutrals, light and dark following the
+  system; tokens from the design system as CSS custom properties. System
+  fonts unless the design system picks one webfont. Until the design
+  system exists, neutral placeholder tokens with the same names.
+- `/` focuses search; arrow keys **and j/k** move between results
+  *(settled 2026-10-08)*; Esc closes popovers and forms. Enter on a result
+  does nothing special (no "play first platform").
+- Results are a list; buttons are real buttons or links with names;
+  visible focus everywhere; motion respects `prefers-reduced-motion`;
+  WCAG AA in both themes, `<mark>` and disabled states included.
+- Works on phones first (results ~720–760 px wide on desktop).
+- **Footer:** "Unofficial · made with the hosts' blessing" (§10 item 1),
+  show links (YouTube, podcast, site), "Searches are logged anonymously to
+  improve results.", **Send feedback**.
+- No analytics or cookies in the frontend; the Worker's anonymous search
+  logs (§8.3) are all there is.
+
+### 5.8 Code and tests
+
+- No router and no state library: one page, state in the URL, Preact
+  hooks. The API's response types are imported type-only from
+  `worker/src/` (one source of truth, checked by `tsc`).
+- Pure modules with unit tests (Vitest): URL ↔ state, the year chip ↔
+  query box, title stripping, the excerpt window and highlight segments,
+  the API client's handling of every status.
+- Components with Testing Library on happy-dom.
+- End to end with Playwright (Chromium): every state above against stubbed
+  `/api/*` answers built from real response shapes, plus an axe
+  accessibility check of the main states in both colour schemes; one smoke
+  run against `wrangler dev` with a seeded local D1 and the built assets
+  (routing, headers, CSP, same-origin report with Turnstile's test keys).
 
 ## 6. Error handling summary
 
@@ -882,7 +1037,9 @@ any conflict).
   - `/api/report` validation, with Turnstile mocked.
 - **Frontend:** one Playwright smoke test: search on Enter → results → change
   sort → expand → check that every link is well-formed with the right time
-  → submit a report (Turnstile test key).
+  → submit a report (Turnstile test key). *(Revised 2026-10-08, plan 3:
+  this is the `wrangler dev` smoke run; unit, component and stubbed-API
+  Playwright tests of every state are in §5.8.)*
 
 ### 7.2 Test search set (`eval/`)
 
@@ -1036,6 +1193,10 @@ and plan.
    the Pages custom domain, `REPORT_ORIGINS`, the Turnstile widget's
    hostname, `api_url` in the Mac's `config.toml`, and any absolute URL in
    the frontend (prefer relative `/api/...`). Plan 3 settles how.
+   *(Settled 2026-10-08, §5.1:)* one Worker serves the site and the API, so
+   the domain is each environment's `routes` entry in `wrangler.jsonc`;
+   reports accept their own origin; the frontend holds no host; the
+   Turnstile hostname (dashboard) and `api_url` (Mac) are set by hand.
 8. **NAS (M2):** create the SMB share and folders, set up automatic mounting
    on the Mini, and move the M1 audio there.
 9. **Atomic publish (before production, M2):** D1's REST API doesn't apply a
@@ -1080,7 +1241,7 @@ about 9 GB.
 | Vectorize queries | Billed as (stored vectors + queries) × dims per month; 50M included, then $0.01 per million | 10k searches ≈ $0.27; 100k ≈ $0.96; 1M ≈ $7.10 |
 | Workers AI (query embeddings) | bge-base costs about 6,058 neurons per million tokens; 10k neurons a day are free | $0 up to about 150k searches a day |
 | D1 | under 0.5 GB stored; reads well within the included allowance | $0 |
-| Pages, Turnstile, Workers Logs, Analytics Engine | Included or free | $0 |
+| Static assets, Turnstile, Workers Logs, Analytics Engine | Included or free | $0 |
 | **Total** | at ordinary traffic (up to about 100k searches a month) | **about $8–9** |
 
 **What drives the cost:**

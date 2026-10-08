@@ -2,8 +2,8 @@
 
 For Claude Design: first a **design system**, then the **UI** built on it. This brief stands on
 its own; the engineering spec behind it is `docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`
-§5 (frontend) and §4.4 (API), which win if the two ever disagree. Written 2026-10-08. Items
-marked *(proposed)* go beyond spec §5 and are confirmed with the maintainer in plan 3.
+§5 (frontend) and §4.4 (API), which win if the two ever disagree. Written 2026-10-08. Its
+*(proposed)* items were settled in plan 3's brainstorm the same day and are marked *(settled)*.
 
 ## 1. What it is
 
@@ -47,15 +47,15 @@ Components, each with its states (default, hover, focus, active, disabled, loadi
 | Search input + Search button | Large; the `/` key focuses it. Clear button when not empty. |
 | Mode switch | Segmented control: **Smart** / **Exact**, each with a one-line tooltip. |
 | Sort menu | Relevance / Newest / Oldest. |
-| Year range control | *(proposed)* A chip "Any year" that opens from–to year pickers (2007–this year); once set it shows "2015–2020 ×". |
+| Year range control | *(settled)* A chip "Any year" that opens from–to year pickers (2007–this year); once set it shows "2015–2020 ×". It also writes `year:2015-2020` into the search box (the two stay in sync). |
 | Syntax help | A `?` button opening a popover (content in §5). |
 | Result card | The core component; anatomy in §4.2. Variants: keyword hit, related hit, expanded (More transcript), with report form open. |
 | Platform button | ▶ YouTube, ▶ Apple, ▶ Spotify: icon + label, the start time on hover/long-press. Plus a plain "Episode page" link. |
-| Tag | "Related" (meaning-only hit); possibly "Sponsor read" when `include:ads` shows one. |
+| Tag | "Related" (meaning-only hit). |
 | Timestamp chip | "1:09:51": the moment in the episode. |
 | Notice | Inline, subtle: info / warning / danger. For degraded search, truncation, rate limit, errors. |
 | Banner | Full-width, for maintenance. |
-| Inline form | Report a transcript error: text areas with counters, a Turnstile widget slot, submit, success and error states. |
+| Inline form | Report a transcript error: text areas with counters, a Turnstile widget slot, submit, success and error states. The same parts make the footer's "Send feedback" form (one Message field). |
 | Pagination | Previous / Next (+ page numbers in Exact mode, up to 10). |
 | Skeleton | Loading cards. |
 | Footer | Small print and links. |
@@ -82,8 +82,8 @@ that stays reachable (sticky, compacting on scroll on phones). All state lives i
    marks, a "Related" tag by the timestamp, slightly quieter styling.
 3. **Actions:** ▶ YouTube, ▶ Apple, ▶ Spotify — only those the episode has (old episodes
    often have Spotify only), YouTube first; then Episode page · More transcript ·
-   **+3 more in this episode** (when nearby hits were folded into this card; it searches
-   within that episode).
+   **+3 more nearby** (when nearby hits, all within two minutes, were folded into this card;
+   it expands the card like More transcript, with the folded passages marked).
 4. A small "Report transcript error" link.
 
 Apple and Spotify can start a little early (inserted ads shift their timeline): a small,
@@ -92,7 +92,9 @@ unobtrusive note near those buttons, e.g. an info icon: "May start a bit early b
 ### 4.3 More transcript
 Expands the card in place: about ±90 seconds of transcript as paragraphs, each with its
 timestamp label (each label is a play link at that moment), the hit's paragraph emphasised.
-On desktop, hovering over the excerpt for 400 ms may show a preview; on touch, tap expands.
+Opened from **+3 more nearby** it shows about ±3 minutes, with the folded hits' paragraphs
+marked too (quieter than the hit's), and, for numbered episodes, a **Search this episode**
+link. *(Settled: no hover preview.)*
 
 ### 4.4 Report a transcript error
 An inline form inside the card: **Quoted text** (pre-filled from the excerpt or the user's
@@ -119,14 +121,15 @@ minute" is one of them.
 | More transcript | expanded card. |
 
 ### 4.6 Keyboard and accessibility
-`/` focuses search; arrow keys move between results; *(proposed)* j/k too, and Enter on a
-result plays its first platform; Esc closes popovers and forms. Visible focus everywhere; buttons are real buttons
+`/` focuses search; arrow keys move between results; *(settled)* j/k too (Enter has no
+special meaning on a result); Esc closes popovers and forms. Visible focus everywhere; buttons are real buttons
 with names ("Play on YouTube at 1:09:44"); results are a list; the excerpt marks are announced
 as highlights; motion respects reduced-motion.
 
 ### 4.7 Footer
 "Unofficial · made with the hosts' blessing" · links to the show (YouTube, podcast, website) ·
-"Searches are logged anonymously to improve results." · *(proposed, open)* "Send feedback".
+"Searches are logged anonymously to improve results." · *(settled)* "Send feedback" (opens a
+small form: Message, Turnstile, Send; for "search didn't find it" and ideas).
 
 ## 5. Syntax help (the `?` popover)
 
@@ -149,14 +152,14 @@ excerpts read as unpolished speech, and the design should be comfortable with th
 Query `hvlp sprayer`, Smart mode, sort by relevance:
 
 1. **Ep. 71 · Welcome to the Three-Way** · Jun 10, 2010 · **1:09:51** · keyword · YouTube no,
-   Apple no, Spotify yes · +3 more in this episode
+   Apple no, Spotify yes · +3 more nearby
    > All right, the great folks over at Highland Woodworking, they have the Earlex HV2900
    > <mark>HVLP</mark> <mark>sprayer</mark>. When you purchase it at the sale price of $149.99,
    > they will throw in a free copy of Jeff Jewitt's spray finishing made simple book and DVD.
    > Nice. When I was out there, they had that same special. Oh, did they really? Yeah, but that
    > Earlex unit is another one of the little guys.
 2. **Ep. 608 · Kreg Edge Discussion and The Best Trade Show You'll Never Go To** · May 29,
-   2026 · **19:26** · related · YouTube, Apple, Spotify · +1 more in this episode
+   2026 · **19:26** · related · YouTube, Apple, Spotify · +1 more nearby
    > The turbine sprayers are just vacuum cleaners going the other way. Okay. All right. Well,
    > that was awesome. Good luck with that. We stopped by the Old Masters booth. That's a
    > finishing company. We watched both Matt and Shannon try their best to create bow wood grain.

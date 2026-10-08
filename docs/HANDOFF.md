@@ -341,6 +341,13 @@ How the maintainer works:
     0.734 (#1) to 0.660 (#26), so a floor still can't separate them; topK 20–30 would drop
     this one. The question form ("how do I…") seems to pull in Q&A answers by tone, which is
     what bge's query instruction targets. Add it to the test search set as non-relevant.
+    **Third data point (2026-10-08):** `hvlp sprayer year:2020`: 0 keyword hits, all 50
+    meaning hits from #466 (outdoor oil; likely the seed's only 2020 episode) at cosine
+    0.519–0.592, e.g. a chunk on sawhorses and a shave horse. With a filter that leaves a
+    tiny pool, topK 50 returns padding. Here an **absolute floor** (~0.6) on related hits
+    would have given the honest "nothing" — unlike the bench-top case, where off-topic hits
+    scored 0.66–0.73. Tune it on the test search set (short and acronym queries may score
+    low overall); plan 3 should say "no exact matches" when every hit is `related`.
   - **For plan 3:** feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk
     598"), so a card's "Ep. N · Title" shows it twice; strip it for display.
 - **Task 15** `worker/src/{context,report}.ts` (Sonnet subagent, reviewed and amended),

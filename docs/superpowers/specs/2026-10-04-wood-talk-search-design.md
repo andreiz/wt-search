@@ -734,9 +734,9 @@ switch where it was.
 
 **4. Alerts.** The Worker posts to ntfy once per UTC day each when the
 smart-search counter passes 50% of the budget and when it passes 100%. The
-server is the var `NTFY_URL` (the maintainer's own), the topic and optional
-token are Worker secrets (`NTFY_TOPIC`, `NTFY_TOKEN`); without a topic,
-alerts are only logged. The `usage` row records which alerts were sent (an
+server (the maintainer's own), topic and optional token are Worker secrets
+(`NTFY_URL`, `NTFY_TOPIC`, `NTFY_TOKEN`), so the server's address stays out
+of the public repo; without a topic, alerts are only logged. The `usage` row records which alerts were sent (an
 `UPDATE … WHERE alerted_half = 0` decides which request sends), so nothing
 repeats. The post runs after the response (`waitUntil`) and its failure is
 only logged.

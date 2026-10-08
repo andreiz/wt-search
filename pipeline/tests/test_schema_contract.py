@@ -124,6 +124,19 @@ def test_boilerplate_defaults_off_and_reports_default_open(d1):
     assert d1.execute("select status from reports").fetchone() == ("open",)
 
 
+def test_usage_counts_smart_searches_per_day(d1):
+    # The Worker's daily smart-search budget (spec §4.8 item 2, schema/0002_usage.sql): the
+    # very statement worker/src/budget.ts runs, one per uncached smart search.
+    upsert = ("insert into usage (day, smart) values (?, 1) on conflict (day) do update "
+              "set smart = smart + 1 returning smart, alerted_half, alerted_full")
+    assert d1.execute(upsert, ("2026-10-08",)).fetchone() == (1, 0, 0)
+    assert d1.execute(upsert, ("2026-10-08",)).fetchone() == (2, 0, 0)
+    assert d1.execute(upsert, ("2026-10-09",)).fetchone() == (1, 0, 0)
+    claim = "update usage set alerted_half = 1 where day = ? and alerted_half = 0"
+    assert d1.execute(claim, ("2026-10-08",)).rowcount == 1
+    assert d1.execute(claim, ("2026-10-08",)).rowcount == 0  # an alert is sent once a day
+
+
 def test_chunks_indexed_by_episode_and_seq(d1):
     plan = d1.execute(
         "explain query plan select id from chunks where episode_id = 1 order by seq"

@@ -45,4 +45,18 @@ export interface Env {
    */
   RL_READ?: RateLimit;
   RL_REPORT?: RateLimit;
+  /**
+   * Uncached smart searches allowed per UTC day before smart search runs keyword-only (spec
+   * §4.8 item 2). Unset or not a positive integer: 20,000. A dashboard override survives deploys
+   * (keep_vars), so it is not declared in wrangler.jsonc.
+   */
+  SMART_DAILY_BUDGET?: string;
+  /**
+   * The ntfy server for budget alerts (default https://ntfy.sh). A secret like the topic, so
+   * the maintainer's own server's address stays out of the public repo.
+   */
+  NTFY_URL?: string;
+  /** ntfy topic and optional access token: `wrangler secret put NTFY_TOPIC --env <env>`. */
+  NTFY_TOPIC?: string;
+  NTFY_TOKEN?: string;
 }

@@ -821,7 +821,7 @@ survives deploys through `keep_vars: true`; the 5xx alert is an external homelab
   D1 error (503), as for the keyword query.
 - Alerts: when `smart` reaches half the budget (and again past the budget), one request wins
   `UPDATE usage SET alerted_half = 1 WHERE day = ? AND alerted_half = 0` (`changes = 1`) and
-  posts to ntfy in `ctx.waitUntil`: JSON publishing to `NTFY_URL` (var) with `NTFY_TOPIC` and
+  posts to ntfy in `ctx.waitUntil`: JSON publishing to `NTFY_URL` with `NTFY_TOPIC` and
   optional bearer `NTFY_TOKEN` (secrets), as the pipeline's `NtfyNotifier` does. No topic → a
   log line instead. A failed post is logged, never retried, never fails the search.
 - `fetch(request, env, ctx)` gains `ctx` for `waitUntil`.
@@ -838,9 +838,14 @@ survives deploys through `keep_vars: true`; the 5xx alert is an external homelab
 - [ ] **Step 5: Commit.** `worker: daily smart-search budget and ntfy alerts`
 
 **After Tasks 17–19 (maintainer):** `cd worker && npx wrangler d1 migrations apply wts-staging
---env staging --remote` (adds `usage`), `npx wrangler secret put NTFY_TOPIC --env staging` (and
-`NTFY_TOKEN` if the server needs one), set `NTFY_URL` in `wrangler.jsonc`, then deploy. Set up the
-homelab monitor on `<staging>/api/health`.
+--env staging --remote` (adds `usage`), `npx wrangler secret put NTFY_URL --env staging` and
+`NTFY_TOPIC` (and `NTFY_TOKEN` if the server needs one), then deploy. Set up the homelab monitor on
+`<staging>/api/health`.
+
+*Tasks 17–19 done 2026-10-08 (main session). Calls beyond the plan: `NTFY_URL` is a secret, not a
+var (the maintainer's server address stays out of the public repo); a 429 for a search is in the
+request log but writes no Analytics Engine point (the router records searches it ran); the
+existing smart-search D1 tests now count the budget statement (one more per uncached search).*
 
 ---
 

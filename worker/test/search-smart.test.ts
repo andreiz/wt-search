@@ -469,16 +469,19 @@ function countingDb(real: D1Database): { db: D1Database; sql: string[] } {
 }
 
 describe("D1 use", () => {
-  it("runs one query for the keyword hits and one batch of two for the related ones", async () => {
+  // Every uncached smart search first counts itself against the daily budget (budget.ts, spec
+  // §4.8 item 2): one statement before the rest.
+  it("counts the search, then runs one query for the keyword hits and one batch of two for the related ones", async () => {
     const { db, sql } = countingDb(env.DB);
     const { response } = await smart({ q: "dovetail -biscuit" }, { db, vec: fakeVec([3002, 3102]) });
     expect(response.status).toBe(200);
-    expect(sql).toHaveLength(4);
-    expect(sql[0]).toMatch(/bm25\(chunks_fts\)/);
-    expect(sql[1]).toMatch(/json_each/);
-    expect(sql[1]).toMatch(/NOT IN/);
-    expect(sql[2]).toMatch(/highlight\(chunks_fts/);
-    expect(sql[3]).toBe("<batch>");
+    expect(sql).toHaveLength(5);
+    expect(sql[0]).toMatch(/^INSERT INTO usage/);
+    expect(sql[1]).toMatch(/bm25\(chunks_fts\)/);
+    expect(sql[2]).toMatch(/json_each/);
+    expect(sql[2]).toMatch(/NOT IN/);
+    expect(sql[3]).toMatch(/highlight\(chunks_fts/);
+    expect(sql[4]).toBe("<batch>");
   });
 
   it("skips the highlight query when every query word is a stopword", async () => {
@@ -487,16 +490,17 @@ describe("D1 use", () => {
     expect(response.status).toBe(200);
     expect(tagged(b)).toEqual([[3002, "related"]]);
     expect(b.results[0]!.ranges).toEqual([]);
-    expect(sql).toHaveLength(3);
-    expect(sql[1]).toMatch(/json_each/);
-    expect(sql[1]).not.toMatch(/highlight/);
-    expect(sql[2]).toBe("<batch>");
+    expect(sql).toHaveLength(4);
+    expect(sql[2]).toMatch(/json_each/);
+    expect(sql[2]).not.toMatch(/highlight/);
+    expect(sql[3]).toBe("<batch>");
   });
 
-  it("runs only the keyword query when Vectorize adds nothing new", async () => {
+  it("runs only the count and the keyword query when Vectorize adds nothing new", async () => {
     const { db, sql } = countingDb(env.DB);
     await smart({ q: "dovetail" }, { db, vec: fakeVec([3001]) });
-    expect(sql).toHaveLength(1);
+    expect(sql).toHaveLength(2);
+    expect(sql[0]).toMatch(/^INSERT INTO usage/);
   });
 
   it("never puts user text in the SQL", async () => {

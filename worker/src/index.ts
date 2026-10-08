@@ -1,4 +1,5 @@
 import { recordReport, recordSearch } from "./analytics";
+import { countSmartSearch } from "./budget";
 import { cached, cacheKey, cacheTtl, corpusVersion, store } from "./cache";
 import { context } from "./context";
 import type { Env } from "./env";
@@ -34,7 +35,12 @@ interface RequestInfo {
   cache?: "hit" | "miss" | "skip";
 }
 
-type Handler = (request: Request, env: Env, info: RequestInfo) => Response | Promise<Response>;
+type Handler = (
+  request: Request,
+  env: Env,
+  info: RequestInfo,
+  ctx?: ExecutionContext,
+) => Response | Promise<Response>;
 
 /** The log line keeps this much of the query; Analytics Engine keeps MAX_QUERY_CHARS. */
 const LOG_QUERY_CHARS = 80;
@@ -81,7 +87,7 @@ function parsePage(value: string | null, lastPage: number): number {
  * Answers are cached at the edge (cache.ts) unless smart search was degraded or `debug=1`
  * (smart mode only) asked for the ranking details.
  */
-const search: Handler = async (request, env, info) => {
+const search: Handler = async (request, env, info, ctx) => {
   const params = new URL(request.url).searchParams;
   const mode = params.get("mode") === "exact" ? "exact" : "smart";
   const sortParam = (params.get("sort") ?? "").toLowerCase();
@@ -114,6 +120,20 @@ const search: Handler = async (request, env, info) => {
       }
     }
     const parsed = parseQuery(q);
+    // The kill switch (spec §4.8 item 3), then the daily budget (item 2): keyword-only, with no
+    // AI or Vectorize call. Only a search that would embed is counted: not exact mode, a cache
+    // hit (returned above), the kill switch or a query with nothing to match.
+    let skipMeaning: "off" | "budget" | undefined = searchOverride(env) === "exact" ? "off" : undefined;
+    if (mode === "smart" && skipMeaning === undefined && parsed.fts !== null) {
+      const counted = await countSmartSearch(env);
+      if (counted.over) skipMeaning = "budget";
+      if (counted.alert) {
+        // After the response when the runtime allows it; tests call fetch() without a ctx.
+        const posting = counted.alert();
+        if (ctx) ctx.waitUntil(posting);
+        else await posting;
+      }
+    }
     response =
       mode === "exact"
         ? await exactSearch(env.DB, parsed, sort, page, limit)
@@ -122,8 +142,7 @@ const search: Handler = async (request, env, info) => {
             // Workers AI or Vectorize failing is not an error: keyword results, smart_degraded.
             onDegraded: (stage, err) => logError(`${stage}_unavailable`, request, err),
             debug,
-            // The kill switch (spec §4.8 item 3): keyword-only, no AI or Vectorize call.
-            ...(searchOverride(env) === "exact" ? { skipMeaning: "off" as const } : {}),
+            ...(skipMeaning ? { skipMeaning } : {}),
           });
   } catch (err) {
     logError("d1_unavailable", request, err);
@@ -159,7 +178,7 @@ const MAINTENANCE = {
 };
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const started = Date.now();
     const path = new URL(request.url).pathname;
     const route = `${request.method} ${path}`;
@@ -172,7 +191,7 @@ export default {
       } else {
         response =
           (await rateLimited(request, env, path)) ??
-          (handler ? await handler(request, env, info) : json({ error: "not_found" }, 404));
+          (handler ? await handler(request, env, info, ctx) : json({ error: "not_found" }, 404));
       }
     } catch (err) {
       logError("unhandled_error", request, err);

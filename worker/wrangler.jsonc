@@ -70,7 +70,12 @@
 				"REPORT_ORIGINS": "http://localhost:5173"
 				// TURNSTILE_SECRET is a secret, never put it here:
 				//   wrangler secret put TURNSTILE_SECRET --env staging
-				// SEARCH_OVERRIDE is set in the dashboard only (see keep_vars above).
+				// SEARCH_OVERRIDE is set in the dashboard only (see keep_vars above), and so is
+				// any SMART_DAILY_BUDGET override (default 20,000, spec §4.8 item 2).
+				// Budget alerts (spec §4.8 item 4) are secrets, so the server stays private:
+				//   wrangler secret put NTFY_URL --env staging     (e.g. https://ntfy.example.net)
+				//   wrangler secret put NTFY_TOPIC --env staging
+				//   wrangler secret put NTFY_TOKEN --env staging   (only if the server needs one)
 			}
 		},
 		"production": {

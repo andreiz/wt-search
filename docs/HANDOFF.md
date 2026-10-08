@@ -9,14 +9,25 @@ then [README.md](../README.md), then the spec sections it points to.
 The sixth session's branch (`claude/great-hopper-nm593s`) was pushed to `main` and deleted at
 the maintainer's request.
 
-**Plan 2: Tasks 1–16 and Checkpoint F are done; Checkpoint G is done except the parts
-that wait on §4.8** (results below). Staging runs Task 16 (deployed 2026-10-08).
-**Next: plan 2 Tasks 17–19** (spec §4.8, written into the plan 2026-10-08, awaiting the
-maintainer's OK), then Checkpoint G's rest: its revised step 2 (rate limits, kill switch,
-budget) and the three paraphrase queries of step 3. Then plans 3–5 are written. §4.8
-decisions (maintainer, 2026-10-08): `smart_degraded` reason strings; `REPORT_ORIGINS` with
-`http://localhost:5173` on staging; `keep_vars: true` for the kill switch; the 5xx alert is a
-homelab monitor on `/api/health`, not Worker code.
+**Plan 2: Tasks 1–19 and Checkpoint F are done; Checkpoint G is done except the parts
+that wait on Tasks 17–19's deploy** (results below). Staging runs Task 16 (deployed
+2026-10-08); Tasks 17–19 (spec §4.8) are **not deployed yet**.
+**Next (maintainer):** deploy Tasks 17–19 (steps below), then Checkpoint G's rest: its
+revised step 2 (rate limits, kill switch, budget and alerts) and the three paraphrase queries
+of step 3. Then plans 3–5 are written.
+
+**Deploying Tasks 17–19** (from `worker/`):
+1. `npx wrangler d1 migrations apply wts-staging --env staging --remote` (adds `usage`).
+2. `npx wrangler secret put NTFY_URL --env staging` (your server), `… NTFY_TOPIC …`, and
+   `… NTFY_TOKEN …` if the server needs one. Without a topic, budget alerts are only logged.
+3. `npx wrangler deploy --env staging`.
+4. Reports now need `-H 'origin: http://localhost:5173'` (`REPORT_ORIGINS`).
+5. A homelab monitor (e.g. Uptime Kuma → ntfy) on `<staging>/api/health`: the only error
+   alerting, since the in-Worker 5xx alert was dropped.
+
+§4.8 decisions (maintainer, 2026-10-08): `smart_degraded` reason strings; `REPORT_ORIGINS`
+with `http://localhost:5173` on staging; `keep_vars: true` for the kill switch; the 5xx alert
+is a homelab monitor on `/api/health`, not Worker code.
 
 **Since Checkpoint G (session 6, not yet on the Mac):** new releases join the scope in
 `wts feed` (open decision 3, option a; spec §3.1). The next `wts run` after a release shows
@@ -25,21 +36,7 @@ homelab monitor on `/api/health`, not Worker code.
 **Corrections candidate** (for the corrections session): "Urlex HV2900" in #71 at ~1:09:51 is
 very likely **Earlex** HV2900 (an HVLP sprayer); check with `check_corrections.py`.
 
-**New spec §4.8, Abuse and cost protection** (maintainer, 2026-10-08). Add plan 2 tasks for
-it, before Checkpoint G's rest:
-- Per-IP limits use the Workers rate-limiting binding in code. This **replaces** the
-  dashboard rules in Checkpoint G step 2, which don't apply on `workers.dev` and are limited
-  on the free plan.
-- A daily smart-search budget in D1 (`usage` table, `SMART_DAILY_BUDGET`, past it
-  `smart_degraded: "budget"`).
-- A `SEARCH_OVERRIDE` kill switch.
-- ntfy alerts at 50% and 100% of the budget and on a 5xx spike.
-- `robots.txt`.
-- An `Origin` check on report, no CORS headers, and `nosniff` / `no-referrer` headers.
-
-The tests are listed in §4.8.
-
-**Waiting on the maintainer (none blocks the §4.8 tasks or Checkpoint G):**
+**Waiting on the maintainer (none blocks Checkpoint G):**
 - **Turnstile is postponed to plan 3** (maintainer, 2026-10-08). A widget is tied to the
   hostname of the page that embeds it, and there is no web app or domain yet. Use "Add
   widget manually", not the dashboard's AI "Spin" setup, which edits code. Plan 3: one
@@ -122,17 +119,19 @@ How the maintainer works:
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
   `wts search` (with `--limit N`, `--debug`), hyphen joining in `wts chunk`, `wts run --env`
   (publish, backup), `wts backup`, `wts logs`, `wts links`, split-number joining in `wts
-  chunk`, new releases scoped by `wts feed`. **683 tests**, ruff clean
+  chunk`, new releases scoped by `wts feed`. **684 tests**, ruff clean
   (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
   `/api/search` with result caps and `?limit=` (page size), smart search (RRF of FTS5 and
   Vectorize) with degraded mode and `?debug=1`, `/api/context`, `/api/report` (Turnstile),
-  the edge cache, request logs and Analytics Engine; HEAD answered like GET (Task 16).
-  **345 tests**, type-check clean.
-  **Deployed to staging** (Task 15, 2026-10-08):
+  the edge cache, request logs and Analytics Engine; HEAD answered like GET (Task 16);
+  kill switch, per-IP rate limits, daily smart budget with ntfy alerts, security headers,
+  report Origin, robots.txt (Tasks 17–19). **380 tests**, type-check clean.
+  **Deployed to staging** (Task 16, 2026-10-08; Tasks 17–19 not yet):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
-- **Schema** (`schema/0001_init.sql`): the D1 contract, tested from both halves.
+- **Schema** (`schema/0001_init.sql`, `0002_usage.sql`): the D1 contract, tested from both
+  halves. `0002` is not yet applied to staging.
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;
   **36 in scope** (35 seed + ep71, added 2026-10-07 for its poor-audio call-ins — a good source
   of plan 5 test-search-set queries), all `published` to staging. Platform IDs filled
@@ -463,6 +462,20 @@ How the maintainer works:
     fill the cache.
   - `test_real_rsync_copies_the_app_folder_but_not_audio` is `mac`-marked (handoff: no real
     rsync in the default run); it also passes on Linux with rsync installed.
+- **Tasks 17–19** (spec §4.8; main session, 2026-10-08): `worker/src/{guard,ratelimit,
+  budget}.ts`, `schema/0002_usage.sql`. Calls the plan didn't spell out:
+  - The router order: maintenance (503, no D1) → rate limit (429, no D1) → route; security
+    headers are added to whatever comes out, cache hits and 500s included.
+  - `smart_degraded` is `"unavailable"`, `"budget"` or `"off"`; `wts search` prints the
+    reason (an older Worker's `true` still prints without one).
+  - Budget: counted after the cache lookup and before the embedding (one more D1 statement
+    per uncached smart search; the existing statement-count tests now include it). Half
+    alert at `smart >= ceil(budget/2)`, full at `smart > budget`; whichever request flips
+    `alerted_*` posts (mutation-checked). Debug searches count; an empty query doesn't.
+  - `NTFY_URL` is a secret, not a var, so the homelab address stays out of the public repo.
+  - A 429 for a search is in the request log, but writes no Analytics Engine point.
+  - `RL_*` and the budget vars are optional: without them (tests, local) nothing is limited
+    and the budget is 20,000.
 - **`wts links <ep> [--at 12:34]`** (after Task 16, maintainer's request): an episode's
   links from `state.db`, by the Worker's rules (`wts/links.py` mirrors `links.ts`; YouTube
   via `publish.youtube_id_for_publish`), plus the feed's audio URL. A YouTube match that

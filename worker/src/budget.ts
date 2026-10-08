@@ -78,9 +78,11 @@ async function sendAlert(env: Env, threshold: Threshold, smart: number, budget: 
         "smart search runs keyword-only until midnight UTC."
       : `${fmt(smart)} of ${fmt(budget)} smart searches today (UTC): smart search is keyword-only ` +
         "until midnight UTC. If this is a bot, SEARCH_OVERRIDE=exact turns smart search off.";
+  // "wts staging: …" / "wts production: …", so one topic can serve both environments.
+  const prefix = env.WTS_ENV ? `wts ${env.WTS_ENV}:` : "wts:";
   const payload = {
     topic: env.NTFY_TOPIC,
-    title: threshold === "half" ? "wts: smart search at 50% of today's budget" : "wts: smart search budget used up",
+    title: `${prefix} ${threshold === "half" ? "smart search at 50% of today's budget" : "smart search budget used up"}`,
     message,
     priority: threshold === "half" ? 3 : 4,
     tags: [threshold === "half" ? "hourglass" : "warning"],

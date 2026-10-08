@@ -146,6 +146,16 @@ describe("alerts", () => {
     for (const p of posts(spy)) expect(JSON.stringify(p)).not.toContain("zzq");
   });
 
+  it("name the environment in the title (WTS_ENV), so staging and production can't be confused", async () => {
+    const spy = mockNtfy();
+    await search(bindings({ SMART_DAILY_BUDGET: "2", WTS_ENV: "production" }).env, `q=${encodeURIComponent(fresh())}`);
+    await env.DB.exec("DELETE FROM usage");
+    await search(bindings({ SMART_DAILY_BUDGET: "2" }).env, `q=${encodeURIComponent(fresh())}`);
+    const [named, unnamed] = posts(spy);
+    expect(named?.title).toBe("wts production: smart search at 50% of today's budget");
+    expect(unnamed?.title).toBe("wts: smart search at 50% of today's budget");
+  });
+
   it("are sent once when two searches cross the threshold together", async () => {
     const spy = mockNtfy();
     const b = bindings({ SMART_DAILY_BUDGET: "2" });

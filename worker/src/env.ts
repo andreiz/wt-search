@@ -56,6 +56,8 @@ export interface Env {
    * the maintainer's own server's address stays out of the public repo.
    */
   NTFY_URL?: string;
+  /** The environment's name (a var: "staging" or "production"), shown in alert titles. */
+  WTS_ENV?: string;
   /** ntfy topic and optional access token: `wrangler secret put NTFY_TOPIC --env <env>`. */
   NTFY_TOPIC?: string;
   NTFY_TOKEN?: string;

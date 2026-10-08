@@ -736,7 +736,9 @@ switch where it was.
 smart-search counter passes 50% of the budget and when it passes 100%. The
 server (the maintainer's own), topic and optional token are Worker secrets
 (`NTFY_URL`, `NTFY_TOPIC`, `NTFY_TOKEN`), so the server's address stays out
-of the public repo; without a topic, alerts are only logged. The `usage` row records which alerts were sent (an
+of the public repo; without a topic, alerts are only logged. Titles name the
+environment (`WTS_ENV` var: "wts staging: …"), so one topic and one
+write-only ntfy user can serve both Workers. The `usage` row records which alerts were sent (an
 `UPDATE … WHERE alerted_half = 0` decides which request sends), so nothing
 repeats. The post runs after the response (`waitUntil`) and its failure is
 only logged.

@@ -61,6 +61,8 @@
 				{ "name": "RL_REPORT", "namespace_id": "1002", "simple": { "limit": 3, "period": 60 } }
 			],
 			"vars": {
+				// Named in alert titles ("wts staging: …"), so one ntfy topic can serve both.
+				"WTS_ENV": "staging",
 				// Edge cache for /api/search, in seconds (spec §4.7); unset means no caching.
 				"SEARCH_CACHE_TTL_S": "3600",
 				// Placeholder: the public Turnstile site key (not a secret).
@@ -96,6 +98,7 @@
 				{ "name": "RL_REPORT", "namespace_id": "2002", "simple": { "limit": 3, "period": 60 } }
 			],
 			"vars": {
+				"WTS_ENV": "production",
 				"SEARCH_CACHE_TTL_S": "3600",
 				"TURNSTILE_SITE_KEY": "production-turnstile-site-key-placeholder"
 				// No REPORT_ORIGINS yet: every report is refused until plan 3 sets the site's.

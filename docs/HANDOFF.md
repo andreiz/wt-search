@@ -20,6 +20,9 @@ of step 3. Then plans 3–5 are written.
 1. `npx wrangler d1 migrations apply wts-staging --env staging --remote` (adds `usage`).
 2. `npx wrangler secret put NTFY_URL --env staging` (your server), `… NTFY_TOPIC …`, and
    `… NTFY_TOKEN …` if the server needs one. Without a topic, budget alerts are only logged.
+   Suggested: a write-only ntfy user for the Workers (`ntfy user add wts-worker`, `ntfy
+   access wts-worker <topic> write-only`, `ntfy token add --label … wts-worker`); one token
+   can serve both environments, since alert titles name the environment (`WTS_ENV`).
 3. `npx wrangler deploy --env staging`.
 4. Reports now need `-H 'origin: http://localhost:5173'` (`REPORT_ORIGINS`).
 5. A homelab monitor (e.g. Uptime Kuma → ntfy) on `<staging>/api/health`: the only error
@@ -127,7 +130,7 @@ How the maintainer works:
   Vectorize) with degraded mode and `?debug=1`, `/api/context`, `/api/report` (Turnstile),
   the edge cache, request logs and Analytics Engine; HEAD answered like GET (Task 16);
   kill switch, per-IP rate limits, daily smart budget with ntfy alerts, security headers,
-  report Origin, robots.txt (Tasks 17–19). **380 tests**, type-check clean.
+  report Origin, robots.txt (Tasks 17–19). **381 tests**, type-check clean.
   **Deployed to staging** (Task 16, 2026-10-08; Tasks 17–19 not yet):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Schema** (`schema/0001_init.sql`, `0002_usage.sql`): the D1 contract, tested from both

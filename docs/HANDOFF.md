@@ -28,6 +28,29 @@ of step 3. Then plans 3–5 are written.
 5. A homelab monitor (e.g. Uptime Kuma → ntfy) on `<staging>/api/health`: the only error
    alerting, since the in-Worker 5xx alert was dropped.
 
+**Open: rate limits don't trigger on staging (to debug on the desktop, 2026-10-08).**
+- Live: Task 17 is (robots.txt 200, `nosniff` present). 70 and then 200 sequential `GET
+  /api/health` all answered 200; 4 reports in a row (`chunk_id` 999999999, origin
+  `http://localhost:5173`) all 400, the 4th should be 429.
+- The local config has the bindings (`deploy --dry-run` lists `RL_READ` 60/60s, `RL_REPORT`
+  3/60s), but the live version predated the last commit (no `WTS_ENV`; the maintainer's tree
+  had a local-only commit `d10355d` on top of the Task 18 commit `6e1e092`), and the dashboard
+  had made a version of its own (`SEARCH_OVERRIDE` = `exact` was added there).
+- A redeploy was started: wrangler warned that the dashboard's `SEARCH_OVERRIDE` would be
+  overridden. That warning ignores `keep_vars` (wrangler 4.148 `cli.js`: the diff check
+  doesn't read it, while the upload sends `keep_bindings: ["plain_text", "json"]`), so answer
+  yes; never let wrangler patch `SEARCH_OVERRIDE` into `wrangler.jsonc`.
+- Next: after the redeploy, `curl -s "$U/api/search?q=glue+zz$RANDOM" | jq .smart_degraded`
+  should still be `"off"` (keep_vars works), then the 200-request loop with `npx wrangler tail
+  --env staging` open. 429s → it was the old version. All 200 with `rate_limiter_unavailable`
+  in the tail → `limit()` throws (read the error). All 200 and nothing logged → `limit()`
+  answers success or `cf-connecting-ip` is missing: add a temporary log of
+  `{hasIp, hasBinding, success}` in `ratelimit.ts` to tell which. The binding is "permissive,
+  eventually consistent" per location, but 200 requests in a row should still trip 60/60 s.
+- Then finish Checkpoint G step 2 (remove `SEARCH_OVERRIDE`; `maintenance`; the budget test
+  with `SMART_DAILY_BUDGET` = 3; Production, not Previews, in the dashboard's variable dialog)
+  and step 3's paraphrase queries.
+
 §4.8 decisions (maintainer, 2026-10-08): `smart_degraded` reason strings; `REPORT_ORIGINS`
 with `http://localhost:5173` on staging; `keep_vars: true` for the kill switch; the 5xx alert
 is a homelab monitor on `/api/health`, not Worker code.

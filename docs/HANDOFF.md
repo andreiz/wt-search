@@ -5,9 +5,9 @@ then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-**Branch:** the sixth session worked on `claude/great-hopper-nm593s` (the branch its cloud
-session was given), not `main`, as the fifth did. The maintainer merges it into `main`; after
-that, work on `main` again (CLAUDE.md). If the merge hasn't happened, ask before starting.
+**Branch:** work on `main` (CLAUDE.md), even when a cloud session is given another branch.
+The sixth session's branch (`claude/great-hopper-nm593s`) was pushed to `main` and deleted at
+the maintainer's request.
 
 **Plan 2: Tasks 1–16 and Checkpoint F are done.** Staging runs Task 15 (deployed
 2026-10-08); Task 16's Worker change (HEAD routing) is **not deployed yet**.

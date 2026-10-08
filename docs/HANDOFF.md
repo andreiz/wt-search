@@ -72,8 +72,14 @@ very likely **Earlex** HV2900 (an HVLP sprayer); check with `check_corrections.p
 ## Plan 3: start here (frontend, `web/`)
 
 Spec §5 is the design; it is a sketch, so brainstorm with the maintainer, revise §5, then
-write `docs/superpowers/plans/<date>-m1-frontend.md` before any code. Facts and decisions
-gathered so far, so the brainstorm doesn't rediscover them:
+write `docs/superpowers/plans/<date>-m1-frontend.md` before any code.
+
+**Design runs separately** (maintainer, 2026-10-08): a design system, then the UI on it, made
+in **Claude Design** from [`docs/design/BRIEF.md`](design/BRIEF.md) — a standalone brief with
+the UI specified screen by screen, every state, the syntax popover, and real sample excerpts.
+Plan 3 settles the brief's *(proposed)* items, takes the design system's tokens as CSS
+custom properties, and builds against the designs. Facts and decisions gathered so far, so the
+brainstorm doesn't rediscover them:
 
 - **Domain** (maintainer, 2026-10-08; spec §10 item 7): most likely a subdomain of
   `10fathoms.org`, name not chosen, and **configurable** — no hard-coded host anywhere. It

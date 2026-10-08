@@ -801,7 +801,10 @@ later: a lower `/api/context` limit, or Turnstile on `/api/context`.
 ## 5. Frontend (`web/`)
 
 Vite + TypeScript + Preact, deployed to Cloudflare Pages on the same domain
-as the API.
+as the API. *(2026-10-08:)* the look comes from a design system and UI
+designs made in Claude Design from `docs/design/BRIEF.md`, which elaborates
+this section (its *proposed* items are settled in plan 3; this spec wins on
+any conflict).
 
 - **Search bar**, pinned to the top:
   - A large input, a **Search** button (Enter also searches).

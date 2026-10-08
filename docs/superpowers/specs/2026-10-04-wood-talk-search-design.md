@@ -1027,6 +1027,12 @@ and plan.
    - A YouTube Data API key.
    - A Cloudflare Turnstile site key.
 7. **Domain:** pick a domain or subdomain for Pages and the Worker.
+   *(Maintainer, 2026-10-08:)* most likely a subdomain of `10fathoms.org`
+   (exact name not chosen), and it must be **configurable**: nothing may
+   hard-code it. It reaches the Worker route (`/api/*` on the site's host),
+   the Pages custom domain, `REPORT_ORIGINS`, the Turnstile widget's
+   hostname, `api_url` in the Mac's `config.toml`, and any absolute URL in
+   the frontend (prefer relative `/api/...`). Plan 3 settles how.
 8. **NAS (M2):** create the SMB share and folders, set up automatic mounting
    on the Mini, and move the M1 audio there.
 9. **Atomic publish (before production, M2):** D1's REST API doesn't apply a

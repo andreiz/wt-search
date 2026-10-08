@@ -1,4 +1,4 @@
-# Handoff — 2026-10-08 (after the sixth session)
+# Handoff — 2026-10-08 (after the sixth session; plan 3 next in a new session)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -9,10 +9,17 @@ then [README.md](../README.md), then the spec sections it points to.
 The sixth session's branch (`claude/great-hopper-nm593s`) was pushed to `main` and deleted at
 the maintainer's request.
 
+**Work in flight (2026-10-08), in separate sessions:**
+- **Plan 3 (frontend)**: a new session starts it from the section "Plan 3: start here"
+  below. Brainstorm → spec → plan before code (CLAUDE.md).
+- **Rate limits not triggering on staging**: the maintainer's desktop session (see "Open:
+  rate limits…" below).
+- **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions.
+
 **Plan 2: Tasks 1–19 and Checkpoint F are done; Checkpoint G is done except the parts
-that wait on Tasks 17–19's deploy** (results below). Staging runs Task 16 (deployed
-2026-10-08); Tasks 17–19 (spec §4.8) are **not deployed yet**.
-**Next (maintainer):** deploy Tasks 17–19 (steps below), then Checkpoint G's rest: its
+that wait on Tasks 17–19's deploy** (results below). Staging runs Task 17 at least (robots.txt
+and the headers are live); whether Task 18's bindings are live is the open debugging item.
+**Next (maintainer):** finish deploying Tasks 17–19 (steps below), then Checkpoint G's rest: its
 revised step 2 (rate limits, kill switch, budget and alerts) and the three paraphrase queries
 of step 3. Then plans 3–5 are written.
 
@@ -61,6 +68,57 @@ is a homelab monitor on `/api/health`, not Worker code.
 
 **Corrections candidate** (for the corrections session): "Urlex HV2900" in #71 at ~1:09:51 is
 very likely **Earlex** HV2900 (an HVLP sprayer); check with `check_corrections.py`.
+
+## Plan 3: start here (frontend, `web/`)
+
+Spec §5 is the design; it is a sketch, so brainstorm with the maintainer, revise §5, then
+write `docs/superpowers/plans/<date>-m1-frontend.md` before any code. Facts and decisions
+gathered so far, so the brainstorm doesn't rediscover them:
+
+- **Domain** (maintainer, 2026-10-08; spec §10 item 7): most likely a subdomain of
+  `10fathoms.org`, name not chosen, and **configurable** — no hard-coded host anywhere. It
+  reaches: the Pages custom domain; a Worker route for `/api/*` on that host (spec §5 puts
+  site and API on one domain, so the frontend calls relative `/api/...` and no CORS is
+  needed — the Worker sends none on purpose, §4.8 item 6); `REPORT_ORIGINS`; the Turnstile
+  widget's hostname; `api_url` in the Mac's `config.toml`. Staging and production each get
+  their own host. A custom domain also enables Cloudflare's "block AI crawlers" (§4.8 item 5).
+- **API contract:** spec §4.4 and the Worker (`worker/src/index.ts` routes, `search.ts`
+  response types). Real responses to copy shapes from: `pipeline/tests/fixtures/search/*.json`
+  (checked against the Worker by `worker/test/search-contract.test.ts`). Smart responses have
+  no `total`; exact ones have `total`, `total_capped` ("1,000+") and `truncated` (past 200:
+  "Showing the best 200 of N matches — add words, a "phrase" or `year:`").
+- **States the UI must cover:** `smart_degraded` is `"unavailable"`, `"budget"` or `"off"`
+  (say why, subtly); every `/api/*` can answer 503 `{error: "maintenance", message}` (show a
+  notice) or 429 `{error: "rate_limited"}` with `retry-after`; reports answer 400/403/429/503
+  with a friendly `message`. When every hit is `related`, say "no exact matches" before them
+  (the `hvlp sprayer year:2020` case: all 50 meaning hits were padding).
+- **Result cards:** `related` hits read as secondary (no highlights; cue = chunk start).
+  Feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk 598"): strip it for
+  "Ep. N · Title". YouTube first (precise); a small "may start early because of ads" note by
+  Apple and Spotify (Checkpoint F, phones). Links come from the API (`episode.links`,
+  per-platform `cue_s`); never rebuild them in the frontend (spec §4.6, one link builder).
+- **Query syntax** (for the `?` popover; `worker/src/query.ts`): `"phrase"`, `-exclude`,
+  `OR`, `word*` prefixes, `year:2015`, `before:2018`, `after:2020` (both exclusive, combine
+  into a range), `ep:613`, `include:ads`; 200 characters max. Open question for the
+  year-range chips: write `after:`/`before:` into the box (no API change, teaches the
+  syntax; the previous session leaned this way) or separate URL params (a Worker change).
+  A user-facing `docs/search-syntax.md` is an open idea that would serve both.
+- **Reports:** Turnstile was postponed to this plan: one widget per environment, mode
+  Managed, "Add widget manually" (not the dashboard's AI "Spin" setup), its site key into
+  `wrangler.jsonc` `TURNSTILE_SITE_KEY` (a placeholder now), its secret via `wrangler secret
+  put TURNSTILE_SECRET` (staging has Cloudflare's always-pass test secret until then). The
+  report's `Origin` must be in `REPORT_ORIGINS` (staging: `http://localhost:5173`, Vite's dev
+  server; production: unset, refusing all). After a failed submit the widget must be reset
+  before retrying (Task 15 note). Open decision 9 (a footer "Send feedback" link with no
+  passage) is to be decided in this plan.
+- **"N episodes indexed through <date>"** (spec §5, empty state): no endpoint returns this
+  yet (`/api/health` gives only `corpus_version`). `meta.last_published_at` exists in D1.
+- **Security** (§4.8 item 6): the frontend's CSP includes `frame-ancestors 'none'`; the site
+  gets its own `robots.txt` (allow pages, `Disallow: /api/`) — the Worker's own
+  `/robots.txt` (`Disallow: /`) is for the API host on `workers.dev`.
+- **Footer** says "made with the hosts' blessing": that is spec §10 item 1, not yet asked.
+- Worker tooling notes (Vitest pool, npm 11 for installs) are under "Worker test pointers"
+  below; `web/` will need its own `package.json`.
 
 **Waiting on the maintainer (none blocks Checkpoint G):**
 - **Turnstile is postponed to plan 3** (maintainer, 2026-10-08). A widget is tied to the
@@ -664,5 +722,5 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
   (session 3); one `sed` edit to the handoff's plan-status line (session 4); a Python edit
   to `worker/src/index.ts`, `sed` edits to five import lines and the handoff's test count,
   and a heredoc append to `highlight.test.ts` (session 5, Task 14 and its follow-ups); a
-  heredoc append of Task 16's tests to `test_run.py` and a `sed` edit to the handoff's test
-  count (session 6).
+  heredoc append of Task 16's tests to `test_run.py` and `sed` edits to the handoff's test
+  count and title line (session 6).

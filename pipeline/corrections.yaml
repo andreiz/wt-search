@@ -22,6 +22,7 @@ global:
   boe shield: Boeshield
   t9: T-9
   container store: Container Store
+  borefoot: board foot
   # Titebond glue (ep044 "Tightbond", ep596 and ep604 "tight bond"). Checked on all 36
   # transcripts: no plain-English "a tight bond" yet; re-check as the archive grows.
   tight bond: Titebond
@@ -63,4 +64,5 @@ global:
   12quarter: 12/4
   16 quarter: 16/4
   16quarter: 16/4
+  Timbermaid: Timbermate
 episodes: {}

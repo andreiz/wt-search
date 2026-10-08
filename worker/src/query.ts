@@ -6,6 +6,10 @@
 // closing quote) come only from parsed syntax, never from the text itself. So `text:glue`
 // is the phrase "text:glue", not a column filter, and `NEAR(` is just a word. The parser
 // never throws: any surprise falls back to plain words.
+//
+// Filters (all optional, a malformed one is a plain word, a repeated one: the last wins):
+// `year:2015`, `before:2018`, `after:2020` (exclusive), `year:2015-2020` (inclusive range,
+// sets after/before; `year:2015-2015` is `year:2015`), `ep:250`, and `include:ads`.
 
 /** Longer queries are cut: bounds the FTS5 expression and the embedding input. */
 export const MAX_QUERY_CHARS = 200;
@@ -123,6 +127,8 @@ function scan(text: string): Token[] {
 }
 
 const RANGE_FILTER = /^(year|before|after):(\d{4})$/i;
+/** `year:2015-2020`, hyphen or en dash (U+2013, what phones type), both ends four digits. */
+const YEAR_SPAN = /^year:(\d{4})[-–](\d{4})$/i;
 const EP_FILTER = /^ep:(\d{1,5})$/i;
 const INCLUDE_ADS = /^include:ads$/i;
 
@@ -176,11 +182,25 @@ function parse(input: unknown): ParsedQuery {
     }
     const word = token.text;
     const range = RANGE_FILTER.exec(word);
+    const span = YEAR_SPAN.exec(word);
     const ep = EP_FILTER.exec(word);
     if (word === "OR") {
       if (afterPositive) pendingOr = true;
     } else if (range) {
       filters[(range[1] ?? "").toLowerCase() as "year" | "before" | "after"] = Number(range[2]);
+      pendingOr = false;
+      afterPositive = false;
+    } else if (span) {
+      // Both ends included, either order: after/before are exclusive, so step one out. One
+      // year is `year:`, which alone sets no range.
+      const from = Math.min(Number(span[1]), Number(span[2]));
+      const to = Math.max(Number(span[1]), Number(span[2]));
+      if (from === to) {
+        filters.year = from;
+      } else {
+        filters.after = from - 1;
+        filters.before = to + 1;
+      }
       pendingOr = false;
       afterPositive = false;
     } else if (ep) {

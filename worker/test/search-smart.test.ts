@@ -166,6 +166,11 @@ describe("Workers AI and Vectorize calls", () => {
       ["dovetail before:2020", { year: { $lt: 2020 } }],
       ["dovetail after:2015", { year: { $gt: 2015 } }],
       ["dovetail after:2015 before:2020", { year: { $lt: 2020, $gt: 2015 } }],
+      // A range is inclusive: 2011-2012 is after 2010, before 2013. A single year is $eq.
+      ["dovetail year:2011-2012", { year: { $gt: 2010, $lt: 2013 } }],
+      ["dovetail year:2012–2011", { year: { $gt: 2010, $lt: 2013 } }],
+      ["dovetail year:2012-2012", { year: { $eq: 2012 } }],
+      ["dovetail year:2010-2012 after:2011", { year: { $gt: 2011, $lt: 2013 } }],
     ];
     for (const [q, filter] of cases) {
       const vec = fakeVec([]);

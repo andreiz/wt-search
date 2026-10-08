@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
 import { HIGHLIGHT_STOPWORDS, MAX_QUERY_CHARS, fallbackQuery, parseQuery } from "../src/query";
 import type { Filters } from "../src/query";
@@ -31,8 +31,28 @@ const CHUNKS: SeedChunk[] = TEXTS.map(([id, text], seq) => ({
   text,
 }));
 
+// One "zzyear" chunk in each of 2010-2013, for the year filters' rows (the table above only
+// checks what the parser emits; these run the filters in SQL).
+const YEARS = [2010, 2011, 2012, 2013];
+const YEAR_EPISODES: SeedEpisode[] = YEARS.map((year, i) => ({
+  id: 40 + i,
+  guid: `guid-query-${40 + i}`,
+  number: 100 + i,
+  title: `Year ${year}`,
+  published_at: `${year}-06-01T08:00:00Z`,
+  duration_s: 3600,
+}));
+const YEAR_CHUNKS: SeedChunk[] = YEARS.map((year, i) => ({
+  id: 400 + i,
+  episode_id: 40 + i,
+  seq: 0,
+  start_ms: 0,
+  end_ms: 20_000,
+  text: `zzyear marker from ${year}`,
+}));
+
 beforeAll(async () => {
-  await seed(env.DB, [EPISODE], CHUNKS);
+  await seed(env.DB, [EPISODE, ...YEAR_EPISODES], [...CHUNKS, ...YEAR_CHUNKS]);
 });
 
 const MATCH_SQL = "select rowid from chunks_fts where chunks_fts match ? order by rowid";
@@ -123,6 +143,44 @@ const CASES: Case[] = [
   { q: "year:2015 year:2016", fts: null, filters: { year: 2016 } },
   { q: "ep:12345", fts: null, filters: { ep: 12345 } },
 
+  // year:A-B is inclusive: after A-1 and before B+1, whichever order, or year:A for one year.
+  { q: "year:2015-2020 glue", fts: '"glue"', semantic: "glue", terms: ['"glue"'], filters: { after: 2014, before: 2021 }, rows: [301] },
+  { q: "year:2020-2015 glue", fts: '"glue"', filters: { after: 2014, before: 2021 }, rows: [301] },
+  { q: "year:2015-2015 glue", fts: '"glue"', filters: { year: 2015 }, rows: [301] },
+  { q: "YEAR:2011-2012", fts: null, semantic: "", terms: [], exclude: null, filters: { after: 2010, before: 2013 } },
+  // An en dash (U+2013), as a phone or the year chip's label types it.
+  { q: "year:2015–2020 glue", fts: '"glue"', filters: { after: 2014, before: 2021 }, rows: [301] },
+  { q: "year:2020–2015", fts: null, filters: { after: 2014, before: 2021 } },
+  // Each filter key keeps its last value; a range sets two keys, a single year one.
+  { q: "year:2010-2012 after:2011", fts: null, filters: { after: 2011, before: 2013 } },
+  { q: "after:2011 year:2010-2012", fts: null, filters: { after: 2009, before: 2013 } },
+  { q: "before:2020 year:2010-2012", fts: null, filters: { after: 2009, before: 2013 } },
+  { q: "year:2010-2012 year:2014-2015", fts: null, filters: { after: 2013, before: 2016 } },
+  { q: "year:2010-2012 year:2015", fts: null, filters: { year: 2015, after: 2009, before: 2013 } },
+  { q: "year:2015 year:2010-2012", fts: null, filters: { year: 2015, after: 2009, before: 2013 } },
+  { q: "year:2010-2012 year:2015-2015", fts: null, filters: { year: 2015, after: 2009, before: 2013 } },
+  // Anything but two four-digit years is a plain word, like year:abc.
+  { q: "year:2015-", fts: '"year:2015-"', terms: ['"year:2015-"'], filters: {}, rows: [] },
+  { q: "year:-2015", fts: '"year:-2015"', filters: {}, rows: [] },
+  { q: "year:15-20", fts: '"year:15-20"', filters: {}, rows: [] },
+  { q: "year:2015-20", fts: '"year:2015-20"', filters: {}, rows: [] },
+  { q: "year:20-2015", fts: '"year:20-2015"', filters: {}, rows: [] },
+  { q: "year:2015-20200", fts: '"year:2015-20200"', filters: {}, rows: [] },
+  { q: "year:2015-2020-2021", fts: '"year:2015-2020-2021"', filters: {}, rows: [] },
+  { q: "year:2015--2020", fts: '"year:2015--2020"', filters: {}, rows: [] },
+  { q: "year:2015–2020–2021", fts: '"year:2015–2020–2021"', filters: {}, rows: [] },
+  { q: "year:2015-–2020", fts: '"year:2015-–2020"', filters: {}, rows: [] },
+  // Spaces end the token: a lone year filter, a dropped "-", and the word 2020.
+  { q: "year:2015 - 2020", fts: '"2020"', filters: { year: 2015 }, rows: [] },
+  { q: "year:2015-abcd", fts: '"year:2015-abcd"', filters: {}, rows: [] },
+  { q: "-year:2015-2020 glue", fts: '"glue" NOT "year:2015-2020"', exclude: '"year:2015-2020"', filters: {}, rows: [301] },
+  { q: "before:2015-2020", fts: '"before:2015-2020"', filters: {}, rows: [] },
+  { q: "after:2015-2020", fts: '"after:2015-2020"', filters: {}, rows: [] },
+  { q: "ep:250-260", fts: '"ep:250-260"', filters: {}, rows: [] },
+  { q: "year:2015-2020*", fts: '"year:2015-2020"*', filters: {}, rows: [] },
+  // A range between an OR's sides is a filter, like year:2015 is.
+  { q: "dovetail OR year:2011-2012 glue", fts: '"dovetail" AND "glue"', filters: { after: 2010, before: 2013 }, rows: [301] },
+
   // Combining.
   { q: "a OR b OR c", fts: '("a" OR "b" OR "c")' },
   { q: "dovetail OR router -jig", fts: '("dovetail" OR "router") NOT "jig"', exclude: '"jig"', rows: [301, 302] },
@@ -188,6 +246,37 @@ describe("parseQuery", () => {
     if (parsed.exclude !== null) await matchRows(parsed.exclude);
     if (parsed.terms.length > 0) await matchRows(parsed.terms.join(" OR "));
     if (c.rows !== undefined) expect(rows).toEqual(c.rows);
+  });
+
+  describe("year filters in exact search", () => {
+    // [query, publish years of the hits]: the filters reach the SQL as parsed.
+    const YEAR_CASES: [string, number[]][] = [
+      ["year:2011-2012", [2011, 2012]],
+      ["year:2012-2011", [2011, 2012]],
+      ["year:2011–2012", [2011, 2012]],
+      ["year:2010-2013", [2010, 2011, 2012, 2013]],
+      ["year:2012-2012", [2012]],
+      ["year:2012", [2012]],
+      ["year:2008-2011", [2010, 2011]],
+      ["year:2014-2020", []],
+      ["year:2010-2012 after:2011", [2012]],
+      ["after:2011 year:2010-2012", [2010, 2011, 2012]],
+      ["year:2011-2013 before:2013", [2011, 2012]],
+      ["year:2011-2012 year:2013", []],
+      // Malformed: a plain word, which no chunk has.
+      ["year:2011-", []],
+      ["year:11-12", []],
+      ["year:2011-12", []],
+      ["year:2011-2012-2013", []],
+    ];
+
+    it.each(YEAR_CASES)("%s", async (q, years) => {
+      const res = await exports.default.fetch(
+        `https://example.com/api/search?mode=exact&sort=oldest&q=${encodeURIComponent(`zzyear ${q}`)}`,
+      );
+      const body = (await res.json()) as { results: { episode: { date: string } }[] };
+      expect(body.results.map((r) => Number(r.episode.date.slice(0, 4)))).toEqual(years);
+    });
   });
 
   it("treats non-string input as empty", () => {

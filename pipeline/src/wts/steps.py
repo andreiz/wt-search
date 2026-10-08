@@ -341,7 +341,8 @@ def run_feed(
     resp.raise_for_status()
     result = upsert_episodes(conn, parse_feed(resp.content), force=force)
     log.info(f"feed: {result}", extra={"step": "feed"})
-    counts = Counter(added=result.added, updated=result.updated, reset=result.reset)
+    counts = Counter(added=result.added, updated=result.updated, reset=result.reset,
+                     scoped=result.scoped)
     # Platform failures are logged and counted, never raised: the feed itself has landed.
     counts.update(match_platform_ids(conn, cfg, client, store or get_store()))
     return counts

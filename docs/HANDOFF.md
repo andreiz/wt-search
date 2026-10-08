@@ -9,30 +9,21 @@ then [README.md](../README.md), then the spec sections it points to.
 The sixth session's branch (`claude/great-hopper-nm593s`) was pushed to `main` and deleted at
 the maintainer's request.
 
-**Plan 2: Tasks 1–16 and Checkpoint F are done.** Staging runs Task 15 (deployed
-2026-10-08); Task 16's Worker change (HEAD routing) is **not deployed yet**.
-**Next: the §4.8 tasks** (below; to be added to plan 2), **then Checkpoint G** (maintainer,
-on the Mac), then plans 3–5 are written.
+**Plan 2: Tasks 1–16 and Checkpoint F are done; Checkpoint G is done except the parts
+that wait on §4.8** (results below). Staging runs Task 16 (deployed 2026-10-08).
+**Next: the §4.8 tasks** (below; to be written into plan 2 first), then Checkpoint G's
+rest: the rate-limit binding (replacing step 2) and the three paraphrase queries of step 3,
+which the maintainer hasn't run yet. Then plans 3–5 are written.
 
-**For Checkpoint G (maintainer):**
-- `npx wrangler deploy --env staging` (HEAD routing, so `curl -sI` shows `x-wts-cache`).
-- Optional `config.toml` keys, top level (before any `[env.*]`): `backup_dir` (e.g.
-  `/Volumes/media/wts/backup`; without it `wts run` logs "no backup") and `run_env =
-  "staging"` (else pass `--env staging`).
-- `uv run pytest -m mac -k real_rsync` runs the backup with the Mac's own rsync (openrsync
-  on macOS 15.4+, whose exclude handling we haven't seen); here it passed with rsync 3.2.7.
-- **Re-chunk for split numbers** (session 6): `wts chunk` now joins "22 .5", "45 ,000",
-  "10 %" (spec §3.3). Apply with `uv run wts chunk --force`, `uv run wts embed`, then
-  `uv run wts publish --env staging` (only chunks whose text changed are rewritten). Then
-  `uv run wts search --mode exact '10%'` should show `10%`, not `10 %`.
-- **Corrections candidate** (for the corrections session): "Urlex HV2900" in #71 at ~1:09:51
-  is very likely **Earlex** HV2900 (an HVLP sprayer); check with `check_corrections.py`.
-- **Open decision 3 needs an answer before `wts run` goes on a schedule** (M2): new feed
-  episodes aren't added to scope, so a scheduled run skips them. Options: auto-scope new
-  episodes in `wts feed`, or make `wts run` default to `--select all`.
+**Since Checkpoint G (session 6, not yet on the Mac):** new releases join the scope in
+`wts feed` (open decision 3, option a; spec §3.1). The next `wts run` after a release shows
+`scoped=1` and processes it in the same run.
 
-**Before Checkpoint G: new spec §4.8, Abuse and cost protection** (maintainer, 2026-10-08).
-Add plan 2 tasks for it:
+**Corrections candidate** (for the corrections session): "Urlex HV2900" in #71 at ~1:09:51 is
+very likely **Earlex** HV2900 (an HVLP sprayer); check with `check_corrections.py`.
+
+**New spec §4.8, Abuse and cost protection** (maintainer, 2026-10-08). Add plan 2 tasks for
+it, before Checkpoint G's rest:
 - Per-IP limits use the Workers rate-limiting binding in code. This **replaces** the
   dashboard rules in Checkpoint G step 2, which don't apply on `workers.dev` and are limited
   on the free plan.
@@ -128,7 +119,7 @@ How the maintainer works:
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
   `wts search` (with `--limit N`, `--debug`), hyphen joining in `wts chunk`, `wts run --env`
   (publish, backup), `wts backup`, `wts logs`, `wts links`, split-number joining in `wts
-  chunk`. **677 tests**, ruff clean
+  chunk`, new releases scoped by `wts feed`. **683 tests**, ruff clean
   (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
@@ -150,6 +141,34 @@ How the maintainer works:
   2027-10; in the Keychain and in 1Password (Homelab). The Worker is **not deployed** yet.
 
 ## Checkpoint results
+
+**Checkpoint G, all but the §4.8 parts (2026-10-08)** — everything on staging:
+- **Deploy:** Task 16 deployed; `TURNSTILE_SECRET` is Cloudflare's always-pass test secret
+  until plan 3's widget.
+- **Smart search:** works, not degraded. Relevance notes in the Task 14 entry (bench top,
+  #171, `hvlp sprayer`): on-topic hits score ~0.73, padding 0.52–0.60. `hvlp sprayer` found
+  #71's real HVLP segment as keyword #2 + meaning #1 (0.731). `year:` works in smart mode.
+  The three paraphrase queries are still to do.
+- **Context and report:** a report on chunk 625 stored (`id 1`, `open`) and deleted.
+- **Caching:** a repeat answers `x-wts-cache: hit` (`curl -sI` now works); a new
+  `corpus_version` misses within a minute.
+- **Latency** (`time_starttransfer` from the Mac, default smart mode, 5 queries × 3): first
+  request 122–250 ms (worst `wood`, 250 ms), repeats mostly 41–97 ms (cache hits; one 142 ms).
+  `after:2019` isn't a filter: it was searched as words.
+- **End to end:** `pytest -m mac -k real_rsync` passed with macOS's rsync. `wts run --env
+  staging` with nothing new: every step, `backup: ok=1` to the SMB share (`-a` was fine, no
+  exit 23). A second run took the new #616 (scoped by hand) through download, transcription
+  (2:10 for 35:45, 16.5×), chunk (78; `bad_word_times`, harmless), embed, publish, backup and
+  a "published 2 episodes" push in 2:31. The refresh also republished #613: #616 tipped one
+  of its chunks into boilerplate (vector removed). `wts logs --level warning` showed nothing
+  from these runs (only setup warnings from Oct 5–6).
+- **Found and fixed during G (session 6):** `wts chunk` joins split numbers (`10 %` → `10%`,
+  re-chunked and published); `wts links`; `transcript_peek.py worst`; new releases are scoped
+  by `wts feed` (open decision 3).
+- **Offered, not done:** listing only first-time publications in the run notification (#613
+  appeared as "published"); turning off Hugging Face's progress bars and HF_TOKEN warning on
+  model load; keeping a few dated `state.db` snapshots (the backup is a mirror, not a
+  history).
 
 **Checkpoint E passed (2026-10-07)** — seed corpus in staging D1 and Vectorize:
 - `wts check-embeddings`: cosine **1.0000** on all 5 chunks (ep085 2011 … ep612 2026), so
@@ -446,9 +465,8 @@ How the maintainer works:
   fails the 3 s rule is printed with its drift instead of a link. `--at` applies the
   platform offsets but no 7 s lead-in. Takes a number or any selector.
 
-Checkpoint still ahead: **G** after Task 16 (smart search, report with the Turnstile test
-secret, caching, `wts run --env staging` end to end). Plans 3–5
-(frontend, review tool, test search set) are written after Checkpoint G.
+Checkpoint G's rest (the rate-limit binding, the paraphrase queries) follows the §4.8 tasks.
+Plans 3–5 (frontend, review tool, test search set) are written after that.
 
 ## Cloudflare facts (checked against the docs, session 3)
 
@@ -544,8 +562,8 @@ secret, caching, `wts run --env staging` end to end). Plans 3–5
 
 1. ~~Timeline correction~~ — resolved: bot User-Agent.
 2. ~~Retries~~ — resolved: `AD_FREE_ATTEMPTS` 2, as a safety net.
-3. M2: new feed episodes aren't auto-added to scope, so a scheduled `wts run` would skip them.
-   Options: auto-scope new episodes, or default `--select all`.
+3. ~~New feed episodes aren't auto-added to scope~~ — resolved 2026-10-08 (option a): `wts
+   feed` scopes a new item at least as new as the newest stored one (spec §3.1).
 4. `wts vocab suggest` (candidate terms from feed titles/show notes into `vocab.txt`) —
    proposed, not approved.
 5. ~~Is the repo public~~ — it is; real fixtures are trimmed to 15 minutes.

@@ -1,4 +1,5 @@
 from dataclasses import replace
+from datetime import timedelta
 from pathlib import Path
 
 import httpx
@@ -183,6 +184,61 @@ def test_feed_command_force_flag(wts_home):
     with respx.mock:
         respx.get("https://feed.example/rss").mock(return_value=httpx.Response(200, content=FEED))
         assert CliRunner().invoke(main, ["feed", "--force"]).exit_code == 0
+
+
+def scoped_guids(conn) -> set[str]:
+    return {r[0] for r in conn.execute("select guid from episodes where in_scope = 1")}
+
+
+def new_item(base, days: int, guid: str):
+    return replace(base, guid=guid, published_at=base.published_at + timedelta(days=days),
+                   audio_url=f"https://cdn.example.com/{guid}.mp3")
+
+
+def test_the_first_import_scopes_nothing(conn):
+    # A new install imports the whole archive: putting it all in scope would queue ~600
+    # episodes of transcription. Scope is chosen by hand then (`wts scope add seed`).
+    r = upsert_episodes(conn, parse_feed(FEED))
+    assert r.added == 8 and r.scoped == 0
+    assert scoped_guids(conn) == set()
+
+
+def test_a_new_episode_goes_into_scope(conn):
+    # Open decision 3 (maintainer, 2026-10-08: option a): a scheduled `wts run` processes the
+    # scope, so a new release must join it or it is never transcribed.
+    items = parse_feed(FEED)
+    upsert_episodes(conn, items)
+    newest = max(items, key=lambda i: i.published_at)
+    r = upsert_episodes(conn, [*items, new_item(newest, 13, "wt-guid-new")])
+    assert (r.added, r.scoped) == (1, 1)
+    assert scoped_guids(conn) == {"wt-guid-new"}  # the others are untouched
+
+
+def test_a_new_episode_on_the_newest_date_goes_into_scope(conn):
+    items = parse_feed(FEED)
+    upsert_episodes(conn, items)
+    newest = max(items, key=lambda i: i.published_at)
+    r = upsert_episodes(conn, [*items, new_item(newest, 0, "wt-guid-same-day")])
+    assert r.scoped == 1
+
+
+def test_an_old_episode_found_later_stays_out_of_scope(conn):
+    # A back-catalog item turning up in the feed is not a new release.
+    items = parse_feed(FEED)
+    upsert_episodes(conn, items)
+    oldest = min(items, key=lambda i: i.published_at)
+    r = upsert_episodes(conn, [*items, new_item(oldest, 1, "wt-guid-old")])
+    assert (r.added, r.scoped) == (1, 0)
+    assert scoped_guids(conn) == set()
+
+
+def test_feed_command_says_how_many_were_scoped(wts_home):
+    (wts_home / "config.toml").write_text('feed_url = "https://feed.example/rss"\n')
+    with respx.mock:
+        respx.get("https://feed.example/rss").mock(return_value=httpx.Response(200, content=FEED))
+        r = CliRunner().invoke(main, ["feed"])
+    assert r.exit_code == 0, r.output
+    assert "added=8 updated=0 reset=0 scoped=0" in r.output
 
 
 def test_stems_are_never_regenerated(conn):

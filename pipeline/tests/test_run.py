@@ -71,6 +71,20 @@ def test_run_all_takes_scoped_episodes_to_embedded(conn, paths, cfg, mocked_feed
     assert all(status_of(conn, e) == "new" for e in others)  # out of scope: untouched
 
 
+def test_run_all_processes_a_new_release_in_the_same_run(conn, paths, cfg, mocked_feed_and_audio):
+    # Open decision 3 (a): the feed puts a new release in scope, and the steps after it pick
+    # it up, so a scheduled run needs no `wts scope add`.
+    items = parse_feed(FEED)
+    newest = max(items, key=lambda i: i.published_at)
+    upsert_episodes(conn, [i for i in items if i.guid != newest.guid])
+    results = run_all(conn, paths, replace(cfg, feed_url=FEED_URL), "scope",
+                      transcriber=FakeTranscriber(), embedder=FakeEmbedder(),
+                      probe=mocked_feed_and_audio.probe, notifier=FakeNotifier())
+    assert results["feed"]["scoped"] == 1
+    (row,) = conn.execute("select guid, status from episodes where in_scope = 1").fetchall()
+    assert tuple(row) == (newest.guid, "embedded")
+
+
 def test_run_all_without_feed_url_skips_feed(conn, paths, cfg):
     results = run_all(conn, paths, cfg, "scope", transcriber=FakeTranscriber(),
                       embedder=FakeEmbedder(), probe=lambda p: 0.0)

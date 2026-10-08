@@ -379,7 +379,8 @@ def feed(force: bool) -> None:
             run.counts["error"] += 1
             raise click.ClickException(str(exc)) from exc
     c = run.counts
-    click.echo(f"added={c['added']} updated={c['updated']} reset={c['reset']}")
+    click.echo(f"added={c['added']} updated={c['updated']} reset={c['reset']} "
+               f"scoped={c['scoped']}")
     click.echo(platform_summary(conn, c))
 
 

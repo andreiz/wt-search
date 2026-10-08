@@ -37,6 +37,7 @@ class FeedResult:
     added: int
     updated: int
     reset: int
+    scoped: int = 0  # new releases put in scope (open decision 3, option a)
 
 
 def _parse_duration(value: str | None) -> int | None:
@@ -136,7 +137,13 @@ def upsert_episodes(
             f"{len(moved_guids)} episodes changed their audio URL, which would re-download and "
             "re-transcribe them all. If the show really moved its audio, re-run with --force."
         )
-    added = updated = resets = 0
+    added = updated = resets = scoped = 0
+    # New releases join the scope, so a scheduled `wts run` processes them (open decision 3,
+    # option a): an added item at least as new as the newest stored one. Not on the first
+    # import (nothing stored), which would put the whole archive in scope, nor for an old item
+    # that turns up later.
+    newest = conn.execute("select max(published_at) from episodes").fetchone()[0]
+    newest_at = datetime.fromisoformat(newest) if newest else None
 
     def taken(stem: str) -> bool:
         return conn.execute("select 1 from episodes where stem = ?", (stem,)).fetchone() is not None
@@ -149,16 +156,23 @@ def upsert_episodes(
             # Unnumbered episodes keep any number in their slug ("board-meetings-1").
             slug_title = split_title(item.title, item.number)[1] if item.number else item.title
             stem = make_stem(item.published_at.date(), item.number, slug_title, taken)
+            in_scope = newest_at is not None and item.published_at >= newest_at
             with conn:
                 conn.execute(
                     "insert into episodes (guid, number, title, published_at, duration_s, "
-                    "audio_url, page_url, stem, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "audio_url, page_url, stem, updated_at, in_scope) "
+                    "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         item.guid, item.number, item.title, item.published_at.isoformat(),
                         item.duration_s, item.audio_url, item.page_url, stem, _now(),
+                        int(in_scope),
                     ),
                 )
             added += 1
+            if in_scope:
+                scoped += 1
+                log.info(f"new episode, added to scope: {item.title}",
+                         extra={"step": "feed", "episode": stem})
             continue
         moved = item.guid in moved_guids
         with conn:
@@ -178,4 +192,4 @@ def upsert_episodes(
                 f"audio URL changed; episode reset to new: {row['audio_url']} -> {item.audio_url}",
                 extra={"step": "feed"},
             )
-    return FeedResult(added=added, updated=updated, reset=resets)
+    return FeedResult(added=added, updated=updated, reset=resets, scoped=scoped)

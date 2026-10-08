@@ -193,7 +193,12 @@ system.
 - Selecting episodes: every step takes `--select` (for example `seed`,
   `recent:50`, `ep:312`, `year:2015`, `all`). The default is the episodes
   marked as in scope. `wts scope add <selector>` marks them; M1 uses the
-  `seed` selection (§1).
+  `seed` selection (§1). **New releases join the scope by themselves**, so a
+  scheduled `wts run` processes them in the same run: `wts feed` puts an added
+  item in scope when it is at least as new as the newest episode already
+  stored. Not on the first import (nothing stored yet: that would queue the
+  whole archive), nor for an old item that turns up later. *(Added
+  2026-10-08, open decision 3, option a.)*
 
 ### 3.2 Commands
 

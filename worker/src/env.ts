@@ -14,8 +14,9 @@ export interface Env {
   VEC: Vectorize;
   AI: Ai;
   /**
-   * Analytics Engine (Task 15). Optional: staging has no binding until Task 15 (wrangler.jsonc),
-   * and a missing or failing analytics write must never break a search.
+   * Analytics Engine (analytics.ts). Optional: a deploy once failed with code 10089 while it
+   * was declared (Checkpoint F), and a missing or failing analytics write must never break a
+   * request.
    */
   ANALYTICS?: AnalyticsEngineDataset;
   /**

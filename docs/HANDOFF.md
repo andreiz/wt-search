@@ -1,32 +1,53 @@
-# Handoff — 2026-10-07 (after the fifth session)
+# Handoff — 2026-10-08 (after the fifth session)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
-**Branch:** the fifth session (Task 14) worked on `claude/task-14-handoff-vtk18e`, the
-branch its cloud session was given, not `main`; the maintainer merges it. After that, work
-on `main` again (CLAUDE.md).
+**Branch:** the fifth session worked on `claude/task-14-handoff-vtk18e` (the branch its
+cloud session was given), not `main`. The maintainer merges it into `main` (it merges
+cleanly: `main`'s two Checkpoint F doc commits are already merged in). After that, work on
+`main` again (CLAUDE.md). If the merge hasn't happened, ask before starting.
 
-**Plan 2: Tasks 1–15 and Checkpoint F are done.**
-**Next: Task 16** (backups, `wts logs`, `wts run --env`, all pipeline), then Checkpoint G.
-Staging runs Task 15 (deployed 2026-10-08 from the session branch: `--debug` and
-`x-wts-cache` work there).
+**Plan 2: Tasks 1–15 and Checkpoint F are done.** Staging runs Task 15 (deployed
+2026-10-08: smart search, `?debug=1`, edge cache, `/api/context`, `/api/report`, request
+logs, Analytics Engine).
+**Next: Task 16** (backups, `wts logs`, `wts run --env`; pipeline only), then
+**Checkpoint G** (maintainer, on the Mac), then plans 3–5 are written.
 
-**Waiting on the maintainer (before or at Checkpoint G):**
-- ~~Deploy with the re-added `ANALYTICS` binding~~ — done 2026-10-08, no code 10089.
-- Turnstile: **no real widget until plan 3** (a widget is tied to the hostname of the page
-  that embeds it, and there is no web app or domain yet; use "Add widget manually", not
-  the dashboard's AI "Spin" setup, which edits code). Until then staging can take
-  Cloudflare's always-pass test secret `1x0000000000000000000000000000000AA` as
-  `TURNSTILE_SECRET` to try `/api/report` with curl; with no secret set, reports fail
-  closed (503). Plan 3: one widget per environment, mode Managed, real site key into
-  `wrangler.jsonc` and the secret via `wrangler secret put`.
-- **A custom domain (spec §10 item 7)** for the per-IP rate-limit rules (§4.7), which
-  need a zone. Not needed for the cache: on `workers.dev` a repeated search answered
+**Task 16 pointers** (plan Task 16, spec §3.2, §8.1, §8.2):
+- `run_all()` in `pipeline/src/wts/steps.py` runs feed → download → transcribe → chunk →
+  embed, then `notify_run()`. Add publish and backup **before** `notify_run`, which must stay
+  last (Task 8 note) so the summary includes them. `run_publish(conn, paths, cfg, env, ids)`
+  already exists (`publish.py`); a publish failure is per episode and already handled
+  there. Without `--env` and without `run_env`, skip publish with a warning (plan).
+- A backup failure (`BackupFailed`) is a warning plus a notification, not a failed run.
+  `cfg.backup_dir` already exists in `config.py` (optional); `paths.log_dir` holds the
+  daily `wts-YYYY-MM-DD.log` files of JSON lines (`log.py` `JsonFormatter`: `ts`, `run_id`,
+  `level`, `msg`, `error`, plus `_FIELDS` such as `step` and `episode`). `wts logs` reads
+  those; mirror `ConsoleFormatter` for the readable output.
+- `rsync`: fake the runner in tests (no real rsync calls); Linux CI has no Mac paths.
+- **Fold in a Worker fix:** route `HEAD` like `GET` with an empty body, so `curl -I` works
+  (today `HEAD /api/search` is a 404; the router in `worker/src/index.ts` keys on
+  `"METHOD /path"`). Worker tests: `cd worker && npm test`.
+- Open decision 3 (below) matters once `wts run` publishes on a schedule: new feed episodes
+  aren't auto-scoped. Raise it with the maintainer when Task 16 is done; don't decide it.
+
+**Waiting on the maintainer (none blocks Task 16):**
+- **Turnstile is postponed to plan 3** (maintainer, 2026-10-08). A widget is tied to the
+  hostname of the page that embeds it, and there is no web app or domain yet. Use "Add
+  widget manually", not the dashboard's AI "Spin" setup, which edits code. Plan 3: one
+  widget per environment, mode Managed, real site key into `wrangler.jsonc`
+  (`TURNSTILE_SITE_KEY`, a placeholder now) and the secret via `wrangler secret put`.
+  Until then reports on staging fail closed (503, no secret set); for Checkpoint G's
+  report step, set Cloudflare's always-pass test secret
+  `1x0000000000000000000000000000000AA` as `TURNSTILE_SECRET` and use any token.
+- **A custom domain (spec §10 item 7)** for the per-IP rate-limit rules (§4.7), which need
+  a zone. The edge cache doesn't need one: on `workers.dev` a repeated search answered
   `x-wts-cache: hit` (2026-10-08). Check headers with a GET (`curl -s -D - -o /dev/null
-  …`): `curl -I` sends HEAD, which the router doesn't route yet (404; fix with Task 16).
+  …`) until the HEAD fix lands.
+- ~~Deploy with the re-added `ANALYTICS` binding~~ — done 2026-10-08, no code 10089.
 
 Checkpoint F results (2026-10-07): Worker deployed to staging (`wts-api-staging`,
 without the Analytics binding, below); `wts search --env staging` works on the real corpus;
@@ -61,8 +82,8 @@ heard as `3-8` could become `3/8`; porter treats glue/glued/gluing as different 
 
 Analytics Engine (2026-10-07): the first `wrangler deploy --env staging` failed with code
 10089 "You need to enable Analytics Engine", and again after enabling it in the dashboard.
-The `ANALYTICS` binding is out of `env.staging` until Task 15 (nothing writes analytics
-yet); `Env.ANALYTICS` is optional. Task 15 re-adds it and checks a deploy accepts it.
+Task 15 re-added the binding and the 2026-10-08 deploy accepted it (no 10089 the second
+time). `Env.ANALYTICS` stays optional.
 
 How the maintainer works:
 - Test-first, one commit per task, straight to `main` (CLAUDE.md). Edit tool for changes.
@@ -361,8 +382,8 @@ How the maintainer works:
     smart mode gets few meaning hits — only the corpus-wide top 50 that fall in ep 250.
     A metadata index on `episode_id` would fix it if the test search set shows a need.
 
-Checkpoints still ahead: **F** after Task 13a (deploy, exact search, cue times), **G** after
-Task 16 (smart search, report, caching, `wts run --env staging` end to end). Plans 3–5
+Checkpoint still ahead: **G** after Task 16 (smart search, report with the Turnstile test
+secret, caching, `wts run --env staging` end to end). Plans 3–5
 (frontend, review tool, test search set) are written after Checkpoint G.
 
 ## Cloudflare facts (checked against the docs, session 3)
@@ -401,7 +422,7 @@ Task 16 (smart search, report, caching, `wts run --env staging` end to end). Pla
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 2 (Tasks 1–13a, Checkpoints D–F done; Task 14 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
+- Plan 2 (Tasks 1–15, Checkpoints D–F done; Task 16 next): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - Plan 1 (done, Checkpoint C 2026-10-05): [`docs/superpowers/plans/2026-10-05-m1-pipeline-core.md`](superpowers/plans/2026-10-05-m1-pipeline-core.md)
 - Conventions: [`CLAUDE.md`](../CLAUDE.md). Superpowers skills install from `.claude/settings.json`.
 

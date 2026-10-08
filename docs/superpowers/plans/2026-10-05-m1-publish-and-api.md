@@ -738,7 +738,7 @@ A terminal client for the maintainer: searches a deployed environment through th
 ### Checkpoint G: Everything on staging (maintainer, M1 Max)
 
 1. **Deploy:**
-   - `npx wrangler secret put TURNSTILE_SECRET --env staging` (Turnstile site key from spec §10 item 6).
+   - `npx wrangler secret put TURNSTILE_SECRET --env staging` with Cloudflare's always-pass **test** secret `1x0000000000000000000000000000000AA` (revised 2026-10-08: the real widget is postponed to plan 3, which has the web app's domain).
    - `npx wrangler deploy --env staging`.
 2. **Route and rate limits:** route `/api/*` on the staging domain (spec §10 item 7); add the rate-limiting rules (60/min on `/api/*`, 10/h on `/api/report`).
 3. **Smart search:**
@@ -747,8 +747,8 @@ A terminal client for the maintainer: searches a deployed environment through th
    - `newest`/`oldest` sorts, and a `year:` filter in smart mode.
 4. **Context and report:**
    - `curl '<staging>/api/context?chunk=<id>'` returns neighbouring chunks with cues.
-   - A report with the Turnstile test token (`XXXX.DUMMY.TOKEN.XXXX` against the always-pass test secret) is stored: `npx wrangler d1 execute wts-staging --remote --command "select * from reports"`. Then switch back to the real Turnstile secret.
-5. **Caching:** the same search twice — the second is a cache hit in `wrangler tail`. A re-publish (new `corpus_version`) misses.
+   - A report with any token (the always-pass test secret accepts it) is stored: `npx wrangler d1 execute wts-staging --remote --command "select * from reports"`. Delete the test row afterwards. The test secret stays until plan 3's real widget.
+5. **Caching:** the same search twice — the second answers `x-wts-cache: hit` (`curl -s -D - -o /dev/null '<staging>/api/search?q=…'`; already seen 2026-10-08). A re-publish (new `corpus_version`) misses within a minute.
 6. **End to end:** `uv run wts run --env staging` with nothing new. It should run every step, publish nothing, write a backup to `backup_dir` (or log that it's unset), and send no error notification. Check `uv run wts logs --since 1h` and `uv run wts logs --level warning`.
 7. **Record** in `docs/HANDOFF.md`:
    - Platform ID coverage (from Checkpoint D) and YouTube links shown after the length rule.

@@ -1,5 +1,5 @@
 // Abuse and cost protection that every route shares (spec §4.8 items 3, 5 and 6): the kill
-// switch, the report Origin check, security headers and robots.txt.
+// switch, the report Origin check, security headers and robots.txt (by environment).
 
 import type { Env } from "./env";
 
@@ -41,10 +41,15 @@ export function searchOverride(env: Pick<Env, "SEARCH_OVERRIDE">): Override | nu
   return null;
 }
 
-/** Whether the request's Origin is one of REPORT_ORIGINS (exact match). Unset allows none. */
+/**
+ * Whether the request's Origin is the Worker's own (the site is served from the same origin as
+ * the API, spec §5.1) or one of REPORT_ORIGINS (exact match; extra origins such as Vite's dev
+ * server). A missing Origin is refused, and unset REPORT_ORIGINS adds none.
+ */
 export function originAllowed(request: Request, env: Pick<Env, "REPORT_ORIGINS">): boolean {
   const origin = request.headers.get("origin");
   if (origin === null) return false;
+  if (origin === new URL(request.url).origin) return true;
   const allowed = (env.REPORT_ORIGINS ?? "")
     .split(",")
     .map((o) => o.trim())
@@ -52,9 +57,14 @@ export function originAllowed(request: Request, env: Pick<Env, "REPORT_ORIGINS">
   return allowed.includes(origin);
 }
 
-/** GET /robots.txt: the API host is not for crawlers (the site will have its own, plan 3). */
-export function robots(): Response {
-  return new Response("User-agent: *\nDisallow: /\n", {
-    headers: { "content-type": "text/plain; charset=utf-8" },
-  });
+/**
+ * GET /robots.txt, by environment (spec §4.8 item 5): production allows the pages and keeps
+ * crawlers off /api/; every other environment (staging, e2e, unset) disallows everything.
+ */
+export function robots(_request: Request, env: Pick<Env, "WTS_ENV">): Response {
+  const body =
+    env.WTS_ENV === "production"
+      ? "User-agent: *\nAllow: /\nDisallow: /api/\n"
+      : "User-agent: *\nDisallow: /\n";
+  return new Response(body, { headers: { "content-type": "text/plain; charset=utf-8" } });
 }

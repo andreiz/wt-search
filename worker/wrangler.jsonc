@@ -67,8 +67,8 @@
 				"SEARCH_CACHE_TTL_S": "3600",
 				// Placeholder: the public Turnstile site key (not a secret).
 				"TURNSTILE_SITE_KEY": "staging-turnstile-site-key-placeholder",
-				// Origins allowed to send reports (spec §4.8 item 6): Vite's dev server until
-				// plan 3's site has a domain. curl tests add -H 'origin: http://localhost:5173'.
+				// Extra origins allowed to send reports (spec §4.8 item 6), besides the Worker's
+				// own: Vite's dev server. curl tests add -H 'origin: http://localhost:5173'.
 				"REPORT_ORIGINS": "http://localhost:5173"
 				// TURNSTILE_SECRET is a secret, never put it here:
 				//   wrangler secret put TURNSTILE_SECRET --env staging
@@ -101,7 +101,7 @@
 				"WTS_ENV": "production",
 				"SEARCH_CACHE_TTL_S": "3600",
 				"TURNSTILE_SITE_KEY": "production-turnstile-site-key-placeholder"
-				// No REPORT_ORIGINS yet: every report is refused until plan 3 sets the site's.
+				// No REPORT_ORIGINS: only reports from the Worker's own origin are accepted.
 				// TURNSTILE_SECRET is a secret:
 				//   wrangler secret put TURNSTILE_SECRET --env production
 			}

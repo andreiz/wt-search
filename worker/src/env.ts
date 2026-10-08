@@ -29,8 +29,9 @@ export interface Env {
   /** Turnstile secret key: `wrangler secret put TURNSTILE_SECRET --env <env>`. Never in the repo. */
   TURNSTILE_SECRET: string;
   /**
-   * Origins allowed to send reports, comma-separated, exact match (spec §4.8 item 6). A var:
-   * staging allows Vite's dev server until plan 3's site exists. Unset refuses every report.
+   * Extra origins allowed to send reports, comma-separated, exact match (spec §4.8 item 6), on
+   * top of the Worker's own origin, which is always allowed. A var: staging adds Vite's dev
+   * server. Unset adds none.
    */
   REPORT_ORIGINS?: string;
   /**
@@ -56,7 +57,10 @@ export interface Env {
    * the maintainer's own server's address stays out of the public repo.
    */
   NTFY_URL?: string;
-  /** The environment's name (a var: "staging" or "production"), shown in alert titles. */
+  /**
+   * The environment's name (a var: "staging" or "production"), shown in alert titles;
+   * "production" also opens robots.txt to crawlers.
+   */
   WTS_ENV?: string;
   /** ntfy topic and optional access token: `wrangler secret put NTFY_TOPIC --env <env>`. */
   NTFY_TOPIC?: string;

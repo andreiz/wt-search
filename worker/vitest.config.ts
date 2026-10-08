@@ -17,7 +17,7 @@ export default defineConfig({
             TEST_MIGRATIONS: migrations,
             TURNSTILE_SITE_KEY: "test-site-key",
             TURNSTILE_SECRET: "test-secret",
-            // As on staging until plan 3's site (spec §4.8 item 6).
+            // As on staging: Vite's dev server, on top of the Worker's own origin (spec §4.8 item 6).
             REPORT_ORIGINS: "http://localhost:5173",
           },
         },

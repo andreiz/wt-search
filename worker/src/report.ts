@@ -1,4 +1,5 @@
-// POST /api/report (spec §4.4, §5): a listener reports a transcript error on a passage.
+// POST /api/report (spec §4.4, §5): a listener reports a transcript error on a passage, or
+// (with no chunk_id) sends general feedback from the site's footer.
 //
 // Order: check the body, then Turnstile, then one INSERT. Turnstile comes before anything is
 // written, so a bot gets no database work; the body comes before Turnstile, so a malformed
@@ -21,10 +22,13 @@ export const MAX_TOKEN = 2048;
 /** siteverify normally answers in well under a second; past this the check fails closed. */
 const SITEVERIFY_TIMEOUT_MS = 5000;
 
-/** A report that passed the checks on its own: trimmed, optional fields NULL when empty. */
+/**
+ * A report that passed the checks on its own: trimmed, optional fields NULL when empty.
+ * General feedback has `chunk_id` null, and so no quoted or suggested text.
+ */
 export interface ReportFields {
-  chunk_id: number;
-  quoted_text: string;
+  chunk_id: number | null;
+  quoted_text: string | null;
   suggested_text: string | null;
   note: string | null;
   turnstile_token: string;
@@ -72,6 +76,27 @@ export function parseReport(raw: string): Checked<ReportFields> {
   }
   const fields = body as Record<string, unknown>;
 
+  const token = fields.turnstile_token;
+  const tokenOk = typeof token === "string" && token !== "" && length(token) <= MAX_TOKEN;
+  const noToken = { ok: false, message: "The human check is missing, please try again." } as const;
+
+  // No chunk_id (absent or null) is general feedback: a required note and nothing else. A
+  // chunk_id that is present but not a number falls through to the passage check and is 400.
+  if (fields.chunk_id === undefined || fields.chunk_id === null) {
+    // Present at all is refused, even null or "": the stricter reading, so a form that sends
+    // passage fields with feedback is caught in testing rather than quietly tolerated.
+    if (fields.quoted_text !== undefined || fields.suggested_text !== undefined) {
+      return { ok: false, message: "Feedback takes a message only, with no quoted text or suggested correction." };
+    }
+    const note = textField(fields.note, "feedback", MAX_NOTE, true);
+    if (!note.ok) return note;
+    if (!tokenOk) return noToken;
+    return {
+      ok: true,
+      value: { chunk_id: null, quoted_text: null, suggested_text: null, note: note.value, turnstile_token: token },
+    };
+  }
+
   const chunkId = fields.chunk_id;
   if (typeof chunkId !== "number" || !Number.isSafeInteger(chunkId) || chunkId < 1) {
     return { ok: false, message: "That passage couldn't be identified." };
@@ -82,11 +107,7 @@ export function parseReport(raw: string): Checked<ReportFields> {
   if (!suggested.ok) return suggested;
   const note = textField(fields.note, "note", MAX_NOTE, false);
   if (!note.ok) return note;
-
-  const token = fields.turnstile_token;
-  if (typeof token !== "string" || token === "" || length(token) > MAX_TOKEN) {
-    return { ok: false, message: "The human check is missing, please try again." };
-  }
+  if (!tokenOk) return noToken;
   return {
     ok: true,
     value: {
@@ -131,10 +152,15 @@ const INSERT_REPORT = `INSERT INTO reports (chunk_id, created_at, quoted_text, s
 SELECT ?, ?, ?, ?, ?
 WHERE EXISTS (SELECT 1 FROM chunks WHERE id = ?)`;
 
+// General feedback has no chunk to check: a plain INSERT, chunk_id NULL.
+const INSERT_FEEDBACK = `INSERT INTO reports (chunk_id, created_at, quoted_text, suggested_text, note)
+VALUES (NULL, ?, NULL, NULL, ?)`;
+
 const unavailable = (message: string): Response => json({ error: "unavailable", message }, 503);
 
 /**
- * POST /api/report: `{chunk_id, quoted_text, suggested_text?, note?, turnstile_token}`.
+ * POST /api/report: `{chunk_id, quoted_text, suggested_text?, note?, turnstile_token}`, or,
+ * without a chunk_id, general feedback `{note, turnstile_token}`.
  * 400 for a bad body or an unknown chunk, 403 when Turnstile refuses the token, 503 when
  * Turnstile or D1 cannot be used. Nothing is stored unless the answer is 200.
  */
@@ -169,10 +195,12 @@ export async function report(request: Request, env: Env): Promise<Response> {
 
   let changes: number;
   try {
-    const result = await env.DB.prepare(INSERT_REPORT)
-      .bind(chunk_id, new Date().toISOString(), quoted_text, suggested_text, note, chunk_id)
-      .run();
-    changes = result.meta.changes;
+    const created_at = new Date().toISOString();
+    const statement =
+      chunk_id === null
+        ? env.DB.prepare(INSERT_FEEDBACK).bind(created_at, note)
+        : env.DB.prepare(INSERT_REPORT).bind(chunk_id, created_at, quoted_text, suggested_text, note, chunk_id);
+    changes = (await statement.run()).meta.changes;
   } catch (err) {
     logError("d1_unavailable", request, err);
     return unavailable("We couldn't save your report just now, please try again in a minute.");

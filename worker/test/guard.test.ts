@@ -119,12 +119,30 @@ describe("smart_degraded reasons", () => {
 });
 
 describe("robots.txt", () => {
-  it("disallows everything on the API host", async () => {
+  const DISALLOW_ALL = "User-agent: *\nDisallow: /\n";
+
+  it("disallows everything when WTS_ENV is unset", async () => {
     for (const method of ["GET", "HEAD"]) {
       const response = await call("/robots.txt", bindings().env, { method });
       expect(response.status, method).toBe(200);
       expect(response.headers.get("content-type"), method).toBe("text/plain; charset=utf-8");
-      if (method === "GET") expect(await response.text()).toBe("User-agent: *\nDisallow: /\n");
+      if (method === "GET") expect(await response.text()).toBe(DISALLOW_ALL);
+    }
+  });
+
+  it("allows the pages and disallows /api/ in production", async () => {
+    for (const method of ["GET", "HEAD"]) {
+      const response = await call("/robots.txt", bindings({ WTS_ENV: "production" }).env, { method });
+      expect(response.status, method).toBe(200);
+      expect(response.headers.get("content-type"), method).toBe("text/plain; charset=utf-8");
+      if (method === "GET") expect(await response.text()).toBe("User-agent: *\nAllow: /\nDisallow: /api/\n");
+    }
+  });
+
+  it("disallows everything in staging, e2e, empty or any other environment", async () => {
+    for (const WTS_ENV of ["staging", "e2e", "", "Production", "prod"]) {
+      const response = await call("/robots.txt", bindings({ WTS_ENV }).env);
+      expect(await response.text(), WTS_ENV).toBe(DISALLOW_ALL);
     }
   });
 });
@@ -192,13 +210,58 @@ describe("report Origin", () => {
     expect(response.status).toBe(200);
   });
 
-  it("refuses every report when REPORT_ORIGINS is unset or empty", async () => {
+  it("refuses a listed-nowhere Origin when REPORT_ORIGINS is unset or empty", async () => {
     siteverify();
     for (const value of [undefined, "", " , "]) {
       const e = bindings({ REPORT_ORIGINS: value }).env;
       const response = await call("/api/report", e, { method: "POST", body, headers: { origin: ORIGIN } });
       expect(response.status, String(value)).toBe(403);
     }
+  });
+
+  it("accepts the Worker's own origin with REPORT_ORIGINS unset or empty", async () => {
+    siteverify();
+    await env.DB.exec("DELETE FROM reports");
+    for (const value of [undefined, "", " , "]) {
+      const e = bindings({ REPORT_ORIGINS: value }).env;
+      // call() sends its requests to https://example.com, so that is the Worker's origin.
+      const response = await call("/api/report", e, {
+        method: "POST",
+        body,
+        headers: { origin: "https://example.com" },
+      });
+      expect(response.status, String(value)).toBe(200);
+    }
+  });
+
+  it("accepts the own origin alongside a REPORT_ORIGINS list, and the list's origins too", async () => {
+    siteverify();
+    const e = bindings().env;
+    for (const origin of ["https://example.com", ORIGIN]) {
+      const response = await call("/api/report", e, { method: "POST", body, headers: { origin } });
+      expect(response.status, origin).toBe(200);
+    }
+  });
+
+  it("still refuses lookalikes of the own origin, and a missing Origin", async () => {
+    const fetchSpy = siteverify();
+    const e = bindings({ REPORT_ORIGINS: undefined }).env;
+    const origins = [
+      undefined,
+      "https://evil.example",
+      "http://example.com", // other scheme
+      "https://example.com:8443", // other port
+      "https://www.example.com",
+      "https://example.com.evil.example",
+      "https://example.com/", // an Origin has no trailing slash
+      "null",
+    ];
+    for (const origin of origins) {
+      const headers: Record<string, string> = origin === undefined ? {} : { origin };
+      const response = await call("/api/report", e, { method: "POST", body, headers });
+      expect(response.status, String(origin)).toBe(403);
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("is checked by the test configuration too (vitest.config.ts allows the dev origin)", async () => {

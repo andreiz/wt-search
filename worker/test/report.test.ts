@@ -329,7 +329,8 @@ describe("validation", () => {
   });
 
   it("rejects a chunk_id that is not a positive integer", async () => {
-    for (const chunk_id of [undefined, null, "201", 201.5, 0, -1, "", true, [201], { id: 201 }, 1e21, Number.MAX_SAFE_INTEGER + 2]) {
+    // An absent or null chunk_id is not here: that is general feedback (see its describe below).
+    for (const chunk_id of ["201", 201.5, 0, -1, "", true, [201], { id: 201 }, 1e21, Number.MAX_SAFE_INTEGER + 2]) {
       await badRequest(valid({ chunk_id }));
     }
   });
@@ -395,6 +396,166 @@ describe("validation", () => {
     const lone = String.fromCharCode(0xd800);
     await badRequest(valid({ quoted_text: `bad${lone}text` }));
     expect(siteverifyCalls()).toBe(0);
+  });
+});
+
+// General feedback (spec §4.4, plan 3 Task 4): no chunk_id (absent or null) means the footer's
+// "Send feedback": {note, turnstile_token}, stored with chunk_id NULL.
+describe("general feedback", () => {
+  /** A valid feedback body, with fields overridden (or removed with `undefined`) per test. */
+  function feedback(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return { note: "Love the site, thank you", turnstile_token: TOKEN, ...overrides };
+  }
+
+  const badRequest = async (body: unknown): Promise<Record<string, unknown>> => {
+    const { response, body: json } = await post(body);
+    expect(response.status, JSON.stringify(body)).toBe(400);
+    expect(json.error).toBe("bad_request");
+    expect(String(json.message).length).toBeGreaterThan(0);
+    expect(await rows()).toEqual([]);
+    return json;
+  };
+
+  it("stores one open row with a NULL chunk_id and answers {ok: true}", async () => {
+    const { response, body } = await post(feedback({ note: "  Please add a dark mode \n" }));
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ ok: true });
+    const stored = await rows();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({
+      chunk_id: null,
+      quoted_text: null,
+      suggested_text: null,
+      note: "Please add a dark mode",
+      status: "open",
+    });
+    expect(stored[0]?.created_at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/);
+  });
+
+  it("treats chunk_id: null the same as an absent chunk_id", async () => {
+    expect((await post(feedback({ chunk_id: null }))).response.status).toBe(200);
+    expect((await post(feedback())).response.status).toBe(200);
+    const stored = await rows();
+    expect(stored).toHaveLength(2);
+    expect(stored.every((row) => row.chunk_id === null)).toBe(true);
+  });
+
+  it("requires a note: missing, null, empty, blank or not text is 400", async () => {
+    for (const note of [undefined, null, "", "   \n\t", 42, ["a"], { a: 1 }, false]) {
+      await badRequest(feedback({ note }));
+    }
+    expect(siteverifyCalls()).toBe(0);
+  });
+
+  it("limits the note to 1000 characters, counted as code points after trimming", async () => {
+    await badRequest(feedback({ note: "n".repeat(1001) }));
+    const emoji = "\u{1F600}";
+    await badRequest(feedback({ note: emoji.repeat(1001) }));
+    expect((await post(feedback({ note: ` ${"n".repeat(1000)} ` }))).response.status).toBe(200);
+    expect((await post(feedback({ note: emoji.repeat(1000) }))).response.status).toBe(200);
+    expect(await rows()).toHaveLength(2);
+  });
+
+  it("rejects a note D1 cannot store", async () => {
+    const lone = String.fromCharCode(0xd800);
+    await badRequest(feedback({ note: `bad${lone}note` }));
+    expect(siteverifyCalls()).toBe(0);
+  });
+
+  it("refuses quoted_text or suggested_text in any form, with a friendly message", async () => {
+    // "Present at all" is the rule, not "non-empty": null, "" and blank count too.
+    for (const field of ["quoted_text", "suggested_text"]) {
+      for (const value of ["some text", "  x ", "", "   ", null]) {
+        const json = await badRequest(feedback({ [field]: value }));
+        expect(String(json.message), field).toMatch(/feedback/i);
+        expect(JSON.stringify(json)).not.toContain("some text");
+      }
+    }
+    expect(siteverifyCalls()).toBe(0);
+  });
+
+  it("still refuses a chunk_id that is present but not a number", async () => {
+    for (const chunk_id of ["201", "", true, [201], { id: 201 }, 0, -1, 2.5]) {
+      await badRequest(feedback({ chunk_id }));
+    }
+  });
+
+  it("needs a turnstile_token, and asks Turnstile before storing", async () => {
+    await badRequest(feedback({ turnstile_token: undefined }));
+    await badRequest(feedback({ turnstile_token: "" }));
+    expect(siteverifyCalls()).toBe(0);
+    await post(feedback());
+    expect(siteverifyCalls()).toBe(1);
+  });
+
+  it("answers 403 and stores nothing when the token is refused", async () => {
+    answerWith(() => Response.json({ success: false, "error-codes": ["invalid-input-response"] }));
+    const { response, body } = await post(feedback());
+    expect(response.status).toBe(403);
+    expect(body.error).toBe("forbidden");
+    expect(await rows()).toEqual([]);
+  });
+
+  it("answers 503 and stores nothing when siteverify cannot be reached", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    fetchSpy.mockRejectedValue(new Error("connection reset"));
+    const { response, body } = await post(feedback());
+    expect(response.status).toBe(503);
+    expect(body.error).toBe("unavailable");
+    expect(await rows()).toEqual([]);
+  });
+
+  it("is refused from another Origin, with no Turnstile call", async () => {
+    const response = await exports.default.fetch(
+      request(feedback(), { headers: { "content-type": "application/json", origin: "https://evil.example" } }),
+    );
+    expect(response.status).toBe(403);
+    expect(siteverifyCalls()).toBe(0);
+    expect(await rows()).toEqual([]);
+  });
+
+  it("shares the body size limits", async () => {
+    await badRequest(feedback({ note: "x".repeat(17 * 1024) }));
+    const big = new Request("https://example.com/api/report", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": String(1024 * 1024), origin: "http://localhost:5173" },
+      body: JSON.stringify(feedback()),
+    });
+    expect((await worker.fetch(big, env as unknown as Env)).status).toBe(400);
+    expect(siteverifyCalls()).toBe(0);
+  });
+
+  it("makes one plain INSERT, with no chunk check and the note bound, not in the SQL", async () => {
+    const { db, sql } = countingDb(env.DB);
+    const response = await worker.fetch(request(feedback({ note: "zzmarker feedback" })), {
+      DB: db,
+      TURNSTILE_SECRET: "test-secret",
+      REPORT_ORIGINS: env.REPORT_ORIGINS,
+    } as Env);
+    expect(response.status).toBe(200);
+    expect(sql).toHaveLength(1);
+    expect(sql[0]).toMatch(/^INSERT INTO reports/);
+    expect(sql[0]).not.toMatch(/EXISTS|SELECT|zzmarker/);
+  });
+
+  it("returns 503 unavailable when D1 fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const failingDb = {
+      prepare() {
+        throw new Error("D1_ERROR: network connection lost");
+      },
+    } as unknown as D1Database;
+    const response = await worker.fetch(request(feedback()), {
+      DB: failingDb,
+      TURNSTILE_SECRET: "test-secret",
+      REPORT_ORIGINS: env.REPORT_ORIGINS,
+    } as Env);
+    expect(response.status).toBe(503);
+  });
+
+  it("leaves passage reports as they were: quoted_text is still required with a chunk_id", async () => {
+    await badRequest(valid({ quoted_text: undefined }));
+    expect((await post(valid())).response.status).toBe(200);
   });
 });
 

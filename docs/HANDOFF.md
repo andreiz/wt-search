@@ -15,10 +15,14 @@ Staging runs Task 15 (deployed 2026-10-08 from the session branch: `--debug` and
 `x-wts-cache` work there).
 
 **Waiting on the maintainer (before or at Checkpoint G):**
-- `wrangler deploy --env staging` with the re-added `ANALYTICS` binding: if code 10089
-  returns, comment the binding out again (the Worker runs without it) and ask Cloudflare.
-- Turnstile: create a widget, put its site key in `wrangler.jsonc` (`TURNSTILE_SITE_KEY`),
-  `wrangler secret put TURNSTILE_SECRET --env staging`.
+- ~~Deploy with the re-added `ANALYTICS` binding~~ — done 2026-10-08, no code 10089.
+- Turnstile: **no real widget until plan 3** (a widget is tied to the hostname of the page
+  that embeds it, and there is no web app or domain yet; use "Add widget manually", not
+  the dashboard's AI "Spin" setup, which edits code). Until then staging can take
+  Cloudflare's always-pass test secret `1x0000000000000000000000000000000AA` as
+  `TURNSTILE_SECRET` to try `/api/report` with curl; with no secret set, reports fail
+  closed (503). Plan 3: one widget per environment, mode Managed, real site key into
+  `wrangler.jsonc` and the secret via `wrangler secret put`.
 - **A custom domain (spec §10 item 7)** for the per-IP rate-limit rules (§4.7), which
   need a zone. Not needed for the cache: on `workers.dev` a repeated search answered
   `x-wts-cache: hit` (2026-10-08). Check headers with a GET (`curl -s -D - -o /dev/null

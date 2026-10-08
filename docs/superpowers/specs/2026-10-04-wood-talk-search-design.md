@@ -914,7 +914,8 @@ Pinned to the top (compacting on scroll on phones):
 - **More transcript** expands the card in place with `/api/context`
   (radius 3, about ±90 s): paragraphs labelled with their timestamp, each
   label a play link (the first platform the episode has) at that moment;
-  the hit's paragraph emphasised. Collapsing returns to the excerpt.
+  the hit's paragraph emphasised; sponsor reads (`boilerplate`) dimmed with
+  a small "Sponsor read" label. Collapsing returns to the excerpt.
 - **+n more nearby** *(settled 2026-10-08, replaces "+n more in this
   episode")*: folded hits are always within 120 s of the card's hit (§4.4),
   so searching the episode would fold them into the same card again.

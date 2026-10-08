@@ -1,4 +1,4 @@
-# Handoff — 2026-10-08 (after the sixth session; plan 3 next in a new session)
+# Handoff — 2026-10-08 (after the seventh session; plan 3 written, awaiting review)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -10,8 +10,9 @@ The sixth session's branch (`claude/great-hopper-nm593s`) was pushed to `main` a
 the maintainer's request.
 
 **Work in flight (2026-10-08), in separate sessions:**
-- **Plan 3 (frontend)**: a new session starts it from the section "Plan 3: start here"
-  below. Brainstorm → spec → plan before code (CLAUDE.md).
+- **Plan 3 (frontend)**: brainstorm done, spec §5 revised and the plan written
+  (2026-10-08, seventh session): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+  **Next:** the maintainer reviews the plan, then Task 1. See "Plan 3: start here" below.
 - **Rate limits not triggering on staging**: the maintainer's desktop session (see "Open:
   rate limits…" below).
 - **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions.
@@ -71,8 +72,32 @@ very likely **Earlex** HV2900 (an HVLP sprayer); check with `check_corrections.p
 
 ## Plan 3: start here (frontend, `web/`)
 
-Spec §5 is the design; it is a sketch, so brainstorm with the maintainer, revise §5, then
-write `docs/superpowers/plans/<date>-m1-frontend.md` before any code.
+**Status (2026-10-08, seventh session):** brainstorm done; spec §5 rewritten (§5.1–§5.8) with
+knock-on edits in §1, §2, §4.3, §4.4, §4.8, §7.1, §10 item 7; the brief's *(proposed)* items
+marked settled; plan written: [`2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
+(Tasks 1–4 Worker changes, 5–15 the app, Checkpoint H on staging's `workers.dev`, Task 16 the
+design when Claude Design delivers, Checkpoint I, Task 17 the domain). No code yet.
+
+Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended option):
+- **Hosting:** the API Worker serves the site as **static assets** (not Pages + a Worker
+  route): `run_worker_first: ["/api/*", "/robots.txt"]`, one deploy, staging's `workers.dev`
+  URL serves the whole site, the domain only in each env's `routes`.
+- **Configuration:** one web build for every environment; the Turnstile site key comes from a
+  new `GET /api/info` (with the episode count and latest date for the empty state). Reports
+  accept the request's own origin, so `REPORT_ORIGINS` is only for the dev server.
+- **Year chip:** new inclusive `year:2015-2020` syntax, written into the box (parser sugar for
+  `after:2014 before:2021`; no API parameter).
+- **Open decision 9:** yes — footer "Send feedback" posts to `/api/report` with no `chunk_id`.
+- **"+n more nearby"** (was "+n more in this episode"): folded hits are always within 120 s,
+  so searching the episode would fold them into the same card again. It expands the
+  transcript (radius 6) with the folded chunks marked; results gain `folded: [chunk_id…]`
+  (replacing `debug.folded`). "Search this episode" sits in the expanded view.
+- **Extras:** j/k kept; Enter-plays-first-platform and the 400 ms hover preview dropped.
+- **Designs:** not started, so Tasks 1–15 use neutral placeholder tokens; Task 16 applies the
+  design system and screens.
+
+The notes below were gathered before the brainstorm; the spec now supersedes them where they
+differ (e.g. Pages, the domain list).
 
 **Design runs separately** (maintainer, 2026-10-08): a design system, then the UI on it, made
 in **Claude Design** from [`docs/design/BRIEF.md`](design/BRIEF.md) — a standalone brief with
@@ -611,6 +636,7 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
+- Plan 3 (frontend; written 2026-10-08, not started): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
 - Plan 2 (Tasks 1–19, Checkpoints D–F done; G all but the §4.8 parts): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - M2 plan A, moving the pipeline to the Mac Mini (draft 2026-10-08, four decisions open; dev
   stays on the M1): [`docs/superpowers/plans/2026-10-08-m2-mac-mini-migration.md`](superpowers/plans/2026-10-08-m2-mac-mini-migration.md)
@@ -681,11 +707,10 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
 7. ~~Boilerplate detection on real data~~ — deferred to phase 2 (spec §3.5, §9);
    `test_real_sponsor_reads_flagged` is `xfail(strict=True)`, so it errors once the rework
    makes it pass (then remove the mark).
-9. General listener feedback (raised 2026-10-07): transcript-error reports are designed
-   (spec §4.4, §5; Task 15 endpoint, plan 4 `wts reports`), but they need a passage. For
-   "search didn't find it" or ideas, `/api/report` could accept an empty `chunk_id` from a
-   footer "Send feedback" link. Decide when writing plan 3 (frontend). Corrections are an
-   ongoing effort; the maintainer wants them in the background while the app gets built.
+9. ~~General listener feedback~~ — resolved 2026-10-08 (plan 3 brainstorm): a footer "Send
+   feedback" link posts to `/api/report` with no `chunk_id` (spec §4.4, §5.5; plan 3 Task 4,
+   plan 4's `wts reports` lists them as feedback). Corrections stay an ongoing background
+   effort while the app gets built.
 8. ~~Full transcripts in public history~~ — removed by rewriting `main` (second session).
    Left: ask GitHub Support to purge cached views of `a44eec9`. Clones from before the rewrite
    must `git fetch && git reset --hard origin/main` before committing.

@@ -94,7 +94,8 @@ Expands the card in place: about ±90 seconds of transcript as paragraphs, each 
 timestamp label (each label is a play link at that moment), the hit's paragraph emphasised.
 Opened from **+3 more nearby** it shows about ±3 minutes, with the folded hits' paragraphs
 marked too (quieter than the hit's), and, for numbered episodes, a **Search this episode**
-link. *(Settled: no hover preview.)*
+link. Sponsor reads in the expanded transcript are dimmed with a small "Sponsor read" label.
+*(Settled: no hover preview.)*
 
 ### 4.4 Report a transcript error
 An inline form inside the card: **Quoted text** (pre-filled from the excerpt or the user's

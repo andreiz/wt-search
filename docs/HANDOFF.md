@@ -115,7 +115,11 @@ of step 3. (Plan 3 is written and under way; plans 4–5 come after it.)
   answers success or `cf-connecting-ip` is missing: add a temporary log of
   `{hasIp, hasBinding, success}` in `ratelimit.ts` to tell which. The binding is "permissive,
   eventually consistent" per location, but 200 requests in a row should still trip 60/60 s.
-- Then finish Checkpoint G step 2 (remove `SEARCH_OVERRIDE`; `maintenance`; the budget test
+- **2026-10-09 (eighth session): the maintainer removed `SEARCH_OVERRIDE` in the dashboard.**
+  Until then Smart on staging was keyword-only (`smart_degraded: "off"`), and in the Task 7
+  page a Smart search with no keyword hits looked broken: the skeleton, then only the "Smart
+  search" line (no empty state or degraded notice before Task 11).
+- Then finish Checkpoint G step 2 (`SEARCH_OVERRIDE` is removed, above; `maintenance`; the budget test
   with `SMART_DAILY_BUDGET` = 3; Production, not Previews, in the dashboard's variable dialog)
   and step 3's paraphrase queries.
 

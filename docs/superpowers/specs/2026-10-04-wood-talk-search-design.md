@@ -893,6 +893,15 @@ Pinned to the top (compacting on scroll on phones):
 - A large input with a clear button, and a **Search** button (Enter also
   searches). Searching happens only on Enter or the button, not while
   typing; changing mode, sort or years re-runs the current search.
+- **The query is normalised before it is searched or written to the URL**
+  *(maintainer, 2026-10-09)*: trimmed, emoji removed (pictographs, skin
+  tones, flags, keycap marks and the joiners between them; digits, `#`, `*`
+  and every script's letters stay), and the whitespace left behind collapsed.
+  A `q` arriving in a URL gets the same treatment, so a shared link behaves
+  like typing; a query that was only emoji is no search. The box shows the
+  normalised text and takes at most 200 characters. The Worker is unchanged:
+  it already drops words with no letter or digit and cuts at 200 code points
+  (§4.3).
 - A row: a **Smart / Exact** segmented switch (one-line tooltips), a sort
   menu (Relevance / Newest / Oldest), a **year range** chip, and a `?`
   syntax popover (the table in §4.3 as examples, as in the brief §5).

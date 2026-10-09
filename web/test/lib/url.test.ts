@@ -1,7 +1,7 @@
 // URL state (spec §5.2): ?q=&mode=&sort=&page=, defaults omitted, bad values falling back the
 // way the Worker's own reading does (worker/src/index.ts).
 import { describe, expect, it } from "vitest";
-import { parse, serialize, type SearchState } from "../../src/lib/url";
+import { normalizeQuery, parse, serialize, type SearchState } from "../../src/lib/url";
 
 const state = (over: Partial<SearchState> = {}): SearchState => ({
   q: "",
@@ -139,7 +139,8 @@ describe("round trip", () => {
     ["smart, last page", state({ q: "glue", page: 5 })],
     ["operators", state({ q: 'glue OR "hide glue" -epoxy year:2015-2020' })],
     ["plus and percent", state({ q: "c++ 100% a&b=c #1" })],
-    ["non-ASCII", state({ q: "café ☕ 木工" })],
+    // (An emoji here would not survive: queries are cleaned of them, see normalizeQuery.)
+    ["non-ASCII", state({ q: "café 木工" })],
     ["no query, non-default mode", state({ mode: "exact" })],
   ];
 
@@ -155,5 +156,47 @@ describe("round trip", () => {
   it("round-trips through location.search style input without the ?", () => {
     const s = state({ q: "glue", mode: "exact", page: 2 });
     expect(parse(serialize(s).slice(1))).toEqual(s);
+  });
+});
+
+describe("normalizeQuery (emoji are dropped; a shared link behaves like typing)", () => {
+  const removed: [string, string, string][] = [
+    ["a pictograph", "glue \u{1FAB5} up", "glue up"],
+    ["only an emoji", "\u{1FA9A}", ""],
+    ["a skin-tone modifier", "\u{1F44D}\u{1F3FD} dovetail", "dovetail"],
+    ["a ZWJ family", "\u{1F468}‍\u{1F469}‍\u{1F467} saw", "saw"],
+    ["a flag", "\u{1F1FA}\u{1F1F8} oak", "oak"],
+    ["a keycap (digit stays)", "1️⃣ plane", "1 plane"],
+    ["a subdivision flag (tag sequence)", "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F} oak", "oak"],
+    ["a VS16 after a pictograph", "❤️ glue", "glue"],
+    ["spaces left behind", "  a \u{1F44D}   b  ", "a b"],
+  ];
+  for (const [name, input, want] of removed) {
+    it(`removes ${name}`, () => expect(normalizeQuery(input)).toBe(want));
+  }
+
+  const kept = [
+    "#8 screw*",
+    "0123456789",
+    '"hide glue" -epoxy year:2015-2020 ep:613 dovetail*',
+    "glue OR epoxy",
+    "café naïve ångström",
+    "木工",
+    "مرحبا",
+    "हिन्दी",
+    // A ZWNJ and a ZWJ between letters are part of the word.
+    "می‌خواهم",
+    "क्‍ष",
+  ];
+  for (const input of kept) {
+    it(`keeps ${JSON.stringify(input)}`, () => expect(normalizeQuery(input)).toBe(input));
+  }
+
+  it("parse and serialize apply it, and the round trip is stable", () => {
+    expect(parse("?q=glue+%F0%9F%AA%B5+up").q).toBe("glue up");
+    expect(parse("?q=%F0%9F%AA%9A").q).toBe("");
+    const once = serialize(state({ q: "\u{1F44D}\u{1F3FD} dovetail \u{1F1FA}\u{1F1F8}" }));
+    expect(once).toBe("?q=dovetail");
+    expect(serialize(parse(once))).toBe(once);
   });
 });

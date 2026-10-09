@@ -1,6 +1,10 @@
 // The one link builder (spec §4.6): the API's per-result `cue_s` and the deep links on a
 // result card both come from here, so they always agree.
 
+import type { CueTimes, DeepLinks } from "./api-types";
+
+export type { CueTimes, DeepLinks } from "./api-types";
+
 /** Wood Talk's Apple Podcasts show id. */
 export const APPLE_PODCAST_ID = 251471480;
 /** The show URL exactly as Apple's share sheet writes it (US storefront, the show's slug). */
@@ -22,7 +26,7 @@ export function cueSeconds(hitMs: number, offsetS: number): number {
   return Math.max(0, Math.floor(hitMs / 1000) - 7 + offsetS);
 }
 
-export function cueTimes(episode: LinkEpisode, hitMs: number): { youtube: number; apple: number; spotify: number } {
+export function cueTimes(episode: LinkEpisode, hitMs: number): CueTimes {
   return {
     youtube: cueSeconds(hitMs, episode.offset_youtube_s),
     apple: cueSeconds(hitMs, episode.offset_apple_s),
@@ -36,11 +40,8 @@ export function cueTimes(episode: LinkEpisode, hitMs: number): { youtube: number
  * format the platform's own share sheet makes when sharing from the current time: Spotify
  * `?t=<seconds>`, Apple `&t=<seconds>` (both 2026-10-07, docs/deep-links.md).
  */
-export function deepLinks(
-  episode: LinkEpisode,
-  hitMs: number,
-): { youtube?: string; apple?: string; spotify?: string; page?: string } {
-  const links: { youtube?: string; apple?: string; spotify?: string; page?: string } = {};
+export function deepLinks(episode: LinkEpisode, hitMs: number): DeepLinks {
+  const links: DeepLinks = {};
   if (episode.youtube_video_id) {
     const t = cueSeconds(hitMs, episode.offset_youtube_s);
     links.youtube = `https://www.youtube.com/watch?v=${encodeURIComponent(episode.youtube_video_id)}&t=${t}s`;

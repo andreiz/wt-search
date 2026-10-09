@@ -4,9 +4,13 @@
 //
 // Pure: no DOM, no Preact; it uses the global `fetch`.
 
-import type { ContextResponse } from "../../../worker/src/context";
-import type { InfoResponse } from "../../../worker/src/info-types";
-import type { ExactResponse, SmartResponse, Sort } from "../../../worker/src/search";
+import type {
+  ContextResponse,
+  ExactResponse,
+  InfoResponse,
+  SmartResponse,
+  Sort,
+} from "../../../worker/src/api-types";
 import type { SearchState } from "./url";
 
 /** A search answer. The Worker adds `mode` and `sort` to the body (index.ts), so `mode` tells the arms apart. */

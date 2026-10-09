@@ -5,9 +5,9 @@
 // One D1 statement, and the answer is edge-cached like a search (§4.7, cache.ts).
 
 import { cached, cacheTtl, corpusVersion, pathCacheKey, store } from "./cache";
+import type { InfoResponse } from "./api-types";
 import type { Env } from "./env";
 import { JSON_HEADERS, json, logError } from "./http";
-import type { InfoResponse } from "./info-types";
 
 interface InfoRow {
   episodes: number;
@@ -15,7 +15,7 @@ interface InfoRow {
   corpus_version: string | null;
 }
 
-export type { InfoResponse } from "./info-types";
+export type { InfoResponse } from "./api-types";
 
 export async function info(
   request: Request,

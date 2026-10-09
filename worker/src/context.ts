@@ -4,6 +4,7 @@
 //
 // The SQL is one fixed string; the chunk id and the radius are bound parameters.
 
+import type { ContextResponse } from "./api-types";
 import type { Env } from "./env";
 import { json, logError } from "./http";
 import { cueTimes, deepLinks, type LinkEpisode } from "./links";
@@ -13,33 +14,8 @@ export const DEFAULT_RADIUS = 3;
 /** The most chunks either side a client can ask for; bigger is clamped. */
 export const MAX_RADIUS = 6;
 
-export interface ContextChunk {
-  chunk_id: number;
-  seq: number;
-  start_ms: number;
-  end_ms: number;
-  text: string;
-  /** A sponsor read or other repeated ad. Still part of the transcript, so it is included. */
-  boilerplate: boolean;
-  /** Where each platform should start to play this chunk (the cue at the chunk's start). */
-  cue_s: ReturnType<typeof cueTimes>;
-  links: ReturnType<typeof deepLinks>;
-}
-
-export interface ContextResponse {
-  chunk_id: number;
-  episode: {
-    id: number;
-    number: number | null;
-    title: string;
-    /** `YYYY-MM-DD`, from published_at. */
-    date: string;
-    /** Deep links at the hit chunk's start. */
-    links: ReturnType<typeof deepLinks>;
-  };
-  /** The hit and its neighbours, in the order of the episode. */
-  chunks: ContextChunk[];
-}
+// The response shapes live in api-types.ts (import-free, so web/ can use them).
+export type { ContextChunk, ContextResponse } from "./api-types";
 
 /** One row of the query: the chunk and the episode columns the links need. */
 interface Row extends LinkEpisode {

@@ -27,8 +27,6 @@
     "vite-plugin-headers.ts",
     "vite.config.ts",
     "vitest.config.ts",
-    "playwright.config.ts",
-    // The type-only imports from ../worker/src need the Workers runtime types (D1Database and so on).
-    "../worker/worker-configuration.d.ts"
+    "playwright.config.ts"
   ]
 }

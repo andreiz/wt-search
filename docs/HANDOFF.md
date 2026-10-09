@@ -118,6 +118,18 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
 
 ### Plan 3 task notes (calls the plan didn't spell out)
 
+- **Task 5** `web/` scaffold (Sonnet, 2026-10-09; web 13 unit + 4 e2e tests): Preact 11.0.1
+  (the current release; plan said 10), Vite 8, Vitest 4.1 (as `worker/`; 5 exists), Playwright
+  1.64 (uses `/opt/pw-browsers/chromium-1194` when present). Turnstile's CSP docs (2026-05-05)
+  need only `script-src` and `frame-src https://challenges.cloudflare.com`: `_headers` as
+  planned. Source Serif 4 400/600 Latin woff2 from `@fontsource/source-serif-4` (~20 KB each;
+  own `@font-face`, the package's CSS would also ship legacy woff); `assetsInlineLimit: 0` so
+  fonts never become `data:` URIs. `vite preview` serves the real `_headers` through
+  `web/vite-plugin-headers.ts`, so e2e fails on any CSP violation or third-party request.
+  `env.e2e` carries Cloudflare's public always-pass Turnstile test keys as vars.
+  `npm run deploy:staging` (in `worker/`) builds `web/` first; `--dry-run` reads 8 asset files.
+  `<main>` holds the empty-state heading until Task 11.
+
 Tasks 1–4 were written by four Sonnet subagents in parallel worktrees (none committed),
 reviewed, applied and committed one per task in the main session. Worker **470 tests** in 18
 files, pipeline **685**, type-check and ruff clean. Deploying them to staging needs only

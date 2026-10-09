@@ -15,10 +15,12 @@ feed → download → transcribe → chunk → embed ──▶ D1 (full-text) + 
 ```
 
 - **Pipeline** (`pipeline/`, Python CLI `wts`) runs on a Mac: pulls the RSS feed, downloads
-  audio, transcribes with Whisper (word timings), cleans and corrects the text, flags
-  repeated sponsor reads, cuts ~30 s chunks and embeds them.
-- **Search** (planned: `worker/`, `web/`) combines keyword search with meaning-based search
-  and deep-links to YouTube, Apple Podcasts, Spotify and the Wood Talk site.
+  audio, transcribes with Whisper (word timings), cleans and corrects the text, cuts ~30 s
+  chunks and embeds them. (Sponsor-read detection is shelved until the full corpus:
+  [docs/full-corpus-backlog.md](docs/full-corpus-backlog.md).)
+- **Search** (`worker/`, on staging; `web/`, in progress) combines keyword search with
+  meaning-based search and deep-links to YouTube, Apple Podcasts, Spotify and the Wood Talk
+  site.
 
 More: [DESIGN.md](DESIGN.md) (one page) and the full
 [spec](docs/superpowers/specs/2026-10-04-wood-talk-search-design.md).
@@ -108,9 +110,9 @@ code, changes are test-first, and the spec is the source of truth.
 
 ```
 pipeline/   Python `wts` CLI (Mac) — built
-worker/     Cloudflare Worker API — planned
+worker/     Cloudflare Worker API — built, deployed to staging
 web/        Frontend (Vite + Preact) — scaffolded, served by the Worker as static assets
-schema/     D1 migrations — planned
+schema/     D1 migrations — the contract between pipeline and Worker
 eval/       Test search set and baselines — planned
 docs/       Spec and implementation plans
 ```

@@ -133,6 +133,41 @@ def test_fifth_episode_with_ad_flips_earlier_episodes_back_to_chunked(
     assert boilerplate_chunk_count(conn, fifth) >= 1
 
 
+def test_corrections_refresh_flags_a_shared_passage_in_every_episode(
+    conn, paths, cfg, make_episodes, tmp_path, empty_corrections
+):
+    # Each episode's copy of the ad carries its own junk words, so before the corrections it
+    # matches nothing; the rules delete the junk and the five copies become identical.
+    ids = make_episodes(5)
+    junk = [[f"junk{k}x{j}" for j in range(4)] for k in range(5)]
+    for k, e in enumerate(ids):
+        ad = [" ".join([*s.split()[:3], *junk[k], *s.split()[3:]]) for s in AD_BLOCK]
+        write_transcript(conn, paths, e, ad + unique_sentences(f"ep{k}", 15))
+    run_chunk(conn, paths, cfg, ids, corrections_file=empty_corrections)
+    assert [boilerplate_chunk_count(conn, e) for e in ids] == [0] * 5
+    for e in ids:
+        force_status(conn, e, "embedded")
+
+    cf = tmp_path / "corrections.yaml"
+    cf.write_text("global:\n" + "".join(f"  {w}: ''\n" for ws in junk for w in ws))
+    run_chunk(conn, paths, cfg, [], corrections_file=cf)
+    assert [boilerplate_chunk_count(conn, e) >= 1 for e in ids] == [True] * 5
+    assert [status_of(conn, e) for e in ids] == ["chunked"] * 5
+
+    for e in ids:
+        force_status(conn, e, "embedded")
+    flags = [
+        conn.execute("select is_boilerplate from chunks where episode_id = ?", (e,)).fetchall()
+        for e in ids
+    ]
+    assert run_chunk(conn, paths, cfg, [], corrections_file=cf)["refreshed"] == 0  # idle
+    assert [status_of(conn, e) for e in ids] == ["embedded"] * 5
+    assert flags == [
+        conn.execute("select is_boilerplate from chunks where episode_id = ?", (e,)).fetchall()
+        for e in ids
+    ]
+
+
 def test_unchanged_refresh_keeps_ids_and_status(conn, paths, cfg, transcribed_episode):
     run_chunk(conn, paths, cfg, [transcribed_episode])
     force_status(conn, transcribed_episode, "embedded")

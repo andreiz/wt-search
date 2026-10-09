@@ -1,4 +1,4 @@
-# Handoff — 2026-10-08 (after the seventh session; plan 3 written, awaiting review)
+# Handoff — 2026-10-09 (after the eighth session; plan 3 Tasks 1–7 done, Task 8 next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -6,20 +6,37 @@ then [README.md](../README.md), then the spec sections it points to.
 ## Start here (next session)
 
 **Branch:** work on `main` (CLAUDE.md), even when a cloud session is given another branch.
-The sixth session's branch (`claude/great-hopper-nm593s`) was pushed to `main` and deleted at
-the maintainer's request.
+The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
+fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Work in flight (2026-10-08), in separate sessions:**
-- **Plan 3 (frontend)**: brainstorm done, spec §5 revised and the plan written
-  (2026-10-08, seventh session): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
-  **Tasks 1–6 are done and on `main`** (1–4 the Worker changes, 5 the `web/` scaffold, 6 the
-  API client and URL state), none deployed to staging yet. **Next:** Task 7 (search bar,
-  search lifecycle, results list). Notes under "Plan 3 task notes" below.
+**Next: plan 3 Task 8** (year range chip and syntax help), then Tasks 9–15 and Checkpoint H:
+[`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+**Tasks 6 and 7 are done** (eighth session, 2026-10-09; on `main`, not deployed): the API
+client and URL state, then the search bar, search lifecycle, results list and paging. **Before
+Task 8, look at Task 7 in a browser at phone width** (its notes below list what no test checks).
+The design is in [`docs/design/system/`](design/system/) — build to its mocks and README (plan
+3's "Look" constraint). The maintainer runs well-defined tasks with **Sonnet subagents**; the
+main session reviews, runs every suite and commits (one commit per task). Tasks 6–7 ran in the
+main checkout, one subagent at a time, told not to commit.
+
+**Tests (2026-10-09):** pipeline **694** (`cd pipeline && uv run pytest -q`, ruff clean; not
+re-run in the eighth session, which didn't touch it), Worker **485** in 18 files (`cd worker
+&& npm test`, `npx tsc --noEmit`), web **252** unit + **7** e2e (`cd web && npm test`, `npm run
+e2e`, `npm run typecheck`).
+
+**What the seventh session did (2026-10-08/09):**
+- **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the
+  Worker changes (`year:A-B`, `folded`, `/api/info`, feedback and same-origin reports,
+  robots.txt by environment) and the `web/` scaffold served by the Worker as static assets.
+  Notes under "Plan 3 task notes" below.
 - **Claude Design delivered** (2026-10-09): `docs/design/system/` (tokens, mocks, README). Spec
   §5.3/§5.7 record it with the maintainer's calls (group neighbouring hits; related hits fold
-  at the end of each page; Source Serif 4 self-hosted). Plan 3 revised to build straight to
-  it from Task 5; Task 16 is now a visual pass. The app stays Preact: the mocks' React is
-  only Claude Design's viewer.
+  at the end of each page; Source Serif 4 self-hosted). Plan 3 builds straight to it from
+  Task 5; Task 16 is now a visual pass. The app stays Preact: the mocks' React is only Claude
+  Design's viewer (`support.js`). To look at the mocks, serve the folder over HTTP (they
+  fetch their siblings); unpkg is blocked in the cloud, so get React/Babel from npm.
+- **`wts` logs applied state migrations** (`state.db: applied migrations 005–006`) on `wts
+  run` and the step commands.
 - **Codex review of plans 1–2** ([`docs/code-review-d15ec6e.md`](code-review-d15ec6e.md),
   2026-10-09): all nine findings reproduced and fixed on the same branch, one commit each
   (resolution table at the end of the review); #8 then became moot (next item).
@@ -29,20 +46,29 @@ the maintainer's request.
   which also gathers the other "on the full corpus" items. The chunk step now refreshes only
   when `corrections.yaml` or `CHUNKER_VERSION` (`chunking.py`; bump it after any change to
   chunking output) changes, not on every new episode.
-  **On the Mac, the next `wts` command** applies state migrations 005 (`failed_at`) and 006
-  (drops the fingerprint tables); the next `wts run` re-chunks everything once, un-flags the
-  few flagged chunks and re-embeds and republishes those episodes.
-  Worker **485 tests**, pipeline **692** (no xfail left).
+  **Done on the Mac (2026-10-09):** `wts run --env staging` on `main` applied state
+  migrations 005 (`failed_at`) and 006 (drops the fingerprint tables), re-chunked everything
+  once (`refreshed=3`: ep609, ep613, ep614 each had one flagged chunk), embedded the 3
+  un-flagged chunks and republished those episodes.
+
+**Waiting on the maintainer:**
+- **Staging deployed 2026-10-09** with `npm run deploy:staging` (plan 2 Tasks 17–19, plan 3
+  Tasks 1–5, the Worker review fixes; the page shell at the `workers.dev` URL). Not yet
+  checked from outside (the cloud session's proxy blocks `workers.dev`): `/api/info`, the
+  site's CSP header, `robots.txt` (`Disallow: /`), a `year:2015-2020` search with `folded`.
+  From now on deploy only with `npm run deploy:staging` (a bare `wrangler deploy` fails: no
+  `web/dist`).
 - **Rate limits not triggering on staging**: the maintainer's desktop session (see "Open:
   rate limits…" below).
-- **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions.
+- **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions; its
+  checkpoint is now **J** (plan 3 has H and I).
 
 **Plan 2: Tasks 1–19 and Checkpoint F are done; Checkpoint G is done except the parts
 that wait on Tasks 17–19's deploy** (results below). Staging runs Task 17 at least (robots.txt
 and the headers are live); whether Task 18's bindings are live is the open debugging item.
 **Next (maintainer):** finish deploying Tasks 17–19 (steps below), then Checkpoint G's rest: its
 revised step 2 (rate limits, kill switch, budget and alerts) and the three paraphrase queries
-of step 3. Then plans 3–5 are written.
+of step 3. (Plan 3 is written and under way; plans 4–5 come after it.)
 
 **Deploying Tasks 17–19** (from `worker/`):
 1. `npx wrangler d1 migrations apply wts-staging --env staging --remote` (adds `usage`).
@@ -51,12 +77,26 @@ of step 3. Then plans 3–5 are written.
    Suggested: a write-only ntfy user for the Workers (`ntfy user add wts-worker`, `ntfy
    access wts-worker <topic> write-only`, `ntfy token add --label … wts-worker`); one token
    can serve both environments, since alert titles name the environment (`WTS_ENV`).
-3. `npx wrangler deploy --env staging`.
+3. `npm run deploy:staging` (from `worker/`; since plan 3 Task 5 it builds `web/` first —
+   run `cd web && npm ci` once. A bare `npx wrangler deploy --env staging` fails: "assets
+   directory … web/dist does not exist").
 4. Reports now need `-H 'origin: http://localhost:5173'` (`REPORT_ORIGINS`).
 5. A homelab monitor (e.g. Uptime Kuma → ntfy) on `<staging>/api/health`: the only error
    alerting, since the in-Worker 5xx alert was dropped.
 
 **Open: rate limits don't trigger on staging (to debug on the desktop, 2026-10-08).**
+- **2026-10-09, after a fresh `npm run deploy:staging` of current `main`:** 200 sequential
+  `GET /api/health` → 200 × 200 again. So the stale-version theory below is **ruled out**.
+  `ratelimit.ts` lets a request through silently when (1) the binding is missing, (2)
+  `cf-connecting-ip` is missing, or (3) `limit()` answers success (or throws — logged once
+  per isolate as `rate_limiter_unavailable`). Cloudflare's docs (2026-04) call the binding
+  per-location, machine-cached, "permissive, eventually consistent", which doesn't explain
+  200 in a row never tripping 60/60 s. **Next:** check the deploy output lists `env.RL_READ
+  (60 requests/60s)`; run the loop with `npx wrangler tail --env staging` open; if neither
+  tells, add a diagnostic response header on `/api/*` (`x-wts-ratelimit: ok | over | no-ip |
+  no-binding | error`, never the IP — offered 2026-10-09, harmless to keep like
+  `x-wts-cache`), deploy, and `curl -sI`. Also check whether the binding needs Workers Paid.
+- Earlier notes (2026-10-08):
 - Live: Task 17 is (robots.txt 200, `nosniff` present). 70 and then 200 sequential `GET
   /api/health` all answered 200; 4 reports in a row (`chunk_id` 999999999, origin
   `http://localhost:5173`) all 400, the 4th should be 429.
@@ -83,7 +123,7 @@ of step 3. Then plans 3–5 are written.
 with `http://localhost:5173` on staging; `keep_vars: true` for the kill switch; the 5xx alert
 is a homelab monitor on `/api/health`, not Worker code.
 
-**Since Checkpoint G (session 6, not yet on the Mac):** new releases join the scope in
+**Since Checkpoint G (session 6; on the Mac since the 2026-10-09 run):** new releases join the scope in
 `wts feed` (open decision 3, option a; spec §3.1). The next `wts run` after a release shows
 `scoped=1` and processes it in the same run.
 
@@ -92,11 +132,12 @@ very likely **Earlex** HV2900 (an HVLP sprayer); check with `check_corrections.p
 
 ## Plan 3: start here (frontend, `web/`)
 
-**Status (2026-10-08, seventh session):** brainstorm done; spec §5 rewritten (§5.1–§5.8) with
+**Status (2026-10-09, seventh session):** brainstorm done; spec §5 rewritten (§5.1–§5.8) with
 knock-on edits in §1, §2, §4.3, §4.4, §4.8, §7.1, §10 item 7; the brief's *(proposed)* items
 marked settled; plan written: [`2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
-(Tasks 1–4 Worker changes, 5–15 the app, Checkpoint H on staging's `workers.dev`, Task 16 the
-design when Claude Design delivers, Checkpoint I, Task 17 the domain). No code yet.
+(Tasks 1–4 Worker changes, 5–15 the app, Checkpoint H on staging's `workers.dev`, Task 16 a
+visual pass against the mocks, Checkpoint I, Task 17 the domain). **Tasks 1–5 are done**;
+Task 6 is next.
 
 Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended option):
 - **Hosting:** the API Worker serves the site as **static assets** (not Pages + a Worker
@@ -113,8 +154,8 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
   transcript (radius 6) with the folded chunks marked; results gain `folded: [chunk_id…]`
   (replacing `debug.folded`). "Search this episode" sits in the expanded view.
 - **Extras:** j/k kept; Enter-plays-first-platform and the 400 ms hover preview dropped.
-- **Designs:** not started, so Tasks 1–15 use neutral placeholder tokens; Task 16 applies the
-  design system and screens.
+- **Designs:** not started at the brainstorm; delivered 2026-10-09 (see "Start here"), so
+  the app is built to them from Task 5.
 
 ### Plan 3 task notes (calls the plan didn't spell out)
 
@@ -153,11 +194,47 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     `retry-after` must be a positive integer, else 60.
   - The six search fixtures are checked against the Worker's types at compile time
     (`satisfies Loose<…>` in `api.test.ts`; string literals widened, as JSON imports are).
+- **Task 7** search bar, lifecycle, results list, paging (Sonnet, reviewed, two fix rounds,
+  2026-10-09; web **252** unit + **7** e2e). Beyond the plan's files: `web/src/use-search.ts`
+  (the lifecycle, out of `app.tsx` so it can be tested), `lib/paging.ts`, `lib/compact.ts`,
+  `e2e/search.spec.ts`.
+  - **Emoji are stripped from the query** (maintainer, 2026-10-09; spec §5.2):
+    `normalizeQuery` in `url.ts`, used by `parse`, `serialize` and submit. It also removes
+    `©`, `®`, `™`, `♠`, `↔` (Unicode classes them with pictographs): "Titebond™ III" is
+    searched as "Titebond III". The box has `maxlength` 200.
+  - **History:** each search pushes; the same search again, and a mode or sort change with
+    no query, use `replaceState` and make no request (the choice stays in the URL, e.g.
+    `?mode=exact`, so an empty submit returns to the bare path only in the default mode).
+  - **Stale answers:** a new search aborts the old one and takes a new id; answers and
+    errors whose id isn't the latest are dropped (tested with two deferred fetches resolved
+    out of order, on a fetch stub that ignores the abort signal).
+  - **Phone header:** its box is the same height compact or not (brand row and controls stay
+    laid out with `visibility: hidden`; the search row is lifted by a CSS transform), so
+    compacting can't move `scrollY` and loop. Thresholds in `lib/compact.ts`: compact past
+    120 px, expand under 20 px, never when the page scrolls less than 160 px. The summary
+    button is a toggle visible whenever the page is scrolled; open, it hangs under the
+    header's bottom edge (the mock doesn't place it). Esc in the controls or on the button
+    closes them. The compact input is 50 px, not the mock's 46 (a different height would
+    change the header's box).
+  - **Screen readers:** one persistent `role="status"` region in `<main>` says "Searching…"
+    (wording not in the spec or brief) and then holds the summary.
+  - Until later tasks: non-ok answers show a plain placeholder message (Task 11); "Any year"
+    in the summary button is static (Task 8); the placeholder says "Search 625 episodes"
+    (`/api/info`, Task 11/12); the pager is hidden on a single page.
+  - **Not checked by any test — look in a browser:** measurements against the mocks, the
+    sticky header on short desktop windows, `scroll-margin-top` (180/110 px), AA contrast of
+    `--muted` on `--skel`, focus rings and `title` tooltips, the summary button over the
+    first result on a phone.
+  - **Deferred minors:** mode-switch tooltips are `title` only; the sort menu has no
+    Home/End; no `h1` while results show; two raw `rgba` shadows in `components.css`; the
+    compact transform repeats `base.css`'s 14 px and 12 px; focus inside the controls drops
+    to `body` when the header compacts; the short-page compaction e2e may not be able to
+    fail (the unit test covers the rule).
 
 Tasks 1–4 were written by four Sonnet subagents in parallel worktrees (none committed),
 reviewed, applied and committed one per task in the main session. Worker **470 tests** in 18
 files, pipeline **685**, type-check and ruff clean. Deploying them to staging needs only
-`npx wrangler deploy --env staging` (no migration).
+`npm run deploy:staging` from `worker/` (no migration; it builds `web/` first).
 - **Task 1** `year:A-B`: each filter key keeps its last value, so a range (two keys) and a
   single year (one key) intersect: `year:2010-2012 year:2015` matches nothing (pinned in the
   parser table). The web app's chip rewrites every year token, so it never produces this.
@@ -310,28 +387,36 @@ How the maintainer works:
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
   `wts search` (with `--limit N`, `--debug`), hyphen joining in `wts chunk`, `wts run --env`
   (publish, backup), `wts backup`, `wts logs`, `wts links`, split-number joining in `wts
-  chunk`, new releases scoped by `wts feed`. **684 tests**, ruff clean
-  (`cd pipeline && uv run pytest -q`).
+  chunk`, new releases scoped by `wts feed`. Session 7: the review fixes, boilerplate
+  detection binned (`CHUNKER_VERSION` refresh trigger), state migrations 005–006 and their
+  log line. **694 tests**, ruff clean (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
   `/api/search` with result caps and `?limit=` (page size), smart search (RRF of FTS5 and
   Vectorize) with degraded mode and `?debug=1`, `/api/context`, `/api/report` (Turnstile),
   the edge cache, request logs and Analytics Engine; HEAD answered like GET (Task 16);
   kill switch, per-IP rate limits, daily smart budget with ntfy alerts, security headers,
-  report Origin, robots.txt (Tasks 17–19). **381 tests**, type-check clean.
-  **Deployed to staging** (Task 16, 2026-10-08; Tasks 17–19 not yet):
+  report Origin, robots.txt (Tasks 17–19). Plan 3 Tasks 1–4 (`year:A-B`, `folded`,
+  `/api/info`, feedback and same-origin reports, robots.txt by environment), the review
+  fixes (#3–#5), and since Task 5 the static assets from `web/dist`. **485 tests**,
+  type-check clean.
+  **Deployed to staging** (2026-10-08; whether Tasks 17–19 are live is the open rate-limit
+  item; redeployed 2026-10-09 with plan 3 Tasks 1–5 and the site's shell):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
+- **Web** (`web/`, plan 3): Task 5's scaffold: Vite + Preact 11, the design's tokens, the
+  self-hosted serif, `_headers` with the CSP, the page shell. **13 unit + 4 e2e tests**.
 - **Schema** (`schema/0001_init.sql`, `0002_usage.sql`): the D1 contract, tested from both
-  halves. `0002` is not yet applied to staging.
+  halves. `0002` is applied to staging if the maintainer ran step 1 of "Deploying Tasks 17–19".
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;
   **36 in scope** (35 seed + ep71, added 2026-10-07 for its poor-audio call-ins — a good source
   of plan 5 test-search-set queries), all `published` to staging. Platform IDs filled
   (Checkpoint D). Notifications go to the maintainer's own ntfy server.
 - **Cloudflare staging:** D1 `wts-staging` (`74cacf06-bbbe-4112-b7b0-8206f3db367b`, committed
   in `worker/wrangler.jsonc`), Vectorize `wts-chunks-staging` (768, cosine, metadata index on
-  `year`). 36 episodes, 4,210 chunks, 4,208 vectors (2 boilerplate chunks aren't embedded).
+  `year`). 36 episodes, ~4,210 chunks, every chunk now embedded (the 2026-10-09 run
+  un-flagged the last boilerplate chunks; exact counts with `wts publish --dry-run` or D1).
   API token: D1 Read+Write, Vectorize Read+Write, Workers AI Read, entire account, expires
-  2027-10; in the Keychain and in 1Password (Homelab). The Worker is **not deployed** yet.
+  2027-10; in the Keychain and in 1Password (Homelab).
 
 ## Checkpoint results
 
@@ -712,7 +797,10 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 3 (frontend; written 2026-10-08, Tasks 1–4 done on a branch): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
+- Plan 3 (frontend; written 2026-10-08, Tasks 1–5 done, Task 6 next): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
+- Design: [`docs/design/system/README.md`](design/system/README.md) (with tokens and mocks) and
+  the brief [`docs/design/BRIEF.md`](design/BRIEF.md)
+- Full-corpus backlog (what waits on the archive): [`docs/full-corpus-backlog.md`](full-corpus-backlog.md)
 - Plan 2 (Tasks 1–19, Checkpoints D–F done; G all but the §4.8 parts): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - M2 plan A, moving the pipeline to the Mac Mini (draft 2026-10-08, four decisions open; dev
   stays on the M1): [`docs/superpowers/plans/2026-10-08-m2-mac-mini-migration.md`](superpowers/plans/2026-10-08-m2-mac-mini-migration.md)

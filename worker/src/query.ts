@@ -66,15 +66,22 @@ const SMART_DOUBLE_QUOTES = new Set(["“", "”", "„", "‟", "″", "＂"]);
 const SMART_SINGLE_QUOTES = new Set(["‘", "’", "‚", "‛", "′"]);
 
 /**
+ * The first MAX_QUERY_CHARS code points of the raw query: all the parser ever looks at. Cut by
+ * code point, so it never splits a surrogate pair. The cache key (cache.ts) and the request
+ * log are built from this too, so nothing past the cut can tell two searches apart.
+ */
+export function boundQuery(input: string): string {
+  return Array.from(input).slice(0, MAX_QUERY_CHARS).join("");
+}
+
+/**
  * Normalize raw input. Keyboards and phones type curly quotes, so they must act as the
  * straight ones. NUL would end an FTS5 string early and lone surrogates are not valid text,
  * so those become spaces, as do all control characters.
  */
 function clean(input: unknown): string {
   if (typeof input !== "string") return "";
-  // By code point, so the cut never splits a surrogate pair.
-  return Array.from(input)
-    .slice(0, MAX_QUERY_CHARS)
+  return Array.from(boundQuery(input))
     .map((ch) => {
       if (/^[\ud800-\udfff]$/.test(ch) || /^\p{Cc}$/u.test(ch)) return " ";
       if (SMART_DOUBLE_QUOTES.has(ch)) return '"';

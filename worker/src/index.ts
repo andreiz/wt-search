@@ -6,7 +6,7 @@ import type { Env } from "./env";
 import { robots, searchOverride, withSecurityHeaders } from "./guard";
 import { JSON_HEADERS, json, logError } from "./http";
 import { info as infoRoute } from "./info";
-import { MAX_QUERY_CHARS, parseQuery } from "./query";
+import { boundQuery, parseQuery } from "./query";
 import { rateLimited } from "./ratelimit";
 import { report } from "./report";
 import {
@@ -99,7 +99,7 @@ const search: Handler = async (request, env, info, ctx) => {
   const q = params.get("q") ?? "";
   const debug = mode === "smart" && params.get("debug") === "1";
   Object.assign(info, {
-    q: Array.from(q).slice(0, MAX_QUERY_CHARS).join(""),
+    q: boundQuery(q),
     mode,
     sort,
     page,

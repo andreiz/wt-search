@@ -6,6 +6,8 @@
 // The Cache API is per data centre and, by Cloudflare's docs, works on Workers with a custom
 // domain; `x-wts-cache` on every search and info response says what happened (hit, miss, skip).
 
+import { boundQuery } from "./query";
+
 /** corpus_version is read from D1 at most this often per isolate. */
 export const VERSION_TTL_MS = 60_000;
 
@@ -42,12 +44,14 @@ export interface SearchKey {
 }
 
 /**
- * The cache key: a GET on the request's own origin, so the entry belongs to this zone. Only
- * runs of whitespace in the query are normalized: case matters (`OR` is an operator).
+ * The cache key: a GET on the request's own origin, so the entry belongs to this zone. The
+ * query is cut where the parser cuts it (boundQuery), so a search that parses differently never
+ * shares an entry. Then only runs of whitespace are normalized, and `\s` is exactly what the
+ * parser's scanner splits words on (NBSP included): case matters (`OR` is an operator).
  */
 export function cacheKey(requestUrl: string, key: SearchKey, version: string): Request {
   const url = new URL("/api/search", requestUrl);
-  url.searchParams.set("q", key.q.trim().replace(/\s+/g, " "));
+  url.searchParams.set("q", boundQuery(key.q).trim().replace(/\s+/g, " "));
   url.searchParams.set("mode", key.mode);
   url.searchParams.set("sort", key.sort);
   url.searchParams.set("page", String(key.page));

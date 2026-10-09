@@ -12,9 +12,9 @@ the maintainer's request.
 **Work in flight (2026-10-08), in separate sessions:**
 - **Plan 3 (frontend)**: brainstorm done, spec §5 revised and the plan written
   (2026-10-08, seventh session): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
-  **Tasks 1–4 (the Worker changes) are done** on branch `claude/plan-3-handoff-etfwwc` (the
-  maintainer asked for a branch this time), not yet merged to `main` or deployed. **Next:**
-  merge, then Task 5 (the `web/` scaffold). Notes under "Plan 3 task notes" below.
+  **Tasks 1–6 are done and on `main`** (1–4 the Worker changes, 5 the `web/` scaffold, 6 the
+  API client and URL state), none deployed to staging yet. **Next:** Task 7 (search bar,
+  search lifecycle, results list). Notes under "Plan 3 task notes" below.
 - **Claude Design delivered** (2026-10-09): `docs/design/system/` (tokens, mocks, README). Spec
   §5.3/§5.7 record it with the maintainer's calls (group neighbouring hits; related hits fold
   at the end of each page; Source Serif 4 self-hosted). Plan 3 revised to build straight to

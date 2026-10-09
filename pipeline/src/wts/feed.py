@@ -175,7 +175,9 @@ def upsert_episodes(
                          extra={"step": "feed", "episode": stem})
             continue
         moved = item.guid in moved_guids
-        with conn:
+        with conn:  # the new URL and the reset commit together: after a crash between them the
+            # URL would already be stored, the next refresh would see no move, and the episode
+            # would keep the old recording's audio, transcript and embeddings
             conn.execute(
                 "update episodes set number = ?, title = ?, published_at = ?, duration_s = ?, "
                 "audio_url = ?, page_url = ?, updated_at = ? where id = ?",
@@ -184,9 +186,10 @@ def upsert_episodes(
                     item.audio_url, item.page_url, _now(), row["id"],
                 ),
             )
+            if moved:
+                reset(conn, row["id"], Status.NEW)
         updated += 1
         if moved:
-            reset(conn, row["id"], Status.NEW)
             resets += 1
             log.warning(
                 f"audio URL changed; episode reset to new: {row['audio_url']} -> {item.audio_url}",

@@ -76,6 +76,27 @@ def test_real_audio_url_change_resets_to_new(conn):
     assert tuple(row.fetchone()) == (Status.NEW, "https://cdn.example/new.mp3")
 
 
+def test_an_interrupted_url_change_still_resets_on_the_next_refresh(conn, monkeypatch):
+    # The new URL and the reset to `new` are one transaction (review #6): if the process dies
+    # between them, the next refresh must still see the URL as moved, not as already stored.
+    items = parse_feed(FEED)
+    upsert_episodes(conn, items)
+    advance_all_to(conn, "transcribed")
+    moved = [replace(items[0], audio_url="https://cdn.example/new.mp3")] + items[1:]
+
+    def interrupted(*args, **kwargs):
+        raise KeyboardInterrupt
+
+    with monkeypatch.context() as m:
+        m.setattr("wts.feed.reset", interrupted)
+        with pytest.raises(KeyboardInterrupt):
+            upsert_episodes(conn, moved)
+
+    assert upsert_episodes(conn, moved).reset == 1
+    row = conn.execute("select status, audio_url from episodes where guid = ?", (items[0].guid,))
+    assert tuple(row.fetchone()) == (Status.NEW, "https://cdn.example/new.mp3")
+
+
 def test_feed_command_requires_feed_url(wts_home):
     r = CliRunner().invoke(main, ["feed"])
     assert r.exit_code == 2 and "feed_url" in r.output

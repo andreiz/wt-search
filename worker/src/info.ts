@@ -7,12 +7,15 @@
 import { cached, cacheTtl, corpusVersion, pathCacheKey, store } from "./cache";
 import type { Env } from "./env";
 import { JSON_HEADERS, json, logError } from "./http";
+import type { InfoResponse } from "./info-types";
 
 interface InfoRow {
   episodes: number;
   latest: string | null;
   corpus_version: string | null;
 }
+
+export type { InfoResponse } from "./info-types";
 
 export async function info(
   request: Request,
@@ -45,12 +48,13 @@ export async function info(
   // As in /api/health: a missing corpus_version row is a broken schema, not an empty answer.
   if (row?.corpus_version == null) throw new Error("meta.corpus_version is missing");
 
-  const body = JSON.stringify({
+  const answer: InfoResponse = {
     episodes: row.episodes,
     latest_episode_date: row.latest === null ? null : row.latest.slice(0, 10),
     corpus_version: row.corpus_version,
     turnstile_site_key: env.TURNSTILE_SITE_KEY || null,
-  });
+  };
+  const body = JSON.stringify(answer);
   if (key !== null && ttl !== null) {
     await store(key, body, JSON_HEADERS, ttl);
     requestInfo.cache = "miss";

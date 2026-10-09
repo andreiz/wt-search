@@ -223,8 +223,8 @@ def publish(conn, episode_id: int, *, env="staging", at: str | None = None) -> N
 
 def age(conn, episode_id: int, days: int) -> None:
     with conn:
-        conn.execute("update episodes set updated_at = ? where id = ?",
-                     (iso(-timedelta(days=days)), episode_id))
+        conn.execute("update episodes set updated_at = ?, failed_at = ? where id = ?",
+                     (iso(-timedelta(days=days)),) * 2 + (episode_id,))
 
 
 @pytest.fixture
@@ -567,6 +567,47 @@ def test_mass_reset_still_stops_the_run(conn, paths, cfg, web, topic):
     with pytest.raises(MassReset):
         go(conn, paths, cfg, web)
     assert not web.ntfy.called
+
+
+def exhaust(conn, episode_id, step="download", retries=MAX_RETRIES, ago=timedelta(days=2)):
+    """An episode that failed `retries` times in earlier runs."""
+    with conn:
+        conn.execute(
+            "update episodes set status = 'error', error_step = ?, error_reason = 'HTTP 404', "
+            "retries = ?, updated_at = ?, failed_at = ? where id = ?",
+            (step, retries, iso(-ago), iso(-ago), episode_id),
+        )
+
+
+def test_feed_refresh_does_not_make_an_old_exhausted_error_look_new(
+    conn, paths, cfg, web, topic, monkeypatch
+):
+    # Review #9: the refresh touches every feed item, and "failed this run" was read from
+    # updated_at, so a daily run re-sent the high-priority alert for an episode long parked.
+    monkeypatch.setattr(notify, "QUIET_FEED_DAYS", 10**6)
+    (parked,) = scope(conn, "recent:1")
+    exhaust(conn, parked)
+    results = go(conn, paths, cfg, web)
+    assert results["feed"]["updated"] > 0 and results["download"]["ok"] == 0  # touched, not retried
+    assert status_of(conn, parked) == "error"
+    assert not web.ntfy.called
+
+
+def test_a_failure_in_the_run_still_notifies_beside_an_old_exhausted_one(
+    conn, paths, cfg, web, topic, monkeypatch
+):
+    monkeypatch.setattr(notify, "QUIET_FEED_DAYS", 10**6)
+    parked, failing = scope(conn, "recent:2")
+    exhaust(conn, parked)
+    exhaust(conn, failing, retries=MAX_RETRIES - 1)  # its last retry happens in this run
+    web.audio.mock(return_value=httpx.Response(404))
+    go(conn, paths, cfg, web)
+    (msg,) = sent_json(web.ntfy)
+    assert msg["title"] == "wts: 1 episode in error" and msg["priority"] == 4
+    titles = dict(conn.execute("select id, title from episodes where id in (?, ?)",
+                               (parked, failing)).fetchall())
+    assert titles[failing] in msg["message"] and titles[parked] not in msg["message"]
+    assert "out of retries" in msg["message"]
 
 
 def test_run_without_a_topic_logs_one_warning_and_sends_nothing(conn, paths, cfg, web,

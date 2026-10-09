@@ -43,6 +43,38 @@ def test_platform_migration_applies_on_a_plan1_database(tmp_path):
     assert conn.execute("select count(*) from published_vectors").fetchone()[0] == 0
 
 
+def test_failed_at_migration_applies_on_an_existing_database(tmp_path):
+    path = tmp_path / "state.db"
+    old = sqlite3.connect(path)
+    for number, sql in _migrations():
+        if number <= 4:
+            old.executescript(sql)
+            old.execute(f"PRAGMA user_version = {number}")
+    broken = insert_episode(old, status="error", updated_at="2026-01-02T03:04:05+00:00")
+    fine = insert_episode(old, status="embedded")
+    old.commit()
+    old.close()
+
+    conn = connect(path)
+    failed = dict(conn.execute("select id, failed_at from episodes").fetchall())
+    assert failed == {broken: "2026-01-02T03:04:05+00:00", fine: None}
+
+
+def test_fail_stamps_failed_at_and_other_changes_do_not(conn, make_episode):
+    e = make_episode()
+
+    def failed_at():
+        return conn.execute("select failed_at from episodes where id = ?", (e,)).fetchone()[0]
+
+    assert failed_at() is None
+    fail(conn, e, "download", "boom")
+    stamped = failed_at()
+    assert stamped is not None
+    conn.execute("update episodes set title = 'edited' where id = ?", (e,))
+    reset(conn, e, Status.NEW)
+    assert failed_at() == stamped
+
+
 def test_publications_are_per_environment(conn, make_episode):
     e = make_episode()
     for env in ("staging", "production"):

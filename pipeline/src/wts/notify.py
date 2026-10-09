@@ -133,12 +133,13 @@ def _newly_published(conn: sqlite3.Connection, since: str) -> list[sqlite3.Row]:
 
 
 def _in_error(conn: sqlite3.Connection, since: str) -> list[sqlite3.Row]:
-    """Episodes that failed since `since`. One that is out of retries is reported in the run
-    that used its last retry, then not again: later runs don't select it, and a daily run
-    mustn't repeat the alert. `wts status` lists every episode in `error`."""
+    """Episodes that failed since `since` (`failed_at`, set only when a step fails: a feed
+    refresh also bumps `updated_at`). One that is out of retries is reported in the run that
+    used its last retry, then not again: later runs don't select it, and a daily run mustn't
+    repeat the alert. `wts status` lists every episode in `error`."""
     return conn.execute(
         "select number, title, error_step, error_reason, retries from episodes "
-        "where status = 'error' and updated_at >= ? order by published_at",
+        "where status = 'error' and failed_at >= ? order by published_at",
         (since,),
     ).fetchall()
 

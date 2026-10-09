@@ -70,11 +70,12 @@ def advance(conn: sqlite3.Connection, episode_id: int, step: str) -> None:
 
 
 def fail(conn: sqlite3.Connection, episode_id: int, step: str, reason: str) -> None:
+    now = _now()
     with conn:
         conn.execute(
             "update episodes set status = ?, error_step = ?, error_reason = ?, "
-            "retries = retries + 1, updated_at = ? where id = ?",
-            (Status.ERROR, step, reason, _now(), episode_id),
+            "retries = retries + 1, updated_at = ?, failed_at = ? where id = ?",
+            (Status.ERROR, step, reason, now, now, episode_id),
         )
 
 

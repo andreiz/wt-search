@@ -1,4 +1,4 @@
-# Handoff — 2026-10-09 (after the eighth session; plan 3 Tasks 1–7 done, Task 8 next)
+# Handoff — 2026-10-09 (after the eighth session; plan 3 Tasks 1–8 done, Task 9 next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -9,19 +9,20 @@ then [README.md](../README.md), then the spec sections it points to.
 The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
 fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Next: plan 3 Task 8** (year range chip and syntax help), then Tasks 9–15 and Checkpoint H:
+**Next: plan 3 Task 9** (the result card), then Tasks 10–15 and Checkpoint H:
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
-**Tasks 6 and 7 are done** (eighth session, 2026-10-09; on `main`, not deployed): the API
-client and URL state, then the search bar, search lifecycle, results list and paging. **Before
-Task 8, look at Task 7 in a browser at phone width** (its notes below list what no test checks).
+**Tasks 6, 7 and 8 are done** (eighth session, 2026-10-09; on `main`): the API client and URL
+state, the search bar, search lifecycle, results list and paging, then the year range chip and
+syntax help. **Staging runs Tasks 1–7** (the maintainer deployed 2026-10-09 and searched
+there); Task 8 is not deployed. Their notes below list what no test checks.
 The design is in [`docs/design/system/`](design/system/) — build to its mocks and README (plan
 3's "Look" constraint). The maintainer runs well-defined tasks with **Sonnet subagents**; the
-main session reviews, runs every suite and commits (one commit per task). Tasks 6–7 ran in the
+main session reviews, runs every suite and commits (one commit per task). Tasks 6–8 ran in the
 main checkout, one subagent at a time, told not to commit.
 
 **Tests (2026-10-09):** pipeline **694** (`cd pipeline && uv run pytest -q`, ruff clean; not
 re-run in the eighth session, which didn't touch it), Worker **485** in 18 files (`cd worker
-&& npm test`, `npx tsc --noEmit`), web **252** unit + **7** e2e (`cd web && npm test`, `npm run
+&& npm test`, `npx tsc --noEmit`), web **379** unit + **10** e2e (`cd web && npm test`, `npm run
 e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
@@ -234,6 +235,27 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     compact transform repeats `base.css`'s 14 px and 12 px; focus inside the controls drops
     to `body` when the header compacts; the short-page compaction e2e may not be able to
     fail (the unit test covers the rule).
+- **Task 8** year range chip and syntax help (Sonnet, reviewed, one fix round): new
+  `web/src/lib/years.ts`, `lib/use-popover.ts`, `components/{YearRange,SyntaxHelp}.tsx`;
+  `app.tsx` places the chip in the controls row and `?` at its right end, and the phone summary
+  button now shows the real range. Web **379** unit + **10** e2e. Calls the plan didn't spell out:
+  - **The range lives in `q`** (no URL parameter, spec §5.7). `years.ts` re-implements the
+    Worker parser's year-token rules (`worker/src/query.ts`); the reviewer ran 200,000 random
+    queries through both and they agreed. A change to the parser's year rules must be made
+    in both places (the table in `web/test/years.test.ts` mirrors the parser's tests).
+  - **`years.ts` reads the normalised query** (emoji stripped first, as the Worker sees it).
+  - **Near the 200-code-point limit the year token goes first** in the rewritten query, so
+    the Worker's cut can't drop it; no typed word is removed from the box.
+  - Removing a year token also removes a bare `OR` beside it (a filter ends an OR in the
+    parser, so it was doing nothing and would start to).
+  - The chip shows the *searched* query's range; Apply and × rewrite the *box* text and search
+    it (so unsent edits are searched too). A syntax example replaces the box text.
+  - A single year shows as "2015"; the chip's accessible name is "Year range: …".
+  - **Look in a browser:** the popovers at 390 px, native selects on iOS/Android, the
+    three-example year row wrapping, a popover left open while the phone header compacts
+    (it is hidden with the controls).
+  - **Deferred minors:** `use-popover.ts` repeats SortMenu's outside-click and Esc code;
+    out-of-corpus years give odd labels (`before:2000` → "2007–1999").
 
 Tasks 1–4 were written by four Sonnet subagents in parallel worktrees (none committed),
 reviewed, applied and committed one per task in the main session. Worker **470 tests** in 18

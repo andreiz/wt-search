@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<header style="position:relative;z-index:5;background:var(--bg);border-bottom:1px solid var(--border);box-shadow:{{ shadow }};font-family:var(--sans)">
+  <div style="max-width:760px;margin:0 auto;padding:{{ pad }};display:flex;flex-direction:column;gap:{{ gap }}">
+    <sc-if value="{{ showBrand }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+        <a href="#" style="font-size:{{ brandSize }};font-weight:750;line-height:1.2;color:var(--text);text-decoration:none;letter-spacing:-0.015em">Wood Talk Search</a>
+        <span style="font-size:13px;color:var(--muted)">Unofficial · fan-made</span>
+      </div>
+    </sc-if>
+    <div role="search" style="display:flex;gap:8px">
+      <div style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:{{ inputH }};padding:0 6px 0 14px;background:{{ inputBg }};border:1.5px solid {{ inputBorder }};border-radius:12px;box-shadow:{{ inputRing }}">
+        <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" style="flex:none;color:var(--muted)"><circle cx="8.5" cy="8.5" r="6" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M13 13l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+        <sc-if value="{{ hasQ }}" hint-placeholder-val="{{ true }}">
+          <span style="flex:1;min-width:0;font-size:17px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q }}</span>
+          <button aria-label="Clear search" style="flex:none;width:36px;height:36px;border-radius:8px;border:0;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:var(--tint)"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></button>
+        </sc-if>
+        <sc-if value="{{ noQ }}">
+          <span style="flex:1;min-width:0;font-size:17px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ placeholder }}</span>
+          <sc-if value="{{ showKbd }}"><kbd style="flex:none;margin-right:6px;padding:2px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font:600 13px/1.4 ui-monospace,Menlo,monospace;color:var(--muted)">/</kbd></sc-if>
+        </sc-if>
+      </div>
+      <button disabled="{{ disabled }}" style="flex:none;height:{{ inputH }};padding:0 {{ btnPadX }};border-radius:12px;border:0;background:{{ btnBg }};color:{{ btnFg }};font-size:16px;font-weight:650;cursor:pointer;transition:background .12s ease-out" style-hover="filter:brightness(0.94)">Search</button>
+    </div>
+    <sc-if value="{{ showControls }}" hint-placeholder-val="{{ true }}">
+      <div style="position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+        <div role="radiogroup" aria-label="Search mode" style="display:flex;padding:3px;gap:2px;border-radius:10px;background:var(--skel)">
+          <button role="radio" aria-checked="{{ smartStr }}" title="Matches meaning as well as words" style="height:{{ segH }};padding:0 14px;border-radius:8px;border:0;background:{{ smartBg }};box-shadow:{{ smartShadow }};color:{{ smartFg }};font-size:14px;font-weight:650;cursor:pointer">Smart</button>
+          <button role="radio" aria-checked="{{ exactStr }}" title="Exact keywords only, with counts" style="height:{{ segH }};padding:0 14px;border-radius:8px;border:0;background:{{ exactBg }};box-shadow:{{ exactShadow }};color:{{ exactFg }};font-size:14px;font-weight:650;cursor:pointer">Exact</button>
+        </div>
+        <button aria-haspopup="menu" aria-label="Sort: {{ sort }}" style="display:inline-flex;align-items:center;gap:6px;height:{{ ctlH }};padding:0 10px 0 12px;border-radius:10px;border:1px solid var(--border);background:var(--raised);color:var(--text);font-size:14px;font-weight:550;cursor:pointer" style-hover="border-color:var(--muted)">{{ sort }}<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" style="color:var(--muted)"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+        <sc-if value="{{ noYears }}" hint-placeholder-val="{{ true }}">
+          <button aria-haspopup="dialog" style="display:inline-flex;align-items:center;gap:6px;height:{{ ctlH }};padding:0 12px;border-radius:999px;border:1px solid var(--border);background:var(--raised);color:var(--text);font-size:14px;font-weight:550;cursor:pointer" style-hover="border-color:var(--muted)">Any year</button>
+        </sc-if>
+        <sc-if value="{{ hasYears }}">
+          <span style="display:inline-flex;align-items:center;height:{{ ctlH }};border-radius:999px;background:var(--tint);border:1px solid color-mix(in oklch, var(--accent) 40%, transparent);color:var(--accent);font-size:14px;font-weight:650"><button aria-haspopup="dialog" style="height:100%;padding:0 4px 0 12px;border:0;background:none;color:inherit;font:inherit;cursor:pointer">{{ years }}</button><button aria-label="Clear years" style="height:100%;padding:0 10px 0 6px;border:0;background:none;color:inherit;font-size:16px;cursor:pointer">×</button></span>
+        </sc-if>
+        <span style="flex:1"></span>
+        <button aria-label="Search syntax help" aria-expanded="{{ helpStr }}" style="width:{{ ctlH }};height:{{ ctlH }};border-radius:999px;border:1px solid {{ helpBd }};background:{{ helpBg }};color:var(--text);font-size:15px;font-weight:700;cursor:pointer">?</button>
+        <sc-if value="{{ popHelp }}">
+          <div role="dialog" aria-label="Search syntax" style="position:absolute;right:0;top:calc(100% + 8px);width:340px;max-width:calc(100vw - 32px);padding:16px 18px;border-radius:14px;background:var(--raised);border:1px solid var(--border);box-shadow:0 12px 40px rgba(30,15,5,.18);display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:15px;color:var(--text)">Search syntax</strong><span style="font-size:12px;color:var(--muted)">Esc to close</span></div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:baseline">
+              <sc-for list="{{ syntax }}" as="r" hint-placeholder-count="8">
+                <code style="font:500 13px/1.4 ui-monospace,Menlo,monospace;color:var(--accent);background:var(--tint);padding:1px 6px;border-radius:5px;white-space:nowrap;justify-self:start">{{ r.c }}</code>
+                <span style="font-size:14px;line-height:1.4;color:var(--text)">{{ r.d }}</span>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ popSort }}">
+          <div role="menu" style="position:absolute;left:{{ sortLeft }};top:calc(100% + 8px);width:180px;padding:6px;border-radius:12px;background:var(--raised);border:1px solid var(--border);box-shadow:0 12px 40px rgba(30,15,5,.18);display:flex;flex-direction:column">
+            <sc-for list="{{ sorts }}" as="o" hint-placeholder-count="3">
+              <button role="menuitemradio" aria-checked="{{ o.on }}" style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 10px;border:0;border-radius:8px;background:{{ o.bg }};color:var(--text);font:{{ o.weight }} 14px/1 var(--sans);cursor:pointer;text-align:left" style-hover="background:var(--tint)">{{ o.label }}<span style="color:var(--accent)">{{ o.check }}</span></button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ popYears }}">
+          <div role="dialog" aria-label="Year range" style="position:absolute;left:{{ yearsLeft }};top:calc(100% + 8px);width:280px;padding:16px;border-radius:14px;background:var(--raised);border:1px solid var(--border);box-shadow:0 12px 40px rgba(30,15,5,.18);display:flex;flex-direction:column;gap:14px">
+            <strong style="font-size:15px;color:var(--text)">Years</strong>
+            <div style="display:flex;align-items:flex-end;gap:10px">
+              <label style="flex:1;display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)">From<span style="display:flex;justify-content:space-between;align-items:center;height:44px;padding:0 12px;border-radius:10px;border:1.5px solid var(--focus);box-shadow:0 0 0 3px color-mix(in oklch, var(--focus) 25%, transparent);background:var(--surface);font-size:16px;font-weight:550;color:var(--text)">2015<span style="color:var(--muted);font-size:12px">▾</span></span></label>
+              <span style="padding-bottom:12px;color:var(--muted)">–</span>
+              <label style="flex:1;display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)">To<span style="display:flex;justify-content:space-between;align-items:center;height:44px;padding:0 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:16px;font-weight:550;color:var(--text)">2020<span style="color:var(--muted);font-size:12px">▾</span></span></label>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:8px">
+              <button style="height:40px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:550 14px/1 var(--sans);cursor:pointer">Any year</button>
+              <button style="height:40px;padding:0 18px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);font:650 14px/1 var(--sans);cursor:pointer">Apply</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{ compact }}">
+      <button style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 4px;border:0;background:none;color:var(--muted);font:550 14px/1 var(--sans);cursor:pointer">{{ compactSummary }}<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+    </sc-if>
+  </div>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:900,&quot;height&quot;:420},&quot;q&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;hvlp sprayer&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;smart&quot;,&quot;exact&quot;],&quot;default&quot;:&quot;smart&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;phone&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;compact&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;years&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;sort&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Relevance&quot;,&quot;Newest&quot;,&quot;Oldest&quot;],&quot;default&quot;:&quot;Relevance&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;popover&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;help&quot;,&quot;sort&quot;,&quot;years&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;focus&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;disabled&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const q = p.q || '';
+    const phone = !!p.phone, compact = !!p.compact;
+    const smart = (p.mode || 'smart') === 'smart';
+    const sort = p.sort || 'Relevance';
+    const years = p.years || '';
+    const pop = p.popover || '';
+    const focus = !!p.focus;
+    const disabled = !!p.disabled;
+    const on = (a) => ({ bg: a ? 'var(--raised)' : 'transparent', sh: a ? '0 1px 2px rgba(40,20,5,.15)' : 'none', fg: a ? 'var(--text)' : 'var(--muted)' });
+    const s = on(smart), e = on(!smart);
+    return {
+      q, hasQ: !!q, noQ: !q,
+      placeholder: phone ? 'Search 625 episodes' : 'Search 625 episodes — tools, joinery, finishes…',
+      showKbd: !phone,
+      showBrand: !compact, showControls: !compact, compact,
+      compactSummary: `${smart ? 'Smart' : 'Exact'} · ${sort} · ${years || 'Any year'}`,
+      shadow: compact ? '0 4px 16px rgba(30,15,5,.10)' : 'none',
+      pad: compact ? '8px 16px 6px' : (phone ? '14px 16px 14px' : '20px 24px 18px'),
+      gap: compact ? '4px' : (phone ? '12px' : '14px'),
+      brandSize: phone ? '17px' : '19px',
+      inputH: compact ? '46px' : (phone ? '50px' : '54px'),
+      inputBg: 'var(--raised)',
+      inputBorder: focus ? 'var(--focus)' : 'var(--border)',
+      inputRing: focus ? '0 0 0 3px color-mix(in oklch, var(--focus) 28%, transparent)' : 'none',
+      btnPadX: phone ? '16px' : '24px',
+      btnBg: disabled ? 'var(--skel)' : 'var(--accent)',
+      btnFg: disabled ? 'var(--muted)' : 'var(--on-accent)',
+      disabled,
+      ctlH: phone ? '44px' : '38px', segH: phone ? '38px' : '32px',
+      smartStr: String(smart), exactStr: String(!smart),
+      smartBg: s.bg, smartShadow: s.sh, smartFg: s.fg,
+      exactBg: e.bg, exactShadow: e.sh, exactFg: e.fg,
+      sort, years, hasYears: !!years, noYears: !years,
+      popHelp: pop === 'help', popSort: pop === 'sort', popYears: pop === 'years',
+      helpStr: String(pop === 'help'),
+      helpBg: pop === 'help' ? 'var(--tint)' : 'var(--raised)',
+      helpBd: pop === 'help' ? 'var(--accent)' : 'var(--border)',
+      sortLeft: phone ? '0' : '150px', yearsLeft: phone ? '0' : '262px',
+      sorts: ['Relevance', 'Newest', 'Oldest'].map(l => ({ label: l, on: String(l === sort), check: l === sort ? '✓' : '', bg: l === sort ? 'var(--tint)' : 'transparent', weight: l === sort ? 650 : 500 })),
+      syntax: [
+        { c: 'hide glue', d: 'both words' },
+        { c: '"hide glue"', d: 'the exact phrase' },
+        { c: 'titebond -hide', d: 'without a word' },
+        { c: 'glue OR epoxy', d: 'either' },
+        { c: 'dovetail*', d: 'words starting with it' },
+        { c: 'year:2015', d: 'that year' },
+        { c: 'after:2019 · before:2012', d: 'later / earlier (excludes the year)' },
+        { c: 'ep:613', d: 'one episode' },
+        { c: 'include:ads', d: 'also search sponsor reads' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

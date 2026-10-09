@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet"><style>body{margin:0;background:#e9e4dc;font-family:system-ui,sans-serif}a{color:#8A4520}a:hover{color:#733818}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<section class="dv-turn" id="t4">
+  <div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Dense results — 10–20 per page</span></div>
+  <div style="max-width:880px;margin:0 0 28px;font:14px/1.6 system-ui,sans-serif;color:#3a332c;display:flex;flex-direction:column;gap:8px">
+    <p style="margin:0"><strong>What changed vs. turns 2–3.</strong> 3-line excerpt at 16px (enough context to judge a meaning match) · clicking the excerpt opens the full passage, the same as More transcript; selecting text with a drag doesn't trigger it · timestamp in a left column on desktop, so times line up down the list · desktop shows platform buttons inline at 30px, phone shows one 44px primary button with the time · other apps, More transcript, Episode page, Report go in <strong>⋯</strong> · several hits in one episode share one header ("2 matches") · related hits fold into one "Show N related passages" row after the keyword hits. About 165px per card on desktop (was ~260) and about 205px on phone (was ~330).</p>
+    <p style="margin:0"><strong>Open item — why is this related?</strong> Smart doesn't say why a related hit matched. Could be worth adding: a short reason on each related card (e.g. "about turbine sprayers"), if the backend can return one. For now the related row explains the group: "Matched on meaning, not the exact words."</p>
+    <p style="margin:0;color:#6b6157">Episode titles, dates and excerpts beyond eps. 71, 171, 608 and 615 are placeholders made up to fill the list.</p>
+  </div>
+  <div class="dv-opts">
+    <sc-for list="{{ denseDesktop }}" as="s" hint-placeholder-count="2">
+      <div class="dv-opt" id="{{ s.id }}">
+        <div class="dv-olabel"><a class="dv-oid" href="#{{ s.id }}">{{ s.id }}</a>{{ s.label }}</div>
+        <sc-if value="{{ s.light }}"><div class="dv-card" style="width:1200px;--bg:#F6F2EC;--surface:#FFFDFA;--raised:#FFFFFF;--text:#2B211A;--muted:#675A4F;--border:#E2D8CB;--accent:#8A4520;--accent-hover:#733818;--on-accent:#FFF8F1;--mark-bg:#F5D58A;--mark-text:#2B211A;--focus:#B3611C;--success:#2E6B3B;--warning:#80570A;--danger:#A3322A;--info:#2D5B7A;--tint:#F3E6DA;--skel:#ECE4D9;--shadow:0 1px 2px rgba(60,40,20,.06),0 4px 14px rgba(60,40,20,.07);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:light"><dc-import name="Screen" dense="{{ true }}" state="{{ s.state }}" related-open="{{ s.rel }}" menu-open="{{ s.menu }}" focus-first="{{ s.focusFirst }}" hint-size="1200px,1800px"></dc-import></div></sc-if>
+        <sc-if value="{{ s.dark }}"><div class="dv-card" style="width:1200px;--bg:#171310;--surface:#211B17;--raised:#2B241E;--text:#F1E9DF;--muted:#B5A697;--border:#3E352D;--accent:#E3A56C;--accent-hover:#EDB884;--on-accent:#1E140C;--mark-bg:#D4A64A;--mark-text:#1E140C;--focus:#F0B47A;--success:#86C493;--warning:#E6BC62;--danger:#F08E80;--info:#8EBADB;--tint:#3A2A1E;--skel:#2E2721;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:dark"><dc-import name="Screen" dense="{{ true }}" state="{{ s.state }}" related-open="{{ s.rel }}" menu-open="{{ s.menu }}" focus-first="{{ s.focusFirst }}" hint-size="1200px,1800px"></dc-import></div></sc-if>
+      </div>
+    </sc-for>
+    <sc-for list="{{ densePhone }}" as="s" hint-placeholder-count="3">
+      <div class="dv-opt" id="{{ s.id }}">
+        <div class="dv-olabel"><a class="dv-oid" href="#{{ s.id }}">{{ s.id }}</a>{{ s.label }}</div>
+        <sc-if value="{{ s.light }}"><div class="dv-card" style="width:390px;border-radius:28px;--bg:#F6F2EC;--surface:#FFFDFA;--raised:#FFFFFF;--text:#2B211A;--muted:#675A4F;--border:#E2D8CB;--accent:#8A4520;--accent-hover:#733818;--on-accent:#FFF8F1;--mark-bg:#F5D58A;--mark-text:#2B211A;--focus:#B3611C;--success:#2E6B3B;--warning:#80570A;--danger:#A3322A;--info:#2D5B7A;--tint:#F3E6DA;--skel:#ECE4D9;--shadow:0 1px 2px rgba(60,40,20,.06),0 4px 14px rgba(60,40,20,.07);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:light"><dc-import name="Screen" dense="{{ true }}" phone="{{ true }}" compact="{{ s.compact }}" state="{{ s.state }}" related-open="{{ s.rel }}" menu-open="{{ s.menu }}" hint-size="390px,2200px"></dc-import></div></sc-if>
+        <sc-if value="{{ s.dark }}"><div class="dv-card" style="width:390px;border-radius:28px;--bg:#171310;--surface:#211B17;--raised:#2B241E;--text:#F1E9DF;--muted:#B5A697;--border:#3E352D;--accent:#E3A56C;--accent-hover:#EDB884;--on-accent:#1E140C;--mark-bg:#D4A64A;--mark-text:#1E140C;--focus:#F0B47A;--success:#86C493;--warning:#E6BC62;--danger:#F08E80;--info:#8EBADB;--tint:#3A2A1E;--skel:#2E2721;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:dark"><dc-import name="Screen" dense="{{ true }}" phone="{{ true }}" compact="{{ s.compact }}" state="{{ s.state }}" related-open="{{ s.rel }}" menu-open="{{ s.menu }}" hint-size="390px,2200px"></dc-import></div></sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <p class="dv-next">Compare with <a class="dv-oid" href="#2a">2a</a> / <a class="dv-oid" href="#3d">3d</a> · Try next: "show related hits inline instead of folded" · "2-line excerpts for Exact only"</p>
+</section>
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Wood Talk Search — design system &amp; UI</span></div>
+  <div style="max-width:880px;margin:0 0 28px;font:14px/1.6 system-ui,sans-serif;color:#3a332c;display:flex;flex-direction:column;gap:8px">
+    <p style="margin:0"><strong>Direction.</strong> Walnut/cherry accent on warm paper neutrals; shellac-amber for highlights. One webfont — Source Serif 4 — reserved for transcript excerpts and big headings, so the spoken words read like text, not UI. Everything else is the system sans. No grain, no imagery.</p>
+    <p style="margin:0"><strong>Hierarchy.</strong> Keyword hits are solid cards with a filled first-platform button. Related hits drop the fill, use a dashed edge, muted excerpt and outlined buttons — clearly secondary but still AA. Everything is CSS custom properties; dark mode swaps only the variables.</p>
+    <p style="margin:0"><strong>Updated to the settled brief (docs/design/BRIEF.md).</strong> Year chip writes <code>year:2015-2020</code> into the box · "+N more nearby" expands the card to ±3 min with folded hits marked and Search this episode · sponsor reads dimmed + labelled in transcripts (no longer a card tag) · footer Send feedback form · no hover preview · Enter has no special meaning on a result.</p>
+    <p style="margin:0;color:#6b6157">The design-system project attached here was empty, so tokens are original. Paragraphs around the hit in the expanded transcript are placeholder speech; all excerpts are from the brief.</p>
+  </div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Colour tokens · contrast measured against bg (or pair)</div>
+      <div class="dv-card" style="width:720px">
+        <div style="display:grid;grid-template-columns:150px 1fr 1fr 150px;font:12px/1.3 system-ui,sans-serif">
+          <div style="padding:12px 16px;font-weight:700;color:#6b6157;border-bottom:1px solid #eee">Token</div>
+          <div style="padding:12px 16px;font-weight:700;color:#6b6157;border-bottom:1px solid #eee">Light</div>
+          <div style="padding:12px 16px;font-weight:700;color:#6b6157;border-bottom:1px solid #eee">Dark</div>
+          <div style="padding:12px 16px;font-weight:700;color:#6b6157;border-bottom:1px solid #eee">Role</div>
+          <sc-for list="{{ colors }}" as="c" hint-placeholder-count="18">
+            <div style="padding:8px 16px;border-bottom:1px solid #f2f2f2;font:600 12px/1.3 ui-monospace,Menlo,monospace;color:#2b211a;display:flex;align-items:center">{{ c.n }}</div>
+            <div style="padding:8px 16px;border-bottom:1px solid #f2f2f2;display:flex;align-items:center;gap:10px"><span style="width:44px;height:28px;border-radius:6px;background:{{ c.lbg }};border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font:700 13px/1 system-ui;color:{{ c.l }}">{{ c.sample }}</span><span style="font-family:ui-monospace,Menlo,monospace;color:#2b211a">{{ c.l }}</span><span style="color:#2E6B3B;font-weight:600">{{ c.lr }}</span></div>
+            <div style="padding:8px 16px;border-bottom:1px solid #f2f2f2;display:flex;align-items:center;gap:10px"><span style="width:44px;height:28px;border-radius:6px;background:{{ c.dbg }};border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font:700 13px/1 system-ui;color:{{ c.d }}">{{ c.sample }}</span><span style="font-family:ui-monospace,Menlo,monospace;color:#2b211a">{{ c.d }}</span><span style="color:#2E6B3B;font-weight:600">{{ c.dr }}</span></div>
+            <div style="padding:8px 16px;border-bottom:1px solid #f2f2f2;color:#6b6157;display:flex;align-items:center">{{ c.role }}</div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Type · spacing · radius · shadow · motion</div>
+      <div class="dv-card" style="width:520px">
+        <div style="--bg:#F6F2EC;--surface:#FFFDFA;--raised:#FFFFFF;--text:#2B211A;--muted:#675A4F;--border:#E2D8CB;--accent:#8A4520;--accent-hover:#733818;--on-accent:#FFF8F1;--mark-bg:#F5D58A;--mark-text:#2B211A;--focus:#B3611C;--success:#2E6B3B;--warning:#80570A;--danger:#A3322A;--info:#2D5B7A;--tint:#F3E6DA;--skel:#ECE4D9;--shadow:0 1px 2px rgba(60,40,20,.06),0 4px 14px rgba(60,40,20,.07);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:light;background:var(--bg);color:var(--text);font-family:var(--sans);padding:24px;display:flex;flex-direction:column;gap:22px">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:grid;grid-template-columns:110px 1fr;gap:4px 12px;align-items:baseline"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">page-title<br>36/28 serif 600</span><span style="font-family:var(--serif);font-size:32px;font-weight:600;line-height:1.15">Find the moment</span></div>
+            <div style="display:grid;grid-template-columns:110px 1fr;gap:4px 12px;align-items:baseline"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">card-title<br>17/16 sans 650</span><span style="font-size:17px;font-weight:650;line-height:1.3"><span style="color:var(--accent)">Ep. 615</span> · Why We Don't Use Metric</span></div>
+            <div style="display:grid;grid-template-columns:110px 1fr;gap:4px 12px;align-items:baseline"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">body / excerpt<br>18/17 serif 1.6</span><span style="font-family:var(--serif);font-size:18px;line-height:1.6"><mark style="background:var(--mark-bg);color:var(--mark-text);border-radius:3px;padding:0 2px">10% off</mark> the stuff that ain't on sale.</span></div>
+            <div style="display:grid;grid-template-columns:110px 1fr;gap:4px 12px;align-items:baseline"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">small<br>14 sans 1.45</span><span style="font-size:14px;color:var(--muted)">Jun 10, 2010 · 625 episodes indexed</span></div>
+            <div style="display:grid;grid-template-columns:110px 1fr;gap:4px 12px;align-items:baseline"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">label<br>13 sans 650 caps</span><span style="font-size:13px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">Try</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">space · 4 8 12 16 24 32 48</span><div style="display:flex;align-items:flex-end;gap:10px"><span style="width:4px;height:4px;background:var(--accent)"></span><span style="width:8px;height:8px;background:var(--accent)"></span><span style="width:12px;height:12px;background:var(--accent)"></span><span style="width:16px;height:16px;background:var(--accent)"></span><span style="width:24px;height:24px;background:var(--accent)"></span><span style="width:32px;height:32px;background:var(--accent)"></span><span style="width:48px;height:48px;background:var(--accent)"></span></div></div>
+          <div style="display:flex;flex-direction:column;gap:8px"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">radius · 6 chip · 10 control · 12 input · 14 card · pill</span><div style="display:flex;gap:10px"><span style="width:48px;height:36px;border-radius:6px;background:var(--tint);border:1px solid var(--border)"></span><span style="width:48px;height:36px;border-radius:10px;background:var(--tint);border:1px solid var(--border)"></span><span style="width:48px;height:36px;border-radius:12px;background:var(--tint);border:1px solid var(--border)"></span><span style="width:48px;height:36px;border-radius:14px;background:var(--tint);border:1px solid var(--border)"></span><span style="width:64px;height:36px;border-radius:999px;background:var(--tint);border:1px solid var(--border)"></span></div></div>
+          <div style="display:flex;flex-direction:column;gap:8px"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">shadow · card / popover</span><div style="display:flex;gap:16px"><span style="width:110px;height:48px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow);border:1px solid var(--border)"></span><span style="width:110px;height:48px;border-radius:14px;background:var(--raised);box-shadow:0 12px 40px rgba(30,15,5,.18);border:1px solid var(--border)"></span></div></div>
+          <div style="display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.5"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">motion</span><span><strong>120ms ease-out</strong> — hover, press, colour</span><span><strong>200ms ease-out</strong> — expand transcript, popovers (fade + 4px rise)</span><span style="color:var(--muted)">prefers-reduced-motion: all durations → 0, no rise</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.5"><span style="font:600 11px ui-monospace,Menlo,monospace;color:var(--muted)">focus</span><span>3px solid <code>--focus</code>, 2–3px offset, on every interactive element (≥3:1 vs bg).</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Components · light</div>
+      <div class="dv-card" style="width:1120px;--bg:#F6F2EC;--surface:#FFFDFA;--raised:#FFFFFF;--text:#2B211A;--muted:#675A4F;--border:#E2D8CB;--accent:#8A4520;--accent-hover:#733818;--on-accent:#FFF8F1;--mark-bg:#F5D58A;--mark-text:#2B211A;--focus:#B3611C;--success:#2E6B3B;--warning:#80570A;--danger:#A3322A;--info:#2D5B7A;--tint:#F3E6DA;--skel:#ECE4D9;--shadow:0 1px 2px rgba(60,40,20,.06),0 4px 14px rgba(60,40,20,.07);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:light"><dc-import name="Components" hint-size="1120px,1600px"></dc-import></div>
+    </div>
+    <div class="dv-opt" id="1d">
+      <div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Components · dark</div>
+      <div class="dv-card" style="width:1120px;--bg:#171310;--surface:#211B17;--raised:#2B241E;--text:#F1E9DF;--muted:#B5A697;--border:#3E352D;--accent:#E3A56C;--accent-hover:#EDB884;--on-accent:#1E140C;--mark-bg:#D4A64A;--mark-text:#1E140C;--focus:#F0B47A;--success:#86C493;--warning:#E6BC62;--danger:#F08E80;--info:#8EBADB;--tint:#3A2A1E;--skel:#2E2721;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:dark"><dc-import name="Components" hint-size="1120px,1600px"></dc-import></div>
+    </div>
+  </div>
+  <p class="dv-next">Try next: "warmer accent — more cherry, less walnut" · "make related hits even quieter" · "try a serif for card titles too"</p>
+</section>
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Desktop — 1200px, 760px results column</span></div>
+  <div class="dv-opts">
+    <sc-for list="{{ desktop }}" as="s" hint-placeholder-count="2">
+      <div class="dv-opt" id="{{ s.id }}">
+        <div class="dv-olabel"><a class="dv-oid" href="#{{ s.id }}">{{ s.id }}</a>{{ s.label }}</div>
+        <sc-if value="{{ s.light }}"><div class="dv-card" style="width:1200px;--bg:#F6F2EC;--surface:#FFFDFA;--raised:#FFFFFF;--text:#2B211A;--muted:#675A4F;--border:#E2D8CB;--accent:#8A4520;--accent-hover:#733818;--on-accent:#FFF8F1;--mark-bg:#F5D58A;--mark-text:#2B211A;--focus:#B3611C;--success:#2E6B3B;--warning:#80570A;--danger:#A3322A;--info:#2D5B7A;--tint:#F3E6DA;--skel:#ECE4D9;--shadow:0 1px 2px rgba(60,40,20,.06),0 4px 14px rgba(60,40,20,.07);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:light"><dc-import name="Screen" state="{{ s.state }}" popover="{{ s.popover }}" years="{{ s.years }}" sort="{{ s.sort }}" hint-size="1200px,900px"></dc-import></div></sc-if>
+        <sc-if value="{{ s.dark }}"><div class="dv-card" style="width:1200px;--bg:#171310;--surface:#211B17;--raised:#2B241E;--text:#F1E9DF;--muted:#B5A697;--border:#3E352D;--accent:#E3A56C;--accent-hover:#EDB884;--on-accent:#1E140C;--mark-bg:#D4A64A;--mark-text:#1E140C;--focus:#F0B47A;--success:#86C493;--warning:#E6BC62;--danger:#F08E80;--info:#8EBADB;--tint:#3A2A1E;--skel:#2E2721;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:dark"><dc-import name="Screen" state="{{ s.state }}" popover="{{ s.popover }}" years="{{ s.years }}" sort="{{ s.sort }}" hint-size="1200px,900px"></dc-import></div></sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <p class="dv-next">Try next: "denser desktop cards" · "quieter nearby-match tint on <a class="dv-oid" href="#2i">2i</a>"</p>
+</section>
+<section class="dv-turn" id="t3">
+  <div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Phone — 390px, every state</span></div>
+  <div class="dv-opts">
+    <sc-for list="{{ phone }}" as="s" hint-placeholder-count="4">
+      <div class="dv-opt" id="{{ s.id }}">
+        <div class="dv-olabel"><a class="dv-oid" href="#{{ s.id }}">{{ s.id }}</a>{{ s.label }}</div>
+        <sc-if value="{{ s.light }}"><div class="dv-card" style="width:390px;border-radius:28px;--bg:#F6F2EC;--surface:#FFFDFA;--raised:#FFFFFF;--text:#2B211A;--muted:#675A4F;--border:#E2D8CB;--accent:#8A4520;--accent-hover:#733818;--on-accent:#FFF8F1;--mark-bg:#F5D58A;--mark-text:#2B211A;--focus:#B3611C;--success:#2E6B3B;--warning:#80570A;--danger:#A3322A;--info:#2D5B7A;--tint:#F3E6DA;--skel:#ECE4D9;--shadow:0 1px 2px rgba(60,40,20,.06),0 4px 14px rgba(60,40,20,.07);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:light"><dc-import name="Screen" phone="{{ true }}" state="{{ s.state }}" compact="{{ s.compact }}" popover="{{ s.popover }}" years="{{ s.years }}" hint-size="390px,844px"></dc-import></div></sc-if>
+        <sc-if value="{{ s.dark }}"><div class="dv-card" style="width:390px;border-radius:28px;--bg:#171310;--surface:#211B17;--raised:#2B241E;--text:#F1E9DF;--muted:#B5A697;--border:#3E352D;--accent:#E3A56C;--accent-hover:#EDB884;--on-accent:#1E140C;--mark-bg:#D4A64A;--mark-text:#1E140C;--focus:#F0B47A;--success:#86C493;--warning:#E6BC62;--danger:#F08E80;--info:#8EBADB;--tint:#3A2A1E;--skel:#2E2721;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);--sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--serif:'Source Serif 4',Georgia,serif;color-scheme:dark"><dc-import name="Screen" phone="{{ true }}" state="{{ s.state }}" compact="{{ s.compact }}" popover="{{ s.popover }}" years="{{ s.years }}" hint-size="390px,844px"></dc-import></div></sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <p class="dv-next">Try next: "a bottom-sheet for filters on phone" · "sticky play bar after tapping a platform"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  lum(hex) {
+    const n = hex.replace('#', '');
+    const c = [0, 2, 4].map(i => parseInt(n.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  ratio(a, b) {
+    const x = this.lum(a), y = this.lum(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+  renderVals() {
+    const L = { bg: '#F6F2EC', surface: '#FFFDFA', raised: '#FFFFFF', text: '#2B211A', muted: '#675A4F', border: '#E2D8CB', accent: '#8A4520', 'accent-hover': '#733818', 'on-accent': '#FFF8F1', 'mark-bg': '#F5D58A', 'mark-text': '#2B211A', focus: '#B3611C', success: '#2E6B3B', warning: '#80570A', danger: '#A3322A', info: '#2D5B7A', tint: '#F3E6DA', skel: '#ECE4D9' };
+    const D = { bg: '#171310', surface: '#211B17', raised: '#2B241E', text: '#F1E9DF', muted: '#B5A697', border: '#3E352D', accent: '#E3A56C', 'accent-hover': '#EDB884', 'on-accent': '#1E140C', 'mark-bg': '#D4A64A', 'mark-text': '#1E140C', focus: '#F0B47A', success: '#86C493', warning: '#E6BC62', danger: '#F08E80', info: '#8EBADB', tint: '#3A2A1E', skel: '#2E2721' };
+    const roles = {
+      bg: ['Page background'], surface: ['Card'], raised: ['Inputs, menus, buttons'], text: ['Body text', 'bg'], muted: ['Secondary + disabled text', 'skel'],
+      border: ['Hairlines'], accent: ['Links, primary, ep. no.', 'bg'], 'accent-hover': ['Hover/active'], 'on-accent': ['Text on accent', 'accent'],
+      'mark-bg': ['<mark> fill'], 'mark-text': ['<mark> text', 'mark-bg'], focus: ['Focus ring (3:1)', 'bg'], success: ['Sent', 'bg'], warning: ['Rate limit, maint.', 'bg'],
+      danger: ['Errors', 'bg'], info: ['Degraded, truncation', 'bg'], tint: ['Chip & hit fills'], skel: ['Skeleton, disabled fill']
+    };
+    const colorsOut = Object.keys(L).map(k => {
+      const [role, against] = roles[k];
+      return {
+        n: `--${k}`, role, l: L[k], d: D[k],
+        lbg: against ? L[against] : L[k], dbg: against ? D[against] : D[k],
+        sample: against ? 'Aa' : '',
+        lr: against ? this.ratio(L[k], L[against]).toFixed(1) + ':1' : '',
+        dr: against ? this.ratio(D[k], D[against]).toFixed(1) + ':1' : ''
+      };
+    });
+    const desktop = [
+      { id: '2a', label: 'Smart results · light — keyword hit, then related', state: 'smart', light: true },
+      { id: '2b', label: 'Smart results · dark — first result keyboard-focused (↑↓ / j k)', state: 'focused', dark: true },
+      { id: '2c', label: 'Before any search · light — input focused', state: 'empty', light: true },
+      { id: '2d', label: 'Exact · syntax help open · years set (synced into the box as year:2015-2020)', state: 'exact', popover: 'help', years: '2015–2020', light: true },
+      { id: '2e', label: 'More transcript (±90s) · dark — sponsor read dimmed', state: 'expanded', dark: true },
+      { id: '2i', label: '+3 more nearby (±3 min) · light — folded hits marked, Search this episode', state: 'nearby', light: true },
+      { id: '2j', label: 'Footer · Send feedback form open · dark', state: 'feedback', dark: true },
+      { id: '2f', label: 'Report form open · light', state: 'report-open', light: true },
+      { id: '2g', label: 'Sort menu open · Exact truncated, last page', state: 'truncated', popover: 'sort', sort: 'Newest', light: true },
+      { id: '2h', label: 'Year picker open · dark', state: 'smart', popover: 'years', dark: true }
+    ];
+    const ph = (id, label, state, dark, x) => Object.assign({ id, label, state, light: !dark, dark: !!dark, compact: false, popover: '', years: '' }, x || {});
+    const phone = [
+      ph('3a', 'Before search', 'empty'),
+      ph('3b', 'Before search · dark', 'empty', true),
+      ph('3c', 'Loading', 'loading'),
+      ph('3d', 'Smart results', 'smart'),
+      ph('3e', 'Smart results · dark', 'smart', true),
+      ph('3f', 'Scrolled — header compacted', 'smart', false, { compact: true }),
+      ph('3g', 'Only related hits', 'related'),
+      ph('3h', 'No results', 'none'),
+      ph('3i', 'Exact', 'exact'),
+      ph('3j', 'Exact, truncated · dark', 'truncated', true),
+      ph('3k', 'Smart degraded — unavailable', 'degraded'),
+      ph('3l', 'Smart degraded — paused · dark', 'paused', true),
+      ph('3m', 'Maintenance', 'maintenance'),
+      ph('3n', 'Rate limited', 'ratelimited'),
+      ph('3o', 'Error · dark', 'error', true),
+      ph('3p', 'More transcript', 'expanded'),
+      ph('3q', 'Report · sending', 'report-sending', false, { compact: true }),
+      ph('3r', 'Report · sent · dark', 'report-sent', true, { compact: true }),
+      ph('3s', 'Report · error (kept text)', 'report-error', false, { compact: true }),
+      ph('3t', 'Syntax help', 'smart', false, { popover: 'help' }),
+      ph('3u', '+3 more nearby · dark', 'nearby', true),
+      ph('3v', 'Years set → synced into query', 'smart', false, { years: '2015–2020' }),
+      ph('3w', 'Send feedback · open', 'feedback'),
+      ph('3x', 'Send feedback · sent · dark', 'feedback-sent', true)
+    ];
+    const dd = (id, label, state, dark, x) => Object.assign({ id, label, state, light: !dark, dark: !!dark, rel: false, menu: false, focusFirst: false, compact: false }, x || {});
+    const denseDesktop = [
+      dd('4a', 'Desktop · Smart, 10 episodes / 11 hits, related folded · first result keyboard-focused', 'smart', false, { focusFirst: true }),
+      dd('4b', 'Desktop · Exact, 20 per page · dark · ⋯ menu open', 'exact', true, { menu: true })
+    ];
+    const densePhone = [
+      dd('4c', 'Phone · Smart, related folded', 'smart'),
+      dd('4d', 'Phone · ⋯ menu open (other apps live here) · related shown · dark', 'smart', true, { menu: true, rel: true }),
+      dd('4e', 'Phone · Exact, scrolled (compact header)', 'exact', false, { compact: true })
+    ];
+    return { colors: colorsOut, desktop, phone, denseDesktop, densePhone };
+  }
+}
+</script>
+</body>
+</html>

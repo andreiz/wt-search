@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="background:var(--bg);color:var(--text);font-family:var(--sans);min-height:{{ minH }};display:flex;flex-direction:column">
+  <sc-if value="{{ maintenance }}">
+    <div role="alert" style="background:var(--warning);color:var(--bg);padding:12px 20px;font-size:15px;font-weight:600;line-height:1.4;text-align:center">Search is down for maintenance. Please try again later.</div>
+  </sc-if>
+  <dc-import name="SearchHeader" q="{{ q }}" mode="{{ mode }}" phone="{{ phone }}" compact="{{ compact }}" years="{{ years }}" sort="{{ sort }}" popover="{{ popover }}" focus="{{ focus }}" disabled="{{ searchDisabled }}" hint-size="100%,150px"></dc-import>
+  <main style="flex:1;width:100%;max-width:760px;box-sizing:border-box;margin:0 auto;padding:{{ mainPad }};display:flex;flex-direction:column;gap:14px">
+    <sc-if value="{{ hasSummary }}">
+      <p aria-live="polite" style="margin:0;font-size:14px;color:var(--muted)"><sc-if value="{{ summaryStrong }}"><strong style="color:var(--text);font-weight:700">{{ summaryStrong }}</strong></sc-if>{{ summaryRest }}</p>
+    </sc-if>
+    <sc-if value="{{ hasNoticeTop }}">
+      <div role="{{ noticeTop.role }}" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:10px;background:color-mix(in oklch, {{ noticeTop.tone }} 9%, var(--surface));border:1px solid color-mix(in oklch, {{ noticeTop.tone }} 32%, transparent);font-size:15px;line-height:1.45;color:var(--text)">
+        <span aria-hidden="true" style="flex:none;width:20px;height:20px;border-radius:999px;background:{{ noticeTop.tone }};color:var(--surface);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center">{{ noticeTop.icon }}</span>
+        <span style="flex:1;min-width:180px">{{ noticeTop.text }}</span>
+        <sc-if value="{{ noticeTop.countdown }}"><span style="font-variant-numeric:tabular-nums;font-weight:700;color:var(--warning)">{{ noticeTop.countdown }}</span></sc-if>
+        <sc-if value="{{ noticeTop.retry }}"><button style="min-height:40px;padding:0 16px;border-radius:10px;border:1.5px solid var(--border);background:var(--raised);color:var(--text);font:650 14px/1 var(--sans);cursor:pointer">Retry</button></sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{ relatedIntro }}">
+      <p style="margin:4px 0 0;font-size:15px;color:var(--muted)">No exact matches — passages about similar things:</p>
+    </sc-if>
+    <sc-if value="{{ empty }}">
+      <section style="padding:{{ emptyPad }};display:flex;flex-direction:column;gap:18px">
+        <h1 style="margin:0;font-family:var(--serif);font-size:{{ h1 }};font-weight:600;line-height:1.15;letter-spacing:-0.01em;color:var(--text);text-wrap:balance">Find the moment it was said.</h1>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:13px;font-weight:650;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted)">Try</span>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{ examples }}" as="ex" hint-placeholder-count="3">
+              <a href="#" style="display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:16px;font-weight:550;text-decoration:none;transition:border-color .12s ease-out" style-hover="border-color:var(--accent);color:var(--accent)">{{ ex }}</a>
+            </sc-for>
+          </div>
+        </div>
+        <p style="margin:0;font-size:14px;color:var(--muted)">625 episodes indexed through Sep 17, 2026</p>
+      </section>
+    </sc-if>
+    <sc-if value="{{ loading }}">
+      <ol aria-busy="true" aria-label="Loading results" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ skeletons }}" as="sk" hint-placeholder-count="3">
+          <li style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px">
+            <div style="height:16px;width:{{ sk.w }};border-radius:6px;background:var(--skel)"></div>
+            <div style="height:12px;width:40%;border-radius:6px;background:var(--skel)"></div>
+            <div style="display:flex;flex-direction:column;gap:9px;padding-top:4px"><div style="height:14px;border-radius:6px;background:var(--skel)"></div><div style="height:14px;border-radius:6px;background:var(--skel)"></div><div style="height:14px;width:70%;border-radius:6px;background:var(--skel)"></div></div>
+            <div style="display:flex;gap:8px;padding-top:4px"><div style="height:40px;width:118px;border-radius:999px;background:var(--skel)"></div><div style="height:40px;width:100px;border-radius:999px;background:var(--skel)"></div></div>
+          </li>
+        </sc-for>
+      </ol>
+    </sc-if>
+    <sc-if value="{{ none }}">
+      <section style="padding:24px 0 8px;display:flex;flex-direction:column;gap:12px">
+        <h2 style="margin:0;font-family:var(--serif);font-size:26px;font-weight:600;color:var(--text)">Nothing found.</h2>
+        <p style="margin:0;font-size:16px;color:var(--muted)">Try one of these:</p>
+        <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;font-size:16px;line-height:1.45">
+          <li style="display:flex;gap:10px;align-items:baseline"><span style="color:var(--accent)">→</span><span><button style="padding:0;border:0;background:none;color:var(--accent);font:650 16px/1.45 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer">Switch to Smart</button> — it matches meaning, not just words</span></li>
+          <li style="display:flex;gap:10px;align-items:baseline"><span style="color:var(--accent)">→</span><span>Use fewer words, or loosen the years</span></li>
+          <li style="display:flex;gap:10px;align-items:baseline"><span style="color:var(--accent)">→</span><span>Add <code style="font:500 14px/1.4 ui-monospace,Menlo,monospace;color:var(--accent);background:var(--tint);padding:1px 6px;border-radius:5px">include:ads</code> to search sponsor reads</span></li>
+        </ul>
+      </section>
+    </sc-if>
+    <sc-if value="{{ hasCards }}">
+      <ol aria-label="Results" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="2">
+          <li><dc-import name="ResultCard" card="{{ c.card }}" view="{{ c.view }}" report="{{ c.report }}" phone="{{ phone }}" focused="{{ c.focused }}" hint-size="100%,240px"></dc-import></li>
+        </sc-for>
+      </ol>
+    </sc-if>
+    <sc-if value="{{ hasDense }}">
+      <ol aria-label="Results" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px">
+        <sc-for list="{{ dense }}" as="d" hint-placeholder-count="6">
+          <li><dc-import name="DenseResult" card="{{ d.card }}" phone="{{ phone }}" menu-open="{{ d.menu }}" focused="{{ d.focused }}" hint-size="100%,140px"></dc-import></li>
+        </sc-for>
+      </ol>
+      <sc-if value="{{ relatedCollapsed }}">
+        <button aria-expanded="false" style="display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:8px 16px;border-radius:12px;border:1px dashed color-mix(in oklch, var(--border) 100%, var(--muted) 25%);background:transparent;color:var(--text);font-family:var(--sans);text-align:left;cursor:pointer" style-hover="border-color:var(--accent)">
+          <span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:650">Show {{ relCount }} related passages</span><span style="font-size:13px;color:var(--muted)">Matched on meaning, not the exact words</span></span>
+          <svg width="12" height="12" viewBox="0 0 10 10" aria-hidden="true" style="color:var(--muted)"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>
+        </button>
+      </sc-if>
+      <sc-if value="{{ relatedOpen }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 2px 0">
+          <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:650;color:var(--text)">Related passages</span><span style="font-size:13px;color:var(--muted)">Matched on meaning, not the exact words</span></span>
+          <button aria-expanded="true" style="min-height:44px;padding:0 8px;border:0;background:none;color:var(--accent);font:600 14px/1 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer">Hide</button>
+        </div>
+        <ol aria-label="Related results" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ related }}" as="r" hint-placeholder-count="3">
+            <li><dc-import name="DenseResult" card="{{ r.card }}" phone="{{ phone }}" hint-size="100%,140px"></dc-import></li>
+          </sc-for>
+        </ol>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{ hasNoticeBottom }}">
+      <div role="status" style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;background:color-mix(in oklch, var(--info) 9%, var(--surface));border:1px solid color-mix(in oklch, var(--info) 32%, transparent);font-size:15px;line-height:1.45;color:var(--text)"><span aria-hidden="true" style="flex:none;margin-top:1px;width:20px;height:20px;border-radius:999px;background:var(--info);color:var(--surface);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center">i</span><span>Showing the best 200 of 1,000+ matches — add words, a "phrase" or a year to narrow it.</span></div>
+    </sc-if>
+    <sc-if value="{{ hasPager }}">
+      <nav aria-label="Pages" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;padding:8px 0">
+        <button disabled="{{ prevDisabled }}" style="min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:{{ prevBg }};color:{{ prevFg }};font:600 15px/1 var(--sans);cursor:pointer">← Previous</button>
+        <sc-for list="{{ pages }}" as="pg" hint-placeholder-count="0">
+          <button aria-current="{{ pg.cur }}" style="min-width:{{ pageW }};min-height:44px;padding:0 4px;border-radius:10px;border:1px solid {{ pg.bd }};background:{{ pg.bg }};color:{{ pg.fg }};font:650 15px/1 var(--sans);font-variant-numeric:tabular-nums;cursor:pointer">{{ pg.n }}</button>
+        </sc-for>
+        <button disabled="{{ nextDisabled }}" style="min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:{{ nextBg }};color:{{ nextFg }};font:600 15px/1 var(--sans);cursor:pointer">Next →</button>
+      </nav>
+    </sc-if>
+  </main>
+  <footer style="border-top:1px solid var(--border);margin-top:24px">
+    <div style="max-width:760px;box-sizing:border-box;margin:0 auto;padding:{{ footPad }};display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.5;color:var(--muted)">
+      <p style="margin:0"><strong style="color:var(--text);font-weight:650">Unofficial</strong> · made with the hosts' blessing</p>
+      <nav style="display:flex;flex-wrap:wrap;gap:4px 16px">
+        <a href="#" style="color:var(--accent);padding:4px 0">Wood Talk on YouTube</a>
+        <a href="#" style="color:var(--accent);padding:4px 0">Podcast</a>
+        <a href="#" style="color:var(--accent);padding:4px 0">Website</a>
+        <sc-if value="{{ feedbackClosed }}" hint-placeholder-val="{{ true }}"><button aria-expanded="false" style="padding:4px 0;border:0;background:none;color:var(--accent);font:inherit;text-decoration:underline;cursor:pointer">Send feedback</button></sc-if>
+      </nav>
+      <sc-if value="{{ feedbackOpen }}">
+        <div role="form" aria-label="Send feedback" style="margin:6px 0;padding:16px;border-radius:14px;background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <h4 style="margin:0;font-size:16px;font-weight:650;color:var(--text)">Send feedback</h4>
+            <button aria-label="Close feedback form" style="width:36px;height:36px;border-radius:8px;border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer">×</button>
+          </div>
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;color:var(--text)"><span>Message</span><span style="font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums">88 / 1000</span></span>
+            <div style="min-height:88px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--focus);box-shadow:0 0 0 3px color-mix(in oklch, var(--focus) 25%, transparent);background:var(--raised);font-size:15px;line-height:1.5;color:var(--text)">Searched "milk paint" and got nothing, but I'm sure they talked about it around episode 300.</div>
+            <span style="font-size:13px;color:var(--muted)">Search didn't find something? Have an idea? Tell us.</span>
+          </label>
+          <div style="width:300px;max-width:100%;height:65px;border-radius:8px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;font:500 12px/1 ui-monospace,Menlo,monospace;color:var(--muted)">Turnstile · 300×65 (often invisible)</div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button style="min-height:44px;padding:0 22px;border-radius:10px;border:0;background:var(--accent);color:var(--on-accent);font:650 15px/1 var(--sans);cursor:pointer">Send</button>
+            <button style="min-height:44px;padding:0 14px;border-radius:10px;border:0;background:transparent;color:var(--muted);font:550 15px/1 var(--sans);cursor:pointer">Cancel</button>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ feedbackSent }}">
+        <div role="status" style="margin:6px 0;display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;background:color-mix(in oklch, var(--success) 10%, var(--surface));border:1px solid color-mix(in oklch, var(--success) 35%, transparent);color:var(--text);font-size:15px;line-height:1.45"><span style="color:var(--success);font-weight:700">✓</span><span>Thanks — we read every message.</span></div>
+      </sc-if>
+      <p style="margin:0">Searches are logged anonymously to improve results.</p>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:900},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;empty&quot;,&quot;loading&quot;,&quot;smart&quot;,&quot;focused&quot;,&quot;related&quot;,&quot;none&quot;,&quot;exact&quot;,&quot;truncated&quot;,&quot;degraded&quot;,&quot;paused&quot;,&quot;maintenance&quot;,&quot;ratelimited&quot;,&quot;error&quot;,&quot;expanded&quot;,&quot;nearby&quot;,&quot;report-open&quot;,&quot;report-sending&quot;,&quot;report-sent&quot;,&quot;report-error&quot;,&quot;feedback&quot;,&quot;feedback-sent&quot;],&quot;default&quot;:&quot;smart&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dense&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;relatedOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;focusFirst&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;phone&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;compact&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;years&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;sort&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Relevance&quot;,&quot;Newest&quot;,&quot;Oldest&quot;],&quot;default&quot;:&quot;Relevance&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;popover&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;help&quot;,&quot;sort&quot;,&quot;years&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;focus&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const C71 = {
+  ep: 71, title: 'Welcome to the Three-Way', date: 'Jun 10, 2010', ts: '1:09:51', playAt: '1:09:44', kind: 'keyword', platforms: ['Spotify'], more: 3,
+  segs: ['All right, the great folks over at Highland Woodworking, they have the Earlex HV2900 ', { m: 'HVLP' }, ' ', { m: 'sprayer' }, '. When you purchase it at the sale price of $149.99, they will throw in a free copy of Jeff Jewitt\'s spray finishing made simple book and DVD. Nice. When I was out there, they had that same special. Oh, did they really? Yeah, but that Earlex unit is another one of the little guys.'],
+  paras: [
+    { ts: '1:07:05', wide: true, fold: true, segs: ['And the question was whether an ', { m: 'HVLP' }, ' setup is worth it if you only finish a few pieces a year. Honestly? For most people, a good wipe-on gets you there.'] },
+    { ts: '1:08:24', text: 'So that\'s the listener questions for this week. Keep them coming — we read every one, even the ones we don\'t get to on the show.' },
+    { ts: '1:09:12', ad: true, text: 'Before we wrap up, a quick word from the folks who keep the lights on. And this one actually ties into what we were saying about finishing earlier.' },
+    { ts: '1:09:51', hit: true },
+    { ts: '1:10:39', fold: true, segs: ['It\'s a turbine ', { m: 'sprayer' }, ', so it\'s not tying up your compressor. If you just want to try spraying without a big investment, that\'s not a bad way in.'] },
+    { ts: '1:11:48', wide: true, fold: true, segs: ['Thin it a little more than you think you need to, and the ', { m: 'HVLP' }, ' will lay it down nice and flat.'] },
+    { ts: '1:12:30', wide: true, text: 'All right, that\'s going to do it for us this week. Thanks for listening, everybody.' }
+  ]
+};
+const C608 = {
+  ep: 608, title: 'Kreg Edge Discussion and The Best Trade Show You\'ll Never Go To', date: 'May 29, 2026', ts: '19:26', playAt: '19:19', kind: 'related', platforms: ['YouTube', 'Apple', 'Spotify'], more: 1,
+  segs: ['The turbine sprayers are just vacuum cleaners going the other way. Okay. All right. Well, that was awesome. Good luck with that. We stopped by the Old Masters booth. That\'s a finishing company. We watched both Matt and Shannon try their best to create bow wood grain.']
+};
+const C615 = {
+  ep: 615, title: 'Why We Don\'t Use Metric', date: 'Sep 17, 2026', ts: '1:02', playAt: '0:55', kind: 'keyword', platforms: ['YouTube', 'Apple', 'Spotify'],
+  segs: ['There\'s something about regularly priced merchandise that does not roll off the tongue. ', { m: '10%' }, ' ', { m: 'off' }, ' the stuff that you don\'t really want? ', { m: '10%' }, ' ', { m: 'off' }, ' the stuff that ain\'t on sale. How about that? Can\'t be combined with other offers. Exclusions apply.']
+};
+const C171 = {
+  ep: 171, title: 'Mind the Neck Divot!', date: 'Feb 25, 2014', ts: '59:39', playAt: '59:32', kind: 'related', platforms: ['Spotify'],
+  segs: ['Essentially, the spline method is almost like a loose tenon in some respects. But, you know, miter half laps, that\'s another one. There are probably more ways than I could think of to strengthen a miter.']
+};
+const C71K = Object.assign({}, C71, { more: 0 });
+
+const ALL = ['YouTube', 'Apple', 'Spotify'];
+const K = (ep, title, date, platforms, hits, kind) => ({ ep, title, date, platforms, hits, kind: kind || 'keyword' });
+const H = (ts, playAt, segs, more) => ({ ts, playAt, segs, more });
+const DENSE_KW = [
+  K(71, 'Welcome to the Three-Way', 'Jun 10, 2010', ['Spotify'], [H('1:09:51', '1:09:44', C71.segs, 3)]),
+  K(612, 'Finishing Season', 'Jul 16, 2026', ALL, [
+    H('14:22', '14:15', ['I finally pulled the ', { m: 'HVLP' }, ' out for the cabinet doors and, man, it\'s a different world. Thin coats, no brush marks, done before lunch.']),
+    H('41:07', '41:00', ['If you\'re spraying waterborne, clean the ', { m: 'sprayer' }, ' right away. Don\'t let it sit overnight — ask me how I know.'])
+  ]),
+  K(588, 'Shop Air and Other Lies', 'Jan 22, 2026', ALL, [H('52:10', '52:03', ['People ask if they need a giant compressor to run a ', { m: 'sprayer' }, '. Not with a turbine ', { m: 'HVLP' }, '. That\'s the whole point of it.'])]),
+  K(540, 'Listener Mailbag', 'Feb 6, 2025', ALL, [H('1:03:44', '1:03:37', ['Sean writes in: what tip size for lacquer in an ', { m: 'HVLP' }, ' gun? Start with a 1.3 and go from there, and strain everything.'], 1)]),
+  K(497, 'The Dust Collection Episode', 'Apr 11, 2024', ['YouTube', 'Spotify'], [H('27:30', '27:23', ['I bought a cheap ', { m: 'sprayer' }, ' from the big box store years ago, and it spit more than it sprayed. Went right back.'])]),
+  K(455, 'Shellac Is Not Scary', 'Jun 1, 2023', ALL, [H('38:05', '37:58', ['You can absolutely shoot shellac through an ', { m: 'HVLP' }, '. Cut it to a pound and a half and it goes on like glass.'])]),
+  K(402, 'Building the Booth', 'Mar 3, 2022', ['Apple', 'Spotify'], [H('1:15:20', '1:15:13', ['The box fan with the furnace filter — that\'s my spray booth. Don\'t laugh, the ', { m: 'HVLP' }, ' overspray is so low it works.'])]),
+  K(318, 'Gift Season Panic', 'Nov 14, 2019', ['Spotify'], [H('46:51', '46:44', ['A ', { m: 'sprayer' }, ' is not going to fix bad sanding. It just shows it off faster.'])]),
+  K(211, 'Wipe On, Wipe Off', 'Aug 4, 2015', ['Spotify'], [H('33:12', '33:05', ['I\'m still a wipe-on guy. I\'ve got an ', { m: 'HVLP' }, ' under the bench I\'ve used maybe four times.'])]),
+  K(96, 'Ask the Guys', 'Dec 2, 2010', ['Spotify'], [H('58:40', '58:33', ['The ', { m: 'HVLP' }, ' thing came up again on the forum this week, so let\'s settle it once and for all.'])])
+];
+const DENSE_REL = [
+  K(608, C608.title, C608.date, ALL, [H('19:26', '19:19', C608.segs)], 'related'),
+  K(171, C171.title, C171.date, ['Spotify'], [H('59:39', '59:32', C171.segs)], 'related'),
+  K(520, 'Finishing Without Fear', 'Sep 26, 2024', ALL, [H('22:48', '22:41', ['Spray guns are great, but a good brush and a little patience will get you ninety percent of the way there.'])], 'related')
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const S = p.state || 'smart';
+    const phone = !!p.phone;
+    const card = (c, extra) => Object.assign({ card: c, view: 'default', report: 'open', focused: false }, extra || {});
+    let v = { q: 'hvlp sprayer', mode: 'smart', summary: ['', 'Smart search'], cards: [card(C71), card(C608)], pager: 'smart' };
+    const notice = (tone, icon, text, x) => Object.assign({ tone: `var(--${tone})`, icon, text, role: tone === 'info' ? 'status' : 'alert', countdown: '', retry: false }, x || {});
+    switch (S) {
+      case 'empty': v = { q: '', empty: true }; break;
+      case 'maintenance': v = { q: '', empty: true, maintenance: true, searchDisabled: true }; break;
+      case 'loading': v = { q: 'hvlp sprayer', summary: ['', 'Smart search'], loading: true }; break;
+      case 'focused': v.cards = [card(C71, { focused: true }), card(C608)]; break;
+      case 'related': v = { q: 'how do I flatten a workbench top', summary: ['', 'Smart search'], relatedIntro: true, cards: [card(C171)], pager: 'smart-end' }; break;
+      case 'none': v = { q: 'festool domino jig year:2008', mode: 'exact', summary: ['0 matches', ''], none: true }; break;
+      case 'exact': v = { q: '10% off', mode: 'exact', summary: ['318 matches', ''], cards: [card(C615)], pager: 'exact' }; break;
+      case 'truncated': v = { q: 'glue', mode: 'exact', summary: ['1,000+ matches', ' · page 10'], cards: [card(C615)], pager: 'exact-last', noticeBottom: true }; break;
+      case 'degraded': v = { q: 'hvlp sprayer', summary: ['', 'Smart search'], noticeTop: notice('info', 'i', 'Meaning search is unavailable right now; these are keyword matches.'), cards: [card(C71)], pager: 'smart' }; break;
+      case 'paused': v = { q: 'hvlp sprayer', summary: ['', 'Smart search'], noticeTop: notice('info', 'i', 'Meaning search is paused; these are keyword matches.'), cards: [card(C71)], pager: 'smart' }; break;
+      case 'ratelimited': v = { q: 'hvlp sprayer', summary: null, searchDisabled: true, noticeTop: notice('warning', '!', 'Too many searches from here; try again in a minute.', { countdown: '0:42' }) }; break;
+      case 'error': v = { q: 'hvlp sprayer', summary: null, noticeTop: notice('danger', '!', 'Something went wrong.', { retry: true }) }; break;
+      case 'expanded': v.cards = [card(C71, { view: 'expanded' }), card(C608)]; break;
+      case 'nearby': v.cards = [card(C71, { view: 'nearby' }), card(C608)]; break;
+      case 'feedback': case 'feedback-sent': v.feedback = S === 'feedback' ? 'open' : 'sent'; break;
+      case 'report-open': case 'report-sending': case 'report-sent': case 'report-error':
+        v.cards = [card(C71, { view: 'report', report: S.slice(7) }), card(C608)]; break;
+    }
+    let dense = null, relState = '';
+    if (p.dense) {
+      const exact = S === 'exact';
+      v = exact
+        ? { q: 'hvlp OR sprayer', mode: 'exact', summary: ['212 matches', ' · 20 per page'], pager: 'exact' }
+        : { q: 'hvlp sprayer', mode: 'smart', summary: ['', 'Smart search'], pager: 'smart' };
+      dense = DENSE_KW.map((c, i) => ({ card: c, menu: !!p.menuOpen && i === 0, focused: !!p.focusFirst && i === 0 }));
+      relState = exact ? '' : (p.relatedOpen ? 'open' : 'closed');
+      v.cards = null;
+    }
+    if (p.compact && (v.cards || dense)) v.summary = null;
+    const pagerType = v.pager || null;
+    const cur = pagerType === 'exact-last' ? 10 : 1;
+    const isExact = pagerType && pagerType.startsWith('exact');
+    const pages = isExact ? Array.from({ length: phone ? 0 : 10 }, (_, i) => {
+      const on = i + 1 === cur;
+      return { n: i + 1, cur: on ? 'page' : 'false', bg: on ? 'var(--accent)' : 'var(--raised)', fg: on ? 'var(--on-accent)' : 'var(--text)', bd: on ? 'var(--accent)' : 'var(--border)' };
+    }) : [];
+    const prevDisabled = cur === 1;
+    const nextDisabled = pagerType === 'exact-last' || pagerType === 'smart-end';
+    const dis = (d) => ({ bg: d ? 'var(--skel)' : 'var(--raised)', fg: d ? 'var(--muted)' : 'var(--text)' });
+    const summary = v.summary;
+    const phoneExactRest = isExact && phone ? ` · page ${cur} of 10` : '';
+    return {
+      minH: phone ? '844px' : '900px',
+      hasDense: !!dense, dense: dense || [],
+      relatedCollapsed: relState === 'closed', relatedOpen: relState === 'open',
+      related: DENSE_REL.map(c => ({ card: c })), relCount: 6,
+      feedbackOpen: v.feedback === 'open', feedbackSent: v.feedback === 'sent', feedbackClosed: !v.feedback,
+      phone, q: v.q && p.years ? `${v.q} year:${p.years.replace('–', '-')}` : v.q, mode: v.mode || 'smart', compact: !!p.compact, years: p.years || '', sort: p.sort || 'Relevance',
+      popover: p.popover || '', focus: !!p.focus || S === 'empty', searchDisabled: !!v.searchDisabled,
+      maintenance: !!v.maintenance,
+      mainPad: phone ? '14px 12px 8px' : '20px 24px 8px',
+      footPad: phone ? '18px 16px 28px' : '22px 24px 32px',
+      emptyPad: phone ? '20px 4px 8px' : '40px 0 16px',
+      h1: phone ? '28px' : '36px',
+      hasSummary: !!summary, summaryStrong: summary ? summary[0] : '', summaryRest: summary ? summary[1] + (summary[0] ? phoneExactRest : '') : '',
+      hasNoticeTop: !!v.noticeTop, noticeTop: v.noticeTop || {},
+      hasNoticeBottom: !!v.noticeBottom,
+      relatedIntro: !!v.relatedIntro,
+      empty: !!v.empty, loading: !!v.loading, none: !!v.none,
+      examples: ['hide glue', 'split-top Roubo', 'how do I sharpen a card scraper'],
+      skeletons: [{ w: '72%' }, { w: '58%' }, { w: '66%' }],
+      hasCards: !!(v.cards && v.cards.length), cards: v.cards || [],
+      hasPager: !!pagerType, pages, pageW: '44px',
+      prevDisabled, nextDisabled,
+      prevBg: dis(prevDisabled).bg, prevFg: dis(prevDisabled).fg,
+      nextBg: dis(nextDisabled).bg, nextFg: dis(nextDisabled).fg
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<article aria-label="{{ aria }}" style="position:relative;background:{{ cardBg }};border:1px {{ borderStyle }} {{ borderColor }};border-radius:14px;padding:{{ pad }};display:flex;flex-direction:column;gap:12px;box-shadow:{{ shadow }};outline:{{ outline }};outline-offset:3px;font-family:var(--sans)">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <h3 style="margin:0;font-size:{{ titleSize }};font-weight:650;line-height:1.3;color:var(--text);text-wrap:pretty;letter-spacing:-0.005em"><sc-if value="{{ hasEp }}" hint-placeholder-val="{{ true }}"><span style="color:var(--accent);font-variant-numeric:tabular-nums">Ep. {{ ep }}</span><span style="color:var(--muted);font-weight:400"> · </span></sc-if>{{ title }}</h3>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px;line-height:1.4;color:var(--muted)">
+      <span>{{ date }}</span>
+      <a href="#" aria-label="{{ tsAria }}" style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;background:var(--tint);color:var(--accent);font-weight:650;font-size:14px;font-variant-numeric:tabular-nums;text-decoration:none;transition:background .12s ease-out" style-hover="background:var(--skel)"><svg width="10" height="10" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9.5-5.5z" fill="currentColor"></path></svg>{{ ts }}</a>
+      <sc-if value="{{ related }}"><span style="padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600">Related</span></sc-if>
+    </div>
+  </div>
+  <sc-if value="{{ collapsed }}" hint-placeholder-val="{{ true }}">
+    <p style="margin:0;font-family:var(--serif);font-size:{{ bodySize }};line-height:1.6;color:{{ excerptColor }};display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;text-wrap:pretty"><sc-for list="{{ segs }}" as="s" hint-placeholder-count="1"><sc-if value="{{ s.m }}"><mark style="background:var(--mark-bg);color:var(--mark-text);border-radius:3px;padding:0 2px">{{ s.t }}</mark></sc-if><sc-if value="{{ s.u }}">{{ s.t }}</sc-if></sc-for></p>
+  </sc-if>
+  <sc-if value="{{ expanded }}">
+    <div style="display:flex;flex-direction:column;gap:2px;margin:0 -8px">
+      <sc-for list="{{ paras }}" as="p" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:{{ tsCol }} minmax(0,1fr);gap:10px;padding:10px 8px;border-radius:10px;background:{{ p.bg }}">
+          <a href="#" aria-label="Play at {{ p.ts }}" style="padding-top:3px;font-size:13px;font-weight:650;color:var(--accent);font-variant-numeric:tabular-nums;text-decoration:none">▶ {{ p.ts }}</a>
+          <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+            <sc-if value="{{ p.ad }}"><span style="align-self:flex-start;font-size:12px;font-weight:650;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)">Sponsor read</span></sc-if>
+            <sc-if value="{{ p.fold }}"><span style="align-self:flex-start;font-size:12px;font-weight:650;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted)">Nearby match</span></sc-if>
+            <p style="margin:0;font-family:var(--serif);font-size:{{ bodySize }};line-height:1.6;color:{{ p.color }};text-wrap:pretty"><sc-for list="{{ p.segs }}" as="s"><sc-if value="{{ s.m }}"><mark style="background:{{ p.markBg }};color:var(--mark-text);border-radius:3px;padding:0 2px">{{ s.t }}</mark></sc-if><sc-if value="{{ s.u }}">{{ s.t }}</sc-if></sc-for></p>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ showSearchEp }}">
+      <a href="#" style="align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--border);background:var(--raised);color:var(--text);font-size:14px;font-weight:600;text-decoration:none" style-hover="border-color:var(--accent)"><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style="color:var(--muted)"><circle cx="8.5" cy="8.5" r="6" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M13 13l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>Search this episode<span style="font:500 12px/1 ui-monospace,Menlo,monospace;color:var(--muted)">ep:{{ ep }}</span></a>
+    </sc-if>
+  </sc-if>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+    <sc-for list="{{ platforms }}" as="pl" hint-placeholder-count="2">
+      <a href="#" aria-label="{{ pl.aria }}" title="{{ pl.aria }}" style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 13px;border-radius:999px;background:{{ pl.bg }};color:{{ pl.fg }};border:1.5px solid {{ pl.bd }};font-size:15px;font-weight:650;text-decoration:none;transition:background .12s ease-out,border-color .12s ease-out" style-hover="border-color:var(--accent)"><svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9.5-5.5z" fill="currentColor"></path></svg>{{ pl.name }}</a>
+    </sc-for>
+    <sc-if value="{{ showAds }}">
+      <button aria-label="Apple and Spotify may start a bit early because of ads" title="May start a bit early because of ads" style="display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 6px;border:0;background:transparent;color:var(--muted);font:500 13px/1.3 var(--sans);cursor:help"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" stroke-width="1.4"></circle><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path><circle cx="8" cy="4.9" r="1" fill="currentColor"></circle></svg><sc-if value="{{ adsLabel }}"><span>May start early (ads)</span></sc-if></button>
+    </sc-if>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0 18px;font-size:15px;font-weight:550">
+    <a href="#" style="padding:8px 0;color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px">Episode page</a>
+    <button aria-expanded="{{ expandedStr }}" style="padding:8px 0;border:0;background:none;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px">{{ moreLabel }}</button>
+    <sc-if value="{{ hasMore }}"><button aria-expanded="{{ nearbyStr }}" style="padding:8px 0;border:0;background:none;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px">{{ moreText }}</button></sc-if>
+    <span style="flex:1"></span>
+    <button style="padding:8px 0;border:0;background:none;color:var(--muted);font:500 13px/1.3 var(--sans);cursor:pointer;text-decoration:underline;text-underline-offset:3px">Report transcript error</button>
+  </div>
+  <sc-if value="{{ showReport }}">
+    <div role="form" aria-label="Report a transcript error" style="border-top:1px solid var(--border);padding-top:16px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <h4 style="margin:0;font-size:16px;font-weight:650;color:var(--text)">Report a transcript error</h4>
+        <button aria-label="Close report form" style="width:36px;height:36px;border-radius:8px;border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer">×</button>
+      </div>
+      <sc-if value="{{ sent }}">
+        <div role="status" style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;background:color-mix(in oklch, var(--success) 10%, var(--surface));border:1px solid color-mix(in oklch, var(--success) 35%, transparent);color:var(--text);font-size:15px;line-height:1.45"><span style="color:var(--success);font-weight:700">✓</span><span>Thanks — we'll review it.</span></div>
+      </sc-if>
+      <sc-if value="{{ formVisible }}">
+        <div style="display:flex;flex-direction:column;gap:14px;opacity:{{ formOpacity }}">
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;color:var(--text)"><span>Quoted text</span><span style="font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums">{{ quoteCount }} / 500</span></span>
+            <div style="min-height:64px;padding:10px 12px;border-radius:10px;border:1.5px solid {{ quoteBorder }};box-shadow:{{ quoteRing }};background:var(--raised);font-family:var(--serif);font-size:16px;line-height:1.5;color:var(--text)">{{ quote }}</div>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;color:var(--text)"><span>Suggested correction <span style="font-weight:400;color:var(--muted)">(optional)</span></span><span style="font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums">{{ fixCount }} / 500</span></span>
+            <div style="min-height:44px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--raised);font-family:var(--serif);font-size:16px;line-height:1.5;color:{{ fixColor }}">{{ fix }}</div>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;color:var(--text)"><span>Note <span style="font-weight:400;color:var(--muted)">(optional)</span></span><span style="font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums">0 / 1000</span></span>
+            <div style="min-height:44px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--raised);font-size:15px;color:var(--muted)">Anything else we should know</div>
+          </label>
+          <div style="width:300px;max-width:100%;height:65px;border-radius:8px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;font:500 12px/1 ui-monospace,Menlo,monospace;color:var(--muted)">Turnstile · 300×65 (often invisible)</div>
+          <sc-if value="{{ errored }}">
+            <div role="alert" style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:10px;background:color-mix(in oklch, var(--danger) 9%, var(--surface));border:1px solid color-mix(in oklch, var(--danger) 35%, transparent);color:var(--text);font-size:15px;line-height:1.45"><span style="color:var(--danger);font-weight:800">!</span><span>Too many reports from here — please wait a minute, then send again. What you typed is kept.</span></div>
+          </sc-if>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button disabled="{{ sending }}" style="min-height:44px;padding:0 22px;border-radius:10px;border:0;background:{{ sendBg }};color:{{ sendFg }};font:650 15px/1 var(--sans);cursor:pointer;display:inline-flex;align-items:center;gap:8px">{{ sendLabel }}</button>
+            <button style="min-height:44px;padding:0 14px;border-radius:10px;border:0;background:transparent;color:var(--muted);font:550 15px/1 var(--sans);cursor:pointer">Cancel</button>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</article>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:720,&quot;height&quot;:360},&quot;card&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;default&quot;,&quot;expanded&quot;,&quot;nearby&quot;,&quot;report&quot;],&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;report&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;open&quot;,&quot;sending&quot;,&quot;sent&quot;,&quot;error&quot;],&quot;default&quot;:&quot;open&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;phone&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;focused&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const c = this.props.card || {
+      ep: 71, title: 'Welcome to the Three-Way', date: 'Jun 10, 2010', ts: '1:09:51', playAt: '1:09:44', kind: 'keyword', platforms: ['Spotify'], more: 3,
+      segs: ['All right, the great folks over at Highland Woodworking, they have the Earlex HV2900 ', { m: 'HVLP' }, ' ', { m: 'sprayer' }, '. When you purchase it at the sale price of $149.99, they will throw in a free copy of Jeff Jewitt\'s spray finishing made simple book and DVD. Nice. When I was out there, they had that same special. Oh, did they really? Yeah, but that Earlex unit is another one of the little guys.']
+    };
+    const view = this.props.view || 'default';
+    const report = this.props.report || 'open';
+    const phone = !!this.props.phone;
+    const related = c.kind === 'related';
+    const nearby = view === 'nearby';
+    const expanded = view === 'expanded' || nearby;
+    const showReport = view === 'report';
+    const segs = (c.segs || []).map(s => typeof s === 'string' ? { t: s, u: true } : { t: s.m, m: true });
+    const order = ['YouTube', 'Apple', 'Spotify'];
+    const plats = order.filter(p => (c.platforms || []).includes(p));
+    const platforms = plats.map((p, i) => ({
+      name: p,
+      aria: `Play on ${p} at ${c.playAt || c.ts}`,
+      bg: i === 0 && !related ? 'var(--accent)' : 'var(--raised)',
+      fg: i === 0 && !related ? 'var(--on-accent)' : 'var(--text)',
+      bd: i === 0 && !related ? 'var(--accent)' : 'var(--border)'
+    }));
+    const toSegs = (arr) => (arr || []).map(s => typeof s === 'string' ? { t: s, u: true } : { t: s.m, m: true });
+    const paras = (c.paras || []).filter(p => nearby || !p.wide).map(p => {
+      const fold = nearby && !!p.fold;
+      const raw = p.hit ? segs : toSegs(p.segs || [p.text]);
+      const ps = fold ? raw : raw.map(s => s.m && !p.hit ? { t: s.t, u: true } : s);
+      return {
+        ts: p.ts, segs: ps, ad: !!p.ad, fold,
+        bg: p.hit ? 'var(--tint)' : (fold ? 'color-mix(in oklch, var(--tint) 45%, transparent)' : 'transparent'),
+        markBg: p.hit ? 'var(--mark-bg)' : 'color-mix(in oklch, var(--mark-bg) 55%, var(--surface))',
+        color: p.ad ? 'var(--muted)' : 'var(--text)'
+      };
+    });
+    const quote = 'Jeff Jewitt\'s spray finishing made simple book and DVD';
+    const sending = showReport && report === 'sending';
+    const errored = showReport && report === 'error';
+    const hasFix = errored || sending;
+    const fix = hasFix ? 'Jeff Jewitt\'s Spray Finishing Made Simple book and DVD' : 'What it should say';
+    return {
+      aria: `Episode ${c.ep || ''} ${c.title}, at ${c.ts}`,
+      hasEp: c.ep != null, ep: c.ep, title: c.title, date: c.date, ts: c.ts,
+      tsAria: `Play at ${c.playAt || c.ts}`,
+      related,
+      cardBg: related ? 'transparent' : 'var(--surface)',
+      borderStyle: related ? 'dashed' : 'solid',
+      borderColor: related ? 'color-mix(in oklch, var(--border) 100%, var(--muted) 25%)' : 'var(--border)',
+      shadow: related ? 'none' : 'var(--shadow)',
+      outline: this.props.focused ? '3px solid var(--focus)' : 'none',
+      pad: phone ? '16px 16px 10px' : '20px 22px 12px',
+      titleSize: phone ? '16px' : '17px',
+      bodySize: phone ? '17px' : '18px',
+      excerptColor: related ? 'var(--muted)' : 'var(--text)',
+      tsCol: phone ? '58px' : '70px',
+      collapsed: !expanded, expanded, expandedStr: expanded ? 'true' : 'false',
+      segs, paras, platforms,
+      showAds: plats.some(p => p !== 'YouTube'),
+      adsLabel: !phone && plats.length < 3,
+      moreLabel: view === 'expanded' ? 'Less transcript' : 'More transcript',
+      hasMore: !!c.more, moreText: nearby ? 'Hide nearby' : `+${c.more} more nearby`,
+      nearbyStr: nearby ? 'true' : 'false',
+      showSearchEp: nearby && c.ep != null,
+      showReport,
+      sent: showReport && report === 'sent',
+      formVisible: showReport && report !== 'sent',
+      formOpacity: sending ? '0.7' : '1',
+      quote, quoteCount: quote.length, fix, fixCount: hasFix ? fix.length : 0,
+      fixColor: hasFix ? 'var(--text)' : 'var(--muted)',
+      quoteBorder: report === 'open' ? 'var(--focus)' : 'var(--border)',
+      quoteRing: report === 'open' ? '0 0 0 3px color-mix(in oklch, var(--focus) 25%, transparent)' : 'none',
+      errored, sending,
+      sendBg: sending ? 'var(--skel)' : 'var(--accent)',
+      sendFg: sending ? 'var(--muted)' : 'var(--on-accent)',
+      sendLabel: sending ? 'Sending…' : 'Send'
+    };
+  }
+}
+</script>
+</body>
+</html>

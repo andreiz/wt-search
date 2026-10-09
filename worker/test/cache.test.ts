@@ -156,6 +156,48 @@ describe("search cache", () => {
     });
   });
 
+  // The kill switch (spec §4.8 item 3) beats the cache for smart searches (review #4).
+  describe("SEARCH_OVERRIDE=exact", () => {
+    type Smart = { smart_degraded?: string; results: { match: string }[] };
+
+    it("doesn't serve a cached smart answer, then serves it again once the override is gone", async () => {
+      const warm = bindings();
+      const warmed = await get("q=talk", warm.env);
+      expect(warmed.headers.get("x-wts-cache")).toBe("miss");
+      const warmedBody = (await warmed.json()) as Smart;
+      expect(warmedBody).not.toHaveProperty("smart_degraded");
+      expect(warmedBody.results.some((r) => r.match === "related")).toBe(true);
+
+      const off = bindings({ SEARCH_OVERRIDE: "exact" });
+      const during = await get("q=talk", off.env);
+      expect(during.headers.get("x-wts-cache")).toBe("skip");
+      const duringBody = (await during.json()) as Smart;
+      expect(duringBody.smart_degraded).toBe("off");
+      expect(duringBody.results.some((r) => r.match === "related")).toBe(false);
+      expect(off.ai.run).not.toHaveBeenCalled();
+      expect(off.vec.query).not.toHaveBeenCalled();
+
+      const after = bindings();
+      const served = await get("q=talk", after.env);
+      expect(served.headers.get("x-wts-cache")).toBe("hit");
+      expect(await served.json()).toEqual(warmedBody);
+      expect(after.ai.run).not.toHaveBeenCalled();
+    });
+
+    it("doesn't store its own answer, so nothing degraded is served once it is lifted", async () => {
+      expect((await get("q=router", bindings({ SEARCH_OVERRIDE: "exact" }).env)).headers.get("x-wts-cache")).toBe("skip");
+      const lifted = await get("q=router", bindings().env);
+      expect(lifted.headers.get("x-wts-cache")).toBe("miss");
+      expect(((await lifted.json()) as Smart).smart_degraded).toBeUndefined();
+    });
+
+    it("still serves exact-mode searches from the cache", async () => {
+      await get("q=today&mode=exact", bindings().env);
+      const hit = await get("q=today&mode=exact", bindings({ SEARCH_OVERRIDE: "exact" }).env);
+      expect(hit.headers.get("x-wts-cache")).toBe("hit");
+    });
+  });
+
   it("misses after corpus_version changes", async () => {
     await get("q=tangent", bindings().env);
     await env.DB.prepare("UPDATE meta SET value = 'v-next' WHERE key = 'corpus_version'").run();

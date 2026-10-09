@@ -86,8 +86,9 @@ function parsePage(value: string | null, lastPage: number): number {
  * §4.4). Bad parameters fall back to their defaults and bad query syntax is plain words
  * (query.ts), so the only error is D1 being down.
  *
- * Answers are cached at the edge (cache.ts) unless smart search was degraded or `debug=1`
- * (smart mode only) asked for the ranking details.
+ * Answers are cached at the edge (cache.ts) unless smart search was degraded, `debug=1`
+ * (smart mode only) asked for the ranking details, or SEARCH_OVERRIDE=exact switched smart
+ * search off (the cache is then neither read nor written for smart searches).
  */
 const search: Handler = async (request, env, info, ctx) => {
   const params = new URL(request.url).searchParams;
@@ -108,7 +109,10 @@ const search: Handler = async (request, env, info, ctx) => {
     cache: "skip",
   } satisfies RequestInfo);
 
-  const ttl = debug ? null : cacheTtl(env.SEARCH_CACHE_TTL_S);
+  // With the kill switch on, a smart search is keyword-only and degraded ("off"), which is never
+  // stored; and an entry from before the switch must not be served, so it skips the cache.
+  const killed = mode === "smart" && searchOverride(env) === "exact";
+  const ttl = debug || killed ? null : cacheTtl(env.SEARCH_CACHE_TTL_S);
   let key: Request | null = null;
   let response: ExactResponse | SmartResponse;
   try {

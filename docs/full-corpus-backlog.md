@@ -62,6 +62,9 @@ From the handoff's Task 14 notes; try in this order:
    on the set; short and acronym queries may score low overall.
 5. Smaller chunks, only if all else fails.
 
+"Why is this related?" (the design's open item, 2026-10-09): a short per-card reason ("about
+turbine sprayers") needs a backend that can say why; decide after the tuning above.
+
 Judgements already noted: #127 at 44:28 and #171's miter answer are non-relevant for the
 bench-top queries; the `collapse` tag for `more_in_episode` cases.
 

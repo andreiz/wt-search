@@ -1,0 +1,33 @@
+/* Wood Talk Search — design tokens. Dark = swap values only. */
+:root {
+  --bg:#F6F2EC; --surface:#FFFDFA; --raised:#FFFFFF;
+  --text:#2B211A; --muted:#675A4F; --border:#E2D8CB;
+  --accent:#8A4520; --accent-hover:#733818; --on-accent:#FFF8F1;
+  --mark-bg:#F5D58A; --mark-text:#2B211A; --focus:#B3611C;
+  --success:#2E6B3B; --warning:#80570A; --danger:#A3322A; --info:#2D5B7A;
+  --tint:#F3E6DA; --skel:#ECE4D9;
+  --shadow:0 1px 2px rgba(60,40,20,.06),0 4px 14px rgba(60,40,20,.07);
+  --shadow-pop:0 12px 40px rgba(30,15,5,.18);
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --serif:'Source Serif 4',Georgia,serif;
+  --r-chip:6px; --r-control:10px; --r-input:12px; --r-card:14px; --r-dense:12px; --r-pill:999px;
+  --dur-fast:120ms; --dur-med:200ms; --ease:ease-out;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#171310; --surface:#211B17; --raised:#2B241E;
+    --text:#F1E9DF; --muted:#B5A697; --border:#3E352D;
+    --accent:#E3A56C; --accent-hover:#EDB884; --on-accent:#1E140C;
+    --mark-bg:#D4A64A; --mark-text:#1E140C; --focus:#F0B47A;
+    --success:#86C493; --warning:#E6BC62; --danger:#F08E80; --info:#8EBADB;
+    --tint:#3A2A1E; --skel:#2E2721;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast:0ms; --dur-med:0ms; }
+}
+:focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+mark { background:var(--mark-bg); color:var(--mark-text); border-radius:3px; padding:0 2px; }

@@ -3,7 +3,9 @@
 // Layout: the top level is the LOCAL / TEST configuration and is never deployed. The two real
 // environments are `env.staging` and `env.production` (`wrangler deploy --env staging` deploys
 // a Worker named `wts-api-staging`). In wrangler, bindings and vars are non-inheritable, so every
-// environment declares all of its own.
+// environment declares all of its own. `env.e2e` is a third, local-only environment for the
+// frontend's smoke test; it is never deployed. Staging and production also serve the built
+// frontend (`assets`, spec §5.1).
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "wts-api",
@@ -50,6 +52,11 @@
 			],
 			"vectorize": [{ "binding": "VEC", "index_name": "wts-chunks-staging" }],
 			"ai": { "binding": "AI" },
+			// The frontend (spec §5.1): `web/dist` as static assets. /api/* and /robots.txt run the
+			// Worker; every other path is a file that costs no invocation. Deploy through
+			// `npm run deploy:staging`, which builds web/ first. Per environment, not top level:
+			// `assets` is inheritable, and the top level is the Vitest configuration.
+			"assets": { "directory": "../web/dist", "run_worker_first": ["/api/*", "/robots.txt"] },
 			// Re-added in Task 15. At Checkpoint F deploys failed with code 10089 ("You need to
 			// enable Analytics Engine") even after it was enabled in the dashboard; if that
 			// happens again, comment this out: the Worker runs without it (Env.ANALYTICS is optional).
@@ -92,6 +99,8 @@
 			],
 			"vectorize": [{ "binding": "VEC", "index_name": "wts-chunks-production" }],
 			"ai": { "binding": "AI" },
+			// As on staging; deploy through `npm run deploy:production`.
+			"assets": { "directory": "../web/dist", "run_worker_first": ["/api/*", "/robots.txt"] },
 			"analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "wts_production" }],
 			"ratelimits": [
 				{ "name": "RL_READ", "namespace_id": "2001", "simple": { "limit": 60, "period": 60 } },
@@ -104,6 +113,30 @@
 				// No REPORT_ORIGINS: only reports from the Worker's own origin are accepted.
 				// TURNSTILE_SECRET is a secret:
 				//   wrangler secret put TURNSTILE_SECRET --env production
+			}
+		},
+		// LOCAL ONLY, NEVER DEPLOYED. `wrangler dev --env e2e` runs the whole site on one origin
+		// for the smoke test (plan 3, Task 15): the built frontend as static assets, plus the API
+		// over a local D1 (apply the migrations, load a few fixture episodes). No AI or
+		// Vectorize binding, so smart search answers keyword-only (smart_degraded). The name
+		// differs from every real Worker so a stray `wrangler deploy --env e2e` can't replace one.
+		"e2e": {
+			"name": "wts-e2e",
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "wts-e2e",
+					"database_id": "00000000-0000-0000-0000-000000000000",
+					"migrations_dir": "../schema"
+				}
+			],
+			"assets": { "directory": "../web/dist", "run_worker_first": ["/api/*", "/robots.txt"] },
+			"vars": {
+				"WTS_ENV": "e2e",
+				// Cloudflare's published always-pass Turnstile test keys (not secrets; they work
+				// on any host, and the site key renders a widget that always succeeds).
+				"TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+				"TURNSTILE_SECRET": "1x0000000000000000000000000000000AA"
 			}
 		}
 	}

@@ -1,0 +1,19 @@
+/* Self-hosted Source Serif 4 (spec §5.7): 400 and 600, Latin subset, woff2 only, from the
+   @fontsource/source-serif-4 package (SIL Open Font License). Vite copies the files to hashed
+   names under /assets/, so CSP `font-src 'self'` holds and no request leaves the site. Used for
+   excerpts and large headings only (`var(--serif)`); UI text stays on the system stack. The
+   package's own latin-400.css also lists the legacy woff files, which we don't need. */
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../../node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-600-normal.woff2") format("woff2");
+}

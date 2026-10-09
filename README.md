@@ -95,6 +95,10 @@ cd pipeline
 uv run pytest -q          # runs anywhere; Whisper and embeddings are faked
 uv run ruff check .
 uv run pytest -m mac      # Mac only: real MLX Whisper and bge models
+
+cd ../worker && npm ci && npm test      # Worker tests (Vitest in the Workers runtime, local D1)
+cd ../web && npm ci && npm test         # frontend unit tests and build check
+npm run e2e                             # Playwright against a preview build, under the real CSP
 ```
 
 Conventions are in [CLAUDE.md](CLAUDE.md): design goes brainstorming → spec → plan before
@@ -105,7 +109,7 @@ code, changes are test-first, and the spec is the source of truth.
 ```
 pipeline/   Python `wts` CLI (Mac) — built
 worker/     Cloudflare Worker API — planned
-web/        Frontend (Vite + Preact) — planned
+web/        Frontend (Vite + Preact) — scaffolded, served by the Worker as static assets
 schema/     D1 migrations — planned
 eval/       Test search set and baselines — planned
 docs/       Spec and implementation plans

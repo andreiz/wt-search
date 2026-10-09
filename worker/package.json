@@ -10,6 +10,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "deploy:staging": "npm --prefix ../web run build && wrangler deploy --env staging",
+    "deploy:production": "npm --prefix ../web run build && wrangler deploy --env production",
     "types": "wrangler types --include-env=false",
     "types:check": "wrangler types --include-env=false --check"
   },

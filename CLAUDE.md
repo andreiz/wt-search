@@ -26,12 +26,16 @@ Vectorize and a Pages frontend serve search.
 - `cd pipeline && uv run pytest -m mac` — Mac only: real MLX Whisper and bge models
 - `cd worker && npm test` — Worker tests (Vitest in the Workers runtime, local D1; runs on Linux)
 - `cd worker && npx tsc --noEmit` — Worker type-check
+- `cd web && npm test` — frontend unit tests and build check (Vitest + happy-dom; runs on Linux)
+- `cd web && npm run e2e` — Playwright against `vite preview` of a fresh build, under the real `public/_headers` CSP
+- `cd web && npm run typecheck` — frontend type-check; `npm run dev` serves on 5173, proxying `/api` to `wrangler dev` on 8787
+- `cd worker && npm run deploy:staging` — builds `web/` and deploys the Worker with the static assets
 
 ## Layout
 
 - `pipeline/` — Python `wts` CLI (Mac); see `pipeline/README.md`
 - `worker/` — Cloudflare Worker (TypeScript)
-- `web/` — frontend (Vite + TypeScript + Preact) — planned
+- `web/` — frontend (Vite + TypeScript + Preact), built to `web/dist` and served by the Worker as static assets
 - `schema/` — D1 migrations, the shared contract between pipeline and Worker
 - `eval/` — test search set and baselines — planned
 

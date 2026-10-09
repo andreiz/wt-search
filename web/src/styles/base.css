@@ -1,0 +1,139 @@
+/* Page shell (spec §5.7; design README "Layout"): background and text from the tokens, a 760 px
+   centred column, "phone" below 600 px. Components get their own sheet (components.css, Task 7+). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  line-height: 1.4;
+}
+
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.column {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* Header: brand row (the search row and controls join it in Task 7). */
+.site-header {
+  position: relative;
+  z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header__inner {
+  padding: 20px 24px 18px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand {
+  font-size: 19px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.site-header__note {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.main {
+  flex: 1;
+  padding: 20px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Empty state title (the placeholder until Task 11). */
+.empty {
+  padding: 40px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.empty__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+}
+
+.site-footer__inner {
+  padding: 22px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.site-footer__line {
+  margin: 0;
+}
+
+.site-footer__line strong {
+  color: var(--text);
+  font-weight: 650;
+}
+
+@media (max-width: 599.98px) {
+  .site-header__inner {
+    padding: 14px 16px;
+  }
+
+  .brand {
+    font-size: 17px;
+  }
+
+  .main {
+    padding: 14px 12px 8px;
+  }
+
+  .empty {
+    padding: 20px 4px 8px;
+  }
+
+  .empty__title {
+    font-size: 28px;
+  }
+
+  .site-footer__inner {
+    padding: 18px 16px 28px;
+  }
+}

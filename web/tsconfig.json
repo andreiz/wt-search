@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    // vite.config.ts imports ./vite-plugin-headers.ts with its extension (Vite's native config loader).
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    // vite/client types `*.css` imports; node is for the config files and the build check.
+    "types": ["vite/client", "node"]
+  },
+  "include": [
+    "src",
+    "test",
+    "e2e",
+    "vite-plugin-headers.ts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ]
+}

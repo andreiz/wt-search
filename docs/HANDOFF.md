@@ -17,9 +17,17 @@ the maintainer's request.
   merge, then Task 5 (the `web/` scaffold). Notes under "Plan 3 task notes" below.
 - **Codex review of plans 1–2** ([`docs/code-review-d15ec6e.md`](code-review-d15ec6e.md),
   2026-10-09): all nine findings reproduced and fixed on the same branch, one commit each
-  (resolution table at the end of the review). Worker **485 tests**, pipeline **698**. On the
-  Mac the next `wts` command applies state migration 005 (`failed_at`). Corrections-refresh
-  runs now read each transcript twice (finding #8).
+  (resolution table at the end of the review); #8 then became moot (next item).
+- **Boilerplate detection binned** (maintainer, 2026-10-09): it flagged 2–3 of 4,210 seed
+  chunks and missed the sponsor reads. Removed from the pipeline (`67e1300`); the plumbing
+  stays. What to measure and try on the archive: [`docs/full-corpus-backlog.md`](full-corpus-backlog.md),
+  which also gathers the other "on the full corpus" items. The chunk step now refreshes only
+  when `corrections.yaml` or `CHUNKER_VERSION` (`chunking.py`; bump it after any change to
+  chunking output) changes, not on every new episode.
+  **On the Mac, the next `wts` command** applies state migrations 005 (`failed_at`) and 006
+  (drops the fingerprint tables); the next `wts run` re-chunks everything once, un-flags the
+  few flagged chunks and re-embeds and republishes those episodes.
+  Worker **485 tests**, pipeline **692** (no xfail left).
 - **Rate limits not triggering on staging**: the maintainer's desktop session (see "Open:
   rate limits…" below).
 - **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions.
@@ -784,4 +792,5 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
   and a heredoc append to `highlight.test.ts` (session 5, Task 14 and its follow-ups); a
   heredoc append of Task 16's tests to `test_run.py` and `sed` edits to the handoff's test
   count and title line (session 6); a `sed` edit to the handoff's plan 3 line in "Read
-  first" (session 7).
+  first" (session 7); the docs commit `8988c73` also took two staged `git rm`s of a subagent
+  working in the same checkout, so it doesn't build alone (`67e1300` completes it; session 7).

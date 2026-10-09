@@ -45,8 +45,10 @@ boilerplate edges, so a read becomes its own flagged chunk.
 - Cutting chunks at read edges changes chunk boundaries → re-chunk and re-embed the corpus, so
   it needs its own brainstorm, spec and plan (spec §9).
 - Ad-libbed host reads won't match any text rule; a local LLM classifier is the fallback idea.
-- Restoring the old detector: commit `49963e6` and its parent have `boilerplate.py`,
-  `test_boilerplate.py` and the two-pass refresh.
+- Restoring the old detector: it was removed in `8988c73`/`67e1300`; `49963e6` (the last
+  commit with it) has `boilerplate.py`, `test_boilerplate.py`, migration-free fingerprint
+  tables (`bp_sentences`, `bp_bands`, dropped by state migration 006) and the two-pass
+  refresh.
 
 ## 2. Search relevance (plan 5's test search set, scored on the archive)
 

@@ -34,7 +34,7 @@ import numpy as np
 from wts.cloudflare import D1, CloudflareApi, Vectorize, chunked_inserts
 from wts.config import Config
 from wts.db import kv_get
-from wts.embed import load_embeddings
+from wts.embed import load_embeddings, load_text_shas, text_sha
 from wts.log import plural
 from wts.net import new_client
 from wts.paths import Paths
@@ -59,6 +59,7 @@ CHUNK_COLUMNS = (
     "id", "episode_id", "seq", "start_ms", "end_ms", "text", "word_times", "is_boilerplate",
 )
 _BOILERPLATE = CHUNK_COLUMNS.index("is_boilerplate")
+_TEXT = CHUNK_COLUMNS.index("text")
 
 # The current chunk ids go in as one JSON array, so the statement stays within D1's 100 bound
 # parameters however many chunks an episode has.
@@ -104,9 +105,13 @@ def _chunks(conn: sqlite3.Connection, episode_id: int) -> list[tuple]:
 def _embeddings(
     row: sqlite3.Row, chunks: list[tuple], embeddings_dir: Path
 ) -> tuple[np.ndarray, np.ndarray]:
-    """The episode's stored vectors, checked against its current non-boilerplate chunks."""
-    chunk_ids, vectors = load_embeddings(embeddings_dir / f"{row['stem']}.npz")
-    if chunk_ids.tolist() != [c[0] for c in chunks if not c[_BOILERPLATE]]:
+    """The episode's stored vectors, checked against its current non-boilerplate chunks: same
+    ids, and each vector computed from the chunk's current text (ids survive a text change)."""
+    path = embeddings_dir / f"{row['stem']}.npz"
+    chunk_ids, vectors = load_embeddings(path)
+    current = [c for c in chunks if not c[_BOILERPLATE]]
+    if (chunk_ids.tolist() != [c[0] for c in current]
+            or load_text_shas(path) != [text_sha(c[_TEXT]) for c in current]):
         raise ValueError("embeddings don't match the current chunks; run `wts embed`")
     return chunk_ids, vectors
 

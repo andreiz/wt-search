@@ -448,6 +448,20 @@ def test_embeddings_that_dont_match_the_chunks_fail_the_episode(conn, paths, emb
                                         (e,)).fetchone()[0]
 
 
+def test_vectors_computed_from_older_text_are_not_published(conn, paths, embedded):
+    # Review #1: corrected text under unchanged chunk ids (chunks rewritten, embeddings not).
+    e = embedded()
+    conn.execute("update chunks set text = ? where episode_id = ? and seq = 2",
+                 ("then we talked about finishing cherry", e))
+    conn.commit()
+    target = Target()
+    counts = pub(conn, paths, target, [e])
+    assert counts["error"] == 1 and counts["ok"] == 0 and target.calls == 0
+    assert "wts embed" in conn.execute("select error_reason from episodes where id = ?",
+                                       (e,)).fetchone()[0]
+    assert conn.execute("select count(*) from publications").fetchone()[0] == 0
+
+
 def test_parked_errors_are_not_retried(conn, paths, embedded):
     e = embedded()
     target = Target()

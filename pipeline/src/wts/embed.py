@@ -57,6 +57,12 @@ def load_embeddings(path: Path) -> tuple[np.ndarray, np.ndarray]:
         return data["chunk_ids"], data["vectors"]
 
 
+def load_text_shas(path: Path) -> list[str]:
+    """`text_sha` of the text each stored vector was computed from, in vector order."""
+    with np.load(path) as data:
+        return data["text_sha"].tolist()
+
+
 def _cached(path: Path) -> dict[str, np.ndarray]:
     if not path.exists():
         return {}

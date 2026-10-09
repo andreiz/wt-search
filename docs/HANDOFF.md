@@ -51,7 +51,9 @@ of step 3. Then plans 3–5 are written.
    Suggested: a write-only ntfy user for the Workers (`ntfy user add wts-worker`, `ntfy
    access wts-worker <topic> write-only`, `ntfy token add --label … wts-worker`); one token
    can serve both environments, since alert titles name the environment (`WTS_ENV`).
-3. `npx wrangler deploy --env staging`.
+3. `npm run deploy:staging` (from `worker/`; since plan 3 Task 5 it builds `web/` first —
+   run `cd web && npm ci` once. A bare `npx wrangler deploy --env staging` fails: "assets
+   directory … web/dist does not exist").
 4. Reports now need `-H 'origin: http://localhost:5173'` (`REPORT_ORIGINS`).
 5. A homelab monitor (e.g. Uptime Kuma → ntfy) on `<staging>/api/health`: the only error
    alerting, since the in-Worker 5xx alert was dropped.
@@ -133,7 +135,7 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
 Tasks 1–4 were written by four Sonnet subagents in parallel worktrees (none committed),
 reviewed, applied and committed one per task in the main session. Worker **470 tests** in 18
 files, pipeline **685**, type-check and ruff clean. Deploying them to staging needs only
-`npx wrangler deploy --env staging` (no migration).
+`npm run deploy:staging` from `worker/` (no migration; it builds `web/` first).
 - **Task 1** `year:A-B`: each filter key keeps its last value, so a range (two keys) and a
   single year (one key) intersect: `year:2010-2012 year:2015` matches nothing (pinned in the
   parser table). The web app's chip rewrites every year token, so it never produces this.

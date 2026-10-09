@@ -2,6 +2,7 @@ import { env, exports } from "cloudflare:workers";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import type { Env } from "../src/env";
+import { MAX_BODY_CHARS } from "../src/report";
 import { seed } from "./seed";
 
 const SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -211,11 +212,100 @@ describe("Turnstile", () => {
       },
       body: JSON.stringify(valid({ note: "x".repeat(1024 * 1024) })),
     });
-    const textSpy = vi.spyOn(Request.prototype, "text");
+    const readerSpy = vi.spyOn(ReadableStream.prototype, "getReader");
     const response = await worker.fetch(big, env as unknown as Env);
     expect(response.status).toBe(400);
-    expect(textSpy).not.toHaveBeenCalled();
+    expect(readerSpy).not.toHaveBeenCalled();
     expect(siteverifyCalls()).toBe(0);
+  });
+
+  // No Content-Length (a chunked or streamed body, review #5): the Worker reads at most
+  // MAX_BODY_CHARS * 3 bytes and cancels the stream past that, instead of buffering it all.
+  describe("a streamed body", () => {
+    const CAP = MAX_BODY_CHARS * 3;
+
+    /** A request whose body is `chunks`, pulled one at a time; it counts the pulls and a cancel. */
+    function streamed(chunks: Uint8Array[]): { request: Request; stats: { pulled: number; cancelled: boolean } } {
+      const stats = { pulled: 0, cancelled: false };
+      let next = 0;
+      const body = new ReadableStream<Uint8Array>(
+        {
+          pull(controller) {
+            const chunk = chunks[next++];
+            if (chunk === undefined) controller.close();
+            else {
+              stats.pulled++;
+              controller.enqueue(chunk);
+            }
+          },
+          cancel() {
+            stats.cancelled = true;
+          },
+        },
+        { highWaterMark: 0 },
+      );
+      const request = new Request("https://example.com/api/report", {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:5173" },
+        body,
+        duplex: "half",
+      } as RequestInit);
+      expect(request.headers.get("content-length")).toBeNull();
+      return { request, stats };
+    }
+
+    const encode = (s: string): Uint8Array => new TextEncoder().encode(s);
+
+    it("over the byte cap is refused as too long, and the stream is cancelled, not read to the end", async () => {
+      const chunk = new Uint8Array(4096).fill(0x20);
+      const total = 1024 / 4; // 1 MiB
+      const { request: req, stats } = streamed(Array.from({ length: total }, () => chunk));
+      const response = await worker.fetch(req, env as unknown as Env);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "bad_request", message: "That report is too long." });
+      expect(stats.cancelled).toBe(true);
+      // The cap is 48 KiB = 12 chunks; a little read-ahead is fine, 256 chunks is not.
+      expect(stats.pulled).toBeLessThanOrEqual(CAP / 4096 + 2);
+      expect(siteverifyCalls()).toBe(0);
+      expect(await rows()).toEqual([]);
+    });
+
+    it("under the cap and valid is stored, as a body with a Content-Length would be", async () => {
+      const bytes = encode(JSON.stringify(valid({ note: "streamed note" })));
+      const { request: req, stats } = streamed([bytes.slice(0, 10), bytes.slice(10, 40), bytes.slice(40)]);
+      const response = await worker.fetch(req, env as unknown as Env);
+      expect(response.status).toBe(200);
+      expect(stats.cancelled).toBe(false);
+      expect(await rows()).toMatchObject([{ chunk_id: 201, quoted_text: QUOTED, note: "streamed note" }]);
+    });
+
+    it("decodes multi-byte UTF-8 split across chunks", async () => {
+      const quoted = "Crémona 日本語 \u{1F600} violins";
+      const bytes = encode(JSON.stringify(valid({ quoted_text: quoted })));
+      // One byte per chunk: every multi-byte character is split.
+      const { request: req } = streamed(Array.from(bytes, (b) => Uint8Array.of(b)));
+      const response = await worker.fetch(req, env as unknown as Env);
+      expect(response.status).toBe(200);
+      expect((await rows())[0]?.quoted_text).toBe(quoted);
+    });
+
+    it("exactly at the cap is read in full, and then judged by its length like any body", async () => {
+      const { request: req, stats } = streamed([new Uint8Array(CAP).fill(0x20)]);
+      const response = await worker.fetch(req, env as unknown as Env);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "bad_request", message: "That report is too long." });
+      expect(stats.pulled).toBe(1);
+    });
+
+    it("a request with no body at all is the same unreadable report as an empty one", async () => {
+      const bare = new Request("https://example.com/api/report", {
+        method: "POST",
+        headers: { origin: "http://localhost:5173" },
+      });
+      const response = await worker.fetch(bare, env as unknown as Env);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "bad_request", message: "That report couldn't be read." });
+    });
   });
 
   it("answers 503 when siteverify's JSON has no boolean success", async () => {

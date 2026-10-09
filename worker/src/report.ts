@@ -12,8 +12,10 @@ import { json, logError } from "./http";
 
 /** Cloudflare's token check (Turnstile server-side validation). */
 export const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-/** The body's length in UTF-16 units, checked before it is parsed (and its Content-Length before it is read). */
+/** The body's length in UTF-16 units, checked before it is parsed. */
 export const MAX_BODY_CHARS = 16 * 1024;
+/** What is read of a body at all, and the largest Content-Length accepted: UTF-8 takes at most 3 bytes per UTF-16 unit. */
+const MAX_BODY_BYTES = MAX_BODY_CHARS * 3;
 /** Lengths in characters (code points), after trimming. */
 export const MAX_QUOTED = 500;
 export const MAX_SUGGESTED = 500;
@@ -159,6 +161,31 @@ VALUES (NULL, ?, NULL, NULL, ?)`;
 const unavailable = (message: string): Response => json({ error: "unavailable", message }, 503);
 
 /**
+ * The request body as UTF-8 text, read chunk by chunk (no body is ""). Once more than
+ * `maxBytes` have arrived the stream is cancelled and the result is null: a body with no
+ * Content-Length is never buffered whole.
+ */
+export async function readCapped(request: Request, maxBytes: number): Promise<string | null> {
+  if (request.body === null) return "";
+  const reader = request.body.getReader();
+  // Stream mode keeps a character split across two chunks together.
+  const decoder = new TextDecoder();
+  let text = "";
+  let bytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    if (bytes > maxBytes) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  return text + decoder.decode();
+}
+
+/**
  * POST /api/report: `{chunk_id, quoted_text, suggested_text?, note?, turnstile_token}`, or,
  * without a chunk_id, general feedback `{note, turnstile_token}`.
  * 400 for a bad body or an unknown chunk, 403 when Turnstile refuses the token, 503 when
@@ -173,12 +200,14 @@ export async function report(request: Request, env: Env): Promise<Response> {
       403,
     );
   }
-  // A declared size far past the limit is refused before the body is read at all. UTF-8 takes
-  // at most 3 bytes per UTF-16 unit; parseReport checks the real length.
-  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_CHARS * 3) {
-    return json({ error: "bad_request", message: "That report is too long." }, 400);
-  }
-  const parsed = parseReport(await request.text());
+  // A declared size far past the limit is refused before the body is read at all; a body
+  // without one (streamed, chunked) is read only up to the same cap. parseReport checks the
+  // real length.
+  const tooLong = (): Response => json({ error: "bad_request", message: "That report is too long." }, 400);
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) return tooLong();
+  const raw = await readCapped(request, MAX_BODY_BYTES);
+  if (raw === null) return tooLong();
+  const parsed = parseReport(raw);
   if (!parsed.ok) return json({ error: "bad_request", message: parsed.message }, 400);
   const { chunk_id, quoted_text, suggested_text, note, turnstile_token } = parsed.value;
 

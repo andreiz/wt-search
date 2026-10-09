@@ -115,10 +115,15 @@
 
 /* ---- Header: controls ---- */
 .controls {
+  position: relative; /* the dialogs of the year range (phones) and the syntax help hang from the row */
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.controls__spacer {
+  flex: 1;
 }
 
 .mode-switch {
@@ -233,6 +238,254 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/* ---- Header: year range chip, syntax help, and their dialogs ---- */
+.year-range {
+  position: relative; /* phones: static, so the dialog hangs from the whole row and stays on screen */
+}
+
+.year-chip {
+  display: inline-flex;
+  align-items: center;
+  height: var(--ctl-h);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--raised);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 550;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.year-chip:hover {
+  border-color: var(--muted);
+}
+
+.year-chip--set {
+  background: var(--tint);
+  border-color: color-mix(in oklch, var(--accent) 40%, transparent);
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.year-chip__main,
+.year-chip__clear {
+  height: 100%;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.year-chip__main {
+  padding: 0 12px;
+}
+
+.year-chip--set .year-chip__main {
+  padding: 0 4px 0 12px;
+}
+
+.year-chip__clear {
+  min-width: 36px;
+  padding: 0 10px 0 6px;
+  font-size: 16px;
+}
+
+/* Dialogs: the shared look (a popover from the design: 14 px radius, the popover shadow). */
+.popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-card);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-pop);
+  animation: pop-in var(--dur-med) var(--ease);
+}
+
+.popover__title {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.year-range__dialog {
+  left: 0;
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  padding: 16px;
+  gap: 14px;
+}
+
+.year-range__fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.year-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.year-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.year-field__select {
+  width: 100%;
+  height: 44px;
+  padding: 0 8px;
+  border-radius: var(--r-control);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 550;
+}
+
+.year-field__select:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--focus) 25%, transparent);
+}
+
+.year-range__dash {
+  padding-bottom: 12px;
+  color: var(--muted);
+}
+
+.year-range__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.popover__ghost,
+.popover__apply {
+  height: 40px;
+  border: 0;
+  border-radius: var(--r-control);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.popover__ghost {
+  padding: 0 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 550;
+}
+
+.popover__ghost:hover {
+  background: var(--tint);
+}
+
+.popover__apply {
+  padding: 0 18px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 650;
+}
+
+.popover__apply:hover {
+  background: var(--accent-hover);
+}
+
+.syntax-help {
+  position: static; /* its dialog hangs from the controls row, at the right edge */
+}
+
+.syntax-help__button {
+  width: var(--ctl-h);
+  height: var(--ctl-h);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.syntax-help__button:hover {
+  border-color: var(--muted);
+}
+
+.syntax-help__button--open {
+  background: var(--tint);
+  border-color: var(--accent);
+}
+
+.syntax-help__dialog {
+  right: 0;
+  width: 340px;
+  max-width: 100%;
+  padding: 16px 18px;
+  gap: 10px;
+}
+
+.popover:focus {
+  outline: none; /* focus lands on a dialog only to keep Esc and Tab inside it; it is not a control */
+}
+
+.syntax-help__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.syntax-help__esc {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.syntax-help__table {
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.syntax-help__table td {
+  padding: 4px 0;
+  vertical-align: baseline;
+}
+
+.syntax-help__examples {
+  padding-right: 14px;
+}
+
+.syntax-help__finds {
+  color: var(--text);
+}
+
+.syntax-help__example {
+  display: inline-block;
+  margin: 0 4px 4px 0;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: 5px;
+  white-space: nowrap;
+  background: var(--tint);
+  color: var(--accent);
+  font: 500 13px/1.4 ui-monospace, Menlo, monospace;
+  cursor: pointer;
+}
+
+.syntax-help__example:hover {
+  background: var(--skel);
 }
 
 /* The phone summary button; it only shows on phones, once the page has scrolled. It floats
@@ -474,6 +727,19 @@
 
   .search-field__hint {
     display: none;
+  }
+
+  /* The year dialog hangs from the whole controls row (not the chip), so it fits a 390 px screen. */
+  .year-range {
+    position: static;
+  }
+
+  .syntax-help__esc {
+    display: none;
+  }
+
+  .syntax-help__example {
+    min-height: 32px;
   }
 
   .summary__phone {

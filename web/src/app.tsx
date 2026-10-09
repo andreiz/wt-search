@@ -2,8 +2,11 @@
 // header with the search bar and controls, `<main>` with the summary, results and pager, and the
 // footer. The whole state is in the URL (use-search.ts); this file wires it to the components.
 //
-// Not here yet: the real footer (Task 13), the year chip and syntax help (Task 8), the notices,
-// empty and error states (Task 11), the result card (Task 9).
+// The year range is not state: it is the `year:` tokens of the query (lib/years.ts), so the chip
+// reads the searched query and Apply and × rewrite the text in the box and search it.
+//
+// Not here yet: the real footer (Task 13), the notices, empty and error states (Task 11), the
+// result card (Task 9).
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ModeSwitch } from "./components/ModeSwitch";
 import { Pagination } from "./components/Pagination";
@@ -12,9 +15,12 @@ import { SearchBar } from "./components/SearchBar";
 import { Skeleton } from "./components/Skeleton";
 import { SortMenu, sortLabel } from "./components/SortMenu";
 import { Summary } from "./components/Summary";
+import { SyntaxHelp } from "./components/SyntaxHelp";
+import { YearRange } from "./components/YearRange";
 import { nextCompact } from "./lib/compact";
 import { handleKeydown } from "./lib/keys";
 import { normalizeQuery } from "./lib/url";
+import { clearRange, effectiveRange, rangeLabel, setRange } from "./lib/years";
 import { useSearch, type View } from "./use-search";
 
 function useCompact(): boolean {
@@ -97,6 +103,16 @@ export function App() {
 
   const searching = state.q !== "";
 
+  // The box shows what is searched: no emoji, no stray spaces.
+  function searchFor(raw: string) {
+    const q = normalizeQuery(raw);
+    setText(q);
+    submit(q);
+  }
+
+  const thisYear = new Date().getFullYear();
+  const range = effectiveRange(state.q, thisYear);
+
   return (
     <div class="page">
       <header
@@ -114,18 +130,26 @@ export function App() {
             <SearchBar
               value={text}
               onInput={setText}
-              onSubmit={() => {
-                // The box shows what is searched: no emoji, no stray spaces.
-                const q = normalizeQuery(text);
-                setText(q);
-                submit(q);
-              }}
+              onSubmit={() => searchFor(text)}
               inputRef={inputRef}
             />
           </div>
           <div class="controls" id="search-controls">
             <ModeSwitch mode={state.mode} onChange={setMode} />
             <SortMenu sort={state.sort} onChange={setSort} />
+            <YearRange
+              range={range}
+              thisYear={thisYear}
+              onApply={(from, to) => searchFor(setRange(text, from, to))}
+              onClear={() => searchFor(clearRange(text))}
+            />
+            <span class="controls__spacer" />
+            <SyntaxHelp
+              onPick={(example) => {
+                setText(example);
+                inputRef.current?.focus();
+              }}
+            />
           </div>
         </div>
         {/* A toggle for the controls, on a scrolled phone page, in both states. It hangs below the header and adds no height. */}
@@ -137,7 +161,7 @@ export function App() {
           aria-controls="search-controls"
           onClick={() => setControlsOpen(!controlsOpen)}
         >
-          {`${state.mode === "exact" ? "Exact" : "Smart"} · ${sortLabel(state.sort)} · Any year`}
+          {`${state.mode === "exact" ? "Exact" : "Smart"} · ${sortLabel(state.sort)} · ${rangeLabel(range)}`}
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>

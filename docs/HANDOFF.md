@@ -129,6 +129,28 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
   `env.e2e` carries Cloudflare's public always-pass Turnstile test keys as vars.
   `npm run deploy:staging` (in `worker/`) builds `web/` first; `--dry-run` reads 8 asset files.
   `<main>` holds the empty-state heading until Task 11.
+- **Task 6** `web/src/lib/{api,url}.ts` (Sonnet, reviewed, one fix round, 2026-10-09; web **142**
+  unit tests). **Not run before the commit: the Worker's `npm test` and `npm run e2e`** (neither
+  starts in the session's sandbox); run both before Task 7.
+  - **Types across the halves:** `web/tsconfig.json` includes `../worker/worker-configuration.d.ts`,
+    so the type-only imports from `worker/src/{search,context}` type-check. Workers globals
+    therefore also type-check in `web/` code. A type whose Worker module imports runtime code
+    that clashes with the DOM lib (`cache.ts`'s `caches.default`) needs a types-only module:
+    `InfoResponse` is in `worker/src/info-types.ts`, re-exported by `info.ts`. Doing the same
+    for the search and context types would let the include go (reviewer's suggestion, not done).
+  - `ReportBody` is declared in `api.ts` (the request body; the Worker's `ReportFields` is the
+    checked, stored shape). `report()` sends exactly the keys it is given.
+  - **For Task 13:** report 503s with a friendly `message` (Turnstile unreachable, D1 down)
+    come back as `unavailable`, message dropped (the plan's union); a report 429 is `refused`
+    with no `retryAfterS`. Add `message` to `unavailable` if the form should show them.
+  - **For Task 7:** `url.ts` doesn't cut `q` to the Worker's 200 code points. `page` is clamped
+    to 10 (exact) or 5 (smart, the default limit of 20), numbers copied from the Worker with
+    no test tying them together. `serialize` gives `""` or a string starting with `?`.
+  - Other mappings: a 2xx whose body isn't a JSON object, and 400/404 on the GET calls, are
+    `unavailable`; a failure while reading the body (not an abort) is too, not `network`.
+    `retry-after` must be a positive integer, else 60.
+  - The six search fixtures are checked against the Worker's types at compile time
+    (`satisfies Loose<…>` in `api.test.ts`; string literals widened, as JSON imports are).
 
 Tasks 1–4 were written by four Sonnet subagents in parallel worktrees (none committed),
 reviewed, applied and committed one per task in the main session. Worker **470 tests** in 18

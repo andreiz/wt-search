@@ -101,7 +101,7 @@ old at most (one backup per scheduled run).
 7. **Schedule:** install the plist (`launchctl bootstrap gui/$(id -u) …`), set up the watchdog,
    then `launchctl kickstart` once and read `launchd.log` and `wts logs --since 1h`.
 8. **Watch a week:** daily runs, the watchdog quiet, and the next release (Wednesdays, ~every 13
-   days) published by the Mini with `scoped=1` and a notification. Then Checkpoint H below.
+   days) published by the Mini with `scoped=1` and a notification. Then Checkpoint J below.
 
 **Rollback:** `wts claim` on the M1 against its archived folder (or a fresh mirror) and unload
 the Mini's job. Nothing on Cloudflare depends on which machine published.
@@ -116,7 +116,9 @@ the Mini's job. Nothing on Cloudflare depends on which machine published.
   SSH), `transcript_peek.py`: unchanged, on the mirror.
 - Worker: `npm test`, `wrangler deploy` from the M1 only.
 
-## Checkpoint H (maintainer, on the Mini)
+## Checkpoint J (maintainer, on the Mini)
+
+*(Renamed from H on 2026-10-09: plan 3 uses H and I.)*
 
 - A scheduled run published a new release by itself; the notification arrived; the watchdog
   stayed quiet, and alerted when the job was unloaded for a day.

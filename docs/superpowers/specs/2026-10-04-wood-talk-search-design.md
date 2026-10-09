@@ -848,7 +848,10 @@ brainstorm, maintainer: was Cloudflare Pages plus a Worker route.)* The look
 comes from a design system and UI designs made in Claude Design from
 `docs/design/BRIEF.md`, which elaborates this section screen by screen; this
 spec wins on any conflict, and the brief's *proposed* items are settled
-below.
+below. *(2026-10-09:)* the result is in `docs/design/system/` (tokens,
+HTML mocks rendered in React by Claude Design's own viewer, and a README
+with every measurement); the app rebuilds it in Preact. Its layout
+decisions and the deviations from it are in §5.3 and §5.7.
 
 ### 5.1 Hosting and configuration
 
@@ -879,7 +882,8 @@ below.
   nosniff`, `Referrer-Policy: no-referrer`, and a strict CSP: `default-src
   'self'`, scripts and frames from `'self'` and
   `https://challenges.cloudflare.com` (Turnstile) only, no inline scripts or
-  `style` attributes, `connect-src 'self'`, `frame-ancestors 'none'`,
+  `style` attributes, `connect-src 'self'`, `font-src 'self'` (the
+  self-hosted serif, §5.7), `frame-ancestors 'none'`,
   `base-uri 'none'`, `object-src 'none'`. Hashed asset files get a long
   `Cache-Control: immutable`; `index.html` keeps the default revalidation.
 
@@ -907,6 +911,35 @@ Pinned to the top (compacting on scroll on phones):
   (§4.4).
 
 ### 5.3 Result card
+
+*(Revised 2026-10-09: the Claude Design product, `docs/design/system/`, is
+the visual reference. Its README has the measurements; its **dense card**
+(canvas section 4, `DenseResult.dc.html`) is the results layout, and the
+roomy card stays the reference for the expanded, report and feedback
+states. Behaviour from the design, with the maintainer's calls:)*
+- **Grouping:** consecutive results from the same episode (in the API's
+  order, never reordered) share one card header, with "N matches" before
+  the date, and one hit row each. Date sorts group naturally; relevance
+  groups only neighbours. *(Maintainer, 2026-10-09.)*
+- **Related hits fold at the end of each page** (Smart): keyword hits
+  first, then one dashed row "Show N related passages — Matched on meaning,
+  not the exact words"; opened, a "Related passages" heading with Hide,
+  then the related cards (dashed border, "Related" pill, muted excerpt, no
+  filled buttons). A page with no keyword hits shows its related hits open,
+  under "No exact matches — passages about similar things:".
+  *(Maintainer, 2026-10-09; was "mixed in by rank".)*
+- **Hit row:** a timestamp play link (desktop: a 76 px column; phone: none),
+  the excerpt clamped to 3 lines (serif), and an actions row. Clicking the
+  excerpt opens More transcript, unless text is selected (so selecting to
+  report still works).
+- **Actions:** desktop shows every platform as a pill (the first filled);
+  phone shows only the first platform, as "▶ YouTube 1:09:51", and moves
+  the others into the ⋯ menu. ⓘ (ads note) when Apple or Spotify shows;
+  "+N nearby"; then ⋯ with More transcript, Episode page and Report
+  transcript error. The timestamp link plays on the first platform. The ⋯
+  button stays on the actions row (mock 4c wraps it onto a line of its own).
+- What the items below say about content, names and links still holds;
+  their layout is the design's.
 
 - **Ep. N · Title** · date · timestamp chip **mm:ss** (or h:mm:ss).
   Feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk
@@ -962,13 +995,14 @@ Pinned to the top (compacting on scroll on phones):
 
 ### 5.6 States
 
-As in the brief §4.5; the wording there is the copy. In short:
+As in the brief §4.5; the wording there is the copy, and the design's
+`Screen.dc.html` shows each state *(2026-10-09)*. In short:
 - **Before any search:** example searches as chips, and "625 episodes
   indexed through Sep 17, 2026" from `GET /api/info`.
 - **Loading:** skeleton cards; the controls stay usable, and a newer search
   cancels an older one (its answer is ignored).
-- **Only related hits** (every result `related`): "No exact matches —
-  passages about similar things:" before them.
+- **Only related hits** (no keyword hit on the page): "No exact matches —
+  passages about similar things:" before them, shown open (§5.3).
 - **No results:** suggest Smart mode, or fewer words or looser years.
   (`include:ads` is left out while boilerplate detection is binned, §3.5.)
 - **Exact, truncated:** "Showing the best 200 of N matches — add words, a
@@ -989,6 +1023,17 @@ As in the brief §4.5; the wording there is the copy. In short:
   system; tokens from the design system as CSS custom properties. System
   fonts unless the design system picks one webfont. Until the design
   system exists, neutral placeholder tokens with the same names.
+  *(2026-10-09: the design system exists: `docs/design/system/tokens.css`
+  is used as is, light and dark. Its one webfont, **Source Serif 4** (400
+  and 600, excerpts and large headings only), is **self-hosted** under
+  `/assets/` (SIL Open Font License), not loaded from Google Fonts: that
+  would need a CSP exception and send every visitor's IP to Google. UI text
+  stays on the system font stack.)*
+- Deviations from the design export: no "Sponsor read" label and no
+  `include:ads` hint (detection is binned, §3.5); no separate `years` URL
+  parameter (the range travels in `q`, §5.2); the "why is this related?"
+  open item waits on a backend that can say why
+  ([`docs/full-corpus-backlog.md`](../../full-corpus-backlog.md) §2).
 - `/` focuses search; arrow keys **and j/k** move between results
   *(settled 2026-10-08)*; Esc closes popovers and forms. Enter on a result
   does nothing special (no "play first platform").

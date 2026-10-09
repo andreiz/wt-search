@@ -130,9 +130,10 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
   `npm run deploy:staging` (in `worker/`) builds `web/` first; `--dry-run` reads 8 asset files.
   `<main>` holds the empty-state heading until Task 11.
 - **Task 6** `web/src/lib/{api,url}.ts` (Sonnet, reviewed, one fix round, 2026-10-09; web **142**
-  unit tests; Worker **485** after the `api-types.ts` refactor). **`npm run e2e` has not run on
-  the Mac:** Playwright's Chromium (v1248) isn't installed there and the session couldn't
-  download it; `cd web && npx playwright install chromium`, then run it before Task 7.
+  unit tests and 4 e2e; Worker **485** after the `api-types.ts` refactor). On the Mac, e2e
+  needs `npx playwright install chromium` once (v1248), and a sandboxed session must be
+  allowed to register Mach services or Chromium dies at launch (`bootstrap_check_in …
+  Permission denied (1100)`).
   - **Types across the halves:** the shapes the API sends (search, context, info; `DeepLinks`,
     `CueTimes`) live in `worker/src/api-types.ts`, types only with no imports. `web/` imports
     Worker types from that file alone: any other `worker/src/` module drags Workers globals

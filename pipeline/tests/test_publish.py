@@ -507,6 +507,26 @@ def test_a_failed_corpus_version_bump_is_retried_next_run(conn, paths, embedded,
     assert kv_get(conn, "publish.corpus_version_pending.staging") is None
 
 
+def test_an_interrupted_run_still_owes_the_corpus_version_bump(conn, paths, embedded,
+                                                              monkeypatch):
+    # Review #7: killed after the episode's publication was recorded, before the bump was owed.
+    e = embedded()
+    target = Target()
+
+    def interrupted(*args, **kwargs):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(publish, "plural", interrupted)  # first thing after a recorded success
+    with pytest.raises(KeyboardInterrupt):
+        pub(conn, paths, target, [e])
+    monkeypatch.undo()
+    assert target.d1.rows("select value from meta where key = 'corpus_version'") == [("0",)]
+    assert due_episodes(conn, "staging", [e], paths.embeddings_dir) == []  # nothing changed
+    pub(conn, paths, target, [e])
+    assert target.d1.rows("select value from meta where key = 'corpus_version'") != [("0",)]
+    assert kv_get(conn, "publish.corpus_version_pending.staging") is None
+
+
 def test_cli_requires_a_valid_env(wts_home):
     result = CliRunner().invoke(main, ["publish", "--env", "prod"])
     assert result.exit_code == 2

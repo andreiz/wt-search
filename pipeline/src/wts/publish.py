@@ -15,7 +15,8 @@ Per episode, in order:
   2. One D1 batch: upsert the episode row, delete its chunks that are gone, upsert its chunks
      (ON CONFLICT DO UPDATE, never INSERT OR REPLACE, which skips the FTS delete trigger).
   3. Vectorize delete of ids in `published_vectors` that are no longer current.
-  4. One local transaction: `publications`, `published_vectors`, status → `published`.
+  4. One local transaction: `publications`, `published_vectors`, the owed `corpus_version`
+     bump (a `kv` flag, cleared once the bump succeeds), status → `published`.
 """
 
 import hashlib
@@ -32,7 +33,7 @@ import numpy as np
 
 from wts.cloudflare import D1, CloudflareApi, Vectorize, chunked_inserts
 from wts.config import Config
-from wts.db import kv_get, kv_set
+from wts.db import kv_get
 from wts.embed import load_embeddings
 from wts.log import plural
 from wts.net import new_client
@@ -195,6 +196,10 @@ def publish_episode(
             "published_at = excluded.published_at",
             (episode_id, env, digest, _now()),
         )
+        # The cache-busting bump is owed from here on, even if this run dies before making it.
+        conn.execute(
+            "insert into kv (key, value) values (?, '1') "
+            "on conflict (key) do update set value = excluded.value", (_pending_key(env),))
         conn.executemany("delete from published_vectors where env = ? and chunk_id = ?",
                          [(env, i) for i in stale])
         if row["status"] != Status.PUBLISHED:
@@ -267,8 +272,7 @@ def run_publish(
                  + (f", {done['vectors_deleted']} removed" if done["vectors_deleted"] else ""),
                  extra=extra)
 
-    if counts["ok"] or pending:
-        kv_set(conn, _pending_key(env), "1")
+    if counts["ok"] or pending:  # publish_episode recorded the debt with each success
         try:
             _bump_corpus_version(conn, d1, env)
         except Exception as exc:  # noqa: BLE001 — retried on the next run

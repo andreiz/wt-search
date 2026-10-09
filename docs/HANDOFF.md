@@ -132,12 +132,12 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
 - **Task 6** `web/src/lib/{api,url}.ts` (Sonnet, reviewed, one fix round, 2026-10-09; web **142**
   unit tests). **Not run before the commit: the Worker's `npm test` and `npm run e2e`** (neither
   starts in the session's sandbox); run both before Task 7.
-  - **Types across the halves:** `web/tsconfig.json` includes `../worker/worker-configuration.d.ts`,
-    so the type-only imports from `worker/src/{search,context}` type-check. Workers globals
-    therefore also type-check in `web/` code. A type whose Worker module imports runtime code
-    that clashes with the DOM lib (`cache.ts`'s `caches.default`) needs a types-only module:
-    `InfoResponse` is in `worker/src/info-types.ts`, re-exported by `info.ts`. Doing the same
-    for the search and context types would let the include go (reviewer's suggestion, not done).
+  - **Types across the halves:** the shapes the API sends (search, context, info; `DeepLinks`,
+    `CueTimes`) live in `worker/src/api-types.ts`, types only with no imports. `web/` imports
+    Worker types from that file alone: any other `worker/src/` module drags Workers globals
+    (`D1Database`, `caches.default`) into the web type-check. The Worker's modules re-export
+    the types they used to own, and `deepLinks()`/`cueTimes()` are annotated with the named
+    types. A new wire type goes in `api-types.ts`.
   - `ReportBody` is declared in `api.ts` (the request body; the Worker's `ReportFields` is the
     checked, stored shape). `report()` sends exactly the keys it is given.
   - **For Task 13:** report 503s with a friendly `message` (Turnstile unreachable, D1 down)

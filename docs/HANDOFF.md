@@ -15,6 +15,11 @@ the maintainer's request.
   **Tasks 1–4 (the Worker changes) are done** on branch `claude/plan-3-handoff-etfwwc` (the
   maintainer asked for a branch this time), not yet merged to `main` or deployed. **Next:**
   merge, then Task 5 (the `web/` scaffold). Notes under "Plan 3 task notes" below.
+- **Claude Design delivered** (2026-10-09): `docs/design/system/` (tokens, mocks, README). Spec
+  §5.3/§5.7 record it with the maintainer's calls (group neighbouring hits; related hits fold
+  at the end of each page; Source Serif 4 self-hosted). Plan 3 revised to build straight to
+  it from Task 5; Task 16 is now a visual pass. The app stays Preact: the mocks' React is
+  only Claude Design's viewer.
 - **Codex review of plans 1–2** ([`docs/code-review-d15ec6e.md`](code-review-d15ec6e.md),
   2026-10-09): all nine findings reproduced and fixed on the same branch, one commit each
   (resolution table at the end of the review); #8 then became moot (next item).

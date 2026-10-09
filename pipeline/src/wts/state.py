@@ -90,6 +90,19 @@ def reset(conn: sqlite3.Connection, episode_id: int, to: Status) -> None:
         )
 
 
+def requeue_embedding(conn: sqlite3.Connection, episode_id: int) -> None:
+    """Send an `embedded`/`published` episode back to `chunked`, to be embedded again.
+
+    Does not commit: call it in the transaction that changes the episode's chunks, so a crash
+    leaves either both or neither (a committed chunk change alone would never be noticed again).
+    """
+    conn.execute(
+        "update episodes set status = ?, error_step = null, error_reason = null, "
+        "retries = 0, updated_at = ? where id = ?",
+        (Status.CHUNKED, _now(), episode_id),
+    )
+
+
 def episodes_for_step(
     conn: sqlite3.Connection, step: str, ids: Collection[int], *, newest_first: bool = False
 ) -> list[sqlite3.Row]:

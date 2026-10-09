@@ -166,6 +166,26 @@ def test_corrections_edit_alone_triggers_refresh(
     assert status_of(conn, transcribed_episode) == "chunked"  # will be re-embedded
 
 
+def test_interrupted_refresh_still_sends_episode_back_for_embedding(
+    conn, paths, cfg, transcribed_episode, tmp_path, empty_corrections, monkeypatch
+):
+    run_chunk(conn, paths, cfg, [transcribed_episode], corrections_file=empty_corrections)
+    force_status(conn, transcribed_episode, "embedded")
+    cf = tmp_path / "corrections.yaml"
+    cf.write_text('global: {"marc": "Mark"}\n')
+
+    def killed(*args, **kwargs):
+        raise KeyboardInterrupt
+
+    with monkeypatch.context() as m:
+        m.setattr("wts.state._now", killed)  # the process dies at the first status change
+        with pytest.raises(KeyboardInterrupt):
+            run_chunk(conn, paths, cfg, [], corrections_file=cf)
+    run_chunk(conn, paths, cfg, [], corrections_file=cf)
+    assert "Mark" in all_text(conn, transcribed_episode).split()
+    assert status_of(conn, transcribed_episode) == "chunked"  # not left embedded with old vectors
+
+
 def test_spaced_correction_keeps_word_times_aligned(conn, transcribed_episode, paths, cfg, tmp_path):
     cf = tmp_path / "c.yaml"
     cf.write_text("global:\n  kremona: Matt Cremona\n  um: ''\n")

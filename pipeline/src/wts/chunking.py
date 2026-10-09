@@ -14,7 +14,7 @@ from wts.boilerplate import BoilerplateIndex
 from wts.chunker import build_chunks
 from wts.corrections import CorrectionRule, apply_corrections
 from wts.guards import clean_transcript
-from wts.state import Status, advance, fail, reset
+from wts.state import Status, fail, requeue_embedding
 from wts.words import Sentence, join_split_words, split_sentences
 
 log = logging.getLogger("wts")
@@ -39,7 +39,11 @@ def chunk_episode(
     corrections: Sequence[CorrectionRule],
     index: BoilerplateIndex,
 ) -> bool:
-    """Rebuild one episode's chunks. Returns True if they differ from what was stored."""
+    """Rebuild one episode's chunks. Returns True if they differ from what was stored.
+
+    An `embedded`/`published` episode whose chunks changed goes back to `chunked` in the same
+    transaction, so its vectors can't outlive the text they were made from.
+    """
     sentences, flags = prepare_episode(row, corrections)
     index.replace_episode(row["id"], sentences)
     chunks = build_chunks(sentences, index.mask(row["id"], sentences))
@@ -67,6 +71,8 @@ def chunk_episode(
             "is_boilerplate = excluded.is_boilerplate",
             [(row["id"], *values) for values in new],
         )
+        if row["status"] in (Status.EMBEDDED, Status.PUBLISHED):
+            requeue_embedding(conn, row["id"])
     return True
 
 
@@ -89,7 +95,4 @@ def refresh_chunks(
                                                              "episode": row["stem"]})
             continue
         changed += 1
-        if row["status"] != Status.CHUNKED:
-            reset(conn, row["id"], Status.TRANSCRIBED)
-            advance(conn, row["id"], "chunk")
     return changed

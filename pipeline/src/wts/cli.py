@@ -107,7 +107,7 @@ def transcribe(selector: str) -> None:
 @select_option
 @click.option("--force", is_flag=True, help="Re-chunk selected episodes even if already chunked.")
 def chunk(selector: str, force: bool) -> None:
-    """Clean transcripts, apply corrections, flag boilerplate, and build chunks."""
+    """Clean transcripts, apply corrections, and build chunks."""
     _run_step("chunk", selector, force=force)
 
 

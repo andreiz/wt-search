@@ -5,9 +5,11 @@ import pytest
 from click.testing import CliRunner
 from conftest import force_status, seg, status_of, tx
 
+from wts import chunking, steps
 from wts.chunking import prepare_episode
 from wts.cli import main
-from wts.corrections import CORRECTIONS_FILE, CorrectionRule
+from wts.corrections import CORRECTIONS_FILE, CorrectionRule, corrections_sha
+from wts.db import kv_set
 from wts.state import fail
 from wts.steps import run_chunk
 
@@ -93,8 +95,7 @@ def test_chunk_step_stores_chunks_and_flags(conn, transcribed_episode, paths, cf
     assert isinstance(json.loads(flags), list)
 
 
-def test_chunk_reports_chunks_boilerplate_and_flags(conn, paths, cfg, episodes_with_ad,
-                                                     wts_messages):
+def test_chunk_reports_chunks_and_flags(conn, paths, cfg, episodes_with_ad, wts_messages):
     slow = episodes_with_ad[0]  # ~230 words over 10 minutes: wpm_low
     conn.execute("update episodes set audio_duration_s = 600 where id = ?", (slow,))
     conn.commit()
@@ -103,7 +104,7 @@ def test_chunk_reports_chunks_boilerplate_and_flags(conn, paths, cfg, episodes_w
         "select count(*), sum(is_boilerplate) from chunks"
     ).fetchone()
     assert (counts["chunks"], counts["boilerplate"], counts["flagged"]) == (total, bp, 1)
-    assert bp > 0
+    assert bp == 0  # nothing detects boilerplate for now
     per_episode = [m for m in wts_messages if m.startswith("chunked: ")]
     assert len(per_episode) == 5
     assert per_episode[0].endswith("; flags: wpm_low")
@@ -119,60 +120,105 @@ def test_shipped_corrections_are_applied(conn, transcribed_episode, paths, cfg):
     assert "Cremona" in all_text(conn, transcribed_episode)
 
 
-def test_fifth_episode_with_ad_flips_earlier_episodes_back_to_chunked(
+def test_no_chunk_is_boilerplate_even_when_five_episodes_share_a_passage(
     conn, paths, cfg, episodes_with_ad
 ):
-    first4, fifth = episodes_with_ad[:4], episodes_with_ad[4]
-    run_chunk(conn, paths, cfg, first4)
-    assert boilerplate_chunk_count(conn, first4[0]) == 0  # only 4 episodes share the ad so far
-    for e in first4:
-        force_status(conn, e, "embedded")
-    run_chunk(conn, paths, cfg, [fifth])
-    assert all(status_of(conn, e) == "chunked" for e in first4)
-    assert boilerplate_chunk_count(conn, first4[0]) >= 1
-    assert boilerplate_chunk_count(conn, fifth) >= 1
+    # Detection is off until the full corpus is available; the five copies of the ad stay text.
+    run_chunk(conn, paths, cfg, episodes_with_ad)
+    assert conn.execute("select count(*) from chunks").fetchone()[0] > 0
+    assert conn.execute("select count(*) from chunks where is_boilerplate = 1").fetchone()[0] == 0
 
 
-def test_corrections_refresh_flags_a_shared_passage_in_every_episode(
-    conn, paths, cfg, make_episodes, tmp_path, empty_corrections
+@pytest.fixture
+def refreshes(monkeypatch):
+    """The calls the chunk step makes to refresh_chunks."""
+    calls = []
+    real = steps.refresh_chunks
+
+    def spy(*args, **kwargs):
+        calls.append(1)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr("wts.steps.refresh_chunks", spy)
+    return calls
+
+
+def test_refresh_runs_once_then_only_when_inputs_change(
+    conn, paths, cfg, transcribed_episode, refreshes, empty_corrections
 ):
-    # Each episode's copy of the ad carries its own junk words, so before the corrections it
-    # matches nothing; the rules delete the junk and the five copies become identical.
-    ids = make_episodes(5)
-    junk = [[f"junk{k}x{j}" for j in range(4)] for k in range(5)]
-    for k, e in enumerate(ids):
-        ad = [" ".join([*s.split()[:3], *junk[k], *s.split()[3:]]) for s in AD_BLOCK]
-        write_transcript(conn, paths, e, ad + unique_sentences(f"ep{k}", 15))
-    run_chunk(conn, paths, cfg, ids, corrections_file=empty_corrections)
-    assert [boilerplate_chunk_count(conn, e) for e in ids] == [0] * 5
-    for e in ids:
-        force_status(conn, e, "embedded")
+    run_chunk(conn, paths, cfg, [transcribed_episode], corrections_file=empty_corrections)
+    assert len(refreshes) == 1  # nothing stored yet
+    run_chunk(conn, paths, cfg, [], corrections_file=empty_corrections)
+    run_chunk(conn, paths, cfg, [], corrections_file=empty_corrections)
+    assert len(refreshes) == 1  # idle runs don't refresh
 
+
+def test_new_episodes_alone_do_not_trigger_a_refresh(
+    conn, paths, cfg, make_episodes, refreshes, empty_corrections
+):
+    first, second = make_episodes(2)
+    write_transcript(conn, paths, first, unique_sentences("one", 20))
+    run_chunk(conn, paths, cfg, [first], corrections_file=empty_corrections)
+    write_transcript(conn, paths, second, unique_sentences("two", 20))
+    run_chunk(conn, paths, cfg, [second], corrections_file=empty_corrections)
+    assert len(refreshes) == 1
+
+
+def test_corrections_change_triggers_a_refresh(
+    conn, paths, cfg, transcribed_episode, refreshes, empty_corrections, tmp_path
+):
+    run_chunk(conn, paths, cfg, [transcribed_episode], corrections_file=empty_corrections)
     cf = tmp_path / "corrections.yaml"
-    cf.write_text("global:\n" + "".join(f"  {w}: ''\n" for ws in junk for w in ws))
+    cf.write_text('global: {"marc": "Mark"}\n')
     run_chunk(conn, paths, cfg, [], corrections_file=cf)
-    assert [boilerplate_chunk_count(conn, e) >= 1 for e in ids] == [True] * 5
-    assert [status_of(conn, e) for e in ids] == ["chunked"] * 5
-
-    for e in ids:
-        force_status(conn, e, "embedded")
-    flags = [
-        conn.execute("select is_boilerplate from chunks where episode_id = ?", (e,)).fetchall()
-        for e in ids
-    ]
-    assert run_chunk(conn, paths, cfg, [], corrections_file=cf)["refreshed"] == 0  # idle
-    assert [status_of(conn, e) for e in ids] == ["embedded"] * 5
-    assert flags == [
-        conn.execute("select is_boilerplate from chunks where episode_id = ?", (e,)).fetchall()
-        for e in ids
-    ]
+    assert len(refreshes) == 2
+    run_chunk(conn, paths, cfg, [], corrections_file=cf)
+    assert len(refreshes) == 2
 
 
-def test_unchanged_refresh_keeps_ids_and_status(conn, paths, cfg, transcribed_episode):
+def test_chunker_version_change_triggers_a_refresh(
+    conn, paths, cfg, transcribed_episode, refreshes, empty_corrections, monkeypatch
+):
+    run_chunk(conn, paths, cfg, [transcribed_episode], corrections_file=empty_corrections)
+    monkeypatch.setattr("wts.chunking.CHUNKER_VERSION", chunking.CHUNKER_VERSION + 1)
+    run_chunk(conn, paths, cfg, [], corrections_file=empty_corrections)
+    assert len(refreshes) == 2
+    run_chunk(conn, paths, cfg, [], corrections_file=empty_corrections)
+    assert len(refreshes) == 2
+
+
+def test_stored_bare_corrections_sha_triggers_one_refresh(
+    conn, paths, cfg, transcribed_episode, refreshes, empty_corrections
+):
+    # What an earlier version of the pipeline left in the kv table: the sha alone.
+    kv_set(conn, "corrections_sha", corrections_sha(empty_corrections))
+    run_chunk(conn, paths, cfg, [transcribed_episode], corrections_file=empty_corrections)
+    run_chunk(conn, paths, cfg, [], corrections_file=empty_corrections)
+    assert len(refreshes) == 1
+
+
+def test_first_refresh_clears_boilerplate_flags_left_by_the_old_detector(
+    conn, paths, cfg, transcribed_episode, empty_corrections
+):
+    run_chunk(conn, paths, cfg, [transcribed_episode], corrections_file=empty_corrections)
+    force_status(conn, transcribed_episode, "embedded")
+    conn.execute("update chunks set is_boilerplate = 1 where seq = 0")
+    kv_set(conn, "corrections_sha", corrections_sha(empty_corrections))
+    conn.commit()
+    counts = run_chunk(conn, paths, cfg, [], corrections_file=empty_corrections)
+    assert counts["refreshed"] == 1
+    assert boilerplate_chunk_count(conn, transcribed_episode) == 0
+    assert status_of(conn, transcribed_episode) == "chunked"  # requeued for embedding
+
+
+def test_unchanged_refresh_keeps_ids_and_status(
+    conn, paths, cfg, transcribed_episode, monkeypatch
+):
     run_chunk(conn, paths, cfg, [transcribed_episode])
     force_status(conn, transcribed_episode, "embedded")
     ids_before = chunk_ids(conn, transcribed_episode)
-    run_chunk(conn, paths, cfg, [])  # nothing new; refresh is a no-op
+    monkeypatch.setattr("wts.chunking.CHUNKER_VERSION", chunking.CHUNKER_VERSION + 1)
+    run_chunk(conn, paths, cfg, [])  # a refresh that finds the same chunks
     assert chunk_ids(conn, transcribed_episode) == ids_before
     assert status_of(conn, transcribed_episode) == "embedded"
 
@@ -245,25 +291,17 @@ def test_probed_audio_duration_is_used_for_timing_checks(conn, transcribed_episo
 
 
 def test_unreadable_transcript_during_refresh_fails_only_that_episode(
-    conn, paths, cfg, episodes_with_ad
+    conn, paths, cfg, episodes_with_ad, monkeypatch
 ):
     first, second = episodes_with_ad[:2]
     run_chunk(conn, paths, cfg, [first])
     force_status(conn, first, "embedded")
     path = conn.execute("select transcript_path from episodes where id = ?", (first,)).fetchone()
     Path(path[0]).write_text("{not json")
+    monkeypatch.setattr("wts.chunking.CHUNKER_VERSION", chunking.CHUNKER_VERSION + 1)
     counts = run_chunk(conn, paths, cfg, [second])
     assert status_of(conn, second) == "chunked" and counts["ok"] == 1
     assert status_of(conn, first) == "error"
-
-
-def test_flag_change_keeps_chunk_ids(conn, paths, cfg, episodes_with_ad):
-    first4, fifth = episodes_with_ad[:4], episodes_with_ad[4]
-    run_chunk(conn, paths, cfg, first4)
-    before = chunk_ids(conn, first4[0])
-    run_chunk(conn, paths, cfg, [fifth])  # flips first4's ad chunks to boilerplate
-    assert boilerplate_chunk_count(conn, first4[0]) >= 1
-    assert chunk_ids(conn, first4[0]) == before
 
 
 def test_chunk_ids_are_never_reused(conn, paths, cfg, transcribed_episode, tmp_path):
@@ -308,31 +346,3 @@ def test_chunk_cli(wts_home):
     r = CliRunner().invoke(main, ["chunk", "--select", "all", "--force"])
     assert r.exit_code == 0, r.output
     assert "chunk: nothing to do (0:00)" in r.output
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="Deferred to phase 2 (spec §3.5, §9): Whisper splits the same sponsor read into "
-    "different sentences per episode, and the read is interleaved with host talk, so 30 s "
-    "chunks stay under the 60% share. Remove this mark when the rework lands.",
-)
-def test_real_sponsor_reads_flagged(conn, paths, cfg, make_episodes, real_transcripts):
-    ids = make_episodes(len(real_transcripts))
-    paths.transcripts_dir.mkdir(parents=True, exist_ok=True)
-    for e, data in zip(ids, real_transcripts, strict=True):
-        out = paths.transcripts_dir / f"real-{e}.json"
-        out.write_text(json.dumps(data))
-        conn.execute(
-            "update episodes set transcript_path = ?, duration_s = ?, status = 'transcribed' "
-            "where id = ?",
-            (str(out), data["meta"].get("duration_s"), e),
-        )
-    conn.commit()
-    run_chunk(conn, paths, cfg, ids)
-    with_bp = sum(1 for e in ids if boilerplate_chunk_count(conn, e) >= 1)
-    total_words = bp_words = 0
-    for text, bp in conn.execute("select text, is_boilerplate from chunks"):
-        total_words += len(text.split())
-        bp_words += len(text.split()) if bp else 0
-    assert with_bp >= min(5, len(ids))
-    assert bp_words < 0.15 * total_words

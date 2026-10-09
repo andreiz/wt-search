@@ -16,8 +16,7 @@ import httpx
 
 from wts import storage
 from wts.backup import BackupFailed, backup
-from wts.boilerplate import BoilerplateIndex
-from wts.chunking import chunk_episode, refresh_chunks
+from wts.chunking import chunk_episode, chunking_inputs, refresh_chunks
 from wts.config import Config
 from wts.corrections import CORRECTIONS_FILE, corrections_sha, load_corrections
 from wts.db import kv_get, kv_set
@@ -214,7 +213,6 @@ def run_chunk(
     corrections_file: Path = CORRECTIONS_FILE,
 ) -> Counter:
     corrections = load_corrections(corrections_file)
-    index = BoilerplateIndex(conn)
     counts: Counter = Counter()
     if force:
         done = (Status.CHUNKED, Status.EMBEDDED, Status.PUBLISHED)
@@ -226,7 +224,7 @@ def run_chunk(
     for row in episodes_for_step(conn, "chunk", ids):
         extra = {"step": "chunk", "episode": row["stem"]}
         try:
-            chunk_episode(conn, row, corrections, index)
+            chunk_episode(conn, row, corrections)
         except Exception as exc:  # noqa: BLE001 — one bad episode must not stop the batch
             fail(conn, row["id"], "chunk", repr(exc)[:500])
             counts["error"] += 1
@@ -239,14 +237,13 @@ def run_chunk(
         msg = f"chunked: {plural(n, 'chunk')}, {bp} boilerplate"
         log.info(msg + (f"; flags: {', '.join(flags[row['stem']])}" if flags else ""), extra=extra)
 
-    # New episodes can turn earlier sentences into boilerplate (the 5-episode rule), and a
-    # corrections.yaml edit changes text: re-check everything already chunked.
-    sha = corrections_sha(corrections_file)
-    if counts["ok"] or sha != kv_get(conn, "corrections_sha"):
-        counts["refreshed"] = refresh_chunks(conn, corrections, index)
-        kv_set(conn, "corrections_sha", sha)
+    # A corrections.yaml edit or a new CHUNKER_VERSION changes what chunking produces: re-chunk
+    # everything already chunked. (The kv key predates the version: a bare sha counts as changed.)
+    inputs = chunking_inputs(corrections_sha(corrections_file))
+    if inputs != kv_get(conn, "corrections_sha"):
+        counts["refreshed"] = refresh_chunks(conn, corrections)
+        kv_set(conn, "corrections_sha", inputs)
     if chunked:
-        # After the refresh, so boilerplate reflects every episode chunked so far.
         n, bp, flags = _chunk_stats(conn, chunked)
         counts.update(chunks=n, boilerplate=bp, flagged=len(flags))
         msg = (f"chunked {plural(len(chunked), 'episode')}: {plural(n, 'chunk')}, "

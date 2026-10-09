@@ -1,7 +1,9 @@
-"""`wts chunk`: raw transcript → guards → corrections → sentences → boilerplate → chunks.
+"""`wts chunk`: raw transcript → guards → corrections → sentences → chunks.
 
-Everything here is deterministic and cheap, so it can be re-run whenever the guards,
-corrections.yaml or the boilerplate index change, without re-transcribing.
+Everything here is deterministic and cheap, so it can be re-run whenever the guards or
+corrections.yaml change, without re-transcribing. No chunk is flagged as boilerplate for now
+(detection is shelved until the full corpus is available); the flag, and the embed and publish
+steps that honour it, stay.
 """
 
 import json
@@ -10,7 +12,6 @@ import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
 
-from wts.boilerplate import BoilerplateIndex
 from wts.chunker import build_chunks
 from wts.corrections import CorrectionRule, apply_corrections
 from wts.guards import clean_transcript
@@ -19,6 +20,16 @@ from wts.words import Sentence, join_split_words, split_sentences
 
 log = logging.getLogger("wts")
 _CHUNK_COLUMNS = "seq, start_ms, end_ms, text, word_times, is_boilerplate"
+
+# Bump this whenever a change to the chunking code (guards, sentence splitting, the chunker)
+# changes what it produces. The chunk step re-chunks every episode once when it differs from the
+# stored value, and the changed ones go back to `chunked` for re-embedding.
+CHUNKER_VERSION = 2
+
+
+def chunking_inputs(corrections_sha: str) -> str:
+    """What the stored chunks were built from, besides the transcripts: compared by the step."""
+    return f"{corrections_sha}:v{CHUNKER_VERSION}"
 
 
 def prepare_episode(
@@ -37,20 +48,14 @@ def chunk_episode(
     conn: sqlite3.Connection,
     row: sqlite3.Row,
     corrections: Sequence[CorrectionRule],
-    index: BoilerplateIndex,
-    *,
-    reindex: bool = True,
 ) -> bool:
     """Rebuild one episode's chunks. Returns True if they differ from what was stored.
 
     An `embedded`/`published` episode whose chunks changed goes back to `chunked` in the same
-    transaction, so its vectors can't outlive the text they were made from. `reindex=False`
-    leaves the boilerplate index alone because the caller has already brought it up to date.
+    transaction, so its vectors can't outlive the text they were made from.
     """
     sentences, flags = prepare_episode(row, corrections)
-    if reindex:
-        index.replace_episode(row["id"], sentences)
-    chunks = build_chunks(sentences, index.mask(row["id"], sentences))
+    chunks = build_chunks(sentences, [False] * len(sentences))  # no boilerplate detection yet
     new = [
         (c.seq, c.start_ms, c.end_ms, c.text, c.word_times, int(c.is_boilerplate)) for c in chunks
     ]
@@ -80,40 +85,21 @@ def chunk_episode(
     return True
 
 
-def refresh_chunks(
-    conn: sqlite3.Connection, corrections: Sequence[CorrectionRule], index: BoilerplateIndex
-) -> int:
-    """Re-chunk already-chunked episodes; changed ones go back to `chunked` for re-embedding.
-
-    Two passes: first every episode's fingerprints are brought up to date, then each is
-    classified against the finished index. One pass would classify an episode against older
-    fingerprints of the episodes after it, and nothing would revisit it. The price is reading
-    and cleaning every transcript twice.
-    """
+def refresh_chunks(conn: sqlite3.Connection, corrections: Sequence[CorrectionRule]) -> int:
+    """Re-chunk already-chunked episodes; changed ones go back to `chunked` for re-embedding."""
     rows = conn.execute(
         "select * from episodes where status in (?, ?, ?) order by published_at",
         (Status.CHUNKED, Status.EMBEDDED, Status.PUBLISHED),
     ).fetchall()
-
-    def failed(row: sqlite3.Row, exc: Exception) -> None:
-        # One bad transcript must not block every run.
-        fail(conn, row["id"], "chunk", repr(exc)[:500])
-        log.error(f"re-chunking failed: {exc!r}", extra={"step": "chunk", "episode": row["stem"]})
-
-    indexed = []
+    changed = 0
     for row in rows:
         try:
-            sentences, _ = prepare_episode(row, corrections)
-            index.replace_episode(row["id"], sentences)
-        except Exception as exc:  # noqa: BLE001
-            failed(row, exc)
-        else:
-            indexed.append(row)
-    changed = 0
-    for row in indexed:
-        try:
-            if chunk_episode(conn, row, corrections, index, reindex=False):
+            if chunk_episode(conn, row, corrections):
                 changed += 1
         except Exception as exc:  # noqa: BLE001
-            failed(row, exc)
+            # One bad transcript must not block every run.
+            fail(conn, row["id"], "chunk", repr(exc)[:500])
+            log.error(
+                f"re-chunking failed: {exc!r}", extra={"step": "chunk", "episode": row["stem"]}
+            )
     return changed

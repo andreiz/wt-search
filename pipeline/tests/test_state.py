@@ -60,6 +60,48 @@ def test_failed_at_migration_applies_on_an_existing_database(tmp_path):
     assert failed == {broken: "2026-01-02T03:04:05+00:00", fine: None}
 
 
+def _tables(conn):
+    return {r[0] for r in conn.execute("select name from sqlite_master where type = 'table'")}
+
+
+def test_drop_boilerplate_index_migration_applies_on_an_existing_database(tmp_path):
+    path = tmp_path / "state.db"
+    old = sqlite3.connect(path)
+    for number, sql in _migrations():
+        if number <= 5:
+            old.executescript(sql)
+            old.execute(f"PRAGMA user_version = {number}")
+    e = insert_episode(old, status="chunked")
+    old.execute(
+        "insert into chunks (episode_id, seq, start_ms, end_ms, text, word_times) "
+        "values (?, 0, 0, 1000, 'hi', '0')",
+        (e,),
+    )
+    old.executemany(
+        "insert into bp_sentences (id, episode_id, norm_text) values (?, ?, ?)",
+        [(i, e, f"sentence {i}") for i in range(1, 4)],
+    )
+    old.executemany(
+        "insert into bp_bands (band_key, sentence_id) values (?, ?)",
+        [(i * 7, i) for i in range(1, 4)],
+    )
+    old.commit()
+    assert {"bp_sentences", "bp_bands"} <= _tables(old)
+    old.close()
+
+    conn = connect(path)
+    assert not {"bp_sentences", "bp_bands"} & _tables(conn)
+    assert conn.execute("pragma user_version").fetchone()[0] == max(n for n, _ in _migrations())
+    assert conn.execute("select count(*) from chunks").fetchone()[0] == 1
+    assert conn.execute("select status from episodes where id = ?", (e,)).fetchone()[0] == "chunked"
+
+
+def test_fresh_database_has_no_boilerplate_index(tmp_path):
+    conn = connect(tmp_path / "state.db")
+    assert not {"bp_sentences", "bp_bands"} & _tables(conn)
+    assert {"episodes", "chunks"} <= _tables(conn)
+
+
 def test_fail_stamps_failed_at_and_other_changes_do_not(conn, make_episode):
     e = make_episode()
 

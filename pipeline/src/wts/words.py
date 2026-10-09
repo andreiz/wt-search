@@ -1,4 +1,4 @@
-"""Timed words, sentences, and text normalization shared by cleanup, chunking and boilerplate."""
+"""Timed words, sentences, and text normalization shared by cleanup and chunking."""
 
 import re
 from collections.abc import Sequence

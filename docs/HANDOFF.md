@@ -731,9 +731,10 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
 5. ~~Is the repo public~~ — it is; real fixtures are trimmed to 15 minutes.
 6. ~~Plan 2's six decisions~~ — confirmed. D1 REST (non-atomic, idempotent) for now; an
    atomic publish route in the Worker before production (spec §10 item 9).
-7. ~~Boilerplate detection on real data~~ — deferred to phase 2 (spec §3.5, §9);
-   `test_real_sponsor_reads_flagged` is `xfail(strict=True)`, so it errors once the rework
-   makes it pass (then remove the mark).
+7. ~~Boilerplate detection on real data~~ — **binned 2026-10-09** (maintainer): the detector
+   flagged 2–3 of 4,210 seed chunks and missed the sponsor reads; it is removed until the full
+   corpus can be measured ([`docs/full-corpus-backlog.md`](full-corpus-backlog.md) §1, spec
+   §3.5). `test_real_sponsor_reads_flagged` went with it.
 9. ~~General listener feedback~~ — resolved 2026-10-08 (plan 3 brainstorm): a footer "Send
    feedback" link posts to `/api/report` with no `chunk_id` (spec §4.4, §5.5; plan 3 Task 4,
    plan 4's `wts reports` lists them as feedback). Corrections stay an ongoing background

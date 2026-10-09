@@ -141,5 +141,5 @@ All nine reproduced: each fix has a regression test that failed on the old code.
 | 5 | `77c1169` | `readCapped()` reads the body with a 48 KiB byte cap and cancels the stream past it; the Content-Length fast path stays. |
 | 6 | `23bffbe` | URL update and reset to `new` in one transaction. |
 | 7 | `b237e40` | The owed `corpus_version` flag is written in each episode's publication transaction, not after the loop. (Not before the first remote write: that would bump after runs that only hit parked errors.) |
-| 8 | `49963e6` | Refresh is two passes: fingerprints for every episode, then classification against the finished index. Costs a second read of each transcript. |
+| 8 | `49963e6`, then moot | Refresh was made two passes (a second read of each transcript per run). Then the maintainer binned boilerplate detection altogether (2026-10-09: it flagged 2–3 of 4,210 seed chunks), which removed the index and the two-pass refresh; see `docs/full-corpus-backlog.md` §1. |
 | 9 | `c82e6e1` | Migration 005 adds `episodes.failed_at`, set only by `state.fail`; notifications select on it. Existing errors backfilled from `updated_at`. |

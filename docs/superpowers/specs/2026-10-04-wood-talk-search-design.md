@@ -20,7 +20,7 @@ and the Wood Talk site, and can expand to show more of the transcript.
 | Playback | Deep-link out at a timestamp: YouTube (where the episode is there and lines up), Apple Podcasts, Spotify, plus the episode's Wood Talk page. No audio is hosted. |
 | Search | Keyword search with query syntax, combined with meaning-based search (§4.3). Started on Enter or the Search button, not while typing. |
 | Result order | Relevance (default), Newest, Oldest. |
-| Repeated content | Sponsor reads, plugs, the standard intro and outro, and inserted ads are detected and hidden by default (`include:ads` shows them). |
+| Repeated content | Sponsor reads, plugs, the standard intro and outro, and inserted ads are detected and hidden by default (`include:ads` shows them). *(Binned 2026-10-09 until the full corpus: §3.5.)* |
 | Hosting | Cloudflare Workers paid plan: one Worker (the site's static files and the API), D1, Vectorize and Workers AI. Estimated about $8–9 a month (§11). |
 | Upkeep | As close to zero as possible: no servers to patch. |
 | Heavy compute | The maintainer's M1 Max desktop at first; the Mac Mini (M5 Pro) once it's set up. |
@@ -212,7 +212,7 @@ system.
 | `wts feed` | Reads the RSS feed and upserts `episodes`: guid, number, title, published_at, duration_s, audio_url, and page_url (the item's `<link>`). Matches platform IDs, with no match leaving the ID null: **Apple** via the iTunes lookup API; **Spotify** via the Web API with a client-credentials app, matched on normalized title plus publish date ±2 days; **YouTube** via the YouTube Data API search of the show's channel, matched on title and date. |
 | `wts download` | Resumable HTTP download, then an `ffprobe` check that the file can be decoded and is neither more than 2% shorter than `duration_s` (truncated) nor more than 10 minutes longer. *(Revised 2026-10-05: Acast inserts ads per download, so real files run 1–3 min longer than `itunes:duration`; the original ±2% rule rejected 20 of 35 seed episodes.)* The probed length is stored as `audio_duration_s`. **Ad-free copies:** every HTTP request (feed and downloads) sends the User-Agent `WoodTalkSearchBot/<version> (+https://github.com/andreiz/wt-search)`, one constant in `wts/net.py`. Acast inserts no ads for User-Agents it treats as bots (plain `curl`, and `…Bot` with a capital B; the check is case-sensitive, so `wts-bot` got ads), while httpx's default and unknown User-Agents get ads stitched into each download (*revised 2026-10-05*: the cause is the User-Agent, not IP or timing). A copy within 5 s of `duration_s` has no ads and carries the show's own timeline. As a safety net, `wts download` still checks this: it tries twice (2 s apart); if both copies have ads it keeps the shorter and sets `ads_inserted`. `--refetch-ads` re-downloads stored copies that have ads (resetting them to `new`). File: `<audio_dir>/<stem>.mp3` (§3.0, §3.4). |
 | `wts transcribe` | `mlx-whisper` with `large-v3-turbo`, keeping word-level timestamps and word probabilities. A starter prompt seeds woodworking vocabulary from `pipeline/vocab.txt` (brand names, host names, joinery terms). Output is `<data>/transcripts/<stem>.json` (§3.0), kept permanently; later steps never need to re-transcribe. Episodes are transcribed **newest first**, so on a long backlog run recent episodes become searchable before the archive. |
-| `wts chunk` | Applies `corrections.yaml` (§3.3), marks boilerplate (§3.5), and builds windows of about 30 s cut on sentence boundaries and overlapping by one sentence. Each chunk records `start_ms`, `end_ms`, its text, `word_times`, and `is_boilerplate`. |
+| `wts chunk` | Applies `corrections.yaml` (§3.3), marks boilerplate (§3.5; binned 2026-10-09), and builds windows of about 30 s cut on sentence boundaries and overlapping by one sentence. Each chunk records `start_ms`, `end_ms`, its text, `word_times`, and `is_boilerplate`. |
 | `wts embed` | `bge-base-en-v1.5` (768 dimensions) through `sentence-transformers` on the Mac's GPU (MPS). It must be the same model Workers AI runs for query embeddings (`@cf/baai/bge-base-en-v1.5`), **with `pooling: "cls"`**: sentence-transformers uses CLS pooling for bge, while Workers AI defaults to `mean`, and the two aren't compatible. `wts check-embeddings` compares the two before publishing. Boilerplate chunks are not embedded. |
 | `wts publish --env staging\|production` | Sends only the episodes that changed, per environment: `state.db` keeps a `publications` row (episode, environment, digest) for each, and an episode is due when the digest of what it would send (D1 row with platform IDs and offsets, chunks, vectors) differs. Per episode: a Vectorize upsert of its non-boilerplate chunks by chunk ID; one D1 batch (upsert the episode row, delete its chunks that are gone, upsert its chunks with `ON CONFLICT DO UPDATE`, never `INSERT OR REPLACE`, which would skip the FTS delete trigger); a Vectorize delete of vectors for chunks that were removed or became boilerplate (ids from `published_vectors`, which lists every id that may be in that environment's index). Bumps `meta.corpus_version`. *(Revised 2026-10-06, plan 2 decisions 1–2: D1's REST API is not atomic across a batch's statements, so publishing is idempotent instead; before production, D1 writes move to an authenticated Worker route using the atomic `env.DB.batch()`, §10.)* `--dry-run` shows what would be sent. |
 | `wts run [--env staging\|production]` | Runs `feed → download → transcribe → chunk → embed → publish → backup` (§3.0.1) for the selected environment, then a smoke search (§8.1) and notifications; the summary notification goes last, so it covers publish and backup. The environment defaults to `run_env`; with neither, publish is skipped with a warning. Config and the API token are checked before the run starts. *(Revised 2026-10-08, plan 2 Task 16; the smoke search comes in plan 5.)* |
@@ -268,6 +268,14 @@ transcribed_at.
 
 ### 3.5 Repeated content (boilerplate)
 
+> **Binned 2026-10-09 (maintainer):** detection is removed from `wts chunk`
+> until the full corpus can be measured; every chunk has `is_boilerplate = 0`.
+> The plumbing stays (the flag, embed/publish skipping flagged chunks,
+> `include:ads`), and the chunk step refreshes when `corrections.yaml` or
+> `CHUNKER_VERSION` changes, not when new episodes arrive. Why, and what to
+> try next: [`docs/full-corpus-backlog.md`](../../full-corpus-backlog.md) §1.
+> The design below is kept as the record of what was built and measured.
+
 A deterministic, local text-matching step in `wts chunk`. It needs no AI
 model and no API call.
 
@@ -295,12 +303,10 @@ model and no API call.
 The 5-episode threshold depends on how many episodes have been chunked, so
 whenever the index grows, `wts chunk` re-checks earlier chunks (cheap: no
 re-embedding unless a chunk's flag changes). Music and silence are already
-dropped by the not-speech guard (§3.3). *(Revised 2026-10-09, review #8:)*
-the re-check is two passes: every episode's fingerprints are updated first,
-then each is classified against the finished index (one pass classified an
-episode against older fingerprints of later ones, and nothing revisited it).
-It reads each transcript twice, a few extra minutes per run that chunks
-something, over the whole archive.
+dropped by the not-speech guard (§3.3). *(2026-10-09, review #8:)* that
+re-check was order-dependent: it classified an episode against older
+fingerprints of later ones, and nothing revisited it. The fix (two passes,
+reading every transcript twice per run) was dropped with the detector.
 
 **Known gap:** ad-libbed host reads ("I've been using the new Festool…") are
 worded differently each time and won't match. The `negative` test cases
@@ -458,7 +464,7 @@ AI with `pooling: "cls"` (§3.2 `wts embed`).
 | `year:2015`, `before:2018`, `after:2020` | Filter by publish year (before/after are exclusive). |
 | `year:2015-2020` | Years 2015 to 2020, both included: the same as `after:2014 before:2021`. Either order; one year (`year:2015-2015`) is `year:2015`. *(Added 2026-10-08, plan 3: what the year chip writes, §5.2.)* |
 | `ep:250` | Limit to one episode. |
-| `include:ads` | Include boilerplate chunks (keyword search only). |
+| `include:ads` | Include boilerplate chunks (keyword search only). No effect while detection is binned (§3.5); the web app doesn't mention it. |
 
 The parser turns the query into an FTS5 MATCH expression plus SQL filters.
 Unless `include:ads` is given, the SQL adds `is_boilerplate = 0`. The text
@@ -924,8 +930,9 @@ Pinned to the top (compacting on scroll on phones):
 - **More transcript** expands the card in place with `/api/context`
   (radius 3, about ±90 s): paragraphs labelled with their timestamp, each
   label a play link (the first platform the episode has) at that moment;
-  the hit's paragraph emphasised; sponsor reads (`boilerplate`) dimmed with
-  a small "Sponsor read" label. Collapsing returns to the excerpt.
+  the hit's paragraph emphasised. Collapsing returns to the excerpt.
+  *(2026-10-09: the "Sponsor read" label for `boilerplate` chunks is dropped
+  while detection is binned, §3.5.)*
 - **+n more nearby** *(settled 2026-10-08, replaces "+n more in this
   episode")*: folded hits are always within 120 s of the card's hit (§4.4),
   so searching the episode would fold them into the same card again.
@@ -962,8 +969,8 @@ As in the brief §4.5; the wording there is the copy. In short:
   cancels an older one (its answer is ignored).
 - **Only related hits** (every result `related`): "No exact matches —
   passages about similar things:" before them.
-- **No results:** suggest Smart mode, fewer words or looser years, or
-  `include:ads`.
+- **No results:** suggest Smart mode, or fewer words or looser years.
+  (`include:ads` is left out while boilerplate detection is binned, §3.5.)
 - **Exact, truncated:** "Showing the best 200 of N matches — add words, a
   "phrase" or a year to narrow it" (or "1,000+ matches — …").
 - **Degraded** (`smart_degraded`): a subtle notice by reason —
@@ -1033,7 +1040,8 @@ As in the brief §4.5; the wording there is the copy. In short:
   - Status-machine moves, including the rules for invalid moves and resets.
   - Stem generation.
   - `corrections.yaml` application.
-  - Boilerplate detection (sample episodes sharing a sponsor read).
+  - Boilerplate detection (sample episodes sharing a sponsor read). *(Binned
+    with the detector, 2026-10-09; the plumbing tests stay.)*
   - Chunker: boundaries, overlap, timings that add up, and `word_times`
     encoding round-trip.
   - Quality guards and timestamp checks (deliberately bad sample
@@ -1174,7 +1182,9 @@ new `topics(episode_id, start_ms, title)` table. They show as chips that link
 to the right time, and can be searched. It reuses the phase 1 transcripts and
 chunks unchanged.
 
-**Boilerplate detection rework** (deferred from phase 1, §3.5): detect
+**Boilerplate detection rework** (deferred from phase 1, §3.5; binned
+2026-10-09, to be measured on the full corpus first:
+[`docs/full-corpus-backlog.md`](../../full-corpus-backlog.md) §1): detect
 repeated content by word runs shared across episodes instead of whole
 sentences, and cut chunks at boilerplate edges. Changing chunk boundaries
 re-chunks and re-embeds the corpus, so it needs its own brainstorm, spec

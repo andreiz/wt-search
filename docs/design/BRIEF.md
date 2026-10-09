@@ -94,7 +94,7 @@ Expands the card in place: about ±90 seconds of transcript as paragraphs, each 
 timestamp label (each label is a play link at that moment), the hit's paragraph emphasised.
 Opened from **+3 more nearby** it shows about ±3 minutes, with the folded hits' paragraphs
 marked too (quieter than the hit's), and, for numbered episodes, a **Search this episode**
-link. Sponsor reads in the expanded transcript are dimmed with a small "Sponsor read" label.
+link.
 *(Settled: no hover preview.)*
 
 ### 4.4 Report a transcript error
@@ -112,7 +112,7 @@ minute" is one of them.
 | Loading | Skeleton cards; the controls stay usable. |
 | Results, Smart | Keyword hits first, related hits mixed in by rank (sample data in §6). |
 | Only related hits | Before them: "No exact matches — passages about similar things:". |
-| No results | "Nothing found." with suggestions: try Smart mode, fewer words or looser years, or `include:ads` for sponsor reads. |
+| No results | "Nothing found." with suggestions: try Smart mode, or fewer words or looser years. |
 | Exact, truncated | After the last page: "Showing the best 200 of 1,000+ matches — add words, a "phrase" or a year to narrow it." |
 | Smart search degraded | A subtle notice above results, by reason: *unavailable* "Meaning search is unavailable right now; these are keyword matches."; *budget* and *off* "Meaning search is paused; these are keyword matches." |
 | Maintenance | A banner: "Search is down for maintenance. Please try again later." |
@@ -142,8 +142,8 @@ small form: Message, Turnstile, Send; for "search didn't find it" and ideas).
 | `glue OR epoxy` | either |
 | `dovetail*` | words starting with it |
 | `year:2015` · `after:2019` · `before:2012` | by year (after/before exclude the year itself) |
+| `year:2015-2020` | years 2015 to 2020, both included |
 | `ep:613` | one episode |
-| `include:ads` | also search sponsor reads |
 
 ## 6. Sample data (real excerpts; use these, not lorem ipsum)
 

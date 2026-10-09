@@ -46,7 +46,7 @@ boilerplate edges, so a read becomes its own flagged chunk.
   it needs its own brainstorm, spec and plan (spec §9).
 - Ad-libbed host reads won't match any text rule; a local LLM classifier is the fallback idea.
 - Restoring the old detector: it was removed in `8988c73`/`67e1300`; `49963e6` (the last
-  commit with it) has `boilerplate.py`, `test_boilerplate.py`, migration-free fingerprint
+  commit with it) has `boilerplate.py`, `test_boilerplate.py`, the fingerprint
   tables (`bp_sentences`, `bp_bands`, dropped by state migration 006) and the two-pass
   refresh.
 

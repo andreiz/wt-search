@@ -80,6 +80,18 @@ of step 3. (Plan 3 is written and under way; plans 4–5 come after it.)
    alerting, since the in-Worker 5xx alert was dropped.
 
 **Open: rate limits don't trigger on staging (to debug on the desktop, 2026-10-08).**
+- **2026-10-09, after a fresh `npm run deploy:staging` of current `main`:** 200 sequential
+  `GET /api/health` → 200 × 200 again. So the stale-version theory below is **ruled out**.
+  `ratelimit.ts` lets a request through silently when (1) the binding is missing, (2)
+  `cf-connecting-ip` is missing, or (3) `limit()` answers success (or throws — logged once
+  per isolate as `rate_limiter_unavailable`). Cloudflare's docs (2026-04) call the binding
+  per-location, machine-cached, "permissive, eventually consistent", which doesn't explain
+  200 in a row never tripping 60/60 s. **Next:** check the deploy output lists `env.RL_READ
+  (60 requests/60s)`; run the loop with `npx wrangler tail --env staging` open; if neither
+  tells, add a diagnostic response header on `/api/*` (`x-wts-ratelimit: ok | over | no-ip |
+  no-binding | error`, never the IP — offered 2026-10-09, harmless to keep like
+  `x-wts-cache`), deploy, and `curl -sI`. Also check whether the binding needs Workers Paid.
+- Earlier notes (2026-10-08):
 - Live: Task 17 is (robots.txt 200, `nosniff` present). 70 and then 200 sequential `GET
   /api/health` all answered 200; 4 reports in a row (`chunk_id` 999999999, origin
   `http://localhost:5173`) all 400, the 4th should be 429.

@@ -47,10 +47,12 @@ Worker **485** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **
   un-flagged chunks and republished those episodes.
 
 **Waiting on the maintainer:**
-- **Deploy to staging** with `npm run deploy:staging` (from `worker/`, after `cd web && npm
-  ci` once). The 2026-10-09 attempt used a bare `npx wrangler deploy --env staging`, which
-  fails now (no `web/dist`). It ships plan 2 Tasks 17–19 if still pending, plan 3 Tasks 1–5
-  and the Worker review fixes; then `curl -s <staging>/api/info | jq`.
+- **Staging deployed 2026-10-09** with `npm run deploy:staging` (plan 2 Tasks 17–19, plan 3
+  Tasks 1–5, the Worker review fixes; the page shell at the `workers.dev` URL). Not yet
+  checked from outside (the cloud session's proxy blocks `workers.dev`): `/api/info`, the
+  site's CSP header, `robots.txt` (`Disallow: /`), a `year:2015-2020` search with `folded`.
+  From now on deploy only with `npm run deploy:staging` (a bare `wrangler deploy` fails: no
+  `web/dist`).
 - **Rate limits not triggering on staging**: the maintainer's desktop session (see "Open:
   rate limits…" below).
 - **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions; its
@@ -322,7 +324,7 @@ How the maintainer works:
   fixes (#3–#5), and since Task 5 the static assets from `web/dist`. **485 tests**,
   type-check clean.
   **Deployed to staging** (2026-10-08; whether Tasks 17–19 are live is the open rate-limit
-  item; plan 3 Tasks 1–5 are not deployed yet):
+  item; redeployed 2026-10-09 with plan 3 Tasks 1–5 and the site's shell):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
 - **Web** (`web/`, plan 3): Task 5's scaffold: Vite + Preact 11, the design's tokens, the
   self-hosted serif, `_headers` with the CSP, the page shell. **13 unit + 4 e2e tests**.

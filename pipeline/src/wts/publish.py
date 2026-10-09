@@ -3,9 +3,10 @@ plan 2, Task 7 and decisions 1–2).
 
 D1's REST API isn't atomic across statements, so publishing is idempotent instead. An episode
 counts as published to an environment only once every call for it has succeeded: then its
-`publications` row records the digest of what was sent. A failure anywhere leaves that row as it
-was, the episode goes to `error`, and the next run repeats every call, which ends in the same
-state as a clean publish.
+`publications` row records the digest of what was sent. Before the first remote write an
+existing row's digest is blanked (DIRTY), since a write can land even when its call fails. A
+failure anywhere leaves it blank, the episode goes to `error`, and the next run repeats every
+call, whatever the content is by then, which ends in the same state as a clean publish.
 
 Per episode, in order:
   1. Vectorize upsert of the non-boilerplate chunks. Their ids are first added to
@@ -44,6 +45,9 @@ log = logging.getLogger("wts")
 # Bump when what is sent for an episode changes shape, so every episode is republished.
 DIGEST_VERSION = 1
 YOUTUBE_MAX_DRIFT_S = 3  # spec §4.6: link YouTube only when its length matches the feed's
+# Stored in place of a digest while an attempt is in flight or failed; never equals a real one,
+# so the episode stays due (even if its content goes back to what was last published).
+DIRTY = ""
 
 EPISODE_COLUMNS = (
     "id", "guid", "number", "title", "published_at", "year", "duration_s", "audio_url",
@@ -145,7 +149,8 @@ def publish_episode(
     conn: sqlite3.Connection, d1: D1, vectorize: Vectorize, env: str, row: sqlite3.Row,
     embeddings_dir: Path,
 ) -> Counter:
-    """Steps 1–4 above for one episode. Raises on any failure, leaving `publications` as it was."""
+    """Steps 1–4 above for one episode. Raises on any failure, leaving its `publications` row
+    (if any) dirty once remote writes have started."""
     episode_id = row["id"]
     chunks = _chunks(conn, episode_id)
     chunk_ids, vectors = _embeddings(row, chunks, embeddings_dir)
@@ -153,8 +158,12 @@ def publish_episode(
     current = [int(i) for i in chunk_ids]
     metadata = {"episode_id": episode_id, "year": year_of(row["published_at"])}
 
-    # 1. Vectors, after noting their ids as possibly present in this environment's index.
+    # 1. Vectors, after noting their ids as possibly present in this environment's index, and
+    # after marking the recorded digest dirty: a write may land even when its call then fails,
+    # so until step 4 the environment may hold neither the recorded content nor the current.
     with conn:
+        conn.execute("update publications set digest = ? where episode_id = ? and env = ?",
+                     (DIRTY, episode_id, env))
         conn.executemany(
             "insert or ignore into published_vectors (env, chunk_id, episode_id) values (?, ?, ?)",
             [(env, i, episode_id) for i in current],

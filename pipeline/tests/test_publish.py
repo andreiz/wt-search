@@ -360,6 +360,45 @@ def test_a_failure_at_any_step_is_repaired_by_the_next_run(conn, paths, cfg, emb
     assert_published(conn, paths, target, e)
 
 
+def lose_response(monkeypatch, target, step):
+    """The call at `step` takes effect, then fails as if its response were lost."""
+    def applied_then_lost(owner, name):
+        real = getattr(owner, name)
+
+        def call(*args, **kwargs):
+            real(*args, **kwargs)
+            raise Boom("response lost")
+
+        monkeypatch.setattr(owner, name, call)
+
+    if step == "local":
+        fail_step(monkeypatch, target, step)
+    else:
+        applied_then_lost(*{"upsert": (target.vec, "upsert"), "d1": (target.d1, "batch"),
+                            "delete": (target.vec, "delete_by_ids")}[step])
+
+
+@pytest.mark.parametrize("step", ["upsert", "d1", "delete", "local"])
+def test_reverting_after_a_lost_response_still_repairs_the_remote(conn, paths, cfg, embedded,
+                                                                 monkeypatch, step):
+    # Review #2: A published; B's writes land but the call fails; local content goes back to A.
+    # The recorded digest is A's again, yet the environment holds B (or part of it).
+    a = CHUNKS
+    b = [(a[0][0], True), a[1], ("then we talked about finishing cherry", False), a[3]]
+    e = embedded(a)
+    target = Target()
+    pub(conn, paths, target, [e])
+    rechunk(conn, paths, cfg, e, b)
+    lose_response(monkeypatch, target, step)
+    assert pub(conn, paths, target, [e])["error"] == 1
+    heal(monkeypatch, target)
+    rechunk(conn, paths, cfg, e, a)
+    assert [r["id"] for r in due_episodes(conn, "staging", [e], paths.embeddings_dir)] == [e]
+    assert pub(conn, paths, target, [e])["ok"] == 1
+    assert_published(conn, paths, target, e)
+    assert pub(conn, paths, target, [e])["ok"] == 0  # and the mark is cleared
+
+
 @pytest.mark.parametrize("step", ["upsert", "d1", "local"])  # a first publish deletes nothing
 def test_a_failed_first_publish_is_repaired_too(conn, paths, embedded, monkeypatch, step):
     e = embedded()

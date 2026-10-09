@@ -126,3 +126,20 @@ Consequently, an exhausted historical error generates another high-priority noti
 1. **Data integrity:** atomic chunk/feed transitions and per-environment publish recovery markers.
 2. **Public API:** cache/parser consistency, override-aware cache lookup, and bounded report-body reading.
 3. **Operational correctness:** durable cache invalidation, two-phase boilerplate refresh, and accurate failure notifications.
+
+## Resolution (2026-10-09, seventh session)
+
+All nine reproduced: each fix has a regression test that failed on the old code. Branch
+`claude/plan-3-handoff-etfwwc`; Worker 485 tests, pipeline 698.
+
+| # | Commit | Fix |
+|---|---|---|
+| 1 | `fb94399`, `deba323` | Changed chunks and the requeue to `chunked` in one transaction (`state.requeue_embedding`); publish also checks each vector's stored `text_sha` against the chunk's current text. |
+| 2 | `f2bfeb5` | Before an episode's first remote write, its `publications` digest is blanked (`DIRTY = ""`) in the same transaction as `published_vectors`; restored on success. No migration. |
+| 3 | `6a89629` | The cache key starts from `boundQuery()`, the parser's own 200-code-point cut. `\s` collapsing kept: the scanner splits on exactly `\s` (tested over every `\s` code unit). |
+| 4 | `a7c2057` | A smart search under `SEARCH_OVERRIDE=exact` skips the cache (no read, no write); exact mode still uses it. |
+| 5 | `77c1169` | `readCapped()` reads the body with a 48 KiB byte cap and cancels the stream past it; the Content-Length fast path stays. |
+| 6 | `23bffbe` | URL update and reset to `new` in one transaction. |
+| 7 | `b237e40` | The owed `corpus_version` flag is written in each episode's publication transaction, not after the loop. (Not before the first remote write: that would bump after runs that only hit parked errors.) |
+| 8 | `49963e6` | Refresh is two passes: fingerprints for every episode, then classification against the finished index. Costs a second read of each transcript. |
+| 9 | `c82e6e1` | Migration 005 adds `episodes.failed_at`, set only by `state.fail`; notifications select on it. Existing errors backfilled from `updated_at`. |

@@ -15,6 +15,11 @@ the maintainer's request.
   **Tasks 1–4 (the Worker changes) are done** on branch `claude/plan-3-handoff-etfwwc` (the
   maintainer asked for a branch this time), not yet merged to `main` or deployed. **Next:**
   merge, then Task 5 (the `web/` scaffold). Notes under "Plan 3 task notes" below.
+- **Codex review of plans 1–2** ([`docs/code-review-d15ec6e.md`](code-review-d15ec6e.md),
+  2026-10-09): all nine findings reproduced and fixed on the same branch, one commit each
+  (resolution table at the end of the review). Worker **485 tests**, pipeline **698**. On the
+  Mac the next `wts` command applies state migration 005 (`failed_at`). Corrections-refresh
+  runs now read each transcript twice (finding #8).
 - **Rate limits not triggering on staging**: the maintainer's desktop session (see "Open:
   rate limits…" below).
 - **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions.
@@ -763,7 +768,8 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
 - Stem date is the UTC date (US-evening releases get the next day).
 - `seed_ids(sampled=1)` divides by zero (not reachable from the CLI).
 - Very long unpunctuated sentences are cut at 45 s, not ~30 s.
-- Boilerplate refresh is single-pass; after a corrections change it converges next run.
+- ~~Boilerplate refresh is single-pass; after a corrections change it converges next run~~ —
+  that was wrong (nothing re-ran it); now two-pass (review #8, 2026-10-09).
 - Refresh can reset episodes outside `--select` to `chunked`; `wts embed` covers the selection.
 - Boilerplate 6-word minimum counts tokens, not distinct words.
 - Correction matches can cross a sentence end.

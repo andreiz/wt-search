@@ -185,9 +185,14 @@ system.
   to 3 times, and are then left for a person to look at.
 - Resets:
   - If an episode's audio URL or GUID changes in the feed, it goes back to
-    `new`.
+    `new`. *(2026-10-09, review #6:)* the new URL and the reset commit in one
+    transaction, so a crash between them can't keep the old recording.
   - Re-chunking (after a `corrections.yaml` edit, §3.3) moves the affected
-    episodes from their current status back to `transcribed`.
+    episodes from their current status back to `transcribed`. *(As built,
+    revised 2026-10-09, review #1:)* an `embedded` or `published` episode whose
+    chunks changed goes back to `chunked` in the same transaction as the chunk
+    write, so stale vectors can't survive a crash; `wts publish` also refuses
+    vectors whose stored `text_sha` doesn't match the chunk's current text.
 - Concurrency: downloads run 4 at a time. Transcription runs one at a time
   because it fully uses the GPU. Embedding runs in batches.
 - Selecting episodes: every step takes `--select` (for example `seed`,
@@ -290,7 +295,12 @@ model and no API call.
 The 5-episode threshold depends on how many episodes have been chunked, so
 whenever the index grows, `wts chunk` re-checks earlier chunks (cheap: no
 re-embedding unless a chunk's flag changes). Music and silence are already
-dropped by the not-speech guard (§3.3).
+dropped by the not-speech guard (§3.3). *(Revised 2026-10-09, review #8:)*
+the re-check is two passes: every episode's fingerprints are updated first,
+then each is classified against the finished index (one pass classified an
+episode against older fingerprints of later ones, and nothing revisited it).
+It reads each transcript twice, a few extra minutes per run that chunks
+something, over the whole archive.
 
 **Known gap:** ad-libbed host reads ("I've been using the new Festool…") are
 worded differently each time and won't match. The `negative` test cases
@@ -1109,7 +1119,9 @@ their own, which can require an access token (Keychain `ntfy_token`, sent as a
 bearer header). *(Revised 2026-10-07.)* `wts` sends a push for:
 
 - New episodes published (number, title, chunk count).
-- Episodes that hit `error`, or ran out of retries.
+- Episodes that hit `error`, or ran out of retries. *(2026-10-09, review #9:)*
+  "failed this run" is read from `episodes.failed_at` (migration 005, set only
+  when a step fails), not `updated_at`, which every feed refresh bumps.
 - A failed smoke search.
 - New transcript-error reports (a daily digest: count plus the first few).
 - No new feed item for 45 days (the feed may have moved): sent when the quiet spell is first

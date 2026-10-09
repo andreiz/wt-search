@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 
 import pytest
@@ -100,6 +101,43 @@ def test_fresh_database_has_no_boilerplate_index(tmp_path):
     conn = connect(tmp_path / "state.db")
     assert not {"bp_sentences", "bp_bands"} & _tables(conn)
     assert {"episodes", "chunks"} <= _tables(conn)
+
+
+def _migration_lines(caplog):
+    return [r.getMessage() for r in caplog.records if "migration" in r.getMessage()]
+
+
+def test_applying_migrations_is_logged_once(tmp_path, caplog):
+    path = tmp_path / "state.db"
+    old = sqlite3.connect(path)
+    for number, sql in _migrations():
+        if number <= 4:
+            old.executescript(sql)
+            old.execute(f"PRAGMA user_version = {number}")
+    old.commit()
+    old.close()
+    last = max(n for n, _ in _migrations())
+
+    with caplog.at_level(logging.INFO, logger="wts"):
+        connect(path).close()
+        connect(path).close()  # already up to date: says nothing
+    assert _migration_lines(caplog) == [f"state.db: applied migrations 005–{last:03d}"]
+
+
+def test_a_single_migration_is_logged_by_its_number(tmp_path, caplog):
+    path = tmp_path / "state.db"
+    last = max(n for n, _ in _migrations())
+    old = sqlite3.connect(path)
+    for number, sql in _migrations():
+        if number < last:
+            old.executescript(sql)
+            old.execute(f"PRAGMA user_version = {number}")
+    old.commit()
+    old.close()
+
+    with caplog.at_level(logging.INFO, logger="wts"):
+        connect(path).close()
+    assert _migration_lines(caplog) == [f"state.db: applied migration {last:03d}"]
 
 
 def test_fail_stamps_failed_at_and_other_changes_do_not(conn, make_episode):

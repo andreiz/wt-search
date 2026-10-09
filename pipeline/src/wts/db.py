@@ -1,8 +1,11 @@
 """The local state database (state.db) and its migrations."""
 
+import logging
 import sqlite3
 from importlib import resources
 from pathlib import Path
+
+log = logging.getLogger("wts")
 
 
 def _migrations() -> list[tuple[int, str]]:
@@ -21,11 +24,18 @@ def connect(path: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA foreign_keys = ON")
     version = conn.execute("PRAGMA user_version").fetchone()[0]
+    applied = []
     for number, sql in _migrations():
         if number > version:
             with conn:
                 conn.executescript(sql)
                 conn.execute(f"PRAGMA user_version = {number}")
+            applied.append(number)
+    # Said once, so a schema change on the Mac is visible in the run's output and logs.
+    if len(applied) == 1:
+        log.info(f"state.db: applied migration {applied[0]:03d}")
+    elif applied:
+        log.info(f"state.db: applied migrations {applied[0]:03d}–{applied[-1]:03d}")
     return conn
 
 

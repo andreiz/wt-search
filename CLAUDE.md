@@ -1,8 +1,8 @@
 # wt-search
 
 Full-text and meaning-based search over Wood Talk podcast transcripts. A
-Python pipeline on a Mac transcribes episodes; a Cloudflare Worker, D1,
-Vectorize and a Pages frontend serve search.
+Python pipeline on a Mac transcribes episodes; a Cloudflare Worker (which also
+serves the frontend's static files), D1 and Vectorize serve search.
 
 ## Key docs
 

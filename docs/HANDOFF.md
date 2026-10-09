@@ -1,4 +1,4 @@
-# Handoff — 2026-10-08 (after the seventh session; plan 3 written, awaiting review)
+# Handoff — 2026-10-09 (after the seventh session; plan 3 Tasks 1–5 done, Task 6 next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -6,20 +6,32 @@ then [README.md](../README.md), then the spec sections it points to.
 ## Start here (next session)
 
 **Branch:** work on `main` (CLAUDE.md), even when a cloud session is given another branch.
-The sixth session's branch (`claude/great-hopper-nm593s`) was pushed to `main` and deleted at
-the maintainer's request.
+The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
+fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Work in flight (2026-10-08), in separate sessions:**
-- **Plan 3 (frontend)**: brainstorm done, spec §5 revised and the plan written
-  (2026-10-08, seventh session): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
-  **Tasks 1–4 (the Worker changes) are done** on branch `claude/plan-3-handoff-etfwwc` (the
-  maintainer asked for a branch this time), not yet merged to `main` or deployed. **Next:**
-  merge, then Task 5 (the `web/` scaffold). Notes under "Plan 3 task notes" below.
+**Next: plan 3 Task 6** (API client and URL state), then Tasks 7–15 and Checkpoint H:
+[`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+The design is in [`docs/design/system/`](design/system/) — build to its mocks and README (plan
+3's "Look" constraint). The maintainer runs well-defined tasks with **Sonnet subagents** in
+worktrees; the main session reviews, runs every suite and commits (one commit per task).
+
+**Tests (2026-10-09):** pipeline **694** (`cd pipeline && uv run pytest -q`, ruff clean),
+Worker **485** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **13** unit +
+**4** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
+
+**What the seventh session did (2026-10-08/09):**
+- **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the
+  Worker changes (`year:A-B`, `folded`, `/api/info`, feedback and same-origin reports,
+  robots.txt by environment) and the `web/` scaffold served by the Worker as static assets.
+  Notes under "Plan 3 task notes" below.
 - **Claude Design delivered** (2026-10-09): `docs/design/system/` (tokens, mocks, README). Spec
   §5.3/§5.7 record it with the maintainer's calls (group neighbouring hits; related hits fold
-  at the end of each page; Source Serif 4 self-hosted). Plan 3 revised to build straight to
-  it from Task 5; Task 16 is now a visual pass. The app stays Preact: the mocks' React is
-  only Claude Design's viewer.
+  at the end of each page; Source Serif 4 self-hosted). Plan 3 builds straight to it from
+  Task 5; Task 16 is now a visual pass. The app stays Preact: the mocks' React is only Claude
+  Design's viewer (`support.js`). To look at the mocks, serve the folder over HTTP (they
+  fetch their siblings); unpkg is blocked in the cloud, so get React/Babel from npm.
+- **`wts` logs applied state migrations** (`state.db: applied migrations 005–006`) on `wts
+  run` and the step commands.
 - **Codex review of plans 1–2** ([`docs/code-review-d15ec6e.md`](code-review-d15ec6e.md),
   2026-10-09): all nine findings reproduced and fixed on the same branch, one commit each
   (resolution table at the end of the review); #8 then became moot (next item).
@@ -29,20 +41,27 @@ the maintainer's request.
   which also gathers the other "on the full corpus" items. The chunk step now refreshes only
   when `corrections.yaml` or `CHUNKER_VERSION` (`chunking.py`; bump it after any change to
   chunking output) changes, not on every new episode.
-  **On the Mac, the next `wts` command** applies state migrations 005 (`failed_at`) and 006
-  (drops the fingerprint tables); the next `wts run` re-chunks everything once, un-flags the
-  few flagged chunks and re-embeds and republishes those episodes.
-  Worker **485 tests**, pipeline **692** (no xfail left).
+  **Done on the Mac (2026-10-09):** `wts run --env staging` on `main` applied state
+  migrations 005 (`failed_at`) and 006 (drops the fingerprint tables), re-chunked everything
+  once (`refreshed=3`: ep609, ep613, ep614 each had one flagged chunk), embedded the 3
+  un-flagged chunks and republished those episodes.
+
+**Waiting on the maintainer:**
+- **Deploy to staging** with `npm run deploy:staging` (from `worker/`, after `cd web && npm
+  ci` once). The 2026-10-09 attempt used a bare `npx wrangler deploy --env staging`, which
+  fails now (no `web/dist`). It ships plan 2 Tasks 17–19 if still pending, plan 3 Tasks 1–5
+  and the Worker review fixes; then `curl -s <staging>/api/info | jq`.
 - **Rate limits not triggering on staging**: the maintainer's desktop session (see "Open:
   rate limits…" below).
-- **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions.
+- **Moving the pipeline to the Mac Mini**: M2 plan A drafted, waiting on four decisions; its
+  checkpoint is now **J** (plan 3 has H and I).
 
 **Plan 2: Tasks 1–19 and Checkpoint F are done; Checkpoint G is done except the parts
 that wait on Tasks 17–19's deploy** (results below). Staging runs Task 17 at least (robots.txt
 and the headers are live); whether Task 18's bindings are live is the open debugging item.
 **Next (maintainer):** finish deploying Tasks 17–19 (steps below), then Checkpoint G's rest: its
 revised step 2 (rate limits, kill switch, budget and alerts) and the three paraphrase queries
-of step 3. Then plans 3–5 are written.
+of step 3. (Plan 3 is written and under way; plans 4–5 come after it.)
 
 **Deploying Tasks 17–19** (from `worker/`):
 1. `npx wrangler d1 migrations apply wts-staging --env staging --remote` (adds `usage`).
@@ -85,7 +104,7 @@ of step 3. Then plans 3–5 are written.
 with `http://localhost:5173` on staging; `keep_vars: true` for the kill switch; the 5xx alert
 is a homelab monitor on `/api/health`, not Worker code.
 
-**Since Checkpoint G (session 6, not yet on the Mac):** new releases join the scope in
+**Since Checkpoint G (session 6; on the Mac since the 2026-10-09 run):** new releases join the scope in
 `wts feed` (open decision 3, option a; spec §3.1). The next `wts run` after a release shows
 `scoped=1` and processes it in the same run.
 
@@ -94,11 +113,12 @@ very likely **Earlex** HV2900 (an HVLP sprayer); check with `check_corrections.p
 
 ## Plan 3: start here (frontend, `web/`)
 
-**Status (2026-10-08, seventh session):** brainstorm done; spec §5 rewritten (§5.1–§5.8) with
+**Status (2026-10-09, seventh session):** brainstorm done; spec §5 rewritten (§5.1–§5.8) with
 knock-on edits in §1, §2, §4.3, §4.4, §4.8, §7.1, §10 item 7; the brief's *(proposed)* items
 marked settled; plan written: [`2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
-(Tasks 1–4 Worker changes, 5–15 the app, Checkpoint H on staging's `workers.dev`, Task 16 the
-design when Claude Design delivers, Checkpoint I, Task 17 the domain). No code yet.
+(Tasks 1–4 Worker changes, 5–15 the app, Checkpoint H on staging's `workers.dev`, Task 16 a
+visual pass against the mocks, Checkpoint I, Task 17 the domain). **Tasks 1–5 are done**;
+Task 6 is next.
 
 Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended option):
 - **Hosting:** the API Worker serves the site as **static assets** (not Pages + a Worker
@@ -115,8 +135,8 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
   transcript (radius 6) with the folded chunks marked; results gain `folded: [chunk_id…]`
   (replacing `debug.folded`). "Search this episode" sits in the expanded view.
 - **Extras:** j/k kept; Enter-plays-first-platform and the 400 ms hover preview dropped.
-- **Designs:** not started, so Tasks 1–15 use neutral placeholder tokens; Task 16 applies the
-  design system and screens.
+- **Designs:** not started at the brainstorm; delivered 2026-10-09 (see "Start here"), so
+  the app is built to them from Task 5.
 
 ### Plan 3 task notes (calls the plan didn't spell out)
 
@@ -288,28 +308,36 @@ How the maintainer works:
   environments, platform IDs, `wts publish`, ntfy notifications, `wts check-embeddings`,
   `wts search` (with `--limit N`, `--debug`), hyphen joining in `wts chunk`, `wts run --env`
   (publish, backup), `wts backup`, `wts logs`, `wts links`, split-number joining in `wts
-  chunk`, new releases scoped by `wts feed`. **684 tests**, ruff clean
-  (`cd pipeline && uv run pytest -q`).
+  chunk`, new releases scoped by `wts feed`. Session 7: the review fixes, boilerplate
+  detection binned (`CHUNKER_VERSION` refresh trigger), state migrations 005–006 and their
+  log line. **694 tests**, ruff clean (`cd pipeline && uv run pytest -q`).
 - **Worker** (`worker/`): scaffold, wrangler environments, `/api/health`, query parser,
   word times, highlights, cue times, deep links (all three platforms with a time), exact
   `/api/search` with result caps and `?limit=` (page size), smart search (RRF of FTS5 and
   Vectorize) with degraded mode and `?debug=1`, `/api/context`, `/api/report` (Turnstile),
   the edge cache, request logs and Analytics Engine; HEAD answered like GET (Task 16);
   kill switch, per-IP rate limits, daily smart budget with ntfy alerts, security headers,
-  report Origin, robots.txt (Tasks 17–19). **381 tests**, type-check clean.
-  **Deployed to staging** (Task 16, 2026-10-08; Tasks 17–19 not yet):
+  report Origin, robots.txt (Tasks 17–19). Plan 3 Tasks 1–4 (`year:A-B`, `folded`,
+  `/api/info`, feedback and same-origin reports, robots.txt by environment), the review
+  fixes (#3–#5), and since Task 5 the static assets from `web/dist`. **485 tests**,
+  type-check clean.
+  **Deployed to staging** (2026-10-08; whether Tasks 17–19 are live is the open rate-limit
+  item; plan 3 Tasks 1–5 are not deployed yet):
   `https://wts-api-staging.andrei-b94.workers.dev` (`api_url` in the Mac's `config.toml`).
+- **Web** (`web/`, plan 3): Task 5's scaffold: Vite + Preact 11, the design's tokens, the
+  self-hosted serif, `_headers` with the CSP, the page shell. **13 unit + 4 e2e tests**.
 - **Schema** (`schema/0001_init.sql`, `0002_usage.sql`): the D1 contract, tested from both
-  halves. `0002` is not yet applied to staging.
+  halves. `0002` is applied to staging if the maintainer ran step 1 of "Deploying Tasks 17–19".
 - **Maintainer's M1 Max** (`~/Library/Application Support/wts/`): 625 episodes ingested;
   **36 in scope** (35 seed + ep71, added 2026-10-07 for its poor-audio call-ins — a good source
   of plan 5 test-search-set queries), all `published` to staging. Platform IDs filled
   (Checkpoint D). Notifications go to the maintainer's own ntfy server.
 - **Cloudflare staging:** D1 `wts-staging` (`74cacf06-bbbe-4112-b7b0-8206f3db367b`, committed
   in `worker/wrangler.jsonc`), Vectorize `wts-chunks-staging` (768, cosine, metadata index on
-  `year`). 36 episodes, 4,210 chunks, 4,208 vectors (2 boilerplate chunks aren't embedded).
+  `year`). 36 episodes, ~4,210 chunks, every chunk now embedded (the 2026-10-09 run
+  un-flagged the last boilerplate chunks; exact counts with `wts publish --dry-run` or D1).
   API token: D1 Read+Write, Vectorize Read+Write, Workers AI Read, entire account, expires
-  2027-10; in the Keychain and in 1Password (Homelab). The Worker is **not deployed** yet.
+  2027-10; in the Keychain and in 1Password (Homelab).
 
 ## Checkpoint results
 
@@ -690,7 +718,10 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
 ## Read first
 
 - Spec (source of truth): [`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`](superpowers/specs/2026-10-04-wood-talk-search-design.md)
-- Plan 3 (frontend; written 2026-10-08, Tasks 1–4 done on a branch): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
+- Plan 3 (frontend; written 2026-10-08, Tasks 1–5 done, Task 6 next): [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md)
+- Design: [`docs/design/system/README.md`](design/system/README.md) (with tokens and mocks) and
+  the brief [`docs/design/BRIEF.md`](design/BRIEF.md)
+- Full-corpus backlog (what waits on the archive): [`docs/full-corpus-backlog.md`](full-corpus-backlog.md)
 - Plan 2 (Tasks 1–19, Checkpoints D–F done; G all but the §4.8 parts): [`docs/superpowers/plans/2026-10-05-m1-publish-and-api.md`](superpowers/plans/2026-10-05-m1-publish-and-api.md)
 - M2 plan A, moving the pipeline to the Mac Mini (draft 2026-10-08, four decisions open; dev
   stays on the M1): [`docs/superpowers/plans/2026-10-08-m2-mac-mini-migration.md`](superpowers/plans/2026-10-08-m2-mac-mini-migration.md)

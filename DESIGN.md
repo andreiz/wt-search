@@ -16,15 +16,15 @@ transcript.
 ```
 Mac (offline batch)                               Cloudflare (serving)
 feed → download → transcribe → chunk → embed ──▶ D1 (FTS5) + Vectorize
-        audio on NAS     mlx-whisper   bge-base     Worker /api ◀── Pages UI
+        audio on NAS     mlx-whisper   bge-base     Worker: /api + the UI's static files
 ```
 
 - **Pipeline (`wts`, Python):** a status per episode (`new → … →
   published`) drives every step, and every step is safe to re-run.
   - Transcription: Whisper `large-v3-turbo` with word timestamps.
   - Chunking: about 30 s windows, with fixes from `corrections.yaml`
-    applied, and repeated sponsor reads, intros and outros detected by
-    text matching.
+    applied. (Detecting repeated sponsor reads is shelved until the full
+    corpus: `docs/full-corpus-backlog.md`.)
   - Embedding: `bge-base-en-v1.5`, 768 dimensions.
   - Publishing: only changed episodes, to `staging` or `production`.
 - **Search (Worker):**
@@ -33,7 +33,7 @@ feed → download → transcribe → chunk → embed ──▶ D1 (FTS5) + Vecto
     reciprocal rank fusion.
   - Sort by relevance, newest or oldest.
   - Hits are cued to the exact word using stored word timings.
-- **Frontend:** a static Preact app. Searches run on Enter, the whole state
+- **Frontend:** a static Preact app, served by the same Worker. Searches run on Enter, the whole state
   is in the URL, and each result has a "Report transcript error" form.
 - **Review tool (`wts review`):** a local-only page that plays our audio in
   sync with the transcript, for fixing errors and measuring platform

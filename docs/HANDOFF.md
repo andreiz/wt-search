@@ -25,7 +25,7 @@ main session reviews, runs every suite and commits (one commit per task). Tasks 
 main checkout, one subagent at a time, told not to commit.
 
 **Tests (2026-10-09):** pipeline **702** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **492** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **507** unit +
+Worker **493** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **513** unit +
 **20** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
@@ -308,9 +308,16 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     menu's "Show page" name has no ", starts at …"; ⋯ is 44 px wide on a phone.
   - Option B of the mock (`docs/design/card-separation-options.html`: header on a tinted
     band inside the card) is the recorded swap-in.
-  - **Open:** search answers are edge-cached for an hour by query and `corpus_version`
-    only, so after a deploy that changes the answer's shape, old answers are served until
-    they expire. Proposed, not decided: an API version in the cache key (spec §4.7).
+  - **`API_VERSION` in the cache key** (`worker/src/cache.ts`, spec §4.7; now 2). The
+    maintainer saw "starts at NaN:NaN" on staging: an answer stored before the deploy, with
+    no `cue_s.page`, served from the edge cache. **Bump it in any commit that changes what an
+    answer holds.** The page also tolerates a missing cue. Worker **493**.
+  - **The related fold is gone** (maintainer, same day; plan 3 decision 9 reversed; spec
+    §5.2, §5.3, §5.6). Smart results show in the API's order, related cards marked (tag,
+    dashed border); neighbours group by episode *and kind*; "No exact matches —" only on
+    page 1 with no keyword hit; the Smart summary reads "Smart search · results 1–20".
+    `RelatedFold.tsx` is deleted (it is in git history). Two gentler folds are recorded in
+    spec §5.3 "Considered, for later". Web **513** unit + **20** e2e.
   - **Deferred (Worker):** `cue_s.page` is hit − 7 even when the page isn't on Acast and
     doesn't seek; every feed link is Acast today.
   - **Look in a browser:** the chip's links land at the passage (YouTube and the show

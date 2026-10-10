@@ -23,13 +23,13 @@ const [full, emoji, bare] = exact as [SearchResult, SearchResult, SearchResult];
 const [keywordHit, relatedApple, relatedBare] = smart as [SearchResult, SearchResult, SearchResult];
 
 function card(hits: SearchResult[]) {
-  return { episode: hits[0]!.episode, hits };
+  return { episode: hits[0]!.episode, hits, related: hits[0]!.match === "related" };
 }
 
 function renderCard(hits: SearchResult[], props: Partial<Parameters<typeof ResultCard>[0]> = {}) {
   return render(
     <ol>
-      <ResultCard card={card(hits)} related={hits[0]!.match === "related"} tabIndex={0} {...props} />
+      <ResultCard card={card(hits)} tabIndex={0} {...props} />
     </ol>,
   );
 }

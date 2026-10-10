@@ -77,7 +77,7 @@ describe("searching", () => {
     const list = await screen.findByRole("list", { name: "Results" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByRole("heading", { level: 2, name: "Search results" })).toBeTruthy();
-    expect(screen.getByText("Smart search")).toBeTruthy();
+    expect(screen.getByText("Smart search · results 1–3")).toBeTruthy();
     expect(list.textContent).toContain("Ep. 1 · Show 1 title");
   });
 
@@ -440,7 +440,7 @@ describe("the status region", () => {
     calls[0]!.respond(smartBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
     expect(screen.getByRole("status")).toBe(region);
-    expect(region.textContent).toBe("Smart search");
+    expect(region.textContent).toBe("Smart search · result 1");
     typeAndSubmit("epoxy");
     expect(screen.getByRole("status")).toBe(region);
     expect(region.textContent).toBe("Searching…");

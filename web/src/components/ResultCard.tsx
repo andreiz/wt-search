@@ -13,18 +13,16 @@ const noop = () => {};
 
 export function ResultCard({
   card,
-  related,
   tabIndex,
   onMore = noop,
   onNearby = noop,
   onReport = noop,
 }: Partial<HitActions> & {
+  /** A related card (`card.related`) is dashed, tagged "Related", with a muted excerpt. */
   card: Card;
-  /** A meaning-only card: dashed, tagged "Related", muted excerpt. */
-  related: boolean;
   tabIndex: number;
 }) {
-  const { episode, hits } = card;
+  const { episode, hits, related } = card;
   const headingId = `card-${hits[0]!.chunk_id}`;
   return (
     <li

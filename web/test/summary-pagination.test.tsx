@@ -13,12 +13,31 @@ function summaryText(data: Parameters<typeof Summary>[0]["data"]): string {
 }
 
 describe("<Summary/>", () => {
-  it("Smart: 'Smart search' with no count", () => {
-    expect(summaryText(smartBody([result(1)]))).toBe("Smart search");
+  const many = (n: number) => Array.from({ length: n }, (_, i) => result(i + 1));
+
+  it("Smart page 1: the range of results shown", () => {
+    expect(summaryText(smartBody(many(20)))).toBe("Smart search · results 1–20");
   });
 
-  it("Smart on a later page adds the page number", () => {
-    expect(summaryText(smartBody([result(1)], { page: 3 }))).toBe("Smart search · page 3");
+  it("Smart page 2: the range continues from the page size", () => {
+    expect(summaryText(smartBody(many(20), { page: 2 }))).toBe("Smart search · results 21–40");
+    expect(summaryText(smartBody(many(7), { page: 3 }))).toBe("Smart search · results 41–47");
+  });
+
+  it("Smart: one result on the page reads 'result N'", () => {
+    expect(summaryText(smartBody([result(1)], { page: 3 }))).toBe("Smart search · result 41");
+    expect(summaryText(smartBody([result(1)]))).toBe("Smart search · result 1");
+  });
+
+  it("Smart: no results is just 'Smart search'", () => {
+    expect(summaryText(smartBody([]))).toBe("Smart search");
+  });
+
+  it("Smart: no page number and no folding note", () => {
+    const text = summaryText(smartBody([result(1, { more_in_episode: 2, folded: [8, 9] }), result(2)], { page: 2 }));
+    expect(text).toBe("Smart search · results 21–22");
+    expect(text).not.toContain("page");
+    expect(text).not.toContain("folded");
   });
 
   it("Exact: the match count, with a thousands separator", () => {
@@ -62,14 +81,8 @@ describe("<Summary/>", () => {
     expect(summaryText(exactBody(two, { total: 3 }))).toContain("3 matches; 1 result (2 folded into nearby hits)");
   });
 
-  it("Smart also says what it folded", () => {
-    const results = [result(1, { more_in_episode: 1, folded: [9] }), result(2)];
-    expect(summaryText(smartBody(results))).toBe("Smart search; 2 results (1 folded into a nearby hit)");
-  });
-
   it("is not its own live region (the page's persistent status region holds it)", () => {
-    const { container } = render(<Summary data={smartBody([result(1)])} />);
-    expect(container.querySelector("[aria-live]")).toBeNull();
+    const { container } = render(<Summary data={smartBody([result(1)])} />);    expect(container.querySelector("[aria-live]")).toBeNull();
   });
 });
 

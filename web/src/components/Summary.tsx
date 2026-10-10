@@ -1,6 +1,7 @@
-// The summary line under the bar (Screen.dc.html; spec §5.2, §4.4). Smart: "Smart search" (+
-// " · page n"). Exact: "**318 matches**" or "**1,000+ matches**". When the page folded hits into
-// a nearby result: "; 4 results (1 folded into a nearby hit)", as `wts search` words it
+// The summary line under the bar (Screen.dc.html; spec §5.2, §4.4). Smart: "Smart search · results
+// 1–20" (which results this page holds; "result 41" for one, bare "Smart search" for none).
+// Exact: "**318 matches**" or "**1,000+ matches**". When the page folded hits into a nearby
+// result: "; 4 results (1 folded into a nearby hit)", as `wts search` words it
 // (pipeline/src/wts/search.py `_header`). Exact on a phone also shows " · page N of M".
 import type { SearchData } from "../lib/api";
 import { count } from "../lib/format";
@@ -26,9 +27,8 @@ export function Summary({ data }: { data: SearchData }) {
       </p>
     );
   }
-  return (
-    <p class="summary">
-      {`Smart search${data.page > 1 ? ` · page ${data.page}` : ""}${folded(data)}`}
-    </p>
-  );
+  const shown = data.results.length;
+  const first = (data.page - 1) * data.limit + 1;
+  const range = shown === 0 ? "" : shown === 1 ? ` · result ${first}` : ` · results ${first}–${first + shown - 1}`;
+  return <p class="summary">{`Smart search${range}`}</p>;
 }

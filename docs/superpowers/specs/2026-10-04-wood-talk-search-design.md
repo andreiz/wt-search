@@ -934,10 +934,15 @@ Pinned to the top (compacting on scroll on phones):
   year>"). No API parameter: the range travels in `q` (§4.3).
 - **The whole state is in the URL**: `?q=&mode=&sort=&page=` (defaults
   omitted), so searches can be shared; Back and Forward re-run them.
-- Below the bar, one summary line: Smart: "Smart search" (+ "page n");
-  Exact: "**318 matches**" or "**1,000+ matches**", and when hits were
-  folded on the page, "5 matches; 4 results (1 folded into a nearby hit)"
-  (§4.4).
+- Below the bar, one summary line. Exact: "**318 matches**" or "**1,000+
+  matches**", and when hits were folded on the page, "5 matches; 4 results
+  (1 folded into a nearby hit)" (§4.4). Smart has no total, so it says
+  which results the page holds: "Smart search · results 1–20", on page 2
+  "Smart search · results 21–40" (from `page`, `limit` and the number of
+  results on the page; a page with one result says "result 41").
+  *(Maintainer, 2026-10-09; was "Smart search" + "page n" + the folding
+  note, where "20 results" read as the total and made Next look wrong.
+  Folded hits show on their cards as "+N nearby".)*
 
 ### 5.3 Result card
 
@@ -950,13 +955,26 @@ states. Behaviour from the design, with the maintainer's calls:)*
   order, never reordered) share one card header, with "N matches" before
   the date, and one hit row each. Date sorts group naturally; relevance
   groups only neighbours. *(Maintainer, 2026-10-09.)*
-- **Related hits fold at the end of each page** (Smart): keyword hits
-  first, then one dashed row "Show N related passages — Matched on meaning,
-  not the exact words"; opened, a "Related passages" heading with Hide,
-  then the related cards (dashed border, "Related" pill, muted excerpt, no
-  filled buttons). A page with no keyword hits shows its related hits open,
-  under "No exact matches — passages about similar things:".
-  *(Maintainer, 2026-10-09; was "mixed in by rank".)*
+- **Related hits are shown in the API's order, among the keyword hits**
+  (Smart), each on a card with a dashed border, a "Related" pill and a
+  muted excerpt. Nothing is folded away. *(Maintainer, 2026-10-09, after
+  trying the fold on staging; this is the rule from before the design.)*
+  A result is "keyword" only when it has every query word, so on "air dried
+  lumber" page 1 was one card over "Show 19 related passages", many of them
+  with "air dried" highlighted, while page 2, with no keyword hit, showed
+  everything open. The fold assumed a short tail of related hits; that
+  holds for one-word queries only. Grouping (above) joins neighbours of the
+  same episode **and the same kind**, so a card is all keyword or all
+  related.
+  - *Considered, for later:* (a) fold only the related hits that contain
+    none of the query words (`ranges` empty), which is closer to a short
+    tail but can still swallow a page on a vague query; (b) fold only when
+    the related hits are fewer than half the page, and show them inline
+    otherwise, at the cost of pages that behave differently from search to
+    search. The fold itself ("Show N related passages — Matched on meaning,
+    not the exact words", then "Related passages" with Hide) is in the
+    design's `Screen.dc.html` and in git history (`RelatedFold.tsx`, plan 3
+    Task 9).
 - **Revised after the first look on staging** *(maintainer, 2026-10-09;
   mock: `docs/design/card-separation-options.html`, option A)*. The three
   pills, ⓘ and ⋯ under every hit outweighed the excerpts, and the Apple and
@@ -1057,8 +1075,9 @@ As in the brief §4.5; the wording there is the copy, and the design's
   indexed through Sep 17, 2026" from `GET /api/info`.
 - **Loading:** skeleton cards; the controls stay usable, and a newer search
   cancels an older one (its answer is ignored).
-- **Only related hits** (no keyword hit on the page): "No exact matches —
-  passages about similar things:" before them, shown open (§5.3).
+- **Only related hits on page 1** (the search has no keyword hit): "No
+  exact matches — passages about similar things:" before the cards. Later
+  pages never show it *(2026-10-09; was every page with no keyword hit)*.
 - **No results:** suggest Smart mode, or fewer words or looser years.
   (`include:ads` is left out while boilerplate detection is binned, §3.5.)
 - **Exact, truncated:** "Showing the best 200 of N matches — add words, a

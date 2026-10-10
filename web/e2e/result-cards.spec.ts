@@ -1,6 +1,7 @@
 // The dense result cards in the built page under the real CSP (spec §5.3): the header above a
 // two-hit card, the timestamp chip (the one play control) and the ⋯ menu at 1280 and 390 px, the
-// related fold closed / opened / hidden, a page with only related hits, and the phone layout.
+// interleaved keyword and related cards with no fold, a page with only related hits, and the
+// phone layout.
 import { expect, test, type Page } from "@playwright/test";
 
 const YT = "https://www.youtube.com/watch?v=abc&t=4184s";
@@ -97,7 +98,7 @@ for (const { name, width, height } of WIDTHS) {
     test("the header sits above the card's box; the chip is the one play control", async ({ page }) => {
       const noViolations = await open(page, [...keywordCards, ...relatedCards]);
       const cards = page.getByRole("list", { name: "Results" }).getByRole("listitem");
-      await expect(cards).toHaveCount(2);
+      await expect(cards).toHaveCount(4);
 
       const first = cards.nth(0);
       await expect(first.getByRole("heading", { level: 3 })).toHaveText("Ep. 71 · Welcome to the Three-Way");
@@ -195,33 +196,36 @@ for (const { name, width, height } of WIDTHS) {
 
 test.describe("on a desktop", () => {
 
-  test("the related fold is closed, opens, and hides again", async ({ page }) => {
-    const noViolations = await open(page, [...keywordCards, ...relatedCards]);
-    const show = page.getByRole("button", { name: /Show 2 related passages/ });
-    await expect(show).toBeVisible();
-    await expect(show).toContainText("Matched on meaning, not the exact words");
-    await expect(page.getByText("Related passage about spraying lacquer.")).toHaveCount(0);
-
-    await show.click();
-    const related = page.getByRole("list", { name: "Related results" });
-    await expect(related.getByRole("listitem")).toHaveCount(2);
-    await expect(page.getByText("Related passage about spraying lacquer.")).toBeVisible();
-    await expect(related.getByText("Related", { exact: true })).toHaveCount(2);
-    const hide = page.getByRole("button", { name: "Hide" });
-    await expect(hide).toBeFocused();
+  test("keyword and related cards are all there, interleaved in the API's order, with no fold", async ({ page }) => {
+    const mixed = [keywordCards[0], relatedCards[0], keywordCards[2], relatedCards[1]];
+    const noViolations = await open(page, mixed);
+    const list = page.getByRole("list", { name: "Results" });
+    const cards = list.getByRole("listitem");
+    await expect(cards).toHaveCount(4);
+    await expect(cards.locator(".hit__excerpt")).toHaveText([
+      /over at Highland Woodworking have the HVLP sprayer on sale\./,
+      "Related passage about spraying lacquer.",
+      "Only on one platform.",
+      "Another related passage.",
+    ]);
+    await expect(page.getByRole("button", { name: /related passage|Show|Hide/i })).toHaveCount(0);
+    await expect(page.getByRole("list")).toHaveCount(1);
+    // The summary names the results this page holds.
+    await expect(page.getByText("Smart search · results 1–4")).toBeVisible();
+    // A keyword hit is on the page, so no intro line.
+    await expect(page.getByText("No exact matches")).toHaveCount(0);
+    await expect(list.getByText("Related", { exact: true })).toHaveCount(2);
     // Dashed border on a related card's box; the header above it has none.
-    expect(await related.getByRole("listitem").first().locator(".result__card").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("dashed");
-    expect(await related.getByRole("listitem").first().locator(".result__head").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("none");
+    const related = cards.nth(1);
+    expect(await related.locator(".result__card").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("dashed");
+    expect(await related.locator(".result__head").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("none");
+    expect(await cards.nth(0).locator(".result__card").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("solid");
     // A related card has the chip (the page, as the episode has no YouTube) and the menu.
-    await expect(related.getByRole("listitem").nth(1).locator("a.hit__time")).toHaveAccessibleName("Play on the show page 1:09:51, starts at 1:09:44, may play an ad first");
-
-    await hide.click();
-    await expect(related).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /Show 2 related passages/ })).toBeFocused();
+    await expect(cards.nth(3).locator("a.hit__time")).toHaveAccessibleName("Play on the show page 1:09:51, starts at 1:09:44, may play an ad first");
     await noViolations();
   });
 
-  test("a page with only related hits shows them open", async ({ page }) => {
+  test("a page 1 with only related hits has the intro line", async ({ page }) => {
     const noViolations = await open(page, relatedCards);
     await expect(page.getByText("No exact matches — passages about similar things:")).toBeVisible();
     await expect(page.getByRole("list", { name: "Results" }).getByRole("listitem")).toHaveCount(2);
@@ -229,15 +233,19 @@ test.describe("on a desktop", () => {
     await noViolations();
   });
 
-  test("j and k step over cards: a two-hit card is one stop", async ({ page }) => {
+  test("j and k step over every card, related ones too: a two-hit card is one stop", async ({ page }) => {
     await open(page, [...keywordCards, ...relatedCards]);
     const cards = page.getByRole("list", { name: "Results" }).getByRole("listitem");
     await page.keyboard.press("j");
     await expect(cards.nth(0)).toBeFocused();
     await page.keyboard.press("j");
     await expect(cards.nth(1)).toBeFocused();
+    await page.keyboard.press("j");
+    await expect(cards.nth(2)).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(cards.nth(3)).toBeFocused();
     await page.keyboard.press("k");
-    await expect(cards.nth(0)).toBeFocused();
+    await expect(cards.nth(2)).toBeFocused();
   });
 });
 

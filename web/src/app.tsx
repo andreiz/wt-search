@@ -180,7 +180,7 @@ export function App() {
               Search results
             </h2>
             {view.kind === "loading" && <Skeleton />}
-            {view.kind === "ok" && <ResultList key={view.id} results={view.data.results} listRef={listRef} />}
+            {view.kind === "ok" && <ResultList key={view.id} results={view.data.results} page={view.data.page} listRef={listRef} />}
             {view.kind !== "idle" && view.kind !== "loading" && view.kind !== "ok" && (
               <p class="message" role="alert">
                 {failureText(view)}

@@ -832,79 +832,6 @@ a.hit__time:hover {
   background: var(--border);
 }
 
-/* The related fold */
-.fold {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 52px;
-  padding: 8px 16px;
-  border-radius: var(--r-dense);
-  border: 1px dashed var(--border);
-  border-color: color-mix(in oklch, var(--border) 100%, var(--muted) 25%);
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.fold:hover {
-  border-color: var(--accent);
-}
-
-.fold__text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.fold__title {
-  font-size: 15px;
-  font-weight: 650;
-  color: var(--text);
-}
-
-.fold__sub {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.fold__chevron {
-  flex: none;
-  color: var(--muted);
-}
-
-.fold-open {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fold-open__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 2px 0;
-}
-
-.fold-open__hide {
-  min-height: 44px;
-  padding: 0 8px;
-  border: 0;
-  background: none;
-  color: var(--accent);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
 .skeleton {
   gap: 12px;
 }
@@ -1103,7 +1030,7 @@ a.hit__time:hover {
     margin-top: 0;
   }
 
-  /* Touch targets: 44 px chip, ⋯, "+N nearby", menu rows and the fold's Hide. */
+  /* Touch targets: 44 px chip, ⋯, "+N nearby", and menu rows. */
   .more-menu__button {
     width: 44px;
     height: 44px;

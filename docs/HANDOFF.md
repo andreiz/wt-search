@@ -970,6 +970,22 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    feedback" link posts to `/api/report` with no `chunk_id` (spec §4.4, §5.5; plan 3 Task 4,
    plan 4's `wts reports` lists them as feedback). Corrections stay an ongoing background
    effort while the app gets built.
+10. **Marking what matched in a related passage** (maintainer's idea, 2026-10-09; a
+   candidate, not approved; needs a spike, then spec and plan). Word-level "related"
+   highlights aren't possible: Workers AI returns one pooled vector per text, so nothing
+   says which words made a passage close. What would work is **the best sentence**: split
+   each related passage into sentences, embed them, pick the one nearest the query, centre
+   the excerpt on it (today a related passage with none of the query words shows its first
+   three lines) and mark it with something that isn't the yellow word highlight. Cost: one
+   more batched embedding call per uncached Smart search (about 100–200 sentences for a
+   page of 20), counted against the daily Smart budget; latency and Workers AI's batch
+   limit are unmeasured. Precomputing sentence vectors in the pipeline avoids the call but
+   stores several times more vectors. Best done after plan 3 and with plan 5's test search
+   set, which can say whether the chosen sentences are the right ones. Rejected: synonym
+   tables or word vectors (noisy, miss paraphrases); a language model picking the phrase
+   (slow, costly, can mark the wrong thing).
+11. **A gentler related fold** — two options recorded in spec §5.3 "Considered, for later",
+   after the fold was removed on 2026-10-09.
 8. ~~Full transcripts in public history~~ — removed by rewriting `main` (second session).
    Left: ask GitHub Support to purge cached views of `a44eec9`. Clones from before the rewrite
    must `git fetch && git reset --hard origin/main` before committing.

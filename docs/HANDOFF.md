@@ -14,18 +14,19 @@ Checkpoint H:
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
 **Tasks 6 to 9 are done** (eighth session, 2026-10-09; on `main`): the API client and URL
 state, the search bar, search lifecycle, results list and paging, the year range chip and
-syntax help, then the dense result card. **Staging:** the maintainer deployed Tasks 1–7 on
-2026-10-09 and searched there, then ran the deploy again with Task 8 in the tree (not
-confirmed here); Task 9 is not deployed. Their notes below list what no test checks.
+syntax help, then the dense result card. After the maintainer's first look at the cards on
+staging, **the card's actions were redesigned** (one play control per hit, the show page
+playing from an offset, the episode header above the card; "Card actions and the show page
+link" below). **Staging runs Tasks 1–9** (deployed by the maintainer 2026-10-09); the
+redesign is not deployed. The task notes below list what no test checks.
 The design is in [`docs/design/system/`](design/system/) — build to its mocks and README (plan
 3's "Look" constraint). The maintainer runs well-defined tasks with **Sonnet subagents**; the
 main session reviews, runs every suite and commits (one commit per task). Tasks 6–9 ran in the
 main checkout, one subagent at a time, told not to commit.
 
-**Tests (2026-10-09):** pipeline **696** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **485** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`; not re-run after
-Task 7, nothing in `worker/` changed since), web **502** unit + **17** e2e (`cd web && npm
-test`, `npm run e2e`, `npm run typecheck`).
+**Tests (2026-10-09):** pipeline **702** (`cd pipeline && uv run pytest -q`, ruff clean),
+Worker **492** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **507** unit +
+**20** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
 - **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the
@@ -286,6 +287,36 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     revisit in Task 10); the desktop time link and first pill are two tab stops to one URL;
     the ⓘ note isn't announced; `timestamp(NaN)` is unguarded; resizing across 600 px with
     a menu open can drop focus.
+
+- **Card actions and the show page link** (2026-10-09, after the maintainer's first look at
+  Task 9 on staging; its own plan,
+  [`2026-10-09-card-actions-and-show-page.md`](superpowers/plans/2026-10-09-card-actions-and-show-page.md),
+  Tasks A and B, both done; spec §4.5, §4.6, §5.3 revised). This **replaces Task 9's pill
+  row, ⓘ and phone/desktop DOM split** described above:
+  - **Why:** the pills outweighed the excerpts, and Apple/Spotify landed 2–2.5 minutes early.
+  - **Task A (Worker, pipeline):** the show page link (`shows.acast.com`) gets
+    `seek=<cue>` (`pageLink` in `worker/src/links.ts`; `wts links --at` mirrors it), and
+    `cue_s` gains `page` (hit − 7, no offset). Any other page host is passed through.
+    Worker **492**, pipeline **702**.
+  - **Task B (web):** the timestamp chip is the one play control (`primaryPlay`: YouTube,
+    else the show page, else plain text); the ⋯ menu holds Show page, Apple, Spotify, More
+    transcript and Report at every width (`menuPlays`); the episode header sits above the
+    card (`.result__card` is the box; the `<li>` is still the keyboard stop). One DOM for
+    phone and desktop; `PlayButtons.tsx` and `lib/use-phone.ts` are gone. Web **507** unit +
+    **20** e2e. **Task 10 uses `primaryPlay` for the transcript's timestamp links.**
+  - Calls beyond the plan: tab order is chip, ⋯, "+N nearby" (the visual order); the
+    menu's "Show page" name has no ", starts at …"; ⋯ is 44 px wide on a phone.
+  - Option B of the mock (`docs/design/card-separation-options.html`: header on a tinted
+    band inside the card) is the recorded swap-in.
+  - **Open:** search answers are edge-cached for an hour by query and `corpus_version`
+    only, so after a deploy that changes the answer's shape, old answers are served until
+    they expire. Proposed, not decided: an API version in the cache key (spec §4.7).
+  - **Deferred (Worker):** `cue_s.page` is hit − 7 even when the page isn't on Acast and
+    doesn't seek; every feed link is Acast today.
+  - **Look in a browser:** the chip's links land at the passage (YouTube and the show
+    page); on a phone the `?` help button wraps onto its own line under the controls and
+    ⋯ sits beside the middle of the excerpt, not its first line; the menu over the next
+    card and under the sticky header.
 
 Tasks 1–4 were written by four Sonnet subagents in parallel worktrees (none committed),
 reviewed, applied and committed one per task in the main session. Worker **470 tests** in 18

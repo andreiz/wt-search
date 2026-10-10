@@ -419,6 +419,8 @@ chunks(
 )
 chunks_fts USING fts5(text, content='chunks', content_rowid='id',
                       tokenize='porter unicode61')
+episodes_fts USING fts5(title, content='episodes', content_rowid='id',
+                        tokenize='porter unicode61')   -- title search, §4.4 (migration 0003)
 reports(
   id INTEGER PRIMARY KEY, chunk_id INTEGER, created_at TEXT,
   quoted_text TEXT, suggested_text TEXT, note TEXT,
@@ -578,6 +580,23 @@ Parser rules (`worker/src/query.ts`):
     (`vector_hits` null when degraded; `dropped` the meaning hits excluded,
     filtered out or gone). Same order as without it; never cached.
     `wts search --debug` prints it.
+  - **Title hits: `episodes`** *(maintainer, 2026-10-10)*. Search reads the
+    transcripts, so a word that is only in an episode's title found nothing
+    ("kregger": episode 613 is "Shove a Kregger in the Hole", and Whisper
+    wrote "Craigers"). Both modes now also match the query against the
+    titles and answer `episodes: [{id, number, title, date, links}]`: the
+    episodes whose title matches the query's FTS expression (the same one
+    the transcripts get: all the words, stemmed, phrases, `OR`, `-word`),
+    with the year and `ep:` filters, best title match first (bm25), then
+    newest, at most 5. `links` play the episode from its start (each
+    platform's offset, no lead-in). `episodes` is always present: `[]` on
+    pages after the first, for a query with no words, and when the title
+    query fails (logged; a title hit is an extra, so it never fails the
+    search). It is one more D1 statement on page 1, and it is cached with
+    the answer (`API_VERSION` 3). Passage results, their order and Exact's
+    `total` are unchanged: `total` counts passages only. Matched words in
+    the title are not marked, and there is no way past five (for later, if
+    it is missed).
 - `GET /api/context?chunk=&radius=3`: the chunk and its neighbours in the
   same episode, ±radius (0–6; bad → 3), in episode order: `{chunk_id,
   episode: {id, number, title, date, links}, chunks: [{chunk_id, seq,
@@ -987,6 +1006,18 @@ Pinned to the top (compacting on scroll on phones):
     your exact words."
   - Under the last Smart page, when it is not page 1: "That's the end of
     the top results. Exact search lists every match."
+- **Episodes whose title matches** *(maintainer, 2026-10-10; `episodes`,
+  §4.4)* are a short row above the passage results, on page 1, in both
+  modes, under the label "Episodes". Each entry: "Ep. 613 · Shove a
+  Kregger in the Hole · Aug 19, 2026" (the title cleaned as on a card,
+  §5.3). The title is a play link from the episode's start (YouTube, else
+  the show page; plain text with neither), named "Play episode 613 from the
+  start on YouTube". Beside it, **Search this episode** puts `ep:613`
+  alone in the box and puts the cursor there, without searching: the word
+  that found the title is often not in the transcript, so searching it
+  inside the episode would find nothing. With title hits and no passages,
+  the row shows and "Nothing found." does not. The arrow and j/k keys move
+  between passage cards only.
 
 ### 5.3 Result card
 

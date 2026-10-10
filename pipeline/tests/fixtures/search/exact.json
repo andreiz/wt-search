@@ -1,5 +1,21 @@
 {
   "total": 57,
+  "episodes": [
+    {
+      "id": 613,
+      "number": 613,
+      "title": "Shove a Kregger in the Hole | 613",
+      "date": "2026-08-19",
+      "links": {"youtube": "https://www.youtube.com/watch?v=yt613&t=0s"}
+    },
+    {
+      "id": 900,
+      "number": null,
+      "title": "Bonus: Glue Questions",
+      "date": "2021-03-03",
+      "links": {}
+    }
+  ],
   "total_capped": false,
   "truncated": false,
   "page": 1,

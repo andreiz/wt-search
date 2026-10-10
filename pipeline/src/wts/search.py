@@ -129,6 +129,7 @@ def format_results(response: dict, *, color: bool, limit: int | None = None) -> 
     lines = [_header(response)]
     if isinstance(response.get("debug"), dict):
         lines.append(_debug_summary(response["debug"]))
+    lines += _title_lines(response)
     results = response.get("results") or []
     if not results:
         lines.append("No results.")
@@ -147,6 +148,21 @@ def format_results(response: dict, *, color: bool, limit: int | None = None) -> 
     if footers:
         lines += ["", *footers]
     return "\n".join(lines)
+
+
+def _title_lines(response: dict) -> list[str]:
+    """The episodes whose title matches the query (`episodes`, spec §4.4): search reads the
+    transcripts, so these are listed apart. Nothing for a missing, empty or malformed list."""
+    episodes = response.get("episodes")
+    if not isinstance(episodes, list):
+        return []
+    hits = []
+    for e in episodes:
+        if not isinstance(e, dict) or "title" not in e or "date" not in e:
+            continue
+        number = f"#{e['number']} " if e.get("number") is not None else ""
+        hits.append(f"  {number}{e['title']} ({e['date']})")
+    return ["Episodes with this in the title:", *hits] if hits else []
 
 
 def _total(response: dict) -> str:

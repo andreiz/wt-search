@@ -311,7 +311,8 @@ def test_links_are_in_card_order_with_missing_ones_omitted():
 
 
 def test_all_four_links():
-    lines = format_results(fixture("exact"), color=False).splitlines()
+    # The fixture has title hits too, so skip to the first result (after the first blank line).
+    lines = format_results({**fixture("exact"), "episodes": []}, color=False).splitlines()
     assert lines[5:9] == [
         "  youtube  https://www.youtube.com/watch?v=Xk2mQp9vLrA&t=1221s",
         "  apple    https://podcasts.apple.com/podcast/id251471480?i=1000650000612",
@@ -409,6 +410,37 @@ def test_folded_header_with_a_page_and_in_smart_mode():
 
 def test_header_unchanged_when_nothing_was_folded():
     assert folded_header(0, 0, 0, total=3) == "3 matches"
+
+
+# --- format_results: title hits (`episodes`) ----------------------------------------------
+
+
+def test_title_hits_are_listed_under_the_header_before_the_results():
+    lines = format_results(fixture("exact"), color=False).splitlines()
+    assert lines[0].startswith("57 matches")
+    assert lines[1:4] == [  # the fixture's numbered and unnumbered episodes
+        "Episodes with this in the title:",
+        "  #613 Shove a Kregger in the Hole | 613 (2026-08-19)",
+        "  Bonus: Glue Questions (2021-03-03)",
+    ]
+    assert lines[4] == ""
+    assert lines[5].startswith("#")  # the first result's own title line
+
+
+def test_title_hits_show_when_there_are_no_results():
+    hit = {"id": 1, "number": 613, "title": "Shove a Kregger in the Hole", "date": "2026-08-19",
+           "links": {}}
+    out = format_results(response(episodes=[hit]), color=False)
+    assert out == ("0 matches\nEpisodes with this in the title:\n"
+                   "  #613 Shove a Kregger in the Hole (2026-08-19)\nNo results.")
+
+
+@pytest.mark.parametrize("episodes", [[], None, "nope", [None, 3, {"number": 1}]])
+def test_no_title_block_for_a_missing_empty_or_broken_list(episodes):
+    out = format_results(response(result(), episodes=episodes), color=False)
+    assert "in the title" not in out
+    without = response(result())
+    assert "in the title" not in format_results(without, color=False)
 
 
 def test_no_results():
@@ -531,8 +563,11 @@ def test_the_degraded_fixture():
 
 def test_the_exact_fixture_end_to_end():
     out = format_results(fixture("exact"), color=False)
-    assert out.splitlines()[:5] == [
+    assert out.splitlines()[:8] == [
         "57 matches; 3 results (2 folded into nearby hits)",
+        "Episodes with this in the title:",
+        "  #613 Shove a Kregger in the Hole | 613 (2026-08-19)",
+        "  Bonus: Glue Questions (2021-03-03)",
         "",
         "#612 Dovetails, Glue and Bandsaw Tuning (2024-03-12)  20:28",
         "  Honestly I think a hand cut [dovetail] is overrated, but a good [dovetail] saw is worth the money.",

@@ -19,6 +19,7 @@ import {
   type SmartResponse,
   type Sort,
 } from "./search";
+import { titleHits } from "./titles";
 
 /**
  * What a route adds to its request's log line (spec §8.3). Only the search route fills it
@@ -140,16 +141,28 @@ const search: Handler = async (request, env, info, ctx) => {
         else await posting;
       }
     }
-    response =
+    // Title hits go with page 1 only. They are an extra: if their query fails (the title index
+    // is a later migration than the Worker may be), the search still answers, with none.
+    const titles =
+      page === 1
+        ? titleHits(env.DB, parsed).catch((err: unknown) => {
+            logError("titles_unavailable", request, err);
+            return [];
+          })
+        : Promise.resolve([]);
+    const [answer, episodes] = await Promise.all([
       mode === "exact"
-        ? await exactSearch(env.DB, parsed, sort, page, limit)
-        : await smartSearch(env, parsed, sort, page, {
+        ? exactSearch(env.DB, parsed, sort, page, limit)
+        : smartSearch(env, parsed, sort, page, {
             limit,
             // Workers AI or Vectorize failing is not an error: keyword results, smart_degraded.
             onDegraded: (stage, err) => logError(`${stage}_unavailable`, request, err),
             debug,
             ...(skipMeaning ? { skipMeaning } : {}),
-          });
+          }),
+      titles,
+    ]);
+    response = { ...answer, episodes };
   } catch (err) {
     logError("d1_unavailable", request, err);
     return json({ error: "unavailable" }, 503);

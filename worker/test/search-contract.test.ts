@@ -239,6 +239,22 @@ describe("smart fixture smart_debug", () => {
   });
 });
 
+describe("episodes (title hits)", () => {
+  it("has the same keys in the fixture as from the Worker", () => {
+    // The seeded episode is "Dovetails and Glue", and the live exact search is for a word in it.
+    const real = (liveExact.episodes as Json[])[0];
+    expect(real).toBeDefined();
+    expect(exact.episodes.length).toBeGreaterThan(0);
+    for (const e of exact.episodes as unknown as Json[]) {
+      expect(keys(e)).toEqual(keys(real!));
+      expect(e.number === null || typeof e.number === "number").toBe(true);
+      expect(typeof e.title).toBe("string");
+      expect(e.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(typeof e.links).toBe("object");
+    }
+  });
+});
+
 describe("smart_degraded", () => {
   it("is set by the Worker exactly where the fixtures have it", () => {
     expect(liveDegraded.smart_degraded).toBe("unavailable");

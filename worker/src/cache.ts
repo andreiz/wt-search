@@ -70,8 +70,9 @@ export function pathCacheKey(requestUrl: string, path: string, version: string):
  * added, removed or given a new meaning, a link built differently): a deploy doesn't clear the
  * cache, so without this the new page is served answers the old code stored, for up to the TTL.
  * 2: `cue_s.page`, and `seek` on the show page link (2026-10-09).
+ * 3: `episodes`, the title hits (2026-10-10).
  */
-export const API_VERSION = 2;
+export const API_VERSION = 3;
 
 function versioned(url: URL, version: string): Request {
   url.searchParams.set("api", String(API_VERSION));

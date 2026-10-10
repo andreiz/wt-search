@@ -130,7 +130,7 @@ describe("fusion", () => {
 
   it("answers with the smart response shape: no total, no caps flags", async () => {
     const b = await body({ q: "dovetail" }, [3002]);
-    expect(Object.keys(b).sort()).toEqual(["has_more", "limit", "mode", "page", "results", "sort"]);
+    expect(Object.keys(b).sort()).toEqual(["episodes", "has_more", "limit", "mode", "page", "results", "sort"]);
     expect(b).toMatchObject({ mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false });
   });
 
@@ -483,7 +483,9 @@ function countingDb(real: D1Database): { db: D1Database; sql: string[] } {
   const sql: string[] = [];
   const db = {
     prepare(query: string) {
-      sql.push(query);
+      // The title hits (titles.ts) are one statement of their own on page 1, checked in
+      // titles.test.ts; these tests count the search's statements.
+      if (!/episodes_fts/.test(query)) sql.push(query);
       return real.prepare(query);
     },
     batch(statements: D1PreparedStatement[]) {

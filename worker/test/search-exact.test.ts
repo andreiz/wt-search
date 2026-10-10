@@ -503,11 +503,14 @@ describe("D1 use", () => {
     } as Env);
     expect(response.status).toBe(200);
     expect(((await response.json()) as Body).total).toBe(7);
+    // Page 1 also asks for the title hits (titles.ts): one statement of its own.
+    expect(sql.filter((s) => /episodes_fts/.test(s))).toHaveLength(1);
+    const search = sql.filter((s) => !/episodes_fts/.test(s));
     // Two prepared statements (count, page), then the single batch that runs them.
-    expect(sql).toHaveLength(3);
-    expect(sql[0]).toMatch(/count\(\*\)/);
-    expect(sql[1]).toMatch(/highlight\(chunks_fts/);
-    expect(sql[2]).toBe("<batch>");
+    expect(search).toHaveLength(3);
+    expect(search[0]).toMatch(/count\(\*\)/);
+    expect(search[1]).toMatch(/highlight\(chunks_fts/);
+    expect(search[2]).toBe("<batch>");
   });
 
   it("never puts user text in the SQL", async () => {

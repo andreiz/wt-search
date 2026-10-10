@@ -98,14 +98,22 @@ const ROW_COLUMNS = `c.id, c.episode_id, c.seq, c.start_ms, c.word_times,
 const countSql = (matchingSql: string): string => `SELECT count(*) AS n FROM (SELECT 1 ${matchingSql} LIMIT ?)`;
 const SELECT_PAGE = `SELECT ${ROW_COLUMNS}, highlight(chunks_fts, 0, char(1), char(2)) AS marked`;
 
-type Sql = { sql: string; params: (string | number)[] };
+export type Sql = { sql: string; params: (string | number)[] };
+
+/** What the two searches answer; the route adds the title hits (`episodes`, titles.ts). */
+export type ExactAnswer = Omit<ExactResponse, "episodes">;
+export type SmartAnswer = Omit<SmartResponse, "episodes">;
 
 /** The SQL filters (spec §4.3) as ` AND …` clauses on `c` and `e`, with the values to bind. */
 function filterSql(parsed: ParsedQuery): Sql {
-  const filters: Filters = parsed.filters;
+  const episode = episodeFilterSql(parsed.filters);
+  return { sql: (parsed.includeAds ? "" : " AND c.is_boilerplate = 0") + episode.sql, params: episode.params };
+}
+
+/** The filters that are about the episode (`year:`, `before:`, `after:`, `ep:`), as ` AND …` clauses on `e`. */
+export function episodeFilterSql(filters: Filters): Sql {
   let sql = "";
   const params: (string | number)[] = [];
-  if (!parsed.includeAds) sql += " AND c.is_boilerplate = 0";
   if (filters.year !== undefined) {
     sql += " AND e.year = ?";
     params.push(filters.year);
@@ -180,7 +188,7 @@ export async function exactSearch(
   sort: Sort,
   page: number,
   limit: number = PAGE_SIZE,
-): Promise<ExactResponse> {
+): Promise<ExactAnswer> {
   // Nothing to match (empty, only filters, only exclusions): no D1 call at all.
   if (parsed.fts === null) {
     return { total: 0, total_capped: false, truncated: false, page, limit, results: [], has_more: false };
@@ -330,7 +338,7 @@ export async function smartSearch(
     /** Answer with the keyword hits only, for this reason, without asking AI or Vectorize. */
     skipMeaning?: Exclude<DegradedReason, "unavailable">;
   } = {},
-): Promise<SmartResponse> {
+): Promise<SmartAnswer> {
   const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false, skipMeaning } = options;
   // Nothing to match means nothing to embed either: `semantic` holds the same positive terms.
   if (parsed.fts === null) return { page, limit, has_more: false, results: [] };
@@ -377,7 +385,7 @@ export async function smartSearch(
   }
   const results = collapse(all);
   const offset = (page - 1) * limit;
-  const response: SmartResponse = {
+  const response: SmartAnswer = {
     page,
     limit,
     has_more: offset + limit < results.length,

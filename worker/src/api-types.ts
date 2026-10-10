@@ -70,6 +70,20 @@ export interface SmartDebug {
   dropped: number[];
 }
 
+/**
+ * An episode whose title matches the query (spec §4.4, "Title hits"). Search reads the
+ * transcripts; this finds a word that is only in a title.
+ */
+export interface EpisodeHit {
+  id: number;
+  number: number | null;
+  title: string;
+  /** `YYYY-MM-DD`, from published_at. */
+  date: string;
+  /** Play the episode from its start. */
+  links: DeepLinks;
+}
+
 export interface ExactResponse {
   /** Matching chunks, before collapsing, up to COUNT_CAP. */
   total: number;
@@ -83,6 +97,8 @@ export interface ExactResponse {
   /** Another page can be shown (never past MAX_EXACT_RESULTS). */
   has_more: boolean;
   results: SearchResult[];
+  /** Episodes whose title matches, at most MAX_TITLE_HITS; `[]` after page 1. Not counted in `total`. */
+  episodes: EpisodeHit[];
 }
 
 /**
@@ -96,6 +112,8 @@ export interface SmartResponse {
   /** Another page of the collapsed results can be shown. */
   has_more: boolean;
   results: SearchResult[];
+  /** Episodes whose title matches, at most MAX_TITLE_HITS; `[]` after page 1. */
+  episodes: EpisodeHit[];
   /** These are the keyword hits only, and why (spec §4.4, §4.8). */
   smart_degraded?: DegradedReason;
   /** `?debug=1` only. */

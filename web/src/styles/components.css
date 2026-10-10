@@ -829,6 +829,11 @@ a.hit__time:hover {
   background: color-mix(in oklch, var(--tint) 45%, transparent);
 }
 
+/* Marks outside the hit's paragraph are lighter (design: --mark-bg mixed 55% with --surface). */
+.passage:not(.passage--hit) mark {
+  background: color-mix(in oklch, var(--mark-bg) 55%, var(--surface));
+}
+
 .passage__time {
   align-self: start;
   display: inline-flex;

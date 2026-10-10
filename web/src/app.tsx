@@ -188,6 +188,7 @@ export function App() {
                 results={view.data.results}
                 page={view.data.page}
                 listRef={listRef}
+                q={state.q}
                 onSearchEpisode={(number) => searchFor(setEpisode(state.q, number))}
               />
             )}

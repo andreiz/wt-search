@@ -120,6 +120,11 @@ export interface ContextChunk {
   /** Where each platform should start to play this chunk (the cue at the chunk's start). */
   cue_s: CueTimes;
   links: DeepLinks;
+  /**
+   * The words of the request's `q` found in `text`: `[start, end)` offsets in UTF-16 code
+   * units, like a search result's `ranges`. Always present; empty without `q` or a match.
+   */
+  ranges: [number, number][];
 }
 
 export interface ContextResponse {

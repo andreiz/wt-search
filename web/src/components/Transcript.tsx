@@ -2,8 +2,9 @@
 // chunks around it from /api/context, one paragraph each, labelled with its start time. The label
 // plays by the card's rule (YouTube, else the show page; plain text with neither). The hit's own
 // paragraph is on the tint and carries the result's highlights; in the radius 6 view the folded
-// hits' paragraphs are a lighter tint labelled "Nearby match". The API sends no ranges for other
-// chunks, so they are never marked. A sponsor read is a paragraph like any other (spec §3.5).
+// hits' paragraphs are a lighter tint labelled "Nearby match". Every paragraph marks the query's
+// words from the chunk's own `ranges` (the answer to /api/context?q=), in a lighter mark outside
+// the hit's paragraph. A sponsor read is a paragraph like any other (spec §3.5).
 //
 // The view is a labelled region that takes focus when it opens; Esc or "Show less" collapses it
 // (the row returns focus to whatever opened it). Loading, error and retry live inside it.
@@ -30,8 +31,10 @@ function Passage({ chunk, hit, radius }: { chunk: ContextChunk; hit: SearchResul
   const play = primaryPlay(chunk);
   const isHit = chunk.chunk_id === hit.chunk_id;
   const folded = !isHit && radius === 6 && hit.folded.includes(chunk.chunk_id);
-  // The chunk is the same text the result's ranges were made on; if it ever is not, mark nothing.
-  const pieces = isHit && chunk.text === hit.text ? segments(chunk.text, hit.ranges) : [{ text: chunk.text, mark: false }];
+  // The hit's paragraph keeps the result's ranges, so it matches its excerpt; if its text is not
+  // the result's, or for any other chunk, the chunk's own ranges (an older answer has none).
+  const ranges = isHit && chunk.text === hit.text ? hit.ranges : (chunk.ranges ?? []);
+  const pieces = segments(chunk.text, ranges);
   const name = play ? chipName(play, time) : undefined;
   return (
     <li class={`passage${isHit ? " passage--hit" : ""}${folded ? " passage--fold" : ""}`}>

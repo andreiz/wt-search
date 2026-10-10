@@ -22,7 +22,12 @@ export interface Transcript {
   retry(): void;
 }
 
-export function useTranscript(chunkId: number): Transcript {
+/**
+ * `q` is the query of the search the hit came from; it marks the words in the nearby
+ * paragraphs. It cannot change for a mounted hit (a new search remounts the list), so the
+ * cache stays per radius.
+ */
+export function useTranscript(chunkId: number, q: string): Transcript {
   const [shown, setShown] = useState<Radius | null>(null);
   const [entries, setEntries] = useState<Partial<Record<Radius, Entry>>>({});
   // The same entries for the handlers, which must not read a render-old copy.
@@ -51,7 +56,7 @@ export function useTranscript(chunkId: number): Transcript {
     const controller = new AbortController();
     running.current = { radius, controller };
     put(radius, { kind: "loading" });
-    context(chunkId, radius, controller.signal).then(
+    context(chunkId, radius, q, controller.signal).then(
       (answer) => {
         if (controller.signal.aborted) return;
         running.current = null;

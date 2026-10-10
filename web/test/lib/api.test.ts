@@ -58,12 +58,19 @@ describe("requests", () => {
 
   it("context calls /api/context with chunk and radius", async () => {
     answer(200, { chunk_id: 5, episode: {}, chunks: [] });
-    await context(59031, 3, new AbortController().signal);
+    await context(59031, 3, "glue -fish year:2015", new AbortController().signal);
     const [input] = fetchMock.mock.calls[0] ?? [];
     expect(String(input).startsWith("/api/context?")).toBe(true);
     const { url } = call();
     expect(url.searchParams.get("chunk")).toBe("59031");
     expect(url.searchParams.get("radius")).toBe("3");
+    expect(url.searchParams.get("q")).toBe("glue -fish year:2015");
+  });
+
+  it("context sends no q when it is empty", async () => {
+    answer(200, { chunk_id: 5, episode: {}, chunks: [] });
+    await context(59031, 3, "", new AbortController().signal);
+    expect(call().url.searchParams.has("q")).toBe(false);
   });
 
   it("info calls /api/info", async () => {
@@ -202,7 +209,7 @@ describe("context and info: real shapes", () => {
       ],
     };
     answer(200, body);
-    const r = await context(59031, 3, new AbortController().signal);
+    const r = await context(59031, 3, "", new AbortController().signal);
     if (r.kind !== "ok") throw new Error("expected ok");
     expect(r.data.chunk_id).toBe(59031);
     expect(r.data.chunks[0]?.boilerplate).toBe(false);
@@ -222,7 +229,7 @@ describe("status mapping, GET calls", () => {
   const signal = new AbortController().signal;
   const calls = [
     ["search", () => search(SMART, signal)],
-    ["context", () => context(1, 3, signal)],
+    ["context", () => context(1, 3, "", signal)],
     ["info", () => info(signal)],
   ] as const;
 

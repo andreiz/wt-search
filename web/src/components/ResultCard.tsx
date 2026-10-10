@@ -14,9 +14,12 @@ const noop = () => {};
 export function ResultCard({
   card,
   tabIndex,
+  q = "",
   onReport = noop,
   onSearchEpisode = noop,
 }: Partial<HitActions> & {
+  /** The searched query, passed on to each hit row. */
+  q?: string;
   /** A related card (`card.related`) is dashed, tagged "Related", with a muted excerpt. */
   card: Card;
   tabIndex: number;
@@ -57,6 +60,7 @@ export function ResultCard({
             key={hit.chunk_id}
             hit={hit}
             first={index === 0}
+            q={q}
             onReport={onReport}
             onSearchEpisode={onSearchEpisode}
           />

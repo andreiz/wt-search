@@ -125,17 +125,66 @@ describe("the paragraphs", () => {
     expect(rows()).toHaveLength(7);
   });
 
-  it("emphasises the hit's paragraph and marks the result's ranges in it, nowhere else", async () => {
+  const marks = (row: Element) => [...row.querySelectorAll("mark")].map((m) => m.textContent);
+
+  it("emphasises the hit's paragraph and marks the result's ranges in it", async () => {
     await open(6);
     const hit = rows().filter((row) => row.classList.contains("passage--hit"));
     expect(hit).toHaveLength(1);
     expect(hit[0]!.querySelector("p")!.textContent).toBe(HIT_TEXT);
-    expect([...region().querySelectorAll("mark")].map((m) => m.textContent)).toEqual(["dovetail"]);
-    expect(hit[0]!.querySelector("mark")).not.toBeNull();
-    // Chunk 7 also says "dovetail", but the API sent no ranges for it.
-    const later = rows()[7]!;
-    expect(later.querySelector("p")!.textContent).toContain("dovetail");
-    expect(later.querySelector("mark")).toBeNull();
+    expect(marks(hit[0]!)).toEqual(["dovetail"]);
+  });
+
+  it("marks the chunk's own ranges in a nearby match and in a plain neighbour, and nothing else", async () => {
+    await open(6);
+    expect(marks(rows()[7]!)).toEqual(["dovetail"]);
+    expect(marks(rows()[2]!)).toEqual(["glue"]);
+    expect([...region().querySelectorAll("mark")].map((m) => m.textContent)).toEqual(["glue", "dovetail", "dovetail"]);
+    expect(marks(rows()[0]!)).toEqual([]);
+  });
+
+  it("marks the hit's paragraph with the result's ranges, not the chunk's", async () => {
+    const calls = stubFetch();
+    renderList();
+    fireEvent.click(nearby());
+    const answer6 = contextAnswer(6);
+    answer6.chunks = answer6.chunks.map((c) => (c.chunk_id === HIT_ID ? { ...c, ranges: [[0, 4]] } : c));
+    calls[0]!.respond(answer6);
+    await loaded();
+    expect(marks(rows()[5]!)).toEqual(["dovetail"]);
+  });
+
+  it("falls back to the chunk's ranges in the hit's paragraph when its text is not the result's", async () => {
+    const calls = stubFetch();
+    renderList([{ ...HIT, text: "A different text altogether." }]);
+    fireEvent.click(nearby());
+    answer(calls[0]!);
+    await loaded();
+    expect(marks(region().querySelector(".passage--hit")!)).toEqual(["dovetail"]);
+  });
+
+  it("renders a chunk without a ranges field unmarked, without throwing", async () => {
+    const calls = stubFetch();
+    renderList();
+    fireEvent.click(nearby());
+    const old = contextAnswer(6);
+    old.chunks = old.chunks.map((c) => {
+      const { ranges: _ranges, ...rest } = c;
+      return rest as typeof c;
+    });
+    calls[0]!.respond(old);
+    await loaded();
+    expect(marks(rows()[7]!)).toEqual([]);
+    expect(marks(rows()[2]!)).toEqual([]);
+    expect(marks(rows()[5]!)).toEqual(["dovetail"]);
+  });
+
+  it("asks for the context with the searched query", () => {
+    const calls = stubFetch();
+    const listRef = createRef<HTMLDivElement>();
+    render(<ResultList results={[HIT]} page={1} listRef={listRef} q="dovetail glue" />);
+    fireEvent.click(nearby());
+    expect(calls[0]!.url.searchParams.get("q")).toBe("dovetail glue");
   });
 
   it("says in words which paragraph is the match, not by colour alone", async () => {
@@ -167,14 +216,6 @@ describe("the paragraphs", () => {
     expect(ad.className).toBe("passage");
   });
 
-  it("does not mark the hit's paragraph when the chunk's text is not the result's text", async () => {
-    const calls = stubFetch();
-    renderList([{ ...HIT, text: "A different text altogether." }]);
-    fireEvent.click(nearby());
-    answer(calls[0]!);
-    await screen.findByRole("region");
-    expect(region().querySelector("mark")).toBeNull();
-  });
 });
 
 describe("the timestamp labels", () => {

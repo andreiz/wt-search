@@ -108,6 +108,7 @@ describe("a context chunk", () => {
       boilerplate: false,
       cue_s: { youtube: 1734, apple: 1700, spotify: 1700, page: 1734 },
       links,
+      ranges: [],
     };
   }
 

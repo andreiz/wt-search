@@ -32,18 +32,22 @@ const result = {
 };
 
 // Nine chunks 30 s apart, ending at the hit's neighbourhood; the hit is the fourth. Radius 3 gives
-// the seven around it. Chunks 9 and 10 are the folded hits; both also say "sprayer", unmarked.
+// the seven around it. Chunks 9 and 10 are the folded hits; both also say "sprayer", which the
+// answer marks (the endpoint marks the query's words in every chunk).
 const IDS = [20, 21, 22, 1, 9, 23, 10, 24, 25];
 function chunk(index: number, base = 4_100) {
   const id = IDS[index]!;
   const start = base + index * 30;
   const cue = start - 7;
+  const text =
+    id === 1 ? FIRST_TEXT : id === 9 || id === 10 ? `Another word about the sprayer, chunk ${id}.` : `Plain talk in chunk ${id}.`;
   return {
     chunk_id: id,
     seq: index,
     start_ms: start * 1000,
     end_ms: (start + 30) * 1000,
-    text: id === 1 ? FIRST_TEXT : id === 9 || id === 10 ? `Another word about the sprayer, chunk ${id}.` : `Plain talk in chunk ${id}.`,
+    text,
+    ranges: id === 9 || id === 10 ? [at(text, "sprayer")] : id === 1 ? result.ranges : [],
     boilerplate: false,
     cue_s: { youtube: cue, apple: cue, spotify: cue, page: cue },
     links: { ...EPISODE_LINKS, youtube: `https://www.youtube.com/watch?v=abc&t=${cue}s` },
@@ -133,11 +137,17 @@ for (const { name, width, height } of WIDTHS) {
 
       const rows = region.getByRole("listitem");
       await expect(rows).toHaveCount(9);
-      // The hit's paragraph: on the tint, the result's highlights; no other paragraph is marked.
+      // The hit's paragraph: on the tint, the result's highlights. The nearby paragraphs that
+      // have the query's word are marked too (lighter), the plain ones are not.
       const hit = region.locator(".passage--hit");
       await expect(hit).toHaveCount(1);
       await expect(hit.locator("mark")).toHaveText(["HVLP", "sprayer"]);
-      await expect(region.locator("mark")).toHaveCount(2);
+      await expect(region.locator("mark")).toHaveCount(4);
+      await expect(region.locator(".passage--fold mark")).toHaveText(["sprayer", "sprayer"]);
+      await expect(region.locator(".passage:not(.passage--fold):not(.passage--hit) mark")).toHaveCount(0);
+      const hitMarkBg = await hit.locator("mark").first().evaluate((el) => getComputedStyle(el).backgroundColor);
+      const nearMarkBg = await region.locator(".passage--fold mark").first().evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(nearMarkBg).not.toBe(hitMarkBg);
       const hitBg = await hit.evaluate((el) => getComputedStyle(el).backgroundColor);
       expect(hitBg).toBe("rgb(243, 230, 218)");
       // The folded ones: a lighter tint and the label.

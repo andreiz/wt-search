@@ -35,6 +35,20 @@ const TEXTS = [
   "And that is all for this week.",
 ];
 
+/** The `[start, end)` range of the first `word` in `text`. */
+function at(text: string, word: string): [number, number] {
+  const start = text.indexOf(word);
+  return [start, start + word.length];
+}
+
+// What the endpoint marks for a search of "dovetail glue": the hit, the folded hit (seq 7) and a
+// plain neighbour (seq 2) that has a query word. The other chunks have none.
+const RANGES: Record<number, [number, number][]> = {
+  2: [at(TEXTS[2]!, "glue")],
+  5: HIT_RANGES,
+  7: [at(TEXTS[7]!, "dovetail")],
+};
+
 export function chunkOf(seq: number): ContextChunk {
   const start = seq * 30;
   // Youtube +10 s offset, Apple +20, Spotify +30, the page none; all with the 7 s lead-in.
@@ -48,7 +62,8 @@ export function chunkOf(seq: number): ContextChunk {
     boilerplate: seq === 8,
     cue_s: cue,
     links: { ...linksAt(cue.youtube, cue.apple, cue.spotify), page: "https://example.com/ep/301" },
-  };
+    ranges: RANGES[seq] ?? [],
+  } satisfies ContextChunk;
 }
 
 /** What `/api/context?chunk=4105&radius=<radius>` answers. */

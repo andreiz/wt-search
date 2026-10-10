@@ -6,8 +6,10 @@
 
 import type { ContextResponse } from "./api-types";
 import type { Env } from "./env";
+import { highlightRanges, withoutStopwords } from "./highlight";
 import { json, logError } from "./http";
 import { cueTimes, deepLinks, type LinkEpisode } from "./links";
+import { boundQuery, HIGHLIGHT_STOPWORDS, parseQuery } from "./query";
 
 /** Chunks either side of the hit when `radius` is missing or bad. */
 export const DEFAULT_RADIUS = 3;
@@ -43,6 +45,16 @@ JOIN chunks c ON c.episode_id = hit.episode_id AND c.seq BETWEEN hit.seq - ? AND
 JOIN episodes e ON e.id = c.episode_id
 ORDER BY c.seq`;
 
+// The same `hit` window, so the highlight runs in the same batch as the select. `terms` are
+// quoted FTS5 strings (query.ts `quote`), so MATCH cannot see user syntax.
+const HIGHLIGHT_CONTEXT = `WITH hit AS (SELECT episode_id, seq FROM chunks WHERE id = ?)
+SELECT chunks_fts.rowid AS id, highlight(chunks_fts, 0, char(1), char(2)) AS marked
+FROM chunks_fts
+WHERE chunks_fts MATCH ?
+  AND chunks_fts.rowid IN (
+    SELECT c.id FROM hit JOIN chunks c ON c.episode_id = hit.episode_id AND c.seq BETWEEN hit.seq - ? AND hit.seq + ?
+  )`;
+
 /** A plain non-negative integer, clamped to 0 to MAX_RADIUS; anything else is DEFAULT_RADIUS. */
 export function parseRadius(value: string | null): number {
   if (value === null || !/^\d+$/.test(value)) return DEFAULT_RADIUS;
@@ -56,9 +68,39 @@ export function parseChunkId(value: string | null): number | null {
   return Number.isSafeInteger(id) ? id : null;
 }
 
-/** The hit and its neighbours, or null when there is no such chunk. D1 errors propagate. */
-export async function chunkContext(db: D1Database, chunkId: number, radius: number): Promise<ContextResponse | null> {
-  const { results } = await db.prepare(SELECT_CONTEXT).bind(chunkId, radius, radius).all<Row>();
+/** The ranges of a highlighted chunk, minus stopword marks (as search does); [] for no match. */
+function rangesOf(text: string, markedText: string | undefined): [number, number][] {
+  if (markedText === undefined) return [];
+  const h = withoutStopwords(highlightRanges(markedText), HIGHLIGHT_STOPWORDS);
+  // The ranges index h.text; they are only valid for `text` when the two are the same.
+  return h.text === text ? h.ranges : [];
+}
+
+/**
+ * The hit and its neighbours, or null when there is no such chunk. `q` (optional) marks its
+ * words in each chunk's `ranges`; exclusions and filters in it are ignored. With terms, the
+ * select and the highlight go in one batch; without, it is one statement. D1 errors propagate.
+ */
+export async function chunkContext(
+  db: D1Database,
+  chunkId: number,
+  radius: number,
+  q = "",
+): Promise<ContextResponse | null> {
+  // Parsed as search parses it: cut at the bound, then quoted into FTS5 strings. No terms
+  // (empty, only stopwords or filters) means nothing to highlight, and MATCH '' is an error.
+  const { terms } = parseQuery(boundQuery(q));
+  const select = db.prepare(SELECT_CONTEXT).bind(chunkId, radius, radius);
+  let results: Row[];
+  const marked = new Map<number, string>();
+  if (terms.length === 0) {
+    results = (await select.all<Row>()).results;
+  } else {
+    const highlight = db.prepare(HIGHLIGHT_CONTEXT).bind(chunkId, terms.join(" OR "), radius, radius);
+    const [rows, highlights] = await db.batch([select, highlight]);
+    results = (rows?.results ?? []) as unknown as Row[];
+    for (const h of (highlights?.results ?? []) as { id: number; marked: string }[]) marked.set(h.id, h.marked);
+  }
   const hit = results.find((row) => row.id === chunkId);
   if (!hit) return null;
   return {
@@ -80,12 +122,13 @@ export async function chunkContext(db: D1Database, chunkId: number, radius: numb
       boilerplate: row.is_boilerplate !== 0,
       cue_s: cueTimes(row, row.start_ms),
       links: deepLinks(row, row.start_ms),
+      ranges: rangesOf(row.text, marked.get(row.id)),
     })),
   };
 }
 
 /**
- * GET /api/context?chunk=<id>&radius=<n>. A missing or non-numeric chunk is 400, an unknown
+ * GET /api/context?chunk=<id>&radius=<n>&q=<query>. A missing or non-numeric chunk is 400, an unknown
  * one 404; a bad radius is the default. The only other error is D1 being down (503).
  */
 export async function context(request: Request, env: Env): Promise<Response> {
@@ -95,7 +138,7 @@ export async function context(request: Request, env: Env): Promise<Response> {
 
   let response: ContextResponse | null;
   try {
-    response = await chunkContext(env.DB, chunkId, parseRadius(params.get("radius")));
+    response = await chunkContext(env.DB, chunkId, parseRadius(params.get("radius")), params.get("q") ?? "");
   } catch (err) {
     logError("d1_unavailable", request, err);
     return json({ error: "unavailable" }, 503);

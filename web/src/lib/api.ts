@@ -135,9 +135,18 @@ export function search(params: SearchState, signal: AbortSignal): Promise<ApiRes
   return call<SearchData>(`/api/search?${query}`, { signal }) as Promise<ApiResult<SearchData>>;
 }
 
-/** GET /api/context: the chunk and `radius` chunks either side of it. */
-export function context(chunkId: number, radius: number, signal: AbortSignal): Promise<ApiResult<ContextResponse>> {
+/**
+ * GET /api/context: the chunk and `radius` chunks either side of it. `q` is the search's query,
+ * so the answer marks its words in every chunk; it is left out when empty.
+ */
+export function context(
+  chunkId: number,
+  radius: number,
+  q: string,
+  signal: AbortSignal,
+): Promise<ApiResult<ContextResponse>> {
   const query = new URLSearchParams({ chunk: String(chunkId), radius: String(radius) });
+  if (q !== "") query.set("q", q);
   return call<ContextResponse>(`/api/context?${query}`, { signal }) as Promise<ApiResult<ContextResponse>>;
 }
 

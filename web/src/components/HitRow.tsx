@@ -28,17 +28,20 @@ export interface HitActions {
 export function HitRow({
   hit,
   first,
+  q = "",
   onReport,
   onSearchEpisode,
 }: HitActions & {
   hit: SearchResult;
   /** The first row of its card has no rule above it. */
   first: boolean;
+  /** The searched query, so the expanded view marks its words in the nearby paragraphs. */
+  q?: string;
 }) {
   const time = hitTime(hit);
   const play = primaryPlay(hit);
   const view = excerpt(hit.text, hit.ranges);
-  const transcript = useTranscript(hit.chunk_id);
+  const transcript = useTranscript(hit.chunk_id, q);
   const { shown } = transcript;
 
   const moreButton = useRef<HTMLButtonElement>(null);

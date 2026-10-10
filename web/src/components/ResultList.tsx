@@ -20,10 +20,13 @@ export function ResultList({
   results,
   page,
   listRef,
+  q = "",
   onReport = noop,
   onSearchEpisode = noop,
 }: Partial<HitActions> & {
   results: SearchResult[];
+  /** The query these results answer; the expanded transcript marks its words. */
+  q?: string;
   /** The page number, from 1; the intro line is for page 1 only. */
   page: number;
   /** The element holding the list; its cards carry `data-result`. */
@@ -57,6 +60,7 @@ export function ResultList({
             key={card.hits[0]!.chunk_id}
             card={card}
             tabIndex={index === current ? 0 : -1}
+            q={q}
             onReport={onReport}
             onSearchEpisode={onSearchEpisode}
           />

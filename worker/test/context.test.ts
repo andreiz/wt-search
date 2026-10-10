@@ -72,10 +72,10 @@ const CHUNKS: SeedChunk[] = [
   chunk(3302, 33, 1, 100_000, "link episode middle"),
   chunk(3303, 33, 2, 130_000, "this episode is brought to you by Sponsorly", { is_boilerplate: true }),
   // Episode 34: query words in some chunks, non-ASCII text before a match in the hit.
-  chunk(3401, 34, 0, 0, "Today we were gluing the panel with hide glue"),
+  chunk(3401, 34, 0, 0, "Today we were gluing the panel with hide glue and dovetails"),
   chunk(3402, 34, 1, 30_000, "the café table is naïve about the glue joint"),
   chunk(3403, 34, 2, 60_000, "nothing relevant here at all"),
-  chunk(3404, 34, 3, 90_000, "Once glued the tabletop and the dovetails are done"),
+  chunk(3404, 34, 3, 90_000, "Once glued the tabletop and a dovetail joint is done"),
 ];
 
 beforeAll(async () => {
@@ -237,17 +237,22 @@ function marked(body: ContextBody): Record<number, string[]> {
 }
 
 describe("ranges (q)", () => {
-  it("marks the query words in the hit and in neighbours that have them, stemmed like search", async () => {
+  it("marks the query words in the hit and in neighbours that have them, [] in those that do not", async () => {
     const { body } = await context("?chunk=3402&q=glue");
     expect(ids(body)).toEqual([3401, 3402, 3403, 3404]);
-    expect(marked(body)).toEqual({ 3401: ["gluing", "glue"], 3402: ["glue"], 3403: [], 3404: ["glued"] });
+    expect(marked(body)).toEqual({ 3401: ["glue"], 3402: ["glue"], 3403: [], 3404: [] });
+  });
+
+  it("marks other forms of the word, stemmed like search", async () => {
+    const { body } = await context("?chunk=3402&q=dovetail");
+    expect(marked(body)).toEqual({ 3401: ["dovetails"], 3402: [], 3403: [], 3404: ["dovetail"] });
   });
 
   it("indexes the returned text, also after non-ASCII characters", async () => {
     const { body } = await context("?chunk=3402&radius=0&q=glue");
     const hit = body.chunks[0];
     expect(hit?.text).toBe("the café table is naïve about the glue joint");
-    expect(hit?.ranges).toEqual([[36, 40]]);
+    expect(hit?.ranges).toEqual([[34, 38]]);
     // The text the FTS5 highlight marks is the text returned, markers aside.
     const row = await env.DB.prepare(
       `SELECT highlight(chunks_fts, 0, char(1), char(2)) AS marked FROM chunks_fts WHERE chunks_fts MATCH '"glue"' AND rowid = 3402`,
@@ -269,7 +274,7 @@ describe("ranges (q)", () => {
     const plain = await context("?chunk=3402&q=glue");
     const { body } = await context(`?chunk=3402&q=${encodeURIComponent("glue -panel year:2015 ep:5 before:2000-01-01")}`);
     expect(body.chunks).toEqual(plain.body.chunks);
-    expect(marked(body)[3401]).toEqual(["gluing", "glue"]);
+    expect(marked(body)[3401]).toEqual(["glue"]);
   });
 
   it("gives [] everywhere, and makes no extra statement, with no q, an empty q, only stopwords or only filters", async () => {

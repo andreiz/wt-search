@@ -953,14 +953,23 @@ states. Behaviour from the design, with the maintainer's calls:)*
 - **Ep. N · Title** · date · timestamp chip **mm:ss** (or h:mm:ss).
   Feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk
   598"); the card strips it (one tested function over the known title
-  styles, §3.4). Unnumbered episodes show the title only.
+  styles, §3.4). Unnumbered episodes show the title only. The card is the
+  only place titles are cleaned (the API sends the feed title as stored),
+  and it strips **only the episode's own number**: "Ep. 5 Recap | 608" on
+  episode 608 shows "Ep. 5 Recap", and a marker that names another number
+  is left alone *(2026-10-09, plan 3 Task 9)*.
 - **Excerpt**, about 2–3 lines on a phone: a window of the chunk's text
   around the first highlight (whole words, "…" at cut ends), with `<mark>`
   on the ranges (UTF-16 offsets, §4.4). **Related** hits: no marks unless
   the API sent ranges, a "Related" tag by the timestamp, quieter styling.
 - **Actions:** ▶ YouTube, ▶ Apple, ▶ Spotify, only those in `episode.links`,
-  YouTube first, each named for screen readers ("Play on YouTube at
-  1:09:44"); Apple and Spotify carry a small info note "May start a bit
+  YouTube first, each named for screen readers around its visible text
+  (WCAG 2.5.3, label in name), with where playback starts added when that
+  platform's cue differs from the hit time, which the 7 s lead-in makes the
+  usual case: "Play on YouTube 1:09:51, starts at 1:09:44"; a desktop pill
+  that shows only the platform: "Play on Apple, starts at 1:09:40"
+  *(2026-10-09, plan 3 Task 9; was "Play on YouTube at 1:09:44", the cue
+  time alone, which the visible hit time contradicted)*. Apple and Spotify carry a small info note "May start a bit
   early because of ads" (§4.6). Then **Episode page** (with "jump to
   mm:ss", it has no player) · **More transcript** · **+n more nearby** when
   hits were folded. Links come from the API only; the frontend never

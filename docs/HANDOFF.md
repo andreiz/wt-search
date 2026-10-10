@@ -1,4 +1,4 @@
-# Handoff — 2026-10-09 (after the eighth session; plan 3 Tasks 1–8 done, Task 9 next)
+# Handoff — 2026-10-09 (after the eighth session; plan 3 Tasks 1–9 done, Task 10 next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -9,21 +9,23 @@ then [README.md](../README.md), then the spec sections it points to.
 The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
 fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Next: plan 3 Task 9** (the result card), then Tasks 10–15 and Checkpoint H:
+**Next: plan 3 Task 10** (More transcript and "+n more nearby"), then Tasks 11–15 and
+Checkpoint H:
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
-**Tasks 6, 7 and 8 are done** (eighth session, 2026-10-09; on `main`): the API client and URL
-state, the search bar, search lifecycle, results list and paging, then the year range chip and
-syntax help. **Staging runs Tasks 1–7** (the maintainer deployed 2026-10-09 and searched
-there); Task 8 is not deployed. Their notes below list what no test checks.
+**Tasks 6 to 9 are done** (eighth session, 2026-10-09; on `main`): the API client and URL
+state, the search bar, search lifecycle, results list and paging, the year range chip and
+syntax help, then the dense result card. **Staging:** the maintainer deployed Tasks 1–7 on
+2026-10-09 and searched there, then ran the deploy again with Task 8 in the tree (not
+confirmed here); Task 9 is not deployed. Their notes below list what no test checks.
 The design is in [`docs/design/system/`](design/system/) — build to its mocks and README (plan
 3's "Look" constraint). The maintainer runs well-defined tasks with **Sonnet subagents**; the
-main session reviews, runs every suite and commits (one commit per task). Tasks 6–8 ran in the
+main session reviews, runs every suite and commits (one commit per task). Tasks 6–9 ran in the
 main checkout, one subagent at a time, told not to commit.
 
-**Tests (2026-10-09):** pipeline **694** (`cd pipeline && uv run pytest -q`, ruff clean; not
-re-run in the eighth session, which didn't touch it), Worker **485** in 18 files (`cd worker
-&& npm test`, `npx tsc --noEmit`), web **379** unit + **10** e2e (`cd web && npm test`, `npm run
-e2e`, `npm run typecheck`).
+**Tests (2026-10-09):** pipeline **696** (`cd pipeline && uv run pytest -q`, ruff clean),
+Worker **485** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`; not re-run after
+Task 7, nothing in `worker/` changed since), web **502** unit + **17** e2e (`cd web && npm
+test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
 - **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the
@@ -256,6 +258,34 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     (it is hidden with the controls).
   - **Deferred minors:** `use-popover.ts` repeats SortMenu's outside-click and Esc code;
     out-of-corpus years give odd labels (`before:2000` → "2007–1999").
+- **Task 9** dense result card (Sonnet, reviewed, one fix round): new `web/src/lib/{title,
+  excerpt,format,group,platforms,use-phone}.ts`, `components/{ResultCard,HitRow,PlayButtons,
+  MoreMenu,RelatedFold}.tsx`, `web/test/fixtures/titles.json` (checked by both suites:
+  `test_split_title_matches_web_fixture` in `pipeline/tests/test_stems.py`); `ResultList.tsx`
+  splits related hits, groups neighbours and renders the cards. Web **502** unit + **17** e2e,
+  pipeline **696**. Calls the plan didn't spell out:
+  - **Inert until Tasks 10 and 13:** More transcript (menu item and excerpt click), "+N
+    nearby" and Report call props `app.tsx` doesn't pass yet.
+  - **Titles are cleaned only in the page** (`displayTitle`; the API sends the feed title).
+    It strips only the episode's own number, unlike `split_title`, which strips any marked
+    number; the shared fixture has no case where they differ, and web-only tests pin the
+    difference (spec §5.3 updated).
+  - **Play controls' accessible names contain their visible text** and add ", starts at
+    <cue>" when the cue differs from the hit time, i.e. nearly always, given the 7 s
+    lead-in (`playName` in `lib/platforms.ts`; spec §5.3 updated).
+  - One j/k or arrow stop is one whole card, however many hits it has; the keys continue
+    into the related cards while the fold is open.
+  - Phone and desktop differ by CSS where the DOM can be the same; the pills, the time
+    column and the menu's "Play on" rows differ in the DOM through `usePhone` (`matchMedia`,
+    600 px is desktop).
+  - Test helper titles are now "Show N title" (`displayTitle` rightly strips "Episode 1").
+  - **Look in a browser:** the match to `DenseResult.dc.html`, the "…" under the 3-line
+    clamp, the ⋯ menu and pills at 390 px, the ⓘ note on touch, excerpt click vs a text
+    selection, where focus lands when a new search replaces the list.
+  - **Deferred minors:** the excerpt click is mouse-only (the menu is the keyboard path;
+    revisit in Task 10); the desktop time link and first pill are two tab stops to one URL;
+    the ⓘ note isn't announced; `timestamp(NaN)` is unguarded; resizing across 600 px with
+    a menu open can drop focus.
 
 Tasks 1–4 were written by four Sonnet subagents in parallel worktrees (none committed),
 reviewed, applied and committed one per task in the main session. Worker **470 tests** in 18

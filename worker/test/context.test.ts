@@ -24,6 +24,7 @@ interface ContextBody {
     boilerplate: boolean;
     cue_s: { youtube: number; apple: number; spotify: number; page: number };
     links: Record<string, string>;
+    ranges: [number, number][];
   }[];
 }
 
@@ -51,6 +52,7 @@ const EPISODES: SeedEpisode[] = [
     offset_apple_s: 20,
     offset_spotify_s: 30,
   },
+  { id: 34, guid: "g34", number: 302, title: "Glue Talk", published_at: "2022-03-07T08:00:00+00:00", duration_s: 3600 },
 ];
 
 function chunk(id: number, episode_id: number, seq: number, start_ms: number, text: string, extra: Partial<SeedChunk> = {}): SeedChunk {
@@ -69,6 +71,11 @@ const CHUNKS: SeedChunk[] = [
   chunk(3301, 33, 0, 40_000, "link episode intro"),
   chunk(3302, 33, 1, 100_000, "link episode middle"),
   chunk(3303, 33, 2, 130_000, "this episode is brought to you by Sponsorly", { is_boilerplate: true }),
+  // Episode 34: query words in some chunks, non-ASCII text before a match in the hit.
+  chunk(3401, 34, 0, 0, "Today we were gluing the panel with hide glue"),
+  chunk(3402, 34, 1, 30_000, "the café table is naïve about the glue joint"),
+  chunk(3403, 34, 2, 60_000, "nothing relevant here at all"),
+  chunk(3404, 34, 3, 90_000, "Once glued the tabletop and the dovetails are done"),
 ];
 
 beforeAll(async () => {
@@ -130,6 +137,7 @@ describe("neighbours", () => {
           boilerplate: false,
           cue_s: { youtube: 113, apple: 113, spotify: 113, page: 113 },
           links: {},
+          ranges: [],
         },
       ],
     });
@@ -220,6 +228,96 @@ describe("links and flags", () => {
   it("serves an episode with no number and no links", async () => {
     const { body } = await context("?chunk=3201&radius=1");
     expect(body.episode).toEqual({ id: 32, number: null, title: "After It", date: "2020-05-11", links: {} });
+  });
+});
+
+/** The text each chunk marks, by chunk id: ranges sliced out of the returned text. */
+function marked(body: ContextBody): Record<number, string[]> {
+  return Object.fromEntries(body.chunks.map((c) => [c.chunk_id, c.ranges.map(([s, e]) => c.text.slice(s, e))]));
+}
+
+describe("ranges (q)", () => {
+  it("marks the query words in the hit and in neighbours that have them, stemmed like search", async () => {
+    const { body } = await context("?chunk=3402&q=glue");
+    expect(ids(body)).toEqual([3401, 3402, 3403, 3404]);
+    expect(marked(body)).toEqual({ 3401: ["gluing", "glue"], 3402: ["glue"], 3403: [], 3404: ["glued"] });
+  });
+
+  it("indexes the returned text, also after non-ASCII characters", async () => {
+    const { body } = await context("?chunk=3402&radius=0&q=glue");
+    const hit = body.chunks[0];
+    expect(hit?.text).toBe("the café table is naïve about the glue joint");
+    expect(hit?.ranges).toEqual([[36, 40]]);
+    // The text the FTS5 highlight marks is the text returned, markers aside.
+    const row = await env.DB.prepare(
+      `SELECT highlight(chunks_fts, 0, char(1), char(2)) AS marked FROM chunks_fts WHERE chunks_fts MATCH '"glue"' AND rowid = 3402`,
+    ).first<{ marked: string }>();
+    expect(row?.marked.replace(/[\u0001\u0002]/g, "")).toBe(hit?.text);
+  });
+
+  it("drops stopword marks when something else is marked", async () => {
+    const { body } = await context("?chunk=3402&radius=0&q=the*%20glue");
+    expect(marked(body)).toEqual({ 3402: ["glue"] });
+  });
+
+  it("marks the words of a phrase", async () => {
+    const { body } = await context('?chunk=3401&radius=0&q=%22hide%20glue%22');
+    expect(marked(body)).toEqual({ 3401: ["hide", "glue"] });
+  });
+
+  it("ignores exclusions and filters in q", async () => {
+    const plain = await context("?chunk=3402&q=glue");
+    const { body } = await context(`?chunk=3402&q=${encodeURIComponent("glue -panel year:2015 ep:5 before:2000-01-01")}`);
+    expect(body.chunks).toEqual(plain.body.chunks);
+    expect(marked(body)[3401]).toEqual(["gluing", "glue"]);
+  });
+
+  it("gives [] everywhere, and makes no extra statement, with no q, an empty q, only stopwords or only filters", async () => {
+    for (const query of ["", "&q=", "&q=the%20and%20of", "&q=year%3A2015", "&q=-glue", "&q=%20%20"]) {
+      const { db, sql } = countingDb(env.DB);
+      const response = await worker.fetch(new Request(`https://example.com/api/context?chunk=3402${query}`), { DB: db } as Env);
+      const body = (await response.json()) as ContextBody;
+      expect(response.status, query).toBe(200);
+      expect(body.chunks.map((c) => c.ranges), query).toEqual([[], [], [], []]);
+      expect(sql, query).toHaveLength(1);
+    }
+  });
+
+  it("cuts q at 200 code points, as search does", async () => {
+    const long = `${"a ".repeat(100)}glue`;
+    expect(long.length).toBeGreaterThan(200);
+    const { body } = await context(`?chunk=3402&q=${encodeURIComponent(long)}`);
+    expect(body.chunks.map((c) => c.ranges)).toEqual([[], [], [], []]);
+    const within = await context(`?chunk=3402&q=${encodeURIComponent(`${"a ".repeat(90)}glue`)}`);
+    expect(marked(within.body)[3402]).toEqual(["glue"]);
+  });
+
+  it("makes one batch of the select and the highlight, with the terms bound", async () => {
+    const { db, sql } = countingDb(env.DB);
+    const response = await worker.fetch(new Request("https://example.com/api/context?chunk=3402&q=glue"), { DB: db } as Env);
+    expect(response.status).toBe(200);
+    expect(sql).toHaveLength(3);
+    expect(sql[2]).toBe("<batch>");
+    expect(sql.join("\n")).not.toMatch(/glue|3402/);
+  });
+
+  it("answers 503 when the batch fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const failingDb = {
+      prepare: () => ({ bind: () => ({}) }),
+      batch: () => Promise.reject(new Error("D1_ERROR: boom")),
+    } as unknown as D1Database;
+    const response = await worker.fetch(new Request("https://example.com/api/context?chunk=3402&q=glue"), {
+      DB: failingDb,
+    } as Env);
+    expect(response.status).toBe(503);
+  });
+
+  it("is not stopped by FTS5 syntax in q", async () => {
+    for (const q of ['"', "glue AND", "glue NEAR(", "col:glue", "(glue", "glue*", "'; DROP"]) {
+      const { response } = await context(`?chunk=3402&q=${encodeURIComponent(q)}`);
+      expect(response.status, q).toBe(200);
+    }
   });
 });
 

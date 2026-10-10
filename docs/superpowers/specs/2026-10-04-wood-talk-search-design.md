@@ -584,6 +584,15 @@ Parser rules (`worker/src/query.ts`):
   start_ms, end_ms, text, boilerplate, cue_s, links}]}`, each chunk's cue
   and links at its start. A bad `chunk` is 400, an unknown one 404. One D1
   statement. *(Built 2026-10-07.)*
+  - **`q=<the search's query>`, optional** *(maintainer, 2026-10-09)*: each
+    chunk then carries `ranges`, the highlight ranges of the query's
+    positive words in its text (the words joined with OR, stemmed as in
+    search, `HIGHLIGHT_STOPWORDS` dropped, exclusions and filters ignored),
+    so the transcript view can mark nearby matches and not only the hit.
+    `ranges` is always present: `[]` without `q`, for a query with no
+    words, or for a chunk with none of them. One more D1 statement in the
+    same batch, only when there are words. `q` is cut at 200 code points
+    like a search's. Not cached.
 - `POST /api/report`
   - Body: `{chunk_id, quoted_text, suggested_text?, note?, turnstile_token}`.
   - Checks the Cloudflare Turnstile token, limits lengths (quoted 500,
@@ -1045,6 +1054,9 @@ states. Behaviour from the design, with the maintainer's calls:)*
   so searching the episode would fold them into the same card again.
   Instead it opens the same expanded view at radius 6 (about ±180 s) and
   marks the paragraphs of the folded chunks (`folded` in each result, §4.4).
+  The query's words are highlighted in every paragraph of the expanded
+  view (`ranges` from `/api/context?q=`, §4.4); the hit's own paragraph
+  keeps the result's ranges, so it matches its excerpt *(2026-10-09)*.
   For a numbered episode, the expanded view also offers **Search this
   episode** (the query plus `ep:N`).
 - The brief's 400 ms hover preview is dropped *(maintainer, 2026-10-08)*:

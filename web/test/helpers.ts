@@ -1,7 +1,7 @@
 // Test helpers: API answers built from the real response shapes, and a `fetch` whose answers
 // the test resolves by hand (so two searches can finish out of order).
 import { vi } from "vitest";
-import type { InfoResponse, SearchResult } from "../../worker/src/api-types";
+import type { EpisodeHit, InfoResponse, SearchResult } from "../../worker/src/api-types";
 import type { SearchData } from "../src/lib/api";
 
 export function result(n: number, over: Partial<SearchResult> = {}): SearchResult {
@@ -27,7 +27,19 @@ export function result(n: number, over: Partial<SearchResult> = {}): SearchResul
 }
 
 export function smartBody(results: SearchResult[], over: Partial<Extract<SearchData, { mode: "smart" }>> = {}): SearchData {
-  return { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results, ...over };
+  return { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results, episodes: [], ...over };
+}
+
+/** An episode whose title matched, from the real shape (`EpisodeHit`). */
+export function episodeHit(n: number, over: Partial<EpisodeHit> = {}): EpisodeHit {
+  return {
+    id: n,
+    number: n,
+    title: `Shove a Kregger in the Hole`,
+    date: "2026-08-19",
+    links: { youtube: `https://example.test/yt/ep/${n}`, page: `https://example.test/page/${n}` },
+    ...over,
+  };
 }
 
 export function exactBody(results: SearchResult[], over: Partial<Extract<SearchData, { mode: "exact" }>> = {}): SearchData {
@@ -41,6 +53,7 @@ export function exactBody(results: SearchResult[], over: Partial<Extract<SearchD
     limit: 20,
     has_more: false,
     results,
+    episodes: [],
     ...over,
   };
 }

@@ -12,7 +12,9 @@
 // later search succeeds. Not here yet: the real footer (Task 13). The
 // result cards are ResultList's, and More transcript and "+N nearby" are theirs too (Task 10);
 // Report (Task 13) is not wired, so that control does nothing yet. "Search this episode" puts
-// `ep:N` into the searched query and searches, like the year chip.
+// `ep:N` into the searched query and searches, like the year chip. The Episodes row (TitleHits)
+// shows above the passages when the answer has episodes whose title matched; its "Search this
+// episode" only fills the box with `ep:N`.
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Banner } from "./components/Banner";
 import { EmptyState, NoResults } from "./components/EmptyState";
@@ -26,6 +28,7 @@ import { Skeleton } from "./components/Skeleton";
 import { SortMenu, sortLabel } from "./components/SortMenu";
 import { Summary } from "./components/Summary";
 import { SyntaxHelp } from "./components/SyntaxHelp";
+import { TitleHits } from "./components/TitleHits";
 import { YearRange } from "./components/YearRange";
 import { nextCompact } from "./lib/compact";
 import { setEpisode } from "./lib/episode";
@@ -134,8 +137,26 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
     submit(q);
   }
 
+  // "Search this episode" in the Episodes row: `ep:N` alone in the box, the cursor at its end.
+  // It does not search: the title's word is often not in the transcript.
+  const cursorAtEnd = useRef(false);
+  function fillEpisode(number: number) {
+    cursorAtEnd.current = true;
+    setText(`ep:${number}`);
+    inputRef.current?.focus();
+  }
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!cursorAtEnd.current || !input || input.value !== text) return;
+    cursorAtEnd.current = false;
+    input.setSelectionRange(text.length, text.length);
+  }, [text]);
+
   const thisYear = new Date().getFullYear();
   const range = effectiveRange(state.q, thisYear);
+
+  // An older cached answer may lack `episodes`.
+  const titleHits = view.kind === "ok" && view.data.page === 1 ? (view.data.episodes ?? []) : [];
 
   const smartEnd = view.kind === "ok" && view.data.mode === "smart" && !view.data.has_more && view.data.page > 1;
 
@@ -218,6 +239,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
               Search results
             </h2>
             {view.kind === "loading" && <Skeleton />}
+            {titleHits.length > 0 && <TitleHits episodes={titleHits} onSearchEpisode={fillEpisode} />}
             {view.kind === "ok" && view.data.mode === "smart" && view.data.smart_degraded && (
               <Notice tone="info">
                 {view.data.smart_degraded === "unavailable"
@@ -225,7 +247,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
                   : "Meaning search is paused; these are keyword matches."}
               </Notice>
             )}
-            {view.kind === "ok" && view.data.results.length === 0 && view.data.page === 1 && (
+            {view.kind === "ok" && view.data.results.length === 0 && view.data.page === 1 && titleHits.length === 0 && (
               <NoResults
                 mode={view.data.mode}
                 hasYears={range !== null}

@@ -24,8 +24,21 @@ good search clears the banner); "200" in the truncation note is a literal in the
 14), a real 429 or maintenance answer on staging. Web **657** unit + **51** e2e.
 The same day, from the maintainer's use of staging: one expanded transcript per page, the
 sentence two chunks share shown once, and transcript paragraphs playing 1 s (not 7 s) before
-their start (notes under Task 10 below). **None of the 2026-10-10 work was deployed or
-pushed at the time of writing.**
+their start (notes under Task 10 below).
+**Title search** (2026-10-10; plan
+[`2026-10-10-title-search.md`](superpowers/plans/2026-10-10-title-search.md), spec §4.4
+"Title hits", §5.2): "kregger" found nothing although episode 613 is "Shove a Kregger in
+the Hole", because search read only the transcripts (Whisper wrote "Craigers"). Migration
+`schema/0003_title_search.sql` adds `episodes_fts`; `/api/search` answers `episodes` (up to
+5, page 1, both modes; `worker/src/titles.ts`; `API_VERSION` 3); the page shows an
+"Episodes" row above the passages (`TitleHits.tsx`: the title plays from the start, "Search
+this episode" only puts `ep:N` in the box); `wts search` lists them. If the title query
+fails the search still answers, with none, so the Worker can be deployed before the
+migration. **The migration must be applied to staging:**
+`cd worker && npx wrangler d1 migrations apply wts-staging --env staging --remote`.
+Not done: the correction rules for "Craigers"/"Craig-er" → "Kreggers"/"Kregger" (offered,
+waiting on the maintainer). Pipeline **708**, Worker **543**, web **668** unit + **55** e2e.
+**None of the 2026-10-10 work was deployed or pushed at the time of writing.**
 **Tasks 6 to 10 are done** (eighth session, 2026-10-09; on `main`): the API client and URL
 state, the search bar, search lifecycle, results list and paging, the year range chip and
 syntax help, then the dense result card. After the maintainer's first look at the cards on
@@ -40,9 +53,9 @@ The design is in [`docs/design/system/`](design/system/) — build to its mocks 
 main session reviews, runs every suite and commits (one commit per task). Tasks 6–9 ran in the
 main checkout, one subagent at a time, told not to commit.
 
-**Tests (2026-10-10):** pipeline **702** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **527** in 19 files (`cd worker && npm test`, `npx tsc --noEmit`), web **657** unit +
-**51** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
+**Tests (2026-10-10):** pipeline **708** (`cd pipeline && uv run pytest -q`, ruff clean),
+Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **668** unit +
+**55** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
 - **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the

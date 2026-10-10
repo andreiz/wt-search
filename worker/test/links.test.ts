@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APPLE_PODCAST_ID, cueSeconds, cueTimes, deepLinks, pageLink } from "../src/links";
+import { APPLE_PODCAST_ID, cueSeconds, cueTimes, deepLinks, PARAGRAPH_LEAD_S, pageLink } from "../src/links";
 import type { LinkEpisode } from "../src/links";
 
 const FULL: LinkEpisode = {
@@ -22,11 +22,16 @@ const EMPTY: LinkEpisode = {
   offset_spotify_s: 0,
 };
 
-describe("no lead-in (a transcript paragraph)", () => {
-  it("cues at the time itself plus the offset, never before 0", () => {
+describe("another lead-in (a transcript paragraph's 1 s)", () => {
+  it("is one second for a paragraph", () => {
+    expect(PARAGRAPH_LEAD_S).toBe(1);
+  });
+
+  it("cues that long before the time, plus the offset, never before 0", () => {
+    expect(cueSeconds(65_432, 0, 1)).toBe(64);
+    expect(cueSeconds(65_432, 12, 1)).toBe(76);
     expect(cueSeconds(65_432, 0, 0)).toBe(65);
-    expect(cueSeconds(65_432, 12, 0)).toBe(77);
-    expect(cueSeconds(3_000, -20, 0)).toBe(0);
+    expect(cueSeconds(3_000, -20, 1)).toBe(0);
   });
 
   it("cueTimes and deepLinks pass it on to every platform", () => {

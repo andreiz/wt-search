@@ -23,8 +23,11 @@ export interface LinkEpisode {
 
 /** The lead-in of a search hit: it is mid-sentence, so playback starts this many seconds before it. */
 export const LEAD_S = 7;
-/** No lead-in: a transcript paragraph starts at a sentence, so its link plays from its first word. */
-export const NO_LEAD_S = 0;
+/**
+ * A transcript paragraph starts at a sentence, so its link plays from its first word; one second
+ * early, because a word's recorded start can be a little late and would clip the first syllable.
+ */
+export const PARAGRAPH_LEAD_S = 1;
 
 /** Start `leadS` seconds before the hit so the listener hears the lead-in, shifted by the platform's offset; never before 0. */
 export function cueSeconds(hitMs: number, offsetS: number, leadS = LEAD_S): number {

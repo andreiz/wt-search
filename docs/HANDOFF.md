@@ -372,8 +372,9 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     hit is whole. Nothing changed in the page. Dimming was tried first (one commit) and
     was too faint. Worker **524**, web **607** unit + **41** e2e.
   - **Transcript paragraphs play from their first word** (maintainer, 2026-10-10): the
-    chunks of `/api/context` cue and link at their own start with no 7 s lead-in
-    (`NO_LEAD_S` in `worker/src/links.ts`); the card's chip keeps it. Worker **526**.
+    chunks of `/api/context` cue and link 1 s before their own start, not 7
+    (`PARAGRAPH_LEAD_S` in `worker/src/links.ts`; the second guards against a clipped
+    first syllable); the card's chip keeps the 7 s. Worker **527**.
   - The phone timestamp column is 64 px, not the mock's 58: "10:00:00" didn't fit.
   - **Look in a browser:** the transcript's play links landing at each paragraph; the
     focus ring on the opened region; a screen reader on the region, "Matching passage" and

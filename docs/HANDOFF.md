@@ -1,4 +1,4 @@
-# Handoff — 2026-10-09 (after the eighth session; plan 3 Tasks 1–9 done, Task 10 next)
+# Handoff — 2026-10-09 (after the eighth session; plan 3 Tasks 1–10 done, Task 11 next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -9,24 +9,26 @@ then [README.md](../README.md), then the spec sections it points to.
 The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
 fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Next: plan 3 Task 10** (More transcript and "+n more nearby"), then Tasks 11–15 and
+**Next: plan 3 Task 11** (notices, empty and error states), then Tasks 12–15 and
 Checkpoint H:
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
-**Tasks 6 to 9 are done** (eighth session, 2026-10-09; on `main`): the API client and URL
+**Tasks 6 to 10 are done** (eighth session, 2026-10-09; on `main`): the API client and URL
 state, the search bar, search lifecycle, results list and paging, the year range chip and
 syntax help, then the dense result card. After the maintainer's first look at the cards on
 staging, **the card's actions were redesigned** (one play control per hit, the show page
 playing from an offset, the episode header above the card; "Card actions and the show page
-link" below). **Staging runs Tasks 1–9** (deployed by the maintainer 2026-10-09); the
-redesign is not deployed. The task notes below list what no test checks.
+link" below), the related fold was removed, and then More transcript (Task 10) was built.
+**Staging** had Tasks 1–9 plus the card redesign when the maintainer last looked
+(2026-10-09); the fold removal, the cache version and Task 10 were not deployed at the time
+of writing. The task notes below list what no test checks.
 The design is in [`docs/design/system/`](design/system/) — build to its mocks and README (plan
 3's "Look" constraint). The maintainer runs well-defined tasks with **Sonnet subagents**; the
 main session reviews, runs every suite and commits (one commit per task). Tasks 6–9 ran in the
 main checkout, one subagent at a time, told not to commit.
 
 **Tests (2026-10-09):** pipeline **702** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **493** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **513** unit +
-**20** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
+Worker **493** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **576** unit +
+**29** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
 - **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the
@@ -324,6 +326,35 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     page); on a phone the `?` help button wraps onto its own line under the controls and
     ⋯ sits beside the middle of the excerpt, not its first line; the menu over the next
     card and under the sticky header.
+
+- **Task 10** More transcript and "+N nearby" (Sonnet, reviewed, one fix round): new
+  `web/src/components/{Transcript,PlayIcon}.tsx`, `web/src/use-transcript.ts`,
+  `web/src/lib/episode.ts`; `platforms.ts` now takes a search result or a context chunk
+  (`Playable`). Web **576** unit + **29** e2e. Calls the plan didn't spell out:
+  - **Three ways in:** the excerpt click and ⋯ "More transcript" (radius 3), "+N nearby"
+    (radius 6). The open transcript **replaces the hit's excerpt and chip**; "+N nearby" and
+    ⋯ stay above it; "Show less" (or Esc with focus inside) collapses and returns focus to
+    the opener (⋯ for an excerpt click, the excerpt not being focusable).
+  - **Timestamp labels play on YouTube, else the show page** (the card's rule, not the
+    plan's "first platform"), named like the chip.
+  - **Arrow keys inside the open transcript scroll** (`keys.ts` ignores them there); j and
+    k still move between cards.
+  - One fetch per hit per radius, cached in the list's state; aborted on collapse, on a
+    change of radius and on unmount. An `ok` answer with no usable `chunks` is the load
+    error, with Try again.
+  - "Search this episode" (`setEpisode` in `lib/episode.ts`) replaces an existing `ep:`
+    token, mirrors the parser (quoted and malformed tokens left alone) and puts the token
+    first near the 200-code-point limit, like the year chip. `years.ts` exports
+    `withoutFilters` for it.
+  - **Folded paragraphs have no word marks:** `/api/context` sends no ranges. They get the
+    lighter tint and "Nearby match"; the hit's paragraph is marked from the result's ranges.
+    Marking them needs the Worker to send ranges (and an `API_VERSION` bump).
+  - The phone timestamp column is 64 px, not the mock's 58: "10:00:00" didn't fit.
+  - **Look in a browser:** the transcript's play links landing at each paragraph; the
+    focus ring on the opened region; a screen reader on the region, "Matching passage" and
+    "Nearby match"; the scroll position when a long transcript collapses on a phone.
+  - **Deferred minors:** the loading status mounts with its region (may not be announced);
+    Esc collapses only with focus inside the region.
 
 Tasks 1–4 were written by four Sonnet subagents in parallel worktrees (none committed),
 reviewed, applied and committed one per task in the main session. Worker **470 tests** in 18

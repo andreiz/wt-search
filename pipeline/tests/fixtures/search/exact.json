@@ -23,7 +23,7 @@
       "text": "Honestly I think a hand cut dovetail is overrated, but a good dovetail saw is worth the money.",
       "ranges": [[28, 36], [62, 70]],
       "hit_ms": 1228000,
-      "cue_s": { "youtube": 1221, "apple": 1221, "spotify": 1221 },
+      "cue_s": { "youtube": 1221, "apple": 1221, "spotify": 1221, "page": 1221 },
       "match": "keyword",
       "more_in_episode": 2,
       "folded": [61205, 61209]
@@ -43,7 +43,7 @@
       "text": "We drove 🚗 to the show and the dovetail jig 🔧 broke, so we cut the dovetail by hand.",
       "ranges": [[32, 40], [69, 77]],
       "hit_ms": 3725000,
-      "cue_s": { "youtube": 3718, "apple": 3718, "spotify": 3718 },
+      "cue_s": { "youtube": 3718, "apple": 3718, "spotify": 3718, "page": 3718 },
       "match": "keyword",
       "more_in_episode": 0,
       "folded": []
@@ -62,7 +62,7 @@
       "text": "dovetail layouts and then more dovetail",
       "ranges": [[0, 8], [31, 39]],
       "hit_ms": 7000,
-      "cue_s": { "youtube": 0, "apple": 0, "spotify": 0 },
+      "cue_s": { "youtube": 0, "apple": 0, "spotify": 0, "page": 0 },
       "match": "keyword",
       "more_in_episode": 0,
       "folded": []

@@ -43,6 +43,33 @@ def test_a_time_never_goes_below_zero(conn):
     assert links["spotify"].endswith("?t=0")
 
 
+ACAST = "https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616"
+
+
+def test_an_acast_page_seeks_to_the_time(conn):
+    # No lead-in and no offset, like the other links; the page is on the show's own timeline.
+    links = episode_links(row(conn, page_url=ACAST, offset_apple_s=30), at_s=1741)
+    assert links["page"] == f"{ACAST}?seek=1741"
+    assert episode_links(row(conn, page_url=ACAST), at_s=0)["page"] == f"{ACAST}?seek=0"
+
+
+def test_an_acast_page_keeps_other_parameters_and_the_fragment(conn):
+    page = "https://shows.acast.com/woodtalk/episodes/x?a=1&seek=5#notes"
+    assert episode_links(row(conn, page_url=page), at_s=90)["page"] == (
+        "https://shows.acast.com/woodtalk/episodes/x?a=1&seek=90#notes")
+
+
+def test_an_acast_page_is_bare_without_a_time(conn):
+    assert episode_links(row(conn, page_url=ACAST))["page"] == ACAST
+
+
+@pytest.mark.parametrize("page", [
+    "https://example.com/ep/612", "https://shows.acast.com.evil.example/x", "not a url"])
+def test_any_other_page_is_unchanged(conn, page):
+    assert episode_links(row(conn, page_url=page), at_s=90)["page"] == page
+    assert episode_links(row(conn, page_url=page))["page"] == page
+
+
 def test_missing_ids_are_left_out(conn):
     links = episode_links(row(conn, page_url=None))
     assert links == {"audio": links["audio"]}

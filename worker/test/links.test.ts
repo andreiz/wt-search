@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APPLE_PODCAST_ID, cueSeconds, cueTimes, deepLinks } from "../src/links";
+import { APPLE_PODCAST_ID, cueSeconds, cueTimes, deepLinks, pageLink } from "../src/links";
 import type { LinkEpisode } from "../src/links";
 
 const FULL: LinkEpisode = {
@@ -45,7 +45,38 @@ describe("cueSeconds", () => {
 describe("cueTimes", () => {
   it("uses each platform's own offset", () => {
     const episode = { ...FULL, offset_youtube_s: 3, offset_apple_s: 30, offset_spotify_s: -5 };
-    expect(cueTimes(episode, 65_432)).toEqual({ youtube: 61, apple: 88, spotify: 53 });
+    expect(cueTimes(episode, 65_432)).toEqual({ youtube: 61, apple: 88, spotify: 53, page: 58 });
+  });
+
+  it("gives the page the lead-in but no platform offset", () => {
+    const episode = { ...FULL, offset_youtube_s: 3, offset_apple_s: 30, offset_spotify_s: -50 };
+    expect(cueTimes(episode, 65_432).page).toBe(58);
+    expect(cueTimes(episode, 3000).page).toBe(0);
+  });
+});
+
+describe("pageLink", () => {
+  it("adds seek to an Acast show page", () => {
+    expect(pageLink("https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616", 1734)).toBe(
+      "https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616?seek=1734",
+    );
+  });
+  it("keeps other parameters and the fragment, and replaces an existing seek", () => {
+    expect(pageLink("https://shows.acast.com/woodtalk/episodes/x?a=1&seek=5#notes", 90)).toBe(
+      "https://shows.acast.com/woodtalk/episodes/x?a=1&seek=90#notes",
+    );
+  });
+  it("passes any other host through unchanged", () => {
+    expect(pageLink("https://example.com/ep/612", 90)).toBe("https://example.com/ep/612");
+    expect(pageLink("https://shows.acast.com.evil.example/x", 90)).toBe("https://shows.acast.com.evil.example/x");
+  });
+  it("passes a URL that does not parse through unchanged", () => {
+    expect(pageLink("not a url", 90)).toBe("not a url");
+  });
+  it("seeks to 0 at the start", () => {
+    expect(pageLink("https://shows.acast.com/woodtalk/episodes/x", 0)).toBe(
+      "https://shows.acast.com/woodtalk/episodes/x?seek=0",
+    );
   });
 });
 
@@ -76,8 +107,13 @@ describe("deepLinks", () => {
     );
   });
 
-  it("passes the page URL as is", () => {
+  it("passes a non-Acast page URL as is", () => {
     expect(deepLinks(FULL, 0).page).toBe("https://woodtalk.example/episodes/250");
+  });
+
+  it("seeks an Acast page to the cue, without the platform offsets", () => {
+    const acast = { ...FULL, page_url: "https://shows.acast.com/woodtalk/episodes/x", offset_apple_s: 30 };
+    expect(deepLinks(acast, 65_432).page).toBe("https://shows.acast.com/woodtalk/episodes/x?seek=58");
   });
 
   it("omits each link when its ID is null", () => {

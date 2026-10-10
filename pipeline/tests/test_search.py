@@ -33,7 +33,7 @@ def result(**overrides) -> dict:
         "text": "we like hide glue a lot",
         "ranges": [],
         "hit_ms": 0,
-        "cue_s": {"youtube": 0, "apple": 0, "spotify": 0},
+        "cue_s": {"youtube": 0, "apple": 0, "spotify": 0, "page": 0},
         "match": "keyword",
         "more_in_episode": 0,
         "folded": [],

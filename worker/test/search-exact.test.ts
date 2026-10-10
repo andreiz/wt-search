@@ -143,7 +143,7 @@ describe("matching", () => {
       text: "We love a good dovetail joint on every drawer",
       ranges: [[15, 23]],
       hit_ms: 1600,
-      cue_s: { youtube: 0, apple: 0, spotify: 0 },
+      cue_s: { youtube: 0, apple: 0, spotify: 0, page: 0 },
       match: "keyword",
       more_in_episode: 0,
       folded: [],
@@ -350,8 +350,8 @@ describe("hit time and links", () => {
   it("cue_s and links use the episode's offsets and ids", async () => {
     const body = await exact("dovetail ep:201", { sort: "oldest" });
     const first = body.results[0];
-    // floor(1002 s) - 7 = 995, plus each platform's offset.
-    expect(first?.cue_s).toEqual({ youtube: 1005, apple: 1015, spotify: 1025 });
+    // floor(1002 s) - 7 = 995, plus each platform's offset (the page has none).
+    expect(first?.cue_s).toEqual({ youtube: 1005, apple: 1015, spotify: 1025, page: 995 });
     expect(first?.episode).toEqual({
       id: 12,
       number: 201,
@@ -365,7 +365,7 @@ describe("hit time and links", () => {
       },
     });
     // floor(1306 s) - 7 = 1299.
-    expect(body.results[1]?.cue_s).toEqual({ youtube: 1309, apple: 1319, spotify: 1329 });
+    expect(body.results[1]?.cue_s).toEqual({ youtube: 1309, apple: 1319, spotify: 1329, page: 1299 });
     expect(body.results[1]?.episode.links.youtube).toBe("https://www.youtube.com/watch?v=yt12&t=1309s");
   });
 

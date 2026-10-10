@@ -24,7 +24,7 @@ function hit(over: Record<string, unknown>) {
     text: FIRST_TEXT,
     ranges: [at(FIRST_TEXT, "HVLP"), at(FIRST_TEXT, "sprayer")],
     hit_ms: 4_191_000,
-    cue_s: { youtube: 4184, apple: 4184, spotify: 4184 },
+    cue_s: { youtube: 4184, apple: 4184, spotify: 4184, page: 4184 },
     match: "keyword",
     more_in_episode: 0,
     folded: [],
@@ -34,7 +34,7 @@ function hit(over: Record<string, unknown>) {
 
 const keywordCards = [
   hit({ chunk_id: 1, folded: [9, 10], more_in_episode: 2 }),
-  hit({ chunk_id: 2, text: SECOND_TEXT, ranges: [at(SECOND_TEXT, "sprayer")], hit_ms: 4_300_000, cue_s: { youtube: 4293, apple: 4293, spotify: 4293 } }),
+  hit({ chunk_id: 2, text: SECOND_TEXT, ranges: [at(SECOND_TEXT, "sprayer")], hit_ms: 4_300_000, cue_s: { youtube: 4293, apple: 4293, spotify: 4293, page: 4293 } }),
   hit({
     episode: { id: 72, number: 72, title: "Spotify Only", date: "2011-01-02", links: { spotify: SP } },
     chunk_id: 3,

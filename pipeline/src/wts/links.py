@@ -4,16 +4,18 @@ card (worker/src/links.ts, spec §4.6), plus the feed's audio URL.
 The rules match the site's: a platform is left out when its ID is missing, YouTube only when
 the matched video's length is within 3 s of the feed's, and a time (`--at`) is shifted by each
 platform's offset, never below 0. Unlike a search hit's cue there is no 7 s lead-in: the time
-asked for is the time linked.
+asked for is the time linked. An Acast show page gets `?seek=<time>` the same way (no offset
+either); any other page URL is left as it is.
 """
 
 import re
 import sqlite3
-from urllib.parse import quote
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from wts.publish import youtube_id_for_publish
 
 APPLE_SHOW_URL = "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480"
+ACAST_SHOW_HOST = "shows.acast.com"  # its episode pages take ?seek=<seconds> (docs/deep-links.md)
 _TIME = re.compile(r"(?:(\d+):)?(?:(\d+):)?(\d+)")
 
 
@@ -35,6 +37,27 @@ def _t(at_s: int, offset_s: int) -> int:
     return max(0, at_s + offset_s)
 
 
+def _page_link(page_url: str, at_s: int) -> str:
+    """An Acast show page with `seek=<at_s>` (worker/src/links.ts `pageLink`); any other URL as is."""
+    try:
+        parts = urlsplit(page_url)
+        host = parts.hostname
+    except ValueError:
+        return page_url
+    if host != ACAST_SHOW_HOST:
+        return page_url
+    query, seen = [], False
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        if key == "seek":
+            if seen:
+                continue
+            value, seen = str(at_s), True
+        query.append((key, value))
+    if not seen:
+        query.append(("seek", str(at_s)))
+    return urlunsplit(parts._replace(query=urlencode(query)))
+
+
 def episode_links(row: sqlite3.Row, at_s: int | None = None) -> dict[str, str]:
     """youtube, apple, spotify, page, audio: in the result card's order, missing ones left out."""
     links: dict[str, str] = {}
@@ -50,7 +73,7 @@ def episode_links(row: sqlite3.Row, at_s: int | None = None) -> dict[str, str]:
             f"https://open.spotify.com/episode/{quote(row['spotify_episode_id'], safe='')}"
             + ("" if at_s is None else f"?t={_t(at_s, row['offset_spotify_s'])}"))
     if row["page_url"]:
-        links["page"] = row["page_url"]
+        links["page"] = row["page_url"] if at_s is None else _page_link(row["page_url"], at_s)
     if row["audio_url"]:
         links["audio"] = row["audio_url"]
     return links

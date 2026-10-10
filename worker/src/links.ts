@@ -31,14 +31,32 @@ export function cueTimes(episode: LinkEpisode, hitMs: number): CueTimes {
     youtube: cueSeconds(hitMs, episode.offset_youtube_s),
     apple: cueSeconds(hitMs, episode.offset_apple_s),
     spotify: cueSeconds(hitMs, episode.offset_spotify_s),
+    page: cueSeconds(hitMs, 0),
   };
+}
+
+/** The host whose episode pages take `?seek=<seconds>` (spec §4.6; tried on WT616, 2026-10-09). */
+const ACAST_SHOW_HOST = "shows.acast.com";
+
+/** The show page at the cue: `seek` added to an Acast show page, any other URL unchanged. */
+export function pageLink(pageUrl: string, cue: number): string {
+  let url: URL;
+  try {
+    url = new URL(pageUrl);
+  } catch {
+    return pageUrl;
+  }
+  if (url.hostname !== ACAST_SHOW_HOST) return pageUrl;
+  url.searchParams.set("seek", String(cue));
+  return url.toString();
 }
 
 /**
  * Deep links, keys in card order; a platform is left out when its ID (or page_url) is null or
  * empty. Every platform link carries the cue time (with that platform's offset), in the
  * format the platform's own share sheet makes when sharing from the current time: Spotify
- * `?t=<seconds>`, Apple `&t=<seconds>` (both 2026-10-07, docs/deep-links.md).
+ * `?t=<seconds>`, Apple `&t=<seconds>` (both 2026-10-07, docs/deep-links.md). The show page
+ * gets `?seek=<seconds>` on Acast (the lead-in, no offset); any other page URL is as is.
  */
 export function deepLinks(episode: LinkEpisode, hitMs: number): DeepLinks {
   const links: DeepLinks = {};
@@ -54,6 +72,6 @@ export function deepLinks(episode: LinkEpisode, hitMs: number): DeepLinks {
     const t = cueSeconds(hitMs, episode.offset_spotify_s);
     links.spotify = `https://open.spotify.com/episode/${encodeURIComponent(episode.spotify_episode_id)}?t=${t}`;
   }
-  if (episode.page_url) links.page = episode.page_url;
+  if (episode.page_url) links.page = pageLink(episode.page_url, cueSeconds(hitMs, 0));
   return links;
 }

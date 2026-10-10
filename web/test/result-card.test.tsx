@@ -148,7 +148,7 @@ describe("the play links on a desktop", () => {
   });
 
   it("names each link around its visible text, with its own platform's cue time when that differs", () => {
-    const hit = { ...full, cue_s: { youtube: 4184, apple: 4100, spotify: 4000 }, hit_ms: 4_191_000 };
+    const hit = { ...full, cue_s: { youtube: 4184, apple: 4100, spotify: 4000, page: 4184 }, hit_ms: 4_191_000 };
     renderCard([hit]);
     expect(screen.getByRole("link", { name: "Play on YouTube 1:09:51, starts at 1:09:44" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Play on YouTube, starts at 1:09:44" })).toBeTruthy();
@@ -157,7 +157,7 @@ describe("the play links on a desktop", () => {
   });
 
   it("adds no 'starts at' when the cue is the hit time", () => {
-    const hit = { ...full, cue_s: { youtube: 4191, apple: 4191, spotify: 4191 }, hit_ms: 4_191_000 };
+    const hit = { ...full, cue_s: { youtube: 4191, apple: 4191, spotify: 4191, page: 4191 }, hit_ms: 4_191_000 };
     renderCard([hit]);
     expect(screen.getByRole("link", { name: "Play on YouTube 1:09:51" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Play on Apple" })).toBeTruthy();
@@ -172,7 +172,7 @@ describe("the play links on a desktop", () => {
   });
 
   it("puts the hit time in the 76 px column; it plays on the first platform", () => {
-    const hit = { ...full, cue_s: { youtube: 4184, apple: 4184, spotify: 4184 }, hit_ms: 4_191_000 };
+    const hit = { ...full, cue_s: { youtube: 4184, apple: 4184, spotify: 4184, page: 4184 }, hit_ms: 4_191_000 };
     const { container } = renderCard([hit]);
     const time = container.querySelector<HTMLAnchorElement>("a.hit__time")!;
     expect(time.textContent).toBe("1:09:51");
@@ -377,7 +377,7 @@ describe("the ⋯ menu", () => {
 
 describe("on a phone", () => {
   it("shows the first platform only, as '▶ YouTube 1:09:51', and no time column", () => {
-    const hit = { ...full, cue_s: { youtube: 4184, apple: 4184, spotify: 4184 }, hit_ms: 4_191_000 };
+    const hit = { ...full, cue_s: { youtube: 4184, apple: 4184, spotify: 4184, page: 4184 }, hit_ms: 4_191_000 };
     const { container } = renderCard([hit], { phone: true });
     const pills = container.querySelectorAll<HTMLAnchorElement>("a.play");
     expect(pills).toHaveLength(1);
@@ -389,7 +389,7 @@ describe("on a phone", () => {
   });
 
   it("moves the other platforms into the menu with the sub-line", () => {
-    const hit = { ...full, cue_s: { youtube: 4184, apple: 4100, spotify: 4000 }, hit_ms: 4_191_000 };
+    const hit = { ...full, cue_s: { youtube: 4184, apple: 4100, spotify: 4000, page: 4184 }, hit_ms: 4_191_000 };
     renderCard([hit], { phone: true });
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     const menu = within(screen.getByRole("menu"));

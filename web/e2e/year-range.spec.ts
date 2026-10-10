@@ -16,7 +16,7 @@ const answer = {
       text: "A passage about glue.",
       ranges: [],
       hit_ms: 0,
-      cue_s: { youtube: 0, apple: 0, spotify: 0 },
+      cue_s: { youtube: 0, apple: 0, spotify: 0, page: 0 },
       match: "keyword",
       more_in_episode: 0,
       folded: [],

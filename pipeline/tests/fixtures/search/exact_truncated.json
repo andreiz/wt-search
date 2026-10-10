@@ -22,7 +22,7 @@
       "text": "I bought a bigger bench and it still fills up with wood faster than I can clear it.",
       "ranges": [[51, 55]],
       "hit_ms": 849000,
-      "cue_s": { "youtube": 842, "apple": 842, "spotify": 842 },
+      "cue_s": { "youtube": 842, "apple": 842, "spotify": 842, "page": 842 },
       "match": "keyword",
       "more_in_episode": 1,
       "folded": [24412]

@@ -22,7 +22,7 @@ interface ContextBody {
     end_ms: number;
     text: string;
     boilerplate: boolean;
-    cue_s: { youtube: number; apple: number; spotify: number };
+    cue_s: { youtube: number; apple: number; spotify: number; page: number };
     links: Record<string, string>;
   }[];
 }
@@ -128,7 +128,7 @@ describe("neighbours", () => {
           end_ms: 150_000,
           text: "thirty chunk 4",
           boilerplate: false,
-          cue_s: { youtube: 113, apple: 113, spotify: 113 },
+          cue_s: { youtube: 113, apple: 113, spotify: 113, page: 113 },
           links: {},
         },
       ],
@@ -193,9 +193,9 @@ describe("links and flags", () => {
       },
     });
     expect(body.chunks.map((c) => [c.chunk_id, c.cue_s])).toEqual([
-      [3301, { youtube: 43, apple: 53, spotify: 63 }], // starts at 40 s
-      [3302, { youtube: 103, apple: 113, spotify: 123 }],
-      [3303, { youtube: 133, apple: 143, spotify: 153 }], // starts at 130 s
+      [3301, { youtube: 43, apple: 53, spotify: 63, page: 33 }], // starts at 40 s
+      [3302, { youtube: 103, apple: 113, spotify: 123, page: 93 }],
+      [3303, { youtube: 133, apple: 143, spotify: 153, page: 123 }], // starts at 130 s
     ]);
     expect(body.chunks[0]?.links).toEqual({
       youtube: "https://www.youtube.com/watch?v=yt33&t=43s",
@@ -209,7 +209,7 @@ describe("links and flags", () => {
   it("never cues before 0", async () => {
     // Episode 30's first chunk starts at 0 with no offsets: max(0, 0 - 7).
     const { body } = await context("?chunk=3009&radius=0");
-    expect(body.chunks[0]?.cue_s).toEqual({ youtube: 0, apple: 0, spotify: 0 });
+    expect(body.chunks[0]?.cue_s).toEqual({ youtube: 0, apple: 0, spotify: 0, page: 0 });
   });
 
   it("includes boilerplate chunks and flags them as booleans", async () => {

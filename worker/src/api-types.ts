@@ -17,6 +17,8 @@ export interface CueTimes {
   youtube: number;
   apple: number;
   spotify: number;
+  /** The show page plays the show's own timeline: the lead-in, no offset. */
+  page: number;
 }
 
 export type Sort = "relevance" | "newest" | "oldest";

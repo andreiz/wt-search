@@ -20,6 +20,13 @@ timeline, so the link is early by the ads before that point, never late. The car
 time as text for this reason. When checking a format, judge it by whether the player seeks
 at all, not by landing on the exact word.
 
+- Show page: Acast's episode page takes `?seek=<s>`, e.g.
+  `https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616?seek=1734`. The
+  Worker (`pageLink`) and `wts links --at` add it to pages on `shows.acast.com` only, keeping
+  other query parameters and the fragment; any other page URL is left as it is. The time is
+  the cue on the show's own timeline (lead-in, no platform offset). Tried on WT616 on
+  2026-10-09 in a desktop browser: the page's player starts at the time. An ad may play first.
+
 The Apple link names the US storefront (`/us/`), as the share sheet did. Listeners in other
 countries should be redirected to their own store; worth a look if one reports otherwise.
 
@@ -41,3 +48,4 @@ times on the show's own timeline.
 | Spotify | iOS app | `?t=<s>` (what the Worker uses; the app's own share format) | works, sometimes 30–60 s early (play-time ads; 2026-10-07) |
 | Spotify | Android app | `?t=<s>` (what the Worker uses) | not checked |
 | Spotify | Desktop web | `?t=<s>` (what the Worker uses) | works (2026-10-07) |
+| Show page (Acast) | Desktop web | `?seek=<s>` (what the Worker uses) | works; an ad may play first (WT616, 2026-10-09) |

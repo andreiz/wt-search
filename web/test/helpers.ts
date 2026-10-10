@@ -18,7 +18,7 @@ export function result(n: number, over: Partial<SearchResult> = {}): SearchResul
     text: `Text of passage ${n}`,
     ranges: [],
     hit_ms: 60_000 * n,
-    cue_s: { youtube: 60 * n, apple: 60 * n, spotify: 60 * n },
+    cue_s: { youtube: 60 * n, apple: 60 * n, spotify: 60 * n, page: 60 * n },
     match: "keyword",
     more_in_episode: 0,
     folded: [],

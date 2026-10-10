@@ -213,7 +213,7 @@ describe("meaning-only hits", () => {
     expect(r).toMatchObject({ chunk_id: 3102, match: "related", text: "a router jig makes the pins and tails" });
     expect(r.ranges.map(([s, e]) => r.text.slice(s, e))).toEqual(["jig"]);
     expect(r.hit_ms).toBe(600_000);
-    expect(r.cue_s).toEqual({ youtube: 593, apple: 593, spotify: 593 });
+    expect(r.cue_s).toEqual({ youtube: 593, apple: 593, spotify: 593, page: 593 });
   });
 
   it("highlight stemmed words, phrase words and prefixes too", async () => {

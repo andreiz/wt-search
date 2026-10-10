@@ -19,7 +19,7 @@
       "text": "Hide glue gives you more open time if you keep the pot warm, but titebond is easier.",
       "ranges": [[0, 4], [5, 9]],
       "hit_ms": 2110000,
-      "cue_s": { "youtube": 2103, "apple": 2103, "spotify": 2103 },
+      "cue_s": { "youtube": 2103, "apple": 2103, "spotify": 2103, "page": 2103 },
       "match": "keyword",
       "more_in_episode": 1,
       "folded": [59032]
@@ -39,7 +39,7 @@
       "text": "Warm the pot to about 140 degrees and it stays workable for twenty minutes.",
       "ranges": [],
       "hit_ms": 1500000,
-      "cue_s": { "youtube": 1493, "apple": 1493, "spotify": 1493 },
+      "cue_s": { "youtube": 1493, "apple": 1493, "spotify": 1493, "page": 1493 },
       "match": "related",
       "more_in_episode": 0,
       "folded": []
@@ -58,7 +58,7 @@
       "text": "Fish glue never gels, so you can use it straight from the bottle.",
       "ranges": [[5, 9]],
       "hit_ms": 61000,
-      "cue_s": { "youtube": 54, "apple": 54, "spotify": 54 },
+      "cue_s": { "youtube": 54, "apple": 54, "spotify": 54, "page": 54 },
       "match": "related",
       "more_in_episode": 0,
       "folded": []

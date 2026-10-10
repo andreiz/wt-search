@@ -626,8 +626,14 @@ Parser rules (`worker/src/query.ts`):
   are highlighted. `hit_ms` is the chunk's `start_ms`.
 - One function computes the cue time for each platform `p`:
   `cue_s[p] = max(0, floor(hit_ms/1000) − 7 + episode.offset_<p>_s)`.
-- The Wood Talk page has no player, so it gets no cue; the card shows
-  "jump to mm:ss" next to its link.
+- **The show page plays from an offset too** *(maintainer, 2026-10-09; was
+  "has no player, so it gets no cue")*: the feed's episode link is an Acast
+  page (`https://shows.acast.com/woodtalk/episodes/<slug>`) whose player
+  takes `?seek=<seconds>` (tried on WT616). `cue_s.page = max(0,
+  floor(hit_ms/1000) − 7)`: the same lead-in and no offset column, because
+  the page plays the show's own timeline. An ad may play first, and then
+  playback starts at the cue, so unlike Apple and Spotify the position is
+  right.
 - How word times, FTS5 highlights and cues fit together, with real
   `highlight()` output: [`docs/word-times-and-highlights.md`](../../word-times-and-highlights.md).
 
@@ -642,7 +648,16 @@ Built from the episode row and `cue_s`, in this order on the card:
 2. **Apple Podcasts:**
    `https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=<apple_episode_id>&t=<cue>`.
 3. **Spotify:** `https://open.spotify.com/episode/<spotify_episode_id>?t=<cue>`.
-4. **Wood Talk page:** `page_url`, always shown.
+4. **Show page:** `page_url`, when the episode has one. When its host is
+   `shows.acast.com`, the link carries `seek=<cue>` (added to any query the
+   URL already has); any other host is passed through unchanged, with no
+   cue. *(2026-10-09; was the bare `page_url`.)*
+
+**Which link the card plays** *(maintainer, 2026-10-09)*: YouTube when the
+episode has it, otherwise the show page. Both are on the show's own
+timeline, so every episode with a page gets an accurate play link. Apple and
+Spotify land minutes early for most listeners (below) and are offered only
+in the card's ⋯ menu.
 
 *(Settled 2026-10-07, Checkpoint F.)* The Apple and Spotify formats are the
 ones each app's own "share from current time" link uses. Which devices honour
@@ -679,7 +694,9 @@ with an ad-free copy by fingerprint: 20 of 41 had mid-rolls (2 of 14 from
 these links are early, never late. Mitigations:
 
 - The card always shows the time as text.
-- YouTube comes first where available.
+- The card plays on YouTube or the show page, which don't have the problem;
+  Apple and Spotify are in the ⋯ menu, labelled "may start minutes early"
+  *(2026-10-09; was "YouTube comes first where available")*.
 - The per-platform offset columns allow corrections without code changes.
 
 ### 4.7 Worker hardening
@@ -937,18 +954,38 @@ states. Behaviour from the design, with the maintainer's calls:)*
   filled buttons). A page with no keyword hits shows its related hits open,
   under "No exact matches — passages about similar things:".
   *(Maintainer, 2026-10-09; was "mixed in by rank".)*
-- **Hit row:** a timestamp play link (desktop: a 76 px column; phone: none),
-  the excerpt clamped to 3 lines (serif), and an actions row. Clicking the
-  excerpt opens More transcript, unless text is selected (so selecting to
-  report still works).
-- **Actions:** desktop shows every platform as a pill (the first filled);
-  phone shows only the first platform, as "▶ YouTube 1:09:51", and moves
-  the others into the ⋯ menu. ⓘ (ads note) when Apple or Spotify shows;
-  "+N nearby"; then ⋯ with More transcript, Episode page and Report
-  transcript error. The timestamp link plays on the first platform. The ⋯
-  button stays on the actions row (mock 4c wraps it onto a line of its own).
-- What the items below say about content, names and links still holds;
-  their layout is the design's.
+- **Revised after the first look on staging** *(maintainer, 2026-10-09;
+  mock: `docs/design/card-separation-options.html`, option A)*. The three
+  pills, ⓘ and ⋯ under every hit outweighed the excerpts, and the Apple and
+  Spotify links landed 2 to 2.5 minutes early. The four items below replace
+  the design's actions row and card header; where the older items further
+  down disagree, these win.
+- **Episode header above the card.** "Ep. 616 · Should I Buy A Jointer?"
+  with "3 matches · Oct 7, 2026" on the right sits on the page background;
+  the card below it holds only the hit rows. Episodes are 26 px apart,
+  header to card 8 px. *Kept as a swap-in (option B in the mock):* the
+  header inside the card on a `--tint` band with a rule under it, cards
+  20 px apart.
+- **Hit row:** a timestamp chip, the excerpt clamped to 3 lines (serif), and
+  ⋯ at the right of the excerpt's first line. Clicking the excerpt opens
+  More transcript, unless text is selected (so selecting to report still
+  works). "+N nearby" sits under the excerpt, only when hits were folded.
+  There is no row of platform pills and no ⓘ.
+- **One play control per hit:** the timestamp chip. It plays on YouTube when
+  the episode has it, otherwise on the show page (§4.6); with neither it is
+  plain text. Desktop: the chip in a column left of the excerpt. Phone: no
+  column, the chip sits above the excerpt. Its name follows the rule below
+  ("Play on YouTube 29:01, starts at 28:54"; for the show page, "Play on the
+  show page 29:01, starts at 28:54, may play an ad first"), and its tooltip
+  says the same.
+- **⋯ menu, the same at every width:** **Show page** ("plays from 29:01,
+  may play an ad first"; left out when the chip already plays there),
+  **Play on Apple** and **Play on Spotify** ("at 29:01 · may start minutes
+  early"), then More transcript and Report transcript error. "Show page"
+  replaces the label "Episode page".
+- What the items below say about content, names and links still holds
+  except where the four items above change it; their layout is the
+  design's.
 
 - **Ep. N · Title** · date · timestamp chip **mm:ss** (or h:mm:ss).
   Feed titles repeat the number ("552 – Embarrassed…", "… | Wood Talk
@@ -962,25 +999,23 @@ states. Behaviour from the design, with the maintainer's calls:)*
   around the first highlight (whole words, "…" at cut ends), with `<mark>`
   on the ranges (UTF-16 offsets, §4.4). **Related** hits: no marks unless
   the API sent ranges, a "Related" tag by the timestamp, quieter styling.
-- **Actions:** ▶ YouTube, ▶ Apple, ▶ Spotify, only those in `episode.links`,
-  YouTube first, each named for screen readers around its visible text
+- **Play links** (the chip and the menu's rows, as revised above), only
+  those in `episode.links`, each named for screen readers around its visible text
   (WCAG 2.5.3, label in name), with where playback starts added when that
   platform's cue differs from the hit time, which the 7 s lead-in makes the
-  usual case: "Play on YouTube 1:09:51, starts at 1:09:44"; a desktop pill
-  that shows only the platform: "Play on Apple, starts at 1:09:40"
+  usual case: "Play on YouTube 1:09:51, starts at 1:09:44"
   *(2026-10-09, plan 3 Task 9; was "Play on YouTube at 1:09:44", the cue
-  time alone, which the visible hit time contradicted)*. Apple and Spotify carry a small info note "May start a bit
-  early because of ads" (§4.6). Then **Episode page** (with "jump to
-  mm:ss", it has no player) · **More transcript** · **+n more nearby** when
-  hits were folded. Links come from the API only; the frontend never
-  builds one (§4.6).
+  time alone, which the visible hit time contradicted)*. The Apple and
+  Spotify rows say "may start minutes early" and the show page's says "may
+  play an ad first" (§4.6). Links come from the API only; the frontend
+  never builds one (§4.6).
 - A small **Report transcript error** link (§5.5).
 
 ### 5.4 More transcript and "+n more nearby"
 
 - **More transcript** expands the card in place with `/api/context`
   (radius 3, about ±90 s): paragraphs labelled with their timestamp, each
-  label a play link (the first platform the episode has) at that moment;
+  label a play link (YouTube, else the show page, as on the card, §5.3) at that moment;
   the hit's paragraph emphasised. Collapsing returns to the excerpt.
   *(2026-10-09: the "Sponsor read" label for `boilerplate` chunks is dropped
   while detection is binned, §3.5.)*

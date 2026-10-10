@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Result card options</title>
+<style>
+:root {
+  --bg:#F6F2EC; --surface:#FFFDFA; --raised:#FFFFFF;
+  --text:#2B211A; --muted:#675A4F; --border:#E2D8CB;
+  --accent:#8A4520; --on-accent:#FFF8F1;
+  --mark-bg:#F5D58A; --mark-text:#2B211A; --tint:#F3E6DA;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --serif:'Source Serif 4',Georgia,serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#171310; --surface:#211B17; --raised:#2B241E;
+    --text:#F1E9DF; --muted:#B5A697; --border:#3E352D;
+    --accent:#E3A56C; --on-accent:#1E140C;
+    --mark-bg:#D4A64A; --mark-text:#1E140C; --tint:#3A2A1E;
+    color-scheme:dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); }
+.wrap { max-width: 1560px; margin: 0 auto; padding: 24px; }
+.intro { max-width: 760px; }
+.intro h1 { font-size: 20px; margin: 0 0 6px; }
+.intro p { margin: 0 0 6px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 22px; }
+@media (max-width: 1100px) { .cols { grid-template-columns: 1fr; } }
+.col > h2 { font-size: 15px; margin: 0 0 2px; }
+.col > .why { font-size: 13px; color: var(--muted); margin: 0 0 14px; min-height: 38px; line-height: 1.4; }
+.pick { display:inline-block; margin: 0 0 14px; padding: 6px 12px; border-radius: 999px; border:1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pick.selected { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+.summary { font-size: 14px; color: var(--muted); margin: 0 0 12px; }
+.summary strong { color: var(--text); }
+mark { background:var(--mark-bg); color:var(--mark-text); border-radius:3px; padding:0 2px; }
+
+/* shared pieces */
+.head { display:flex; align-items:baseline; gap: 10px; }
+.head .title { font-size: 15px; font-weight: 650; line-height: 1.3; flex: 1; min-width: 0; }
+.head .ep { color: var(--accent); }
+.head .meta { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.head .meta b { color: var(--text); font-weight: 650; }
+.hit { display:grid; grid-template-columns: 68px minmax(0,1fr) 30px; gap: 2px 12px; }
+.time { align-self:start; display:inline-flex; align-items:center; justify-content:center; gap:4px; height:26px; margin-top:1px; border-radius:6px; background:var(--tint); color:var(--accent); font-size:13px; font-weight:650; font-variant-numeric:tabular-nums; text-decoration:none; }
+.time::before { content:""; border-left:6px solid currentColor; border-top:4px solid transparent; border-bottom:4px solid transparent; }
+.excerpt { margin:0; font-family:var(--serif); font-size:16px; line-height:1.5; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
+.dots { align-self:start; height:26px; border:0; background:none; color:var(--muted); font-size:18px; letter-spacing:1px; cursor:pointer; border-radius:6px; }
+.dots:hover { background: var(--tint); color: var(--text); }
+.nearby { grid-column: 2; justify-self:start; padding:0; margin-top:2px; border:0; background:none; color:var(--accent); font:inherit; font-size:13px; font-weight:600; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+
+/* A: header above the card */
+.A .episode { margin-bottom: 26px; }
+.A .head { padding: 0 4px 8px; }
+.A .head .title { font-size: 16px; }
+.A .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding: 12px 14px; display:flex; flex-direction:column; gap:10px; }
+.A .hit + .hit { padding-top:10px; border-top:1px solid var(--border); }
+
+/* B: header band inside the card */
+.B .episode { margin-bottom: 20px; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.B .head { padding: 9px 14px; background: var(--tint); border-bottom:1px solid var(--border); }
+.B .card { padding: 12px 14px; display:flex; flex-direction:column; gap:10px; }
+.B .hit + .hit { padding-top:10px; border-top:1px solid var(--border); }
+
+/* C: no cards, ruled sections */
+.C .episode { margin-bottom: 30px; }
+.C .head { padding: 0 0 8px; border-bottom: 2px solid var(--border); }
+.C .head .title { font-size: 16px; }
+.C .card { display:flex; flex-direction:column; }
+.C .hit { padding: 12px 0; }
+.C .hit + .hit { border-top:1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="intro">
+    <h1>Which separation between episodes reads best?</h1>
+    <p>Same five results as your screenshot (search <em>glue OR epoxy</em>). All three use the agreed actions: the time chip is the one play control, Apple, Spotify and the show page live in the ⋯ menu, and “+5 nearby” appears only when hits were folded.</p>
+    <p>The page follows your system light or dark setting. Click a button to mark your pick, or just tell me in the terminal.</p>
+  </div>
+
+  <div class="cols" id="cols"></div>
+</div>
+
+<template id="episodes">
+  <p class="summary"><strong>173 matches</strong>; 9 results (11 folded into nearby hits)</p>
+
+  <section class="episode">
+    <div class="head"><div class="title"><span class="ep">Ep. 616</span> · Should I Buy A Jointer?</div><div class="meta"><b>3 matches</b> · Oct 7, 2026</div></div>
+    <div class="card">
+      <div class="hit"><a class="time" href="#">0:19</a><p class="excerpt">… about should I buy a jointer, <mark>glue</mark> up strategies, and shop walls. So exciting. All that and more. Everybody loves shop walls. Shop roofs. Yeah, those things. Yeah, all that and more is going to be happening here very soon, but…</p><button class="dots" aria-label="More">⋯</button></div>
+      <div class="hit"><a class="time" href="#">29:01</a><p class="excerpt">… to keep work pieces aligned during <mark>glue</mark> ups. So during the <mark>glue</mark> up of a large top of Mark's hybrid workbench, Mark suggests dominoes, biscuits or splines.</p><button class="dots" aria-label="More">⋯</button><button class="nearby">+5 nearby</button></div>
+      <div class="hit"><a class="time" href="#">31:14</a><p class="excerpt">… longer if it's not hot hide <mark>glue</mark>. But then you don't get that slippage thing. I don't add salt or urea formaldehyde or any of that stuff to it. It's just, you know, it just sounds too much like work. A little bit of a …</p><button class="dots" aria-label="More">⋯</button><button class="nearby">+2 nearby</button></div>
+    </div>
+  </section>
+
+  <section class="episode">
+    <div class="head"><div class="title"><span class="ep">Ep. 615</span> · Why We Don't Use Metric</div><div class="meta">Sep 17, 2026</div></div>
+    <div class="card">
+      <div class="hit"><a class="time" href="#">1:15</a><p class="excerpt">… other offers. Exclusions apply. 10% off <mark>glue</mark>. 10% off. Double stick tape. Stuff that ain't on sale. Yo. Okay. Go ahead, Matt. You're on. Hey, but you can get 35% off Wood River if you join their email list.</p><button class="dots" aria-label="More">⋯</button></div>
+    </div>
+  </section>
+
+  <section class="episode">
+    <div class="head"><div class="title"><span class="ep">Ep. 614</span> · It’s Too Long and Bendy</div><div class="meta">Sep 1, 2026</div></div>
+    <div class="card">
+      <div class="hit"><a class="time" href="#">19:16</a><p class="excerpt">… got more time just waiting for <mark>epoxy</mark> to cure in my fills than actually building anything, which is fun.</p><button class="dots" aria-label="More">⋯</button><button class="nearby">+1 nearby</button></div>
+    </div>
+  </section>
+
+  <section class="episode">
+    <div class="head"><div class="title"><span class="ep">Ep. 613</span> · Shove a Kregger in the Hole</div><div class="meta">Aug 19, 2026</div></div>
+    <div class="card">
+      <div class="hit"><a class="time" href="#">8:12</a><p class="excerpt">… shopping? Usually it's like an old <mark>epoxy</mark> cup that's been used. Better yet. You know? No, what you need is that little thing where you pull down the plastic bag and then they give you a pen that is absolutely awful to try to…</p><button class="dots" aria-label="More">⋯</button></div>
+    </div>
+  </section>
+</template>
+
+<script>
+  const options = [
+    ["A", "A · Header above the card", "Your suggestion. The episode line sits on the page background; the card holds only the passages."],
+    ["B", "B · Header band inside the card", "The card keeps its header, on a tinted band, with a wider gap between cards."],
+    ["C", "C · No cards, ruled sections", "The lightest: each episode is a headed section with a rule, passages separated by hairlines."],
+  ];
+  const cols = document.getElementById("cols");
+  const tpl = document.getElementById("episodes");
+  for (const [key, name, why] of options) {
+    const col = document.createElement("div");
+    col.className = "col " + key;
+    const h = document.createElement("h2"); h.textContent = name;
+    const p = document.createElement("p"); p.className = "why"; p.textContent = why;
+    const b = document.createElement("button");
+    b.className = "pick"; b.dataset.choice = key.toLowerCase(); b.textContent = "Pick " + key;
+    b.addEventListener("click", () => {
+      document.querySelectorAll(".pick").forEach((x) => x.classList.remove("selected"));
+      if (typeof toggleSelect === "function") toggleSelect(b); else b.classList.add("selected");
+    });
+    col.append(h, p, b, tpl.content.cloneNode(true));
+    cols.append(col);
+  }
+  document.addEventListener("click", (e) => { if (e.target.closest("a.time")) e.preventDefault(); });
+</script>
+</body>
+</html>

@@ -25,6 +25,7 @@ interface ContextBody {
     cue_s: { youtube: number; apple: number; spotify: number; page: number };
     links: Record<string, string>;
     ranges: [number, number][];
+    repeat: [number, number] | null;
   }[];
 }
 
@@ -53,6 +54,7 @@ const EPISODES: SeedEpisode[] = [
     offset_spotify_s: 30,
   },
   { id: 34, guid: "g34", number: 302, title: "Glue Talk", published_at: "2022-03-07T08:00:00+00:00", duration_s: 3600 },
+  { id: 35, guid: "g35", number: 303, title: "Overlaps", published_at: "2022-03-14T08:00:00+00:00", duration_s: 3600 },
 ];
 
 function chunk(id: number, episode_id: number, seq: number, start_ms: number, text: string, extra: Partial<SeedChunk> = {}): SeedChunk {
@@ -76,6 +78,12 @@ const CHUNKS: SeedChunk[] = [
   chunk(3402, 34, 1, 30_000, "the café table is naïve about the glue joint"),
   chunk(3403, 34, 2, 60_000, "nothing relevant here at all"),
   chunk(3404, 34, 3, 90_000, "Once glued the tabletop and a dovetail joint is done"),
+  // Episode 35: chunks that overlap by a sentence, as the chunker makes them (a word every 500 ms).
+  chunk(3501, 35, 0, 0, "We cut the board. Then we glue it.", { word_times: "0,500,500,500,500,500,500,500" }),
+  chunk(3502, 35, 1, 2_000, "Then we glue it. Clamps go on next.", { word_times: "0,500,500,500,500,500,500,500" }),
+  chunk(3503, 35, 2, 4_000, "Clamps go on next. Wait a day.", { word_times: "0,500,500,500,500,500,500" }),
+  // The same first words as the end of 3503, but said later: not a repeat.
+  chunk(3504, 35, 3, 9_000, "Wait a day. Then sand."),
 ];
 
 beforeAll(async () => {
@@ -138,6 +146,7 @@ describe("neighbours", () => {
           cue_s: { youtube: 113, apple: 113, spotify: 113, page: 113 },
           links: {},
           ranges: [],
+          repeat: null,
         },
       ],
     });
@@ -235,6 +244,27 @@ describe("links and flags", () => {
 function marked(body: ContextBody): Record<number, string[]> {
   return Object.fromEntries(body.chunks.map((c) => [c.chunk_id, c.ranges.map(([s, e]) => c.text.slice(s, e))]));
 }
+
+describe("repeat (the sentence two chunks share)", () => {
+  const repeats = (body: ContextBody) => body.chunks.map((c) => c.repeat && c.text.slice(...c.repeat));
+
+  it("is the end of a chunk before the hit and the start of one after it; the hit is whole", async () => {
+    const { body } = await context("?chunk=3502");
+    expect(body.chunks.map((c) => c.repeat)).toEqual([[18, 34], null, [0, 18], null]);
+    expect(repeats(body)).toEqual(["Then we glue it.", null, "Clamps go on next.", null]);
+  });
+
+  it("follows the hit: every chunk gives up the side that faces it", async () => {
+    expect(repeats((await context("?chunk=3501")).body)).toEqual([null, "Then we glue it.", "Clamps go on next.", null]);
+    expect(repeats((await context("?chunk=3504")).body)).toEqual(["Then we glue it.", "Clamps go on next.", null, null]);
+  });
+
+  it("is null for the same words said at another time, and for chunks that share nothing", async () => {
+    // 3503 ends "Wait a day." and 3504 starts with it, five seconds later.
+    expect((await context("?chunk=3503")).body.chunks.at(-1)!.repeat).toBeNull();
+    expect((await context("?chunk=3005")).body.chunks.every((c) => c.repeat === null)).toBe(true);
+  });
+});
 
 describe("ranges (q)", () => {
   it("marks the query words in the hit and in neighbours that have them, [] in those that do not", async () => {

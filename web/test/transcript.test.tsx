@@ -179,6 +179,38 @@ describe("the paragraphs", () => {
     expect(marks(rows()[0]!)).toEqual([]);
   });
 
+  it("dims what a paragraph shares with its neighbour towards the hit, keeps its marks, and loses no text", async () => {
+    const calls = stubFetch();
+    renderList();
+    fireEvent.click(nearby());
+    const answer6 = contextAnswer(6);
+    const glue = answer6.chunks[2]!;
+    // Seq 2 ("Somebody asked about glue.") repeats its last two words; seq 6 its first three.
+    answer6.chunks[2] = { ...glue, repeat: [glue.text.indexOf("about"), glue.text.length] };
+    answer6.chunks[6] = { ...answer6.chunks[6]!, repeat: [0, "Which brings us".length] };
+    calls[0]!.respond(answer6);
+    await loaded();
+    const dimmed = [...region().querySelectorAll(".passage__repeat")];
+    expect(dimmed.map((d) => d.textContent)).toEqual(["about glue.", "Which brings us"]);
+    expect(marks(dimmed[0] as HTMLElement)).toEqual(["glue"]);
+    expect(rows()[2]!.querySelector(".passage__text")!.textContent).toBe(glue.text);
+    expect(rows()[6]!.querySelector(".passage__text")!.textContent).toBe(answer6.chunks[6]!.text);
+    // Nothing is dimmed in the hit's own paragraph.
+    expect(region().querySelector(".passage--hit .passage__repeat")).toBeNull();
+  });
+
+  it("dims nothing for an older answer without the field", async () => {
+    const calls = stubFetch();
+    renderList();
+    fireEvent.click(nearby());
+    const answer6 = contextAnswer(6);
+    for (const chunk of answer6.chunks) delete (chunk as Partial<typeof chunk>).repeat;
+    calls[0]!.respond(answer6);
+    await loaded();
+    expect(region().querySelector(".passage__repeat")).toBeNull();
+    expect(rows()).toHaveLength(10);
+  });
+
   it("marks the hit's paragraph with the result's ranges, not the chunk's", async () => {
     const calls = stubFetch();
     renderList();

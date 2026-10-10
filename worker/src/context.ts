@@ -10,6 +10,7 @@ import { highlightRanges, withoutStopwords } from "./highlight";
 import { json, logError } from "./http";
 import { cueTimes, deepLinks, type LinkEpisode } from "./links";
 import { boundQuery, HIGHLIGHT_STOPWORDS, parseQuery } from "./query";
+import { headRange, sharedWords, tailRange } from "./repeat";
 
 /** Chunks either side of the hit when `radius` is missing or bad. */
 export const DEFAULT_RADIUS = 3;
@@ -27,6 +28,7 @@ interface Row extends LinkEpisode {
   start_ms: number;
   end_ms: number;
   text: string;
+  word_times: string;
   is_boilerplate: number;
   number: number | null;
   title: string;
@@ -37,7 +39,7 @@ interface Row extends LinkEpisode {
 // that episode within the radius, so no other episode's chunks can come in. An unknown id
 // makes `hit` empty and the answer no rows.
 const SELECT_CONTEXT = `WITH hit AS (SELECT episode_id, seq FROM chunks WHERE id = ?)
-SELECT c.id, c.episode_id, c.seq, c.start_ms, c.end_ms, c.text, c.is_boilerplate,
+SELECT c.id, c.episode_id, c.seq, c.start_ms, c.end_ms, c.text, c.word_times, c.is_boilerplate,
        e.number, e.title, e.published_at, e.youtube_video_id, e.apple_episode_id,
        e.spotify_episode_id, e.page_url, e.offset_youtube_s, e.offset_apple_s, e.offset_spotify_s
 FROM hit
@@ -77,6 +79,21 @@ function rangesOf(text: string, markedText: string | undefined): [number, number
 }
 
 /**
+ * The part of `rows[index]` that its neighbour on the hit's side also holds: the end of a chunk
+ * before the hit, the start of one after it. Null for the hit itself, which is shown whole, and
+ * when the neighbour is not the next chunk of the episode or shares nothing.
+ */
+function repeatOf(rows: Row[], index: number, hitIndex: number): [number, number] | null {
+  const row = rows[index]!;
+  if (index === hitIndex) return null;
+  const neighbour = rows[index < hitIndex ? index + 1 : index - 1];
+  if (!neighbour || Math.abs(neighbour.seq - row.seq) !== 1) return null;
+  return index < hitIndex
+    ? tailRange(row.text, sharedWords(row, neighbour))
+    : headRange(row.text, sharedWords(neighbour, row));
+}
+
+/**
  * The hit and its neighbours, or null when there is no such chunk. `q` (optional) marks its
  * words in each chunk's `ranges`; exclusions and filters in it are ignored. With terms, the
  * select and the highlight go in one batch; without, it is one statement. D1 errors propagate.
@@ -101,7 +118,8 @@ export async function chunkContext(
     results = (rows?.results ?? []) as unknown as Row[];
     for (const h of (highlights?.results ?? []) as { id: number; marked: string }[]) marked.set(h.id, h.marked);
   }
-  const hit = results.find((row) => row.id === chunkId);
+  const hitIndex = results.findIndex((row) => row.id === chunkId);
+  const hit = results[hitIndex];
   if (!hit) return null;
   return {
     chunk_id: hit.id,
@@ -113,7 +131,7 @@ export async function chunkContext(
       date: hit.published_at.slice(0, 10),
       links: deepLinks(hit, hit.start_ms),
     },
-    chunks: results.map((row) => ({
+    chunks: results.map((row, index) => ({
       chunk_id: row.id,
       seq: row.seq,
       start_ms: row.start_ms,
@@ -123,6 +141,7 @@ export async function chunkContext(
       cue_s: cueTimes(row, row.start_ms),
       links: deepLinks(row, row.start_ms),
       ranges: rangesOf(row.text, marked.get(row.id)),
+      repeat: repeatOf(results, index, hitIndex),
     })),
   };
 }

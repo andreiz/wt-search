@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { excerpt, segments } from "../../src/lib/excerpt";
+import { excerpt, parts, segments } from "../../src/lib/excerpt";
 
 const words = (n: number, prefix = "w") => Array.from({ length: n }, (_, i) => `${prefix}${i}`).join(" ");
 const joined = (e: ReturnType<typeof excerpt>) => e.segments.map((s) => s.text).join("");
@@ -41,6 +41,47 @@ describe("segments", () => {
     const out = segments("abcdef", [[2, 2], [4, 3], [1, 4], [3, 5]]);
     expect(out.map((s) => s.text).join("")).toBe("abcdef");
     expect(out.filter((s) => s.mark).map((s) => s.text)).toEqual(["bcde"]);
+  });
+});
+
+describe("parts", () => {
+  const text = "We cut the board. Then we glue it.";
+  const shape = (list: ReturnType<typeof parts>) =>
+    list.map((p) => [p.repeat, p.segments.map((s) => (s.mark ? `[${s.text}]` : s.text)).join("")]);
+
+  it("is one plain part with no repeat, a null one, a missing one or an empty one", () => {
+    for (const repeat of [null, undefined, [5, 5] as const, [9, 3] as const]) {
+      expect(shape(parts(text, [], repeat))).toEqual([[false, text]]);
+    }
+  });
+
+  it("cuts a repeated end off, and a repeated start", () => {
+    expect(shape(parts(text, [], [18, 34]))).toEqual([
+      [false, "We cut the board. "],
+      [true, "Then we glue it."],
+    ]);
+    expect(shape(parts(text, [], [0, 17]))).toEqual([
+      [true, "We cut the board."],
+      [false, " Then we glue it."],
+    ]);
+  });
+
+  it("is one repeated part when the whole text is the repeat", () => {
+    expect(shape(parts(text, [], [0, 34]))).toEqual([[true, text]]);
+  });
+
+  it("keeps the marks on each side, also one that crosses the cut", () => {
+    // "board. Then" straddles the cut at 18; "glue" is inside the repeat.
+    expect(shape(parts(text, [[11, 22], [26, 30]], [18, 34]))).toEqual([
+      [false, "We cut the [board. ]"],
+      [true, "[Then] we [glue] it."],
+    ]);
+  });
+
+  it("clamps a repeat that runs past the text, and never loses a character", () => {
+    const out = parts(text, [[3, 6]], [18, 99]);
+    expect(out.flatMap((p) => p.segments.map((s) => s.text)).join("")).toBe(text);
+    expect(shape(out).at(-1)).toEqual([true, "Then we glue it."]);
   });
 });
 

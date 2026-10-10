@@ -929,6 +929,11 @@ a.passage__time:hover {
   text-wrap: pretty;
 }
 
+/* The sentence the next paragraph towards the hit says too (chunks overlap by one). */
+.passage__repeat {
+  color: var(--muted);
+}
+
 .transcript__note {
   margin: 0;
   padding: 4px 8px;

@@ -593,6 +593,14 @@ Parser rules (`worker/src/query.ts`):
     words, or for a chunk with none of them. One more D1 statement in the
     same batch, only when there are words. `q` is cut at 200 code points
     like a search's. Not cached.
+  - **`repeat`** *(maintainer, 2026-10-10)*: chunks overlap by one sentence
+    (§3.2), so a reader going from one to the next meets it twice. Each
+    chunk carries `repeat`, the `[start, end)` range of its text (UTF-16,
+    like `ranges`) that its neighbour on the hit's side also holds: the end
+    of a chunk before the hit, the start of one after it; `null` for the
+    hit, which is shown whole, and when nothing is shared. The shared words
+    are found by their start times (`word_times`) and their text both being
+    the same, so the same words said later are not a repeat.
 - `POST /api/report`
   - Body: `{chunk_id, quoted_text, suggested_text?, note?, turnstile_token}`.
   - Checks the Cloudflare Turnstile token, limits lengths (quoted 500,
@@ -1059,6 +1067,10 @@ states. Behaviour from the design, with the maintainer's calls:)*
   keeps the result's ranges, so it matches its excerpt *(2026-10-09)*.
   For a numbered episode, the expanded view also offers **Search this
   episode** (the query plus `ep:N`).
+- **The repeated sentence is dimmed** *(maintainer, 2026-10-10)*: the part
+  of a paragraph that the next one towards the hit says too (`repeat`,
+  §4.4) is shown in the muted text colour. Tried first; removing it, or
+  one flowing text, are the alternatives if dimming is not enough.
 - **One expanded view per page** *(maintainer, 2026-10-10)*: opening a
   hit's view collapses the one open on another hit, and the text the
   reader clicked stays where it was on screen.

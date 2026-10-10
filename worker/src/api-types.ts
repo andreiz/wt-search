@@ -125,6 +125,13 @@ export interface ContextChunk {
    * units, like a search result's `ranges`. Always present; empty without `q` or a match.
    */
   ranges: [number, number][];
+  /**
+   * The part of `text` (`[start, end)`, UTF-16 code units) that the neighbouring chunk on the
+   * hit's side also holds: chunks overlap by a sentence, so a reader meets it twice. It is the
+   * end of a chunk before the hit and the start of one after it; null for the hit and when
+   * nothing is shared.
+   */
+  repeat: [number, number] | null;
 }
 
 export interface ContextResponse {

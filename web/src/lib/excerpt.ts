@@ -55,6 +55,41 @@ export function segments(text: string, ranges: readonly (readonly [number, numbe
   return out;
 }
 
+export interface Part {
+  /** This part is said again in the neighbouring paragraph (the API's `repeat`). */
+  repeat: boolean;
+  segments: Segment[];
+}
+
+/**
+ * The whole text in up to three parts, cut at `repeat` (`[start, end)`, UTF-16 like the ranges):
+ * what is before it, it, what is after it; empty parts are left out. Each part has its own
+ * marked and plain pieces, so a range that crosses a cut is marked on both sides. With no
+ * `repeat`, or one that holds nothing, the text is one plain part.
+ */
+export function parts(
+  text: string,
+  ranges: readonly (readonly [number, number])[],
+  repeat: readonly [number, number] | null | undefined,
+): Part[] {
+  const marks = clean(text, ranges);
+  const [from, to] = clean(text, repeat ? [repeat] : [])[0] ?? [0, 0];
+  const cuts: [number, number, boolean][] = [
+    [0, from, false],
+    [from, to, true],
+    [to, text.length, false],
+  ];
+  return cuts
+    .filter(([start, end]) => end > start)
+    .map(([start, end, isRepeat]) => ({
+      repeat: isRepeat,
+      segments: segments(
+        text.slice(start, end),
+        marks.map(([a, b]): [number, number] => [Math.max(a, start) - start, Math.min(b, end) - start]),
+      ),
+    }));
+}
+
 /**
  * A window of at most about `maxWords` whole words, starting a few words before the first range
  * (at the start of the text when there are none). A range that begins inside the window is never

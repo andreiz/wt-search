@@ -4,13 +4,14 @@
 // paragraph is on the tint and carries the result's highlights; in the radius 6 view the folded
 // hits' paragraphs are a lighter tint labelled "Nearby match". Every paragraph marks the query's
 // words from the chunk's own `ranges` (the answer to /api/context?q=), in a lighter mark outside
-// the hit's paragraph. A sponsor read is a paragraph like any other (spec §3.5).
+// the hit's paragraph. A sponsor read is a paragraph like any other (spec §3.5). Chunks overlap
+// by a sentence; the copy on the side away from the hit is dimmed (`repeat`).
 //
 // The view is a labelled region that takes focus when it opens; Esc or "Show less" collapses it
 // (the row returns focus to whatever opened it). Loading, error and retry live inside it.
-import type { Ref } from "preact";
+import { Fragment, type Ref } from "preact";
 import type { ContextChunk, SearchResult } from "../../../worker/src/api-types";
-import { segments } from "../lib/excerpt";
+import { parts, type Segment } from "../lib/excerpt";
 import { chipName, chunkTime, hitTime, primaryPlay } from "../lib/platforms";
 import type { Entry, Radius } from "../use-transcript";
 import { PlayIcon } from "./PlayIcon";
@@ -34,7 +35,10 @@ function Passage({ chunk, hit, radius }: { chunk: ContextChunk; hit: SearchResul
   // The hit's paragraph keeps the result's ranges, so it matches its excerpt; if its text is not
   // the result's, or for any other chunk, the chunk's own ranges (an older answer has none).
   const ranges = isHit && chunk.text === hit.text ? hit.ranges : (chunk.ranges ?? []);
-  const pieces = segments(chunk.text, ranges);
+  // What the neighbour on the hit's side says too is dimmed (an older answer has no `repeat`).
+  const pieces = parts(chunk.text, ranges, chunk.repeat);
+  const marked = (list: Segment[]) =>
+    list.map((piece, index) => (piece.mark ? <mark key={index}>{piece.text}</mark> : piece.text));
   const name = play ? chipName(play, time) : undefined;
   return (
     <li class={`passage${isHit ? " passage--hit" : ""}${folded ? " passage--fold" : ""}`}>
@@ -50,7 +54,15 @@ function Passage({ chunk, hit, radius }: { chunk: ContextChunk; hit: SearchResul
         {isHit && <span class="visually-hidden">Matching passage</span>}
         {folded && <span class="passage__tag">Nearby match</span>}
         <p class="passage__text">
-          {pieces.map((piece, index) => (piece.mark ? <mark key={index}>{piece.text}</mark> : piece.text))}
+          {pieces.map((part, index) =>
+            part.repeat ? (
+              <span key={index} class="passage__repeat">
+                {marked(part.segments)}
+              </span>
+            ) : (
+              <Fragment key={index}>{marked(part.segments)}</Fragment>
+            ),
+          )}
         </p>
       </div>
     </li>

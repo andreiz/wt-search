@@ -109,6 +109,7 @@ describe("a context chunk", () => {
       cue_s: { youtube: 1734, apple: 1700, spotify: 1700, page: 1734 },
       links,
       ranges: [],
+      repeat: null,
     };
   }
 

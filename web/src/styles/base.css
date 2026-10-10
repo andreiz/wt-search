@@ -74,7 +74,7 @@ body {
   gap: 14px;
 }
 
-/* Empty state title (the placeholder until Task 11). */
+/* Empty state (its chips and lines are in components.css). */
 .empty {
   padding: 40px 0 16px;
   display: flex;

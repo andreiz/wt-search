@@ -1,4 +1,4 @@
-# Handoff — 2026-10-09 (after the eighth session; plan 3 Tasks 1–10 done, Task 11 next)
+# Handoff — 2026-10-10 (eighth session, continued; plan 3 Tasks 1–11 done, Task 12 next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -9,9 +9,23 @@ then [README.md](../README.md), then the spec sections it points to.
 The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
 fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Next: plan 3 Task 11** (notices, empty and error states), then Tasks 12–15 and
-Checkpoint H:
+**Next: plan 3 Task 12** (the footer), then Tasks 13–15 and Checkpoint H:
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+**Task 11 is done** (2026-10-10, Sonnet subagent, reviewed and committed by the main
+session): the empty state with example chips and the `/api/info` line, no results, the
+Exact truncation note, the degraded notice, the maintenance banner, the rate limit's
+countdown, the error with Retry; and "Smart search explains itself" (spec §5.2: "top
+results", the **How this works** popover, the Related tooltip, the end-of-results line).
+Notes: `/api/info` is asked once, only when the empty state is shown; all notices are
+`role="status"` and only the banner is an alert; the rate limit's seconds are `aria-hidden`
+so the live region is not read every second; maintenance does not disable Search (a later
+good search clears the banner); "200" in the truncation note is a literal in the page;
+`stubFetch` keeps `/api/info` calls in `calls.info`, out of `calls`. Not checked: axe (Task
+14), a real 429 or maintenance answer on staging. Web **657** unit + **51** e2e.
+The same day, from the maintainer's use of staging: one expanded transcript per page, the
+sentence two chunks share shown once, and transcript paragraphs playing 1 s (not 7 s) before
+their start (notes under Task 10 below). **None of the 2026-10-10 work was deployed or
+pushed at the time of writing.**
 **Tasks 6 to 10 are done** (eighth session, 2026-10-09; on `main`): the API client and URL
 state, the search bar, search lifecycle, results list and paging, the year range chip and
 syntax help, then the dense result card. After the maintainer's first look at the cards on
@@ -27,8 +41,8 @@ main session reviews, runs every suite and commits (one commit per task). Tasks 
 main checkout, one subagent at a time, told not to commit.
 
 **Tests (2026-10-10):** pipeline **702** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **524** in 19 files (`cd worker && npm test`, `npx tsc --noEmit`), web **607** unit +
-**41** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
+Worker **527** in 19 files (`cd worker && npm test`, `npx tsc --noEmit`), web **657** unit +
+**51** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
 - **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the

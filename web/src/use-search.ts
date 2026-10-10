@@ -22,6 +22,8 @@ export interface SearchApi {
   setMode(mode: Mode): void;
   setSort(sort: SortOrder): void;
   goPage(page: number): void;
+  /** Run the current search again (after an error): same URL, no history entry. */
+  retry(): void;
 }
 
 function currentUrl(): string {
@@ -105,5 +107,6 @@ export function useSearch(): SearchApi {
       commit(next, next.q === "" ? "replace" : "push", next.q !== "");
     },
     goPage: (page) => commit({ ...stateRef.current, page }, "push", true),
+    retry: () => run(stateRef.current),
   };
 }

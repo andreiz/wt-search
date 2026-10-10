@@ -22,6 +22,9 @@ export type OpenState = [Open | null, (next: Open | null) => void];
 
 export const OpenView = createContext<OpenState | null>(null);
 
+/** Tells the page's maintenance banner that /api/context answered `maintenance` (App provides it). */
+export const ReportMaintenance = createContext<(message: string) => void>(() => {});
+
 /** What a radius holds: the request running, or its answer. */
 export type Entry = { kind: "loading" } | ApiResult<ContextResponse>;
 
@@ -46,6 +49,7 @@ export interface Transcript {
 export function useTranscript(chunkId: number, q: string): Transcript {
   const own = useState<Open | null>(null);
   const [open, setOpen] = useContext(OpenView) ?? own;
+  const reportMaintenance = useContext(ReportMaintenance);
   const shown = open?.chunkId === chunkId ? open.radius : null;
   const [entries, setEntries] = useState<Partial<Record<Radius, Entry>>>({});
   // The same entries for the handlers, which must not read a render-old copy.
@@ -78,6 +82,7 @@ export function useTranscript(chunkId: number, q: string): Transcript {
       (answer) => {
         if (controller.signal.aborted) return;
         running.current = null;
+        if (answer.kind === "maintenance") reportMaintenance(answer.message);
         // An answer that cannot be shown (no chunks, or not the hit's) is a load error.
         const usable =
           answer.kind !== "ok" ||

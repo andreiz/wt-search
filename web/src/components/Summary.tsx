@@ -1,5 +1,6 @@
-// The summary line under the bar (Screen.dc.html; spec §5.2, §4.4). Smart: "Smart search · results
-// 1–20" (which results this page holds; "result 41" for one, bare "Smart search" for none).
+// The summary line under the bar (Screen.dc.html; spec §5.2, §4.4). Smart: "Smart search · top
+// results 1–20" (which results this page holds; "top result 41" for one, bare "Smart search" for
+// none; "top" because Smart shows the best matches, not all of them).
 // Exact: "**318 matches**" or "**1,000+ matches**". When the page folded hits into a nearby
 // result: "; 4 results (1 folded into a nearby hit)", as `wts search` words it
 // (pipeline/src/wts/search.py `_header`). Exact on a phone also shows " · page N of M".
@@ -29,6 +30,6 @@ export function Summary({ data }: { data: SearchData }) {
   }
   const shown = data.results.length;
   const first = (data.page - 1) * data.limit + 1;
-  const range = shown === 0 ? "" : shown === 1 ? ` · result ${first}` : ` · results ${first}–${first + shown - 1}`;
+  const range = shown === 0 ? "" : shown === 1 ? ` · top result ${first}` : ` · top results ${first}–${first + shown - 1}`;
   return <p class="summary">{`Smart search${range}`}</p>;
 }

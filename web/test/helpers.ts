@@ -1,7 +1,7 @@
 // Test helpers: API answers built from the real response shapes, and a `fetch` whose answers
 // the test resolves by hand (so two searches can finish out of order).
 import { vi } from "vitest";
-import type { SearchResult } from "../../worker/src/api-types";
+import type { InfoResponse, SearchResult } from "../../worker/src/api-types";
 import type { SearchData } from "../src/lib/api";
 
 export function result(n: number, over: Partial<SearchResult> = {}): SearchResult {
@@ -54,20 +54,33 @@ export interface PendingCall {
   fail(): void;
 }
 
+/** The calls `stubFetch` has seen: everything but /api/info, which is kept in `info`. */
+export type Calls = PendingCall[] & { info: PendingCall[] };
+
+/** A GET /api/info answer, from the real response shape. */
+export function infoBody(over: Partial<InfoResponse> = {}): InfoResponse {
+  return { episodes: 625, latest_episode_date: "2026-09-17", corpus_version: "v1", turnstile_site_key: null, ...over };
+}
+
 /**
  * Replaces `fetch`. Each call waits for the test to answer it. With `honorAbort` (the default) an
  * aborted request rejects with an AbortError, like the real thing; with `false` the stub ignores
  * the signal, so only the app's own "is this the latest request" check can drop the answer.
+ *
+ * The page asks /api/info once when it shows the empty state. Those requests go to `calls.info`
+ * and not into `calls`, so `calls[0]` is still the first search (or context) request and a
+ * test about the info line or the maintenance banner reads `calls.info[0]`.
  */
-export function stubFetch(honorAbort = true): PendingCall[] {
-  const calls: PendingCall[] = [];
+export function stubFetch(honorAbort = true): Calls {
+  const calls = Object.assign([] as PendingCall[], { info: [] as PendingCall[] });
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const signal = init?.signal ?? new AbortController().signal;
       return new Promise<Response>((resolve, reject) => {
-        calls.push({
-          url: new URL(String(input), "http://localhost"),
+        const url = new URL(String(input), "http://localhost");
+        (url.pathname === "/api/info" ? calls.info : calls).push({
+          url,
           signal,
           respond(body, status = 200, headers = {}) {
             resolve(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } }));

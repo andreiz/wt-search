@@ -1,6 +1,7 @@
 // The built shell under the real _headers CSP (spec §5.1, §5.7; plan 3 Review Focus 1): no
 // console errors, no CSP violations, the self-hosted serif loads, nothing leaves the site.
 import { expect, test } from "@playwright/test";
+import { stubInfo } from "./info";
 
 declare global {
   interface Window {
@@ -27,6 +28,7 @@ test("the page loads clean: no console errors, no CSP violations, nothing third-
     });
   });
 
+  await stubInfo(page);
   const response = await page.goto("/");
   // The preview server sent the real file's headers.
   const csp = response?.headers()["content-security-policy"] ?? "";
@@ -53,6 +55,7 @@ test("Source Serif 4 is served from /assets/ as woff2 and applies to the heading
     if (res.url().endsWith(".woff2")) fontResponses.push(`${new URL(res.url()).pathname} ${res.status()}`);
   });
 
+  await stubInfo(page);
   await page.goto("/");
   // The heading is weight 600 and is real shell content; 400 (excerpts later) is loaded on demand.
   await page.evaluate(() => document.fonts.ready);
@@ -74,6 +77,7 @@ test("hashed assets are immutable and index.html is not", async ({ page }) => {
     const p = new URL(res.url()).pathname;
     if (p.startsWith("/assets/")) assets[p] = res.headers()["cache-control"] ?? "";
   });
+  await stubInfo(page);
   const html = await page.goto("/");
   expect(html?.headers()["cache-control"] ?? "").not.toContain("immutable");
   await page.evaluate(() => document.fonts.ready);
@@ -84,6 +88,7 @@ test("hashed assets are immutable and index.html is not", async ({ page }) => {
 
 test("it works on a phone-width screen with no horizontal scroll", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
+  await stubInfo(page);
   await page.goto("/");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);

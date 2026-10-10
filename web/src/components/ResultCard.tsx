@@ -44,7 +44,11 @@ export function ResultCard({
           {displayTitle(episode.title, episode.number)}
         </h3>
         <span class="result__meta">
-          {related && <span class="result__tag">Related</span>}
+          {related && (
+            <span class="result__tag" title="Matched by meaning, not by your exact words.">
+              Related
+            </span>
+          )}
           {hits.length > 1 && (
             <>
               <span class="result__count">{`${hits.length} matches`}</span>

@@ -2,6 +2,7 @@
 // Apply writes year:A-B into the box and the URL; an example lands in the box without a search;
 // both dialogs fit a phone screen.
 import { expect, test, type Page } from "@playwright/test";
+import { stubInfo } from "./info";
 
 const answer = {
   mode: "smart",
@@ -36,6 +37,7 @@ async function setUp(page: Page) {
       (window as unknown as { __csp: string[] }).__csp.push(e.violatedDirective);
     });
   });
+  await stubInfo(page);
   await page.route("**/api/search*", (route) => {
     queries.push(new URL(route.request().url()).searchParams.get("q") ?? "");
     return route.fulfill({ json: answer });

@@ -211,7 +211,7 @@ test.describe("on a desktop", () => {
     await expect(page.getByRole("button", { name: /related passage|Show|Hide/i })).toHaveCount(0);
     await expect(page.getByRole("list")).toHaveCount(1);
     // The summary names the results this page holds.
-    await expect(page.getByText("Smart search · results 1–4")).toBeVisible();
+    await expect(page.getByText("Smart search · top results 1–4")).toBeVisible();
     // A keyword hit is on the page, so no intro line.
     await expect(page.getByText("No exact matches")).toHaveCount(0);
     await expect(list.getByText("Related", { exact: true })).toHaveCount(2);

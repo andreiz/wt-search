@@ -16,17 +16,17 @@ describe("<Summary/>", () => {
   const many = (n: number) => Array.from({ length: n }, (_, i) => result(i + 1));
 
   it("Smart page 1: the range of results shown", () => {
-    expect(summaryText(smartBody(many(20)))).toBe("Smart search · results 1–20");
+    expect(summaryText(smartBody(many(20)))).toBe("Smart search · top results 1–20");
   });
 
   it("Smart page 2: the range continues from the page size", () => {
-    expect(summaryText(smartBody(many(20), { page: 2 }))).toBe("Smart search · results 21–40");
-    expect(summaryText(smartBody(many(7), { page: 3 }))).toBe("Smart search · results 41–47");
+    expect(summaryText(smartBody(many(20), { page: 2 }))).toBe("Smart search · top results 21–40");
+    expect(summaryText(smartBody(many(7), { page: 3 }))).toBe("Smart search · top results 41–47");
   });
 
-  it("Smart: one result on the page reads 'result N'", () => {
-    expect(summaryText(smartBody([result(1)], { page: 3 }))).toBe("Smart search · result 41");
-    expect(summaryText(smartBody([result(1)]))).toBe("Smart search · result 1");
+  it("Smart: one result on the page reads 'top result N'", () => {
+    expect(summaryText(smartBody([result(1)], { page: 3 }))).toBe("Smart search · top result 41");
+    expect(summaryText(smartBody([result(1)]))).toBe("Smart search · top result 1");
   });
 
   it("Smart: no results is just 'Smart search'", () => {
@@ -35,7 +35,7 @@ describe("<Summary/>", () => {
 
   it("Smart: no page number and no folding note", () => {
     const text = summaryText(smartBody([result(1, { more_in_episode: 2, folded: [8, 9] }), result(2)], { page: 2 }));
-    expect(text).toBe("Smart search · results 21–22");
+    expect(text).toBe("Smart search · top results 21–22");
     expect(text).not.toContain("page");
     expect(text).not.toContain("folded");
   });

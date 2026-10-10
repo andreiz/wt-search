@@ -5,12 +5,20 @@
 // The year range is not state: it is the `year:` tokens of the query (lib/years.ts), so the chip
 // reads the searched query and Apply and × rewrite the text in the box and search it.
 //
-// Not here yet: the real footer (Task 13), the notices, empty and error states (Task 11). The
+// The states of spec §5.6 are here: the empty state (with /api/info, asked once while it is
+// shown), no results, the Exact truncation note, the degraded-Smart notice, the rate limit with
+// its countdown, the error with Retry, and the maintenance banner above the header. The banner
+// shows when a search, a context request or /api/info answers `maintenance`, and goes when a
+// later search succeeds. Not here yet: the real footer (Task 13). The
 // result cards are ResultList's, and More transcript and "+N nearby" are theirs too (Task 10);
 // Report (Task 13) is not wired, so that control does nothing yet. "Search this episode" puts
 // `ep:N` into the searched query and searches, like the year chip.
 import { useEffect, useRef, useState } from "preact/hooks";
+import { Banner } from "./components/Banner";
+import { EmptyState, NoResults } from "./components/EmptyState";
+import { HowItWorks } from "./components/HowItWorks";
 import { ModeSwitch } from "./components/ModeSwitch";
+import { Notice } from "./components/Notice";
 import { Pagination } from "./components/Pagination";
 import { ResultList } from "./components/ResultList";
 import { SearchBar } from "./components/SearchBar";
@@ -21,10 +29,14 @@ import { SyntaxHelp } from "./components/SyntaxHelp";
 import { YearRange } from "./components/YearRange";
 import { nextCompact } from "./lib/compact";
 import { setEpisode } from "./lib/episode";
+import { count } from "./lib/format";
 import { handleKeydown } from "./lib/keys";
 import { normalizeQuery } from "./lib/url";
 import { clearRange, effectiveRange, rangeLabel, setRange } from "./lib/years";
-import { useSearch, type View } from "./use-search";
+import { useCountdown } from "./use-countdown";
+import { useInfo } from "./use-info";
+import { useSearch } from "./use-search";
+import { ReportMaintenance } from "./use-transcript";
 
 function useCompact(): boolean {
   const [compact, setCompact] = useState(false);
@@ -39,20 +51,27 @@ function useCompact(): boolean {
   return compact;
 }
 
-/** One plain message per kind of failed answer, until the notices of Task 11. */
-function failureText(view: Exclude<View, { kind: "idle" | "loading" | "ok" }>): string {
-  switch (view.kind) {
-    case "maintenance":
-      return view.message;
-    case "rate_limited":
-      return "Too many searches from here; try again in a minute.";
-    default:
-      return "Something went wrong.";
-  }
+/** The maintenance message lives here, so the page and the transcripts under it can both set it. */
+export function App() {
+  const [maintenance, setMaintenance] = useState<string | null>(null);
+  return (
+    <ReportMaintenance.Provider value={setMaintenance}>
+      <Page maintenance={maintenance} setMaintenance={setMaintenance} />
+    </ReportMaintenance.Provider>
+  );
 }
 
-export function App() {
-  const { state, view, submit, setMode, setSort, goPage } = useSearch();
+function Page({ maintenance, setMaintenance }: { maintenance: string | null; setMaintenance: (message: string | null) => void }) {
+  const { state, view, submit, setMode, setSort, goPage, retry } = useSearch();
+
+  // A maintenance answer from the search shows the banner; the next good search clears it.
+  useEffect(() => {
+    if (view.kind === "maintenance") setMaintenance(view.message);
+    else if (view.kind === "ok") setMaintenance(null);
+  }, [view]);
+
+  // Rate limited: Search is off until the countdown ends, and nothing retries by itself.
+  const waiting = useCountdown(view.kind === "rate_limited" ? view.retryAfterS : null, view);
   const [text, setText] = useState(state.q);
   const [controlsOpen, setControlsOpen] = useState(false);
   const scrolled = useCompact();
@@ -105,9 +124,11 @@ export function App() {
   }
 
   const searching = state.q !== "";
+  const info = useInfo(!searching, setMaintenance);
 
   // The box shows what is searched: no emoji, no stray spaces.
   function searchFor(raw: string) {
+    if (waiting > 0) return;
     const q = normalizeQuery(raw);
     setText(q);
     submit(q);
@@ -116,8 +137,17 @@ export function App() {
   const thisYear = new Date().getFullYear();
   const range = effectiveRange(state.q, thisYear);
 
+  const smartEnd = view.kind === "ok" && view.data.mode === "smart" && !view.data.has_more && view.data.page > 1;
+
+  // After "Switch to Exact" the popover is gone with its button: focus goes to the results heading.
+  function switchToExact() {
+    setMode("exact");
+    headingRef.current?.focus({ preventScroll: true });
+  }
+
   return (
     <div class="page">
+      {maintenance !== null && <Banner message={maintenance} />}
       <header
         class={`site-header${scrolled ? " site-header--scrolled" : ""}${compact ? " site-header--compact" : ""}`}
         onKeyDown={onHeaderKeyDown}
@@ -135,6 +165,7 @@ export function App() {
               onInput={setText}
               onSubmit={() => searchFor(text)}
               inputRef={inputRef}
+              disabled={waiting > 0}
             />
           </div>
           <div class="controls" id="search-controls">
@@ -172,9 +203,14 @@ export function App() {
       </header>
       <main class="column main">
         {/* One live region for the whole page, in the DOM before any search, so what it says is announced. */}
-        <div class="status" role="status" aria-live="polite">
-          {view.kind === "loading" && "Searching…"}
-          {view.kind === "ok" && <Summary data={view.data} />}
+        <div class="summary-row">
+          <div class="status" role="status" aria-live="polite">
+            {view.kind === "loading" && "Searching…"}
+            {view.kind === "ok" && <Summary data={view.data} />}
+          </div>
+          {view.kind === "ok" && view.data.mode === "smart" && view.data.results.length > 0 && (
+            <HowItWorks onSwitchToExact={switchToExact} />
+          )}
         </div>
         {searching ? (
           <>
@@ -182,7 +218,21 @@ export function App() {
               Search results
             </h2>
             {view.kind === "loading" && <Skeleton />}
-            {view.kind === "ok" && (
+            {view.kind === "ok" && view.data.mode === "smart" && view.data.smart_degraded && (
+              <Notice tone="info">
+                {view.data.smart_degraded === "unavailable"
+                  ? "Meaning search is unavailable right now; these are keyword matches."
+                  : "Meaning search is paused; these are keyword matches."}
+              </Notice>
+            )}
+            {view.kind === "ok" && view.data.results.length === 0 && view.data.page === 1 && (
+              <NoResults
+                mode={view.data.mode}
+                hasYears={range !== null}
+                onSmart={() => setMode("smart")}
+              />
+            )}
+            {view.kind === "ok" && view.data.results.length > 0 && (
               <ResultList
                 key={view.id}
                 results={view.data.results}
@@ -192,17 +242,38 @@ export function App() {
                 onSearchEpisode={(number) => searchFor(setEpisode(state.q, number))}
               />
             )}
-            {view.kind !== "idle" && view.kind !== "loading" && view.kind !== "ok" && (
-              <p class="message" role="alert">
-                {failureText(view)}
-              </p>
+            {view.kind === "rate_limited" && (
+              <Notice tone="warning">
+                Too many searches from here; try again in a minute.{" "}
+                {waiting > 0 ? (
+                  <span class="notice__countdown" aria-hidden="true">{`Try again in ${waiting} s`}</span>
+                ) : (
+                  "You can search again now."
+                )}
+              </Notice>
+            )}
+            {(view.kind === "unavailable" || view.kind === "network") && (
+              <Notice
+                tone="danger"
+                action={
+                  <button type="button" class="notice__button" onClick={retry}>
+                    Retry
+                  </button>
+                }
+              >
+                Something went wrong.
+              </Notice>
+            )}
+            {view.kind === "ok" && view.data.mode === "exact" && view.data.truncated && !view.data.has_more && (
+              <Notice tone="info">
+                {`Showing the best 200 of ${count(view.data.total, view.data.total_capped)} matches — add words, a "phrase" or a year to narrow it.`}
+              </Notice>
             )}
             {view.kind === "ok" && <Pagination data={view.data} onPage={onPage} />}
+            {smartEnd && <p class="end-note">That's the end of the top results. Exact search lists every match.</p>}
           </>
         ) : (
-          <section class="empty">
-            <h1 class="empty__title">Find the moment it was said.</h1>
-          </section>
+          <EmptyState info={info} onPick={searchFor} />
         )}
       </main>
       <footer class="site-footer">

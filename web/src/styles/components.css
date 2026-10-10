@@ -116,8 +116,14 @@
   transition: background var(--dur-fast) var(--ease);
 }
 
-.search-row__button:hover {
+.search-row__button:hover:not(:disabled) {
   background: var(--accent-hover);
+}
+
+.search-row__button:disabled {
+  background: var(--skel);
+  color: var(--muted);
+  cursor: default;
 }
 
 /* ---- Header: controls ---- */
@@ -532,10 +538,6 @@
 /* The page's one live region; empty before and between searches, and then it takes no room. */
 .status {
   margin: 0;
-}
-
-.status:empty {
-  margin-bottom: -14px;
 }
 
 .summary {
@@ -1114,15 +1116,245 @@ a.passage__time:hover {
   width: 70%;
 }
 
-/* Plain stand-in for the notices of Task 11. */
-.message {
-  margin: 0;
+/* ---- Notices and the maintenance bar (design README "Notices") ---- */
+.notice {
+  --tone: var(--info);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
   padding: 10px 14px;
   border-radius: var(--r-control);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: color-mix(in oklch, var(--tone) 9%, var(--surface));
+  border: 1px solid color-mix(in oklch, var(--tone) 32%, transparent);
   font-size: 15px;
   line-height: 1.45;
+  color: var(--text);
+}
+
+.notice--warning {
+  --tone: var(--warning);
+}
+
+.notice--danger {
+  --tone: var(--danger);
+}
+
+.notice__icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-pill);
+  background: var(--tone);
+  color: var(--surface);
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notice__text {
+  flex: 1;
+  min-width: 180px;
+}
+
+.notice__countdown {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--warning);
+}
+
+.notice__button {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-control);
+  border: 1.5px solid var(--border);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.notice__button:hover {
+  border-color: var(--accent);
+}
+
+.banner {
+  background: var(--warning);
+  color: var(--bg);
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* A button that reads as a link inside a sentence. */
+.text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  color: var(--accent-hover);
+}
+
+/* ---- Empty state and no results (design README "Empty, loading and no-results") ---- */
+.empty__try {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.empty__label {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.empty__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.empty__info {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.nothing {
+  padding: 24px 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nothing__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.nothing__lead {
+  margin: 0;
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.nothing__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.nothing__list li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.nothing__list li > span:first-child {
+  color: var(--accent);
+}
+
+/* ---- Smart search explains itself (spec §5.2): the summary row and its popover ---- */
+.summary-row {
+  position: relative; /* the popover hangs from the row */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+/* Nothing to say yet: the row takes no room (the page's gap is taken back). */
+.summary-row:has(> .status:empty:only-child) {
+  margin-bottom: -14px;
+}
+
+.how-works {
+  position: static;
+}
+
+.how-works__button {
+  min-height: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.how-works__button:hover {
+  color: var(--accent-hover);
+}
+
+.how-works__dialog {
+  left: 0;
+  width: min(340px, 100%);
+  padding: 16px 18px;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.how-works__dialog p {
+  margin: 0;
+}
+
+.end-note {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
 }
 
 .pager {

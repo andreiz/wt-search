@@ -77,7 +77,7 @@ describe("searching", () => {
     const list = await screen.findByRole("list", { name: "Results" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByRole("heading", { level: 2, name: "Search results" })).toBeTruthy();
-    expect(screen.getByText("Smart search · results 1–3")).toBeTruthy();
+    expect(screen.getByText("Smart search · top results 1–3")).toBeTruthy();
     expect(list.textContent).toContain("Ep. 1 · Show 1 title");
   });
 
@@ -329,6 +329,7 @@ describe("paging", () => {
   });
 });
 
+// The notices themselves are in states.test.tsx; here, that each answer shows its message.
 describe("answers that are not results", () => {
   const cases: [string, number, Record<string, string>, unknown, RegExp][] = [
     ["maintenance", 503, {}, { error: "maintenance", message: "Back soon." }, /Back soon\./],
@@ -341,8 +342,7 @@ describe("answers that are not results", () => {
       const calls = stubFetch();
       render(<App />);
       calls[0]!.respond(body, status, headers);
-      const alert = await screen.findByRole("alert");
-      expect(alert.textContent).toMatch(text);
+      expect(await screen.findByText(text)).toBeTruthy();
       expect(document.querySelector("[aria-busy='true']")).toBeNull();
     });
   }
@@ -352,7 +352,7 @@ describe("answers that are not results", () => {
     const calls = stubFetch();
     render(<App />);
     calls[0]!.fail();
-    expect((await screen.findByRole("alert")).textContent).toMatch(/Something went wrong\./);
+    expect(await screen.findByText(/Something went wrong\./)).toBeTruthy();
   });
 
   it("a later good answer replaces the message", async () => {
@@ -360,11 +360,11 @@ describe("answers that are not results", () => {
     const calls = stubFetch();
     render(<App />);
     calls[0]!.fail();
-    await screen.findByRole("alert");
+    await screen.findByText("Something went wrong.");
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     calls[1]!.respond(smartBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText("Something went wrong.")).toBeNull();
   });
 });
 
@@ -440,7 +440,7 @@ describe("the status region", () => {
     calls[0]!.respond(smartBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
     expect(screen.getByRole("status")).toBe(region);
-    expect(region.textContent).toBe("Smart search · result 1");
+    expect(region.textContent).toBe("Smart search · top result 1");
     typeAndSubmit("epoxy");
     expect(screen.getByRole("status")).toBe(region);
     expect(region.textContent).toBe("Searching…");
@@ -455,13 +455,13 @@ describe("the status region", () => {
     expect(screen.queryByRole("list", { name: "Loading results" })).toBeNull();
   });
 
-  it("is empty again for a failure, so the alert is the only thing announced", async () => {
+  it("is empty again for a failure, so the error notice is the only thing announced", async () => {
     go("/?q=glue");
     const calls = stubFetch();
     render(<App />);
     calls[0]!.fail();
-    await screen.findByRole("alert");
-    expect(screen.getByRole("status").textContent).toBe("");
+    await screen.findByText("Something went wrong.");
+    expect(document.querySelector(".status")?.textContent).toBe("");
   });
 });
 

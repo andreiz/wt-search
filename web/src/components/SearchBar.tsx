@@ -16,9 +16,11 @@ export interface SearchBarProps {
   onInput: (value: string) => void;
   onSubmit: () => void;
   inputRef?: Ref<HTMLInputElement>;
+  /** The Search button is off (while the rate limit's countdown runs); typing still works. */
+  disabled?: boolean;
 }
 
-export function SearchBar({ value, onInput, onSubmit, inputRef }: SearchBarProps) {
+export function SearchBar({ value, onInput, onSubmit, inputRef, disabled = false }: SearchBarProps) {
   const own = useRef<HTMLInputElement>(null);
   const input = inputRef ?? own;
 
@@ -71,7 +73,7 @@ export function SearchBar({ value, onInput, onSubmit, inputRef }: SearchBarProps
           </button>
         )}
       </div>
-      <button type="submit" class="search-row__button">
+      <button type="submit" class="search-row__button" disabled={disabled}>
         Search
       </button>
     </form>

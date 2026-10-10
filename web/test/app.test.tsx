@@ -1,9 +1,17 @@
 // The page shell (spec §5.1, §5.7): title, the three landmarks, no style attributes.
 import { cleanup, render, screen } from "@testing-library/preact";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
+import { stubFetch } from "./helpers";
 
-afterEach(cleanup);
+// The empty state asks /api/info; the stub keeps that request off the network.
+beforeEach(() => {
+  stubFetch();
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("<App/>", () => {
   it("shows the site title and the unofficial note in the header", () => {

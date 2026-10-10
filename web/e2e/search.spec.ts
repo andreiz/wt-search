@@ -1,6 +1,7 @@
 // A search in the built page under the real CSP (spec §5.1, §5.2): stubbed /api/search answers,
 // the URL following the search, Back, and no CSP violation from the new styles.
 import { expect, test } from "@playwright/test";
+import { stubInfo } from "./info";
 
 function answer(text: string, count = 1) {
   return {
@@ -34,6 +35,7 @@ test("search, URL and Back, under the CSP", async ({ page }) => {
       (window as unknown as { __csp: string[] }).__csp.push(e.violatedDirective);
     });
   });
+  await stubInfo(page);
   await page.route("**/api/search*", (route) => {
     const q = new URL(route.request().url()).searchParams.get("q") ?? "";
     return route.fulfill({ json: answer(`Passage about ${q}`) });

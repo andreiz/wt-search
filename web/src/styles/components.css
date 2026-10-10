@@ -559,7 +559,22 @@
   gap: 8px;
 }
 
+/* ---- Result cards (DenseResult.dc.html; design README "Dense result card") ---- */
+.results-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.results-intro {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
 .result {
+  --related-border: color-mix(in oklch, var(--border) 100%, var(--muted) 25%);
+  position: relative;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -575,18 +590,379 @@
   outline-offset: 3px;
 }
 
+.result--related {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--related-border);
+}
+
+.result__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
 .result__title {
+  flex: 1 1 240px;
+  min-width: 0;
   margin: 0;
   font-size: 15px;
   font-weight: 650;
   line-height: 1.3;
+  text-wrap: pretty;
 }
 
-.result__text {
+.result__ep {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.result__sep {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.result__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.result__count {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.result__tag {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.hit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px 12px;
+  padding-top: 2px;
+}
+
+.hit--gutter {
+  grid-template-columns: 76px minmax(0, 1fr);
+}
+
+.hit--ruled {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.hit__time {
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 26px;
+  margin-top: 1px;
+  border-radius: var(--r-chip);
+  background: var(--tint);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+a.hit__time:hover {
+  background: var(--skel);
+}
+
+.hit__time--text {
+  background: transparent;
+  color: var(--muted);
+}
+
+.hit__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hit__excerpt {
   margin: 0;
   font-family: var(--serif);
   font-size: 16px;
   line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  cursor: pointer;
+  border-radius: var(--r-chip);
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.hit__excerpt:hover {
+  background: color-mix(in oklch, var(--tint) 60%, transparent);
+}
+
+.result--related .hit__excerpt {
+  color: var(--muted);
+}
+
+/* The ⋯ button sits beside the links, never under them: the links wrap, the button does not. */
+.hit__actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.hit__links {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.play {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--r-pill);
+  background: var(--raised);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.play:hover {
+  border-color: var(--accent);
+}
+
+.play--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.play--primary:hover {
+  background: var(--accent-hover);
+}
+
+.play__time {
+  font-weight: 500;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.ads-info,
+.more-menu__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.ads-info {
+  border: 0;
+  cursor: help;
+}
+
+.more-menu__button {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.more-menu__button:hover {
+  background: var(--tint);
+}
+
+.more-menu__button[aria-expanded="true"] {
+  background: var(--tint);
+  border-color: var(--accent);
+}
+
+.hit__nearby {
+  height: 30px;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hit__note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.more-menu {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+}
+
+.more-menu__list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 3;
+  width: 240px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-dense);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-pop);
+  animation: pop-in var(--dur-med) var(--ease);
+}
+
+.menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.2;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--tint);
+}
+
+.menu-item--quiet {
+  color: var(--muted);
+}
+
+.menu-item__sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.menu-rule {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--border);
+}
+
+/* The related fold */
+.fold {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 16px;
+  border-radius: var(--r-dense);
+  border: 1px dashed var(--border);
+  border-color: color-mix(in oklch, var(--border) 100%, var(--muted) 25%);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fold:hover {
+  border-color: var(--accent);
+}
+
+.fold__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fold__title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.fold__sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.fold__chevron {
+  flex: none;
+  color: var(--muted);
+}
+
+.fold-open {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fold-open__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px 0;
+}
+
+.fold-open__hide {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 
 .skeleton {
@@ -753,6 +1129,28 @@
   .result {
     padding: 12px 14px;
     scroll-margin-top: 110px;
+  }
+
+  /* Touch targets: 44 px pills, icon buttons, menu rows and the fold's Hide. */
+  .play {
+    height: 44px;
+    padding: 0 14px 0 10px;
+    font-size: 15px;
+  }
+
+  .ads-info,
+  .more-menu__button,
+  .hit__nearby {
+    width: 44px;
+    height: 44px;
+  }
+
+  .hit__nearby {
+    width: auto;
+  }
+
+  .menu-item {
+    min-height: 44px;
   }
 
   /* Compact (scrolled): the header keeps the input and a summary button that reopens the

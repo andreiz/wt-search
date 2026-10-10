@@ -9,7 +9,8 @@ export function result(n: number, over: Partial<SearchResult> = {}): SearchResul
     episode: {
       id: n,
       number: n,
-      title: `Episode ${n} title`,
+      // No number at the end or after "Ep.": displayTitle would strip the episode's own number from those.
+      title: `Show ${n} title`,
       date: "2015-06-10",
       links: { youtube: `https://example.test/yt/${n}` },
     },

@@ -3,9 +3,8 @@
 // a nearby result: "; 4 results (1 folded into a nearby hit)", as `wts search` words it
 // (pipeline/src/wts/search.py `_header`). Exact on a phone also shows " · page N of M".
 import type { SearchData } from "../lib/api";
+import { count } from "../lib/format";
 import { lastPage } from "../lib/paging";
-
-const number = new Intl.NumberFormat("en-US");
 
 function folded(data: SearchData): string {
   const hits = data.results.reduce((sum, r) => sum + r.more_in_episode, 0);
@@ -17,11 +16,11 @@ function folded(data: SearchData): string {
 export function Summary({ data }: { data: SearchData }) {
   if (data.mode === "exact") {
     const one = data.total === 1 && !data.total_capped;
-    const count = `${number.format(data.total)}${data.total_capped ? "+" : ""} ${one ? "match" : "matches"}`;
+    const matches = `${count(data.total, data.total_capped)} ${one ? "match" : "matches"}`;
     const pages = lastPage(data);
     return (
       <p class="summary">
-        <strong class="summary__count">{count}</strong>
+        <strong class="summary__count">{matches}</strong>
         {folded(data)}
         {pages > 1 && <span class="summary__phone">{` · page ${data.page} of ${pages}`}</span>}
       </p>

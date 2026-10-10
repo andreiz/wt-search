@@ -5,8 +5,9 @@
 // The year range is not state: it is the `year:` tokens of the query (lib/years.ts), so the chip
 // reads the searched query and Apply and × rewrite the text in the box and search it.
 //
-// Not here yet: the real footer (Task 13), the notices, empty and error states (Task 11), the
-// result card (Task 9).
+// Not here yet: the real footer (Task 13), the notices, empty and error states (Task 11). The
+// result cards are ResultList's; More transcript and "+N nearby" (Task 10) and Report (Task 13)
+// are not wired, so those controls do nothing yet.
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ModeSwitch } from "./components/ModeSwitch";
 import { Pagination } from "./components/Pagination";
@@ -56,7 +57,7 @@ export function App() {
   const compact = scrolled && !controlsOpen;
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLOListElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const focusHeading = useRef(false);
 

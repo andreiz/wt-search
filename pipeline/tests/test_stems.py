@@ -1,4 +1,6 @@
+import json
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -50,6 +52,15 @@ def test_stem_is_ascii_and_unique():
 )
 def test_split_title_finds_number_in_every_house_style(title, itunes, number, clean):
     assert split_title(title, itunes) == (number, clean)
+
+
+def test_split_title_matches_web_fixture():
+    # The frontend's displayTitle (web/src/lib/title.ts) is tested against the same cases.
+    path = Path(__file__).resolve().parents[2] / "web/test/fixtures/titles.json"
+    cases = json.loads(path.read_text())
+    assert cases
+    for case in cases:
+        assert split_title(case["title"], case["number"]) == (case["number"], case["display"]), case
 
 
 def test_apostrophes_do_not_become_dashes():

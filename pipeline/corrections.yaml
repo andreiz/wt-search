@@ -66,8 +66,21 @@ global:
   16quarter: 16/4
   Timbermaid: Timbermate
   Woodcrasp: Woodcraft
-  # "Kregger", the show's word for a Kreg pocket screw (ep613, 50:12, "Shove a Kregger in the
-  # Hole"): Whisper wrote "Craigers" and "Craig-er". The name "Craig" is not touched.
+  # "Kregger", the show's word for a Kreg pocket screw (ep613, 27:38, "Shove a Kregger in the
+  # Hole"): Whisper wrote "Craigers". The name "Craig" is not touched.
   craigers: Kreggers
-  craiger: Kregger
-episodes: {}
+  # Kreg, the tool brand: Whisper writes "Craig" every time, with "Kreg" in vocab.txt. In the
+  # 37 episodes of 2026-10-10 all 53 uses were the brand (ep595, 597, 608, 610, 613-615), so
+  # the bare name is the key. That is the risk the skill warns about: a person called Craig in
+  # another episode would be renamed too. Check every new match when episodes are added, and
+  # keep a real Craig with a longer key that maps to itself, as for Craig Jackson (ep608,
+  # 25:36, a person who ran the company).
+  craig: Kreg
+  craig's: Kreg's
+  craig jackson: Craig Jackson
+episodes:
+  2026-08-19_ep613_shove-a-kregger-in-the-hole:
+    # "Craig-er" is two words to Whisper, "Craig" and "-er" (they are joined after the
+    # corrections), so the key is two words. This episode only: anywhere else "Craig, er, …"
+    # would be someone called Craig.
+    craig er: Kregger

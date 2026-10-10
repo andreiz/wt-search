@@ -27,8 +27,8 @@ main session reviews, runs every suite and commits (one commit per task). Tasks 
 main checkout, one subagent at a time, told not to commit.
 
 **Tests (2026-10-09):** pipeline **702** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **493** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **576** unit +
-**29** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
+Worker **504** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **605** unit +
+**39** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
 - **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the
@@ -346,9 +346,20 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     token, mirrors the parser (quoted and malformed tokens left alone) and puts the token
     first near the 200-code-point limit, like the year chip. `years.ts` exports
     `withoutFilters` for it.
-  - **Folded paragraphs have no word marks:** `/api/context` sends no ranges. They get the
-    lighter tint and "Nearby match"; the hit's paragraph is marked from the result's ranges.
-    Marking them needs the Worker to send ranges (and an `API_VERSION` bump).
+  - **Word marks in every paragraph** (maintainer, same day): `/api/context?q=` returns
+    `ranges` per chunk (the query's positive words, OR, stemmed, stopwords dropped; one
+    batch with the select; spec §4.4). The page sends the searched query; marks outside the
+    hit's paragraph are lighter, and the hit's paragraph keeps the result's ranges. Not
+    cached, so no `API_VERSION` bump. Worker **504**.
+  - **The reader's place is kept** (maintainer, same day; `lib/anchor.ts`): on open the
+    hit's paragraph lands where the excerpt was, on collapse the excerpt lands where the
+    paragraph was (instant scroll in a layout effect), clamped to stay clear of the sticky
+    header. Not re-anchored on open if the reader scrolled while it loaded.
+  - **The strip above the open transcript is sticky** ("+N nearby", a second "Show less",
+    ⋯), pinned under the site header while its transcript is on screen. The offsets are
+    `--header-h` (182 px desktop, 98 px phone compact) in `:root`, shared with the cards'
+    `scroll-margin-top`. On a phone at the very top of the page (tall header) the strip is
+    under the header until the header compacts. Web **605** unit + **39** e2e.
   - The phone timestamp column is 64 px, not the mock's 58: "10:00:00" didn't fit.
   - **Look in a browser:** the transcript's play links landing at each paragraph; the
     focus ring on the opened region; a screen reader on the region, "Matching passage" and

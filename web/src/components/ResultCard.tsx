@@ -14,9 +14,8 @@ const noop = () => {};
 export function ResultCard({
   card,
   tabIndex,
-  onMore = noop,
-  onNearby = noop,
   onReport = noop,
+  onSearchEpisode = noop,
 }: Partial<HitActions> & {
   /** A related card (`card.related`) is dashed, tagged "Related", with a muted excerpt. */
   card: Card;
@@ -58,9 +57,8 @@ export function ResultCard({
             key={hit.chunk_id}
             hit={hit}
             first={index === 0}
-            onMore={onMore}
-            onNearby={onNearby}
             onReport={onReport}
+            onSearchEpisode={onSearchEpisode}
           />
         ))}
       </div>

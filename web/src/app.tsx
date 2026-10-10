@@ -6,8 +6,9 @@
 // reads the searched query and Apply and × rewrite the text in the box and search it.
 //
 // Not here yet: the real footer (Task 13), the notices, empty and error states (Task 11). The
-// result cards are ResultList's; More transcript and "+N nearby" (Task 10) and Report (Task 13)
-// are not wired, so those controls do nothing yet.
+// result cards are ResultList's, and More transcript and "+N nearby" are theirs too (Task 10);
+// Report (Task 13) is not wired, so that control does nothing yet. "Search this episode" puts
+// `ep:N` into the searched query and searches, like the year chip.
 import { useEffect, useRef, useState } from "preact/hooks";
 import { ModeSwitch } from "./components/ModeSwitch";
 import { Pagination } from "./components/Pagination";
@@ -19,6 +20,7 @@ import { Summary } from "./components/Summary";
 import { SyntaxHelp } from "./components/SyntaxHelp";
 import { YearRange } from "./components/YearRange";
 import { nextCompact } from "./lib/compact";
+import { setEpisode } from "./lib/episode";
 import { handleKeydown } from "./lib/keys";
 import { normalizeQuery } from "./lib/url";
 import { clearRange, effectiveRange, rangeLabel, setRange } from "./lib/years";
@@ -180,7 +182,15 @@ export function App() {
               Search results
             </h2>
             {view.kind === "loading" && <Skeleton />}
-            {view.kind === "ok" && <ResultList key={view.id} results={view.data.results} page={view.data.page} listRef={listRef} />}
+            {view.kind === "ok" && (
+              <ResultList
+                key={view.id}
+                results={view.data.results}
+                page={view.data.page}
+                listRef={listRef}
+                onSearchEpisode={(number) => searchFor(setEpisode(state.q, number))}
+              />
+            )}
             {view.kind !== "idle" && view.kind !== "loading" && view.kind !== "ok" && (
               <p class="message" role="alert">
                 {failureText(view)}

@@ -2,6 +2,7 @@
 // (Show page, Apple, Spotify), then More transcript and Report transcript error. A menu button
 // with arrow-key movement: Esc, a press outside or Tab closes it, and Esc or a choice returns
 // focus to ⋯ (SortMenu.tsx works the same way).
+import type { RefObject } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { PlayLink } from "../lib/platforms";
 import { menuName } from "../lib/platforms";
@@ -11,6 +12,8 @@ const ITEMS = "[role='menuitem']";
 export function MoreMenu({
   plays,
   time,
+  moreOpen,
+  buttonRef,
   onMore,
   onReport,
 }: {
@@ -18,12 +21,16 @@ export function MoreMenu({
   plays: PlayLink[];
   /** The hit's time, "1:09:51". */
   time: string;
+  /** Whether the More transcript view is open: "More transcript" then reads as expanded, and closes it. */
+  moreOpen: boolean;
+  /** The ⋯ button, for the row to return focus to when the view it opened collapses. */
+  buttonRef: RefObject<HTMLButtonElement | null>;
   onMore: () => void;
   onReport: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
+  const button = buttonRef;
 
   // On opening, focus the first item; a press outside closes the menu.
   useEffect(() => {
@@ -124,6 +131,7 @@ export function MoreMenu({
             role="menuitem"
             class="menu-item"
             tabIndex={-1}
+            aria-expanded={moreOpen ? "true" : "false"}
             onClick={() => {
               close();
               onMore();

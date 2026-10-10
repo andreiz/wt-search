@@ -46,6 +46,14 @@ export function handleKeydown(event: KeyboardEvent, targets: KeyTargets): boolea
   if (isTypingTarget(target)) return false;
   // Popovers and menus own their keys.
   if (target instanceof Element && target.closest("[role='menu'], [role='dialog']")) return false;
+  // Inside an open transcript the arrows scroll the paragraphs; j and k still change card.
+  if (
+    (event.key === "ArrowDown" || event.key === "ArrowUp") &&
+    target instanceof Element &&
+    target.closest("[data-transcript]")
+  ) {
+    return false;
+  }
 
   let acted = false;
   switch (event.key) {

@@ -18,7 +18,7 @@ import { normalizeQuery } from "./url";
 export const START_YEAR = 2007;
 
 /** The Worker cuts queries at 200 code points (worker/src/query.ts MAX_QUERY_CHARS). */
-const MAX_QUERY_CHARS = 200;
+export const MAX_QUERY_CHARS = 200;
 
 export interface YearRange {
   from: number;
@@ -45,7 +45,7 @@ function seen(q: string): string {
     .join("");
 }
 
-interface Token {
+export interface Token {
   kind: "word" | "phrase";
   text: string;
   /** Where it sits in the text, `[start, end)`. */
@@ -141,13 +141,18 @@ export function effectiveRange(q: string, thisYear: number): YearRange | null {
  * already doing nothing, and left alone it would start doing something.
  */
 function withoutYears(raw: string): string {
+  return withoutFilters(raw, isYearToken);
+}
+
+/** The query, the filter words of `isFilter` (as the parser reads them) and the ORs around them taken out. */
+export function withoutFilters(raw: string, isFilter: (token: Token) => boolean): string {
   // Work on the normalised text, as the Worker reads it: emoji touching a token would hide it.
   const q = normalizeQuery(raw);
   const tokens = scan(seen(q));
-  const inRun = (t: Token | undefined): boolean => t !== undefined && (isYearToken(t) || (t.kind === "word" && t.text === "OR"));
+  const inRun = (t: Token | undefined): boolean => t !== undefined && (isFilter(t) || (t.kind === "word" && t.text === "OR"));
   const drop = new Set<number>();
   tokens.forEach((token, at) => {
-    if (!isYearToken(token) || drop.has(at)) return;
+    if (!isFilter(token) || drop.has(at)) return;
     // The run of year tokens and bare ORs around this one goes whole.
     let first = at;
     let last = at;

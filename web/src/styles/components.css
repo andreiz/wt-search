@@ -764,6 +764,181 @@ a.hit__time:hover {
   white-space: nowrap;
 }
 
+/* The expanded view (More transcript, "+N nearby"): under the row, across all its columns. One
+   paragraph per chunk in a timestamp column (70 px, 58 on a phone) and serif text; the hit's on
+   --tint, a folded hit's on a lighter tint with a "Nearby match" label. */
+.transcript {
+  min-width: 0;
+  margin: 0 -6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: var(--r-control);
+}
+
+/* Open, the row has no chip and no excerpt: "+N nearby" at the left and ⋯ at the right of the
+   first row, the view under them across the row. A row without "+N nearby" (hit--bare) has the
+   view beside ⋯ instead. */
+.hit--open {
+  grid-template-columns: minmax(0, 1fr) 30px;
+}
+
+.hit--open .hit__nearby {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.hit--open .more-menu {
+  grid-column: 2;
+  grid-row: 1;
+  margin-top: 0;
+}
+
+.hit--open .transcript {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.hit--bare .transcript {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.transcript__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passage {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: 10px;
+}
+
+.passage--hit {
+  background: var(--tint);
+}
+
+.passage--fold {
+  background: color-mix(in oklch, var(--tint) 45%, transparent);
+}
+
+.passage__time {
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 3px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.passage__time:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.passage__time--text {
+  color: var(--muted);
+}
+
+.passage__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.passage__tag {
+  align-self: flex-start;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.passage__text {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.transcript__note {
+  margin: 0;
+  padding: 4px 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.transcript__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 0 8px;
+}
+
+.transcript__search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.transcript__search:hover {
+  border-color: var(--accent);
+}
+
+.transcript__search svg {
+  color: var(--muted);
+}
+
+.transcript__code {
+  color: var(--muted);
+  font: 500 12px/1 ui-monospace, Menlo, monospace;
+}
+
+.transcript__link {
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.transcript__note .transcript__link {
+  min-height: 0;
+}
+
 /* ⋯ is centred on the excerpt's first line (24 px) though the button is 30 px. */
 .more-menu {
   grid-column: 3;
@@ -1028,6 +1203,38 @@ a.hit__time:hover {
     grid-column: 2;
     grid-row: 2;
     margin-top: 0;
+  }
+
+  .hit--open {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+
+  .passage {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  /* The icon would not fit the narrower column, and a time of 10 hours or more (h:mm:ss with two
+     digits of hours) needs 64 px, not the design's 58. */
+  .passage__time svg {
+    display: none;
+  }
+
+  .passage__time,
+  .transcript__link,
+  .transcript__note .transcript__link {
+    min-height: 44px;
+  }
+
+  .passage__time {
+    align-items: flex-start;
+  }
+
+  .passage__text {
+    font-size: 17px;
+  }
+
+  .transcript__search {
+    min-height: 44px;
   }
 
   /* Touch targets: 44 px chip, ⋯, "+N nearby", and menu rows. */

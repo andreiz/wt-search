@@ -17,9 +17,9 @@ afterEach(() => {
 const related = (n: number) => result(n, { match: "related", text: `Related passage ${n}` });
 const INTRO = "No exact matches — passages about similar things:";
 
-function renderList(results: ReturnType<typeof result>[], onMore = vi.fn(), page = 1) {
+function renderList(results: ReturnType<typeof result>[], page = 1) {
   const listRef = createRef<HTMLDivElement>();
-  const view = render(<ResultList results={results} page={page} listRef={listRef} onMore={onMore} />);
+  const view = render(<ResultList results={results} page={page} listRef={listRef} />);
   return { ...view, listRef };
 }
 
@@ -97,7 +97,7 @@ describe("the intro line", () => {
   });
 
   it("is not shown on page 2, with only related hits", () => {
-    renderList([related(1), related(2)], vi.fn(), 2);
+    renderList([related(1), related(2)], 2);
     expect(screen.queryByText(INTRO)).toBeNull();
     expect(cardsOf()).toHaveLength(2);
   });
@@ -180,13 +180,14 @@ describe("one DOM at every width", () => {
 });
 
 describe("in the page", () => {
-  it("passes the callbacks on to the cards", async () => {
-    const onMore = vi.fn();
+  it("opens More transcript in the card of the hit", async () => {
+    const calls = stubFetch();
     const hit = result(1);
-    renderList([hit], onMore);
+    renderList([hit]);
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "More transcript" }));
-    await waitFor(() => expect(onMore).toHaveBeenCalledWith(hit));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]!.url.searchParams.get("chunk")).toBe(String(hit.chunk_id));
   });
 
   it("with an exact answer, renders cards the same way", async () => {

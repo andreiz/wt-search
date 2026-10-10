@@ -7,11 +7,12 @@ import type { DeepLinks, SearchResult } from "../../worker/src/api-types";
 import exactFixture from "../../pipeline/tests/fixtures/search/exact.json";
 import smartFixture from "../../pipeline/tests/fixtures/search/smart.json";
 import { ResultCard } from "../src/components/ResultCard";
-import { result } from "./helpers";
+import { result, stubFetch } from "./helpers";
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 const exact = exactFixture.results as unknown as SearchResult[];
@@ -121,21 +122,25 @@ describe("the excerpt", () => {
     expect(text).not.toContain("w0 ");
   });
 
-  it("opens More transcript on a click", () => {
-    const onMore = vi.fn();
-    const { container } = renderCard([full], { onMore });
+  it("opens More transcript (radius 3) on a click", () => {
+    const calls = stubFetch();
+    const { container } = renderCard([full]);
     const excerpt = container.querySelector(".hit__excerpt")!;
     expect(excerpt.getAttribute("title")).toBe("Show full passage");
     fireEvent.click(excerpt);
-    expect(onMore).toHaveBeenCalledWith(full);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.url.searchParams.get("chunk")).toBe(String(full.chunk_id));
+    expect(calls[0]!.url.searchParams.get("radius")).toBe("3");
+    expect(screen.getByRole("region", { name: /^Transcript around/ })).toBeTruthy();
   });
 
   it("does nothing on a click while text is selected", () => {
-    const onMore = vi.fn();
+    const calls = stubFetch();
     vi.spyOn(window, "getSelection").mockReturnValue({ toString: () => "dovetail" } as Selection);
-    const { container } = renderCard([full], { onMore });
+    const { container } = renderCard([full]);
     fireEvent.click(container.querySelector(".hit__excerpt")!);
-    expect(onMore).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(0);
+    expect(screen.queryByRole("region")).toBeNull();
   });
 });
 
@@ -200,11 +205,11 @@ describe("the timestamp chip", () => {
     expect(screen.queryByRole("button", { name: /ads/ })).toBeNull();
   });
 
-  it("shows '+N nearby' only for a hit with folded matches, and calls back", () => {
-    const onNearby = vi.fn();
-    renderCard([full], { onNearby });
+  it("shows '+N nearby' only for a hit with folded matches, and it opens the radius 6 view", () => {
+    const calls = stubFetch();
+    renderCard([full]);
     fireEvent.click(screen.getByRole("button", { name: "+2 nearby" }));
-    expect(onNearby).toHaveBeenCalledWith(full);
+    expect(calls.map((c) => c.url.searchParams.get("radius"))).toEqual(["6"]);
     cleanup();
     renderCard([emoji]);
     expect(screen.queryByText(/nearby/)).toBeNull();
@@ -365,15 +370,18 @@ describe("the ⋯ menu", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
-  it("More transcript and Report close the menu, return focus to ⋯ and call back with the hit", () => {
-    const onMore = vi.fn();
+  it("More transcript and Report close the menu; Report returns focus to ⋯ and calls back with the hit", () => {
+    const calls = stubFetch();
     const onReport = vi.fn();
-    renderCard([full], { onMore, onReport });
+    renderCard([full], { onReport });
     const button = screen.getByRole("button", { name: "More actions" });
     open();
     fireEvent.click(screen.getByRole("menuitem", { name: "More transcript" }));
-    expect(onMore).toHaveBeenCalledWith(full);
+    expect(calls.map((c) => c.url.searchParams.get("radius"))).toEqual(["3"]);
     expect(screen.queryByRole("menu")).toBeNull();
+    // Focus goes on into the expanded view.
+    expect(document.activeElement).toBe(screen.getByRole("region"));
+    fireEvent.click(screen.getByRole("button", { name: "Show less" }));
     expect(document.activeElement).toBe(button);
     open();
     fireEvent.click(screen.getByRole("menuitem", { name: "Report transcript error" }));
@@ -394,11 +402,11 @@ describe("the ⋯ menu", () => {
   });
 
   it("belongs to its own hit in a two-hit card", () => {
-    const onMore = vi.fn();
+    const calls = stubFetch();
     const second = { ...full, chunk_id: 61299, text: "Another dovetail line.", ranges: [] as [number, number][] };
-    renderCard([full, second], { onMore });
+    renderCard([full, second]);
     fireEvent.click(screen.getAllByRole("button", { name: "More actions" })[1]!);
     fireEvent.click(screen.getByRole("menuitem", { name: "More transcript" }));
-    expect(onMore).toHaveBeenCalledWith(second);
+    expect(calls.map((c) => c.url.searchParams.get("chunk"))).toEqual(["61299"]);
   });
 });

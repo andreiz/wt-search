@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { DeepLinks } from "../../../worker/src/api-types";
-import { chipName, hitTime, menuName, menuPlays, primaryPlay, type PlayLink } from "../../src/lib/platforms";
+import type { ContextChunk, DeepLinks } from "../../../worker/src/api-types";
+import { chipName, chunkTime, hitTime, menuName, menuPlays, primaryPlay, type PlayLink } from "../../src/lib/platforms";
 import { result } from "../helpers";
 
 const ALL: DeepLinks = {
@@ -91,5 +91,62 @@ describe("names", () => {
 describe("hitTime", () => {
   it("is the hit's own time", () => {
     expect(hitTime(hit(ALL))).toBe("29:01");
+  });
+});
+
+// A transcript paragraph's label plays by the same rule as the card's chip, from the chunk's own
+// `links` and `cue_s` (the cue at the chunk's start).
+describe("a context chunk", () => {
+  // Starts at 29:01 (1_741_000 ms); the lead-in puts YouTube's cue at 28:54.
+  function chunk(links: DeepLinks): ContextChunk {
+    return {
+      chunk_id: 7,
+      seq: 3,
+      start_ms: 1_741_000,
+      end_ms: 1_771_000,
+      text: "x",
+      boilerplate: false,
+      cue_s: { youtube: 1734, apple: 1700, spotify: 1700, page: 1734 },
+      links,
+    };
+  }
+
+  it("plays on YouTube when it has it, even with a page", () => {
+    const play = primaryPlay(chunk(ALL))!;
+    expect(play).toEqual({ key: "youtube", name: "YouTube", href: ALL.youtube, cue: "28:54" });
+    expect(chipName(play, chunkTime(chunk(ALL)))).toBe("Play on YouTube 29:01, starts at 28:54");
+  });
+
+  it("plays on the show page when it has only that, and says it may play an ad", () => {
+    const only = chunk({ page: ALL.page });
+    const play = primaryPlay(only)!;
+    expect(play.key).toBe("page");
+    expect(chipName(play, chunkTime(only))).toBe("Play on the show page 29:01, starts at 28:54, may play an ad first");
+  });
+
+  it("has no play control with neither", () => {
+    expect(primaryPlay(chunk({ apple: ALL.apple }))).toBeNull();
+    expect(primaryPlay(chunk({}))).toBeNull();
+  });
+
+  it("takes its own start for a missing cue, so the name says nothing about where it starts", () => {
+    const old = chunk({ page: ALL.page });
+    delete (old.cue_s as Partial<typeof old.cue_s>).page;
+    const play = primaryPlay(old)!;
+    expect(play.cue).toBe("29:01");
+    expect(chipName(play, chunkTime(old))).toBe("Play on the show page 29:01, may play an ad first");
+  });
+
+  it("copes with an older cached answer that has no cue_s at all", () => {
+    const old = chunk({ page: ALL.page, youtube: ALL.youtube });
+    delete (old as Partial<typeof old>).cue_s;
+    const play = primaryPlay(old)!;
+    expect(play.cue).toBe("29:01");
+    expect(chipName(play, chunkTime(old))).toBe("Play on YouTube 29:01");
+    expect(menuPlays(old).map((p) => [p.key, p.cue])).toEqual([["page", "29:01"]]);
+  });
+
+  it("lists the menu links the same way", () => {
+    expect(menuPlays(chunk(ALL)).map((p) => p.key)).toEqual(["page", "apple", "spotify"]);
   });
 });

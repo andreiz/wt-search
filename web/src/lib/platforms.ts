@@ -2,8 +2,24 @@
 // API (`episode.links`, already carrying their cue times); this module never builds one. It only
 // picks the chip's link (YouTube, else the show page), lists the others for the ⋯ menu, and words
 // the names screen readers hear.
-import type { SearchResult } from "../../../worker/src/api-types";
+import type { ContextChunk, SearchResult } from "../../../worker/src/api-types";
 import { timestamp } from "./format";
+
+/**
+ * Anything with links and cues: a search result (links at `episode.links`, cues at `cue_s`) or a
+ * chunk of a context answer (its own `links` and `cue_s`, at the chunk's start). The rules below
+ * are the same for both.
+ */
+export type Playable = SearchResult | ContextChunk;
+
+function linksOf(item: Playable) {
+  return "links" in item ? item.links : item.episode.links;
+}
+
+/** Where the item is in the episode, as the card shows it: "1:09:51". */
+function timeOf(item: Playable): string {
+  return "hit_ms" in item ? hitTime(item) : chunkTime(item);
+}
 
 export type PlayKey = "youtube" | "page" | "apple" | "spotify";
 
@@ -23,22 +39,22 @@ const NAMES: Record<PlayKey, string> = {
   spotify: "Spotify",
 };
 
-function playOf(hit: SearchResult, key: PlayKey): PlayLink | null {
-  const href = hit.episode.links[key];
+function playOf(item: Playable, key: PlayKey): PlayLink | null {
+  const href = linksOf(item)[key];
   if (!href) return null;
-  // An answer stored by an older Worker may lack a cue (the edge cache outlives a deploy): take
-  // the hit's time, so the name claims nothing about where playback starts.
-  const cue: number | undefined = hit.cue_s[key];
-  return { key, name: NAMES[key], href, cue: Number.isFinite(cue) ? timestamp(cue as number) : hitTime(hit) };
+  // An answer stored by an older Worker may lack a cue, or `cue_s` altogether (the edge cache outlives a deploy): take
+  // the item's time, so the name claims nothing about where playback starts.
+  const cue: number | undefined = item.cue_s?.[key];
+  return { key, name: NAMES[key], href, cue: Number.isFinite(cue) ? timestamp(cue as number) : timeOf(item) };
 }
 
-/** The hit's one play control: the YouTube link when the episode has one, else the show page. */
-export function primaryPlay(hit: SearchResult): PlayLink | null {
-  return playOf(hit, "youtube") ?? playOf(hit, "page");
+/** The one play control: the YouTube link when there is one, else the show page. */
+export function primaryPlay(item: Playable): PlayLink | null {
+  return playOf(item, "youtube") ?? playOf(item, "page");
 }
 
 /** The other links, for the ⋯ menu: the show page (unless the chip plays it), Apple, Spotify. */
-export function menuPlays(hit: SearchResult): PlayLink[] {
+export function menuPlays(hit: Playable): PlayLink[] {
   const primary = primaryPlay(hit);
   const keys: PlayKey[] = ["page", "apple", "spotify"];
   return keys
@@ -77,4 +93,9 @@ export function menuName(play: PlayLink, time: string): string {
 /** Where the hit is in the episode, as the card shows it: "1:09:51". */
 export function hitTime(hit: SearchResult): string {
   return timestamp(hit.hit_ms / 1000);
+}
+
+/** Where a transcript paragraph starts, as its label shows it: "1:09:51". */
+export function chunkTime(chunk: ContextChunk): string {
+  return timestamp(chunk.start_ms / 1000);
 }

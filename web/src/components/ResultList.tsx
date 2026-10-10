@@ -20,9 +20,8 @@ export function ResultList({
   results,
   page,
   listRef,
-  onMore = noop,
-  onNearby = noop,
   onReport = noop,
+  onSearchEpisode = noop,
 }: Partial<HitActions> & {
   results: SearchResult[];
   /** The page number, from 1; the intro line is for page 1 only. */
@@ -58,9 +57,8 @@ export function ResultList({
             key={card.hits[0]!.chunk_id}
             card={card}
             tabIndex={index === current ? 0 : -1}
-            onMore={onMore}
-            onNearby={onNearby}
             onReport={onReport}
+            onSearchEpisode={onSearchEpisode}
           />
         ))}
       </ol>

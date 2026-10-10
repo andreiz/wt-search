@@ -25,7 +25,11 @@ const NAMES: Record<PlayKey, string> = {
 
 function playOf(hit: SearchResult, key: PlayKey): PlayLink | null {
   const href = hit.episode.links[key];
-  return href ? { key, name: NAMES[key], href, cue: timestamp(hit.cue_s[key]) } : null;
+  if (!href) return null;
+  // An answer stored by an older Worker may lack a cue (the edge cache outlives a deploy): take
+  // the hit's time, so the name claims nothing about where playback starts.
+  const cue: number | undefined = hit.cue_s[key];
+  return { key, name: NAMES[key], href, cue: Number.isFinite(cue) ? timestamp(cue as number) : hitTime(hit) };
 }
 
 /** The hit's one play control: the YouTube link when the episode has one, else the show page. */

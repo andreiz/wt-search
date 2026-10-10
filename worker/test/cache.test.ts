@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { forgetCorpusVersion, VERSION_TTL_MS } from "../src/cache";
+import { API_VERSION, cacheKey, forgetCorpusVersion, pathCacheKey, VERSION_TTL_MS } from "../src/cache";
 import type { Env } from "../src/env";
 import worker from "../src/index";
 import { MAX_QUERY_CHARS, parseQuery } from "../src/query";
@@ -196,6 +196,19 @@ describe("search cache", () => {
       const hit = await get("q=today&mode=exact", bindings({ SEARCH_OVERRIDE: "exact" }).env);
       expect(hit.headers.get("x-wts-cache")).toBe("hit");
     });
+  });
+
+  // A deploy that changes what an answer holds bumps API_VERSION, so answers stored by the
+  // older code (for up to the TTL) are never served to the newer page.
+  it("keys on API_VERSION as well as corpus_version", () => {
+    const key = { q: "glue", mode: "exact", sort: "relevance", page: 1, limit: 20 } as const;
+    const params = new URL(cacheKey("https://example.com/api/search?q=glue", key, "7").url).searchParams;
+    expect(params.get("api")).toBe(String(API_VERSION));
+    expect(params.get("v")).toBe("7");
+    expect(new URL(pathCacheKey("https://example.com/api/info", "/api/info", "7").url).searchParams.get("api")).toBe(
+      String(API_VERSION),
+    );
+    expect(Number.isInteger(API_VERSION) && API_VERSION >= 2).toBe(true);
   });
 
   it("misses after corpus_version changes", async () => {

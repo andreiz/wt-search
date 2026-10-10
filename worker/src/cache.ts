@@ -1,7 +1,8 @@
 // Edge cache for /api/search and /api/info (spec §4.7). A response is cached by the Cache API,
 // keyed by the normalized query and the parameters as the route read them (so `page=abc` and
 // `page=1` share an entry; /api/info has none), plus corpus_version: a publish bumps the
-// version, so old entries are simply never asked for again and age out.
+// version, so old entries are simply never asked for again and age out. API_VERSION does the
+// same for a deploy that changes the answers.
 //
 // The Cache API is per data centre and, by Cloudflare's docs, works on Workers with a custom
 // domain; `x-wts-cache` on every search and info response says what happened (hit, miss, skip).
@@ -64,7 +65,16 @@ export function pathCacheKey(requestUrl: string, path: string, version: string):
   return versioned(new URL(path, requestUrl), version);
 }
 
+/**
+ * Part of every cache key. **Bump it in the commit that changes what an answer holds** (a field
+ * added, removed or given a new meaning, a link built differently): a deploy doesn't clear the
+ * cache, so without this the new page is served answers the old code stored, for up to the TTL.
+ * 2: `cue_s.page`, and `seek` on the show page link (2026-10-09).
+ */
+export const API_VERSION = 2;
+
 function versioned(url: URL, version: string): Request {
+  url.searchParams.set("api", String(API_VERSION));
   url.searchParams.set("v", version);
   return new Request(url.toString());
 }

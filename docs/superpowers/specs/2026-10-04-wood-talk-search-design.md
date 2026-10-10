@@ -709,8 +709,11 @@ these links are early, never late. Mitigations:
   *(As built, Task 15.)* Also `limit`; the parameters as the route read them
   (`page=abc` shares page 1's entry); only whitespace in the query is
   normalized (case matters: `OR`). `corpus_version` is read at most once a
-  minute per isolate. Degraded and `debug=1` answers are not stored, nor
-  errors. The TTL is the `SEARCH_CACHE_TTL_S` var (3600 in staging and
+  minute per isolate. The key also holds `API_VERSION`, a constant in
+  `cache.ts` that is bumped in the commit that changes what an answer holds
+  *(2026-10-09: a deploy doesn't clear the cache, and the page showed
+  "starts at NaN:NaN" from answers stored before `cue_s.page` existed)*.
+  Degraded and `debug=1` answers are not stored, nor errors. The TTL is the `SEARCH_CACHE_TTL_S` var (3600 in staging and
   production; unset locally and in tests, so no caching). Every search answer
   says `x-wts-cache: hit|miss|skip`; browsers get no `cache-control`.
   Cloudflare's docs only promise the Cache API on custom domains, but it

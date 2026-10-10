@@ -19,6 +19,18 @@ function hit(links: DeepLinks) {
   });
 }
 
+// An answer stored by an older Worker (edge cache) has no `cue_s.page`; the name must not say
+// "starts at NaN:NaN".
+describe("a cue the answer doesn't carry", () => {
+  it("is taken to be the hit's time, so the name says nothing about where it starts", () => {
+    const old = hit({ page: ALL.page });
+    delete (old.cue_s as Partial<typeof old.cue_s>).page;
+    const play = primaryPlay(old)!;
+    expect(play.cue).toBe("29:01");
+    expect(chipName(play, hitTime(old))).toBe("Play on the show page 29:01, may play an ad first");
+  });
+});
+
 describe("primaryPlay", () => {
   it("is YouTube when the episode has it, even with a page", () => {
     expect(primaryPlay(hit(ALL))).toEqual({ key: "youtube", name: "YouTube", href: ALL.youtube, cue: "28:54" });

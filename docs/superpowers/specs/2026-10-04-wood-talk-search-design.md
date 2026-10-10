@@ -655,6 +655,11 @@ Parser rules (`worker/src/query.ts`):
   the page plays the show's own timeline. An ad may play first, and then
   playback starts at the cue, so unlike Apple and Spotify the position is
   right.
+- **A transcript paragraph has no lead-in** *(maintainer, 2026-10-10)*: the
+  chunks of `/api/context` (§4.4) start at a sentence, so each one's `cue_s`
+  and `links` are at its own start, `max(0, floor(start_ms/1000) +
+  offset)`, with no 7 s taken off. That includes the hit's paragraph in the
+  expanded view. The card's chip keeps the lead-in.
 - How word times, FTS5 highlights and cues fit together, with real
   `highlight()` output: [`docs/word-times-and-highlights.md`](../../word-times-and-highlights.md).
 

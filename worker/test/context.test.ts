@@ -142,7 +142,7 @@ describe("neighbours", () => {
           end_ms: 150_000,
           text: "thirty chunk 4",
           boilerplate: false,
-          cue_s: { youtube: 113, apple: 113, spotify: 113, page: 113 },
+          cue_s: { youtube: 120, apple: 120, spotify: 120, page: 120 },
           links: {},
           ranges: [],
         },
@@ -207,22 +207,23 @@ describe("links and flags", () => {
         page: "https://example.com/ep/301",
       },
     });
+    // A chunk plays from its own start, with no lead-in (the episode's links keep the hit's): start + offset.
     expect(body.chunks.map((c) => [c.chunk_id, c.cue_s])).toEqual([
-      [3301, { youtube: 43, apple: 53, spotify: 63, page: 33 }], // starts at 40 s
-      [3302, { youtube: 103, apple: 113, spotify: 123, page: 93 }],
-      [3303, { youtube: 133, apple: 143, spotify: 153, page: 123 }], // starts at 130 s
+      [3301, { youtube: 50, apple: 60, spotify: 70, page: 40 }], // starts at 40 s
+      [3302, { youtube: 110, apple: 120, spotify: 130, page: 100 }],
+      [3303, { youtube: 140, apple: 150, spotify: 160, page: 130 }], // starts at 130 s
     ]);
     expect(body.chunks[0]?.links).toEqual({
-      youtube: "https://www.youtube.com/watch?v=yt33&t=43s",
-      apple: "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=ap33&t=53",
-      spotify: "https://open.spotify.com/episode/sp33?t=63",
+      youtube: "https://www.youtube.com/watch?v=yt33&t=50s",
+      apple: "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=ap33&t=60",
+      spotify: "https://open.spotify.com/episode/sp33?t=70",
       page: "https://example.com/ep/301",
     });
-    expect(body.chunks[2]?.links.spotify).toBe("https://open.spotify.com/episode/sp33?t=153");
+    expect(body.chunks[2]?.links.spotify).toBe("https://open.spotify.com/episode/sp33?t=160");
   });
 
   it("never cues before 0", async () => {
-    // Episode 30's first chunk starts at 0 with no offsets: max(0, 0 - 7).
+    // Episode 30's first chunk starts at 0 with no offsets.
     const { body } = await context("?chunk=3009&radius=0");
     expect(body.chunks[0]?.cue_s).toEqual({ youtube: 0, apple: 0, spotify: 0, page: 0 });
   });
@@ -278,7 +279,7 @@ describe("the sentence two chunks share is said once", () => {
     // "Wait" is the fifth word of 3503: 4000 + 4 × 500 ms.
     expect(after.start_ms).toBe(6_000);
     expect(after.end_ms).toBe(34_000);
-    expect(after.cue_s.page).toBe(0);
+    expect(after.cue_s.page).toBe(6);
     const whole = (await context("?chunk=3503")).body.chunks[2]!;
     expect(whole.start_ms).toBe(4_000);
   });

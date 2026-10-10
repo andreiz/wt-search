@@ -22,6 +22,34 @@ const EMPTY: LinkEpisode = {
   offset_spotify_s: 0,
 };
 
+describe("no lead-in (a transcript paragraph)", () => {
+  it("cues at the time itself plus the offset, never before 0", () => {
+    expect(cueSeconds(65_432, 0, 0)).toBe(65);
+    expect(cueSeconds(65_432, 12, 0)).toBe(77);
+    expect(cueSeconds(3_000, -20, 0)).toBe(0);
+  });
+
+  it("cueTimes and deepLinks pass it on to every platform", () => {
+    const episode = {
+      youtube_video_id: "yt",
+      apple_episode_id: "ap",
+      spotify_episode_id: "sp",
+      page_url: "https://shows.acast.com/woodtalk/episodes/x",
+      offset_youtube_s: 10,
+      offset_apple_s: 20,
+      offset_spotify_s: 30,
+    };
+    expect(cueTimes(episode, 100_000, 0)).toEqual({ youtube: 110, apple: 120, spotify: 130, page: 100 });
+    const links = deepLinks(episode, 100_000, 0);
+    expect(links.youtube).toContain("&t=110s");
+    expect(links.apple).toContain("&t=120");
+    expect(links.spotify).toContain("?t=130");
+    expect(links.page).toBe("https://shows.acast.com/woodtalk/episodes/x?seek=100");
+    // The default is still the hit's 7 s lead-in.
+    expect(cueTimes(episode, 100_000).page).toBe(93);
+  });
+});
+
 describe("cueSeconds", () => {
   it("starts 7 seconds before the hit, floored, never below 0", () => {
     expect(cueSeconds(0, 0)).toBe(0);

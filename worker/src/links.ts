@@ -21,17 +21,22 @@ export interface LinkEpisode {
   offset_spotify_s: number;
 }
 
-/** Start 7 seconds before the hit so the listener hears the lead-in, shifted by the platform's offset; never before 0. */
-export function cueSeconds(hitMs: number, offsetS: number): number {
-  return Math.max(0, Math.floor(hitMs / 1000) - 7 + offsetS);
+/** The lead-in of a search hit: it is mid-sentence, so playback starts this many seconds before it. */
+export const LEAD_S = 7;
+/** No lead-in: a transcript paragraph starts at a sentence, so its link plays from its first word. */
+export const NO_LEAD_S = 0;
+
+/** Start `leadS` seconds before the hit so the listener hears the lead-in, shifted by the platform's offset; never before 0. */
+export function cueSeconds(hitMs: number, offsetS: number, leadS = LEAD_S): number {
+  return Math.max(0, Math.floor(hitMs / 1000) - leadS + offsetS);
 }
 
-export function cueTimes(episode: LinkEpisode, hitMs: number): CueTimes {
+export function cueTimes(episode: LinkEpisode, hitMs: number, leadS = LEAD_S): CueTimes {
   return {
-    youtube: cueSeconds(hitMs, episode.offset_youtube_s),
-    apple: cueSeconds(hitMs, episode.offset_apple_s),
-    spotify: cueSeconds(hitMs, episode.offset_spotify_s),
-    page: cueSeconds(hitMs, 0),
+    youtube: cueSeconds(hitMs, episode.offset_youtube_s, leadS),
+    apple: cueSeconds(hitMs, episode.offset_apple_s, leadS),
+    spotify: cueSeconds(hitMs, episode.offset_spotify_s, leadS),
+    page: cueSeconds(hitMs, 0, leadS),
   };
 }
 
@@ -58,20 +63,20 @@ export function pageLink(pageUrl: string, cue: number): string {
  * `?t=<seconds>`, Apple `&t=<seconds>` (both 2026-10-07, docs/deep-links.md). The show page
  * gets `?seek=<seconds>` on Acast (the lead-in, no offset); any other page URL is as is.
  */
-export function deepLinks(episode: LinkEpisode, hitMs: number): DeepLinks {
+export function deepLinks(episode: LinkEpisode, hitMs: number, leadS = LEAD_S): DeepLinks {
   const links: DeepLinks = {};
   if (episode.youtube_video_id) {
-    const t = cueSeconds(hitMs, episode.offset_youtube_s);
+    const t = cueSeconds(hitMs, episode.offset_youtube_s, leadS);
     links.youtube = `https://www.youtube.com/watch?v=${encodeURIComponent(episode.youtube_video_id)}&t=${t}s`;
   }
   if (episode.apple_episode_id) {
-    const t = cueSeconds(hitMs, episode.offset_apple_s);
+    const t = cueSeconds(hitMs, episode.offset_apple_s, leadS);
     links.apple = `${APPLE_SHOW_URL}?i=${encodeURIComponent(episode.apple_episode_id)}&t=${t}`;
   }
   if (episode.spotify_episode_id) {
-    const t = cueSeconds(hitMs, episode.offset_spotify_s);
+    const t = cueSeconds(hitMs, episode.offset_spotify_s, leadS);
     links.spotify = `https://open.spotify.com/episode/${encodeURIComponent(episode.spotify_episode_id)}?t=${t}`;
   }
-  if (episode.page_url) links.page = pageLink(episode.page_url, cueSeconds(hitMs, 0));
+  if (episode.page_url) links.page = pageLink(episode.page_url, cueSeconds(hitMs, 0, leadS));
   return links;
 }

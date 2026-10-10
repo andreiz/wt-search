@@ -8,7 +8,7 @@ import type { ContextResponse } from "./api-types";
 import type { Env } from "./env";
 import { highlightRanges, withoutStopwords } from "./highlight";
 import { json, logError } from "./http";
-import { cueTimes, deepLinks, type LinkEpisode } from "./links";
+import { cueTimes, deepLinks, NO_LEAD_S, type LinkEpisode } from "./links";
 import { boundQuery, HIGHLIGHT_STOPWORDS, parseQuery } from "./query";
 import { withoutHead, withoutTail, type Shown } from "./repeat";
 
@@ -140,8 +140,9 @@ export async function chunkContext(
         end_ms: shown.end_ms,
         text: shown.text,
         boilerplate: row.is_boilerplate !== 0,
-        cue_s: cueTimes(row, shown.start_ms),
-        links: deepLinks(row, shown.start_ms),
+        // A paragraph starts at a sentence, so it plays from its first word: no lead-in.
+        cue_s: cueTimes(row, shown.start_ms, NO_LEAD_S),
+        links: deepLinks(row, shown.start_ms, NO_LEAD_S),
         ranges: shown.ranges,
       };
     }),

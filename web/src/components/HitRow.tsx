@@ -10,8 +10,9 @@
 // above it (beside it, for a row without "+N nearby"). It takes focus when it opens, and
 // when it collapses focus returns to the control that opened it: "+N nearby", or ⋯ for the other
 // two (the excerpt is plain text for selecting, so it is not a control).
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useLayoutEffect, useRef } from "preact/hooks";
 import type { SearchResult } from "../../../worker/src/api-types";
+import { anchorDelta } from "../lib/anchor";
 import { excerpt } from "../lib/excerpt";
 import { chipName, hitTime, menuPlays, primaryPlay } from "../lib/platforms";
 import { useTranscript } from "../use-transcript";
@@ -23,6 +24,63 @@ export interface HitActions {
   onReport: (hit: SearchResult) => void;
   /** "Search this episode" in the expanded view: search the current query within episode `number`. */
   onSearchEpisode: (number: number) => void;
+}
+
+/** A scroll to apply once the DOM it is about is there: `top` is the hit's viewport top at the click. */
+interface Pending {
+  kind: "open" | "close";
+  top: number | null;
+  scrollY: number;
+}
+
+/**
+ * The bottom edge of what the site header covers now. On a phone, once compact, the header's
+ * box stays as tall as before but only the search row and the summary button under it show (see
+ * components.css), so the lower of those two is the edge.
+ */
+function headerBottom(): number {
+  const header = document.querySelector(".site-header");
+  if (!header) return 0;
+  const compactPhone =
+    header.classList.contains("site-header--compact") && !!window.matchMedia?.("(max-width: 599.98px)").matches;
+  const search = compactPhone ? header.querySelector(".search-sticky") : null;
+  if (!search) return header.getBoundingClientRect().bottom;
+  const summary = header.querySelector(".compact-summary");
+  return Math.max(search.getBoundingClientRect().bottom, summary ? summary.getBoundingClientRect().bottom : 0);
+}
+
+/**
+ * Scroll the window (instantly) so `target` is at `recordedTop`, kept clear of the sticky header
+ * and, when the view is open, of its sticky strip (`strip`).
+ */
+function place(target: Element, recordedTop: number | null, strip: Element | null) {
+  const rect = target.getBoundingClientRect();
+  const delta = anchorDelta({
+    recordedTop,
+    top: rect.top,
+    height: rect.height,
+    headerBottom: headerBottom(),
+    stripBottom: strip ? strip.getBoundingClientRect().bottom : null,
+    viewportHeight: window.innerHeight,
+  });
+  if (delta !== 0) window.scrollBy(0, delta);
+}
+
+/**
+ * `place`, then once more on the next frame: the scroll can make the phone's header compact
+ * (app.tsx), which changes what is under it. The second pass keeps the element where it landed
+ * and clear of the header as it is now; it does nothing if the reader has scrolled since.
+ */
+function settle(target: Element, recordedTop: number | null, strip: Element | null) {
+  // The strip is sticky: where it is before the scroll says nothing about where it is after.
+  // So scroll for the header first, then, with the strip in its new place, keep clear of it.
+  place(target, recordedTop, null);
+  if (strip) place(target, target.getBoundingClientRect().top, strip);
+  const landed = target.getBoundingClientRect().top;
+  const scrollY = window.scrollY;
+  requestAnimationFrame(() => {
+    if (target.isConnected && window.scrollY === scrollY) place(target, landed, strip);
+  });
 }
 
 export function HitRow({
@@ -47,21 +105,60 @@ export function HitRow({
   const moreButton = useRef<HTMLButtonElement>(null);
   const nearbyButton = useRef<HTMLButtonElement>(null);
   const region = useRef<HTMLElement>(null);
+  const excerptText = useRef<HTMLParagraphElement>(null);
+  const strip = useRef<HTMLDivElement>(null);
   const opener = useRef<"more" | "nearby">("more");
+  const pending = useRef<Pending | null>(null);
   const regionId = `transcript-${hit.chunk_id}`;
 
-  // Opening, or moving between the two views, puts focus on the region.
+  // Opening, or moving between the two views, puts focus on the region (without scrolling: the
+  // layout effect below has already put the page where it should be).
   useEffect(() => {
-    if (shown !== null) region.current?.focus();
+    if (shown !== null) region.current?.focus({ preventScroll: true });
   }, [shown]);
 
+  // Keep the reader's place. The hit's viewport top is recorded at the click (`pending`); once the
+  // DOM it is about exists, and before paint, the window is scrolled so the hit's paragraph
+  // (open) or excerpt (collapse) is at that top. A reader who has scrolled since the click is
+  // only rescued from having the hit off screen. Collapsing then returns focus to the opener,
+  // without scrolling.
+  useLayoutEffect(() => {
+    const wanted = pending.current;
+    if (!wanted) return;
+    // A collapse is applied in the click's own task, but the browser may already have clamped
+    // the scroll position to the shorter page, so only an open can tell that the reader moved.
+    const unmoved = wanted.kind === "close" || window.scrollY === wanted.scrollY;
+    if (wanted.kind === "open") {
+      const target = shown !== null && transcript.entry?.kind === "ok" ? region.current?.querySelector(".passage--hit") : null;
+      if (!target) return;
+      pending.current = null;
+      settle(target, unmoved ? wanted.top : null, strip.current);
+    } else if (shown === null) {
+      pending.current = null;
+      if (excerptText.current && wanted.top !== null) settle(excerptText.current, unmoved ? wanted.top : null, null);
+      (opener.current === "nearby" ? nearbyButton : moreButton).current?.focus({ preventScroll: true });
+    }
+  }, [shown, transcript.entry]);
+
+  /** Note where the hit is on screen: its paragraph if the view is open, else its excerpt. */
+  function recordOpen() {
+    const target = region.current?.querySelector(".passage--hit") ?? excerptText.current;
+    if (target) pending.current = { kind: "open", top: target.getBoundingClientRect().top, scrollY: window.scrollY };
+  }
+
   function collapse() {
+    const paragraph = region.current?.querySelector(".passage--hit");
+    pending.current = {
+      kind: "close",
+      top: paragraph ? paragraph.getBoundingClientRect().top : null,
+      scrollY: window.scrollY,
+    };
     transcript.hide();
-    (opener.current === "nearby" ? nearbyButton : moreButton).current?.focus();
   }
 
   function openMore() {
     opener.current = "more";
+    recordOpen();
     transcript.show(3);
   }
 
@@ -93,7 +190,7 @@ export function HitRow({
         <span class="hit__time hit__time--text">{time}</span>
       )}
       {!open && (
-        <p class="hit__excerpt" title="Show full passage" onClick={onExcerptClick}>
+        <p class="hit__excerpt" ref={excerptText} title="Show full passage" onClick={onExcerptClick}>
           {view.cutStart && "… "}
           {view.segments.map((segment, index) =>
             segment.mark ? <mark key={index}>{segment.text}</mark> : segment.text,
@@ -101,6 +198,10 @@ export function HitRow({
           {view.cutEnd && " …"}
         </p>
       )}
+      {/* Closed, the strip is transparent to the row's grid (display: contents). Open, it is the
+          sticky bar of "+N nearby", Show less and ⋯ above the view; one element in both states, so
+          ⋯ keeps its state when the view opens. */}
+      <div class="hit__strip" ref={strip}>
       <MoreMenu
         plays={menuPlays(hit)}
         time={time}
@@ -122,12 +223,19 @@ export function HitRow({
               return;
             }
             opener.current = "nearby";
+            recordOpen();
             transcript.show(6);
           }}
         >
           {`+${hit.folded.length} nearby`}
         </button>
       )}
+      {open && (
+        <button type="button" class="hit__less" aria-label="Show less transcript" onClick={collapse}>
+          Show less
+        </button>
+      )}
+      </div>
       {shown !== null && (
         <Transcript
           id={regionId}
@@ -137,7 +245,7 @@ export function HitRow({
           regionRef={region}
           onRetry={() => {
             transcript.retry();
-            region.current?.focus();
+            region.current?.focus({ preventScroll: true });
           }}
           onClose={collapse}
           onSearchEpisode={onSearchEpisode}

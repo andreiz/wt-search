@@ -2,6 +2,13 @@
    are from docs/design/system/README.md and the SearchHeader / Screen mocks; colours are tokens.
    No inline styles anywhere (CSP style-src 'self'): every variation is a class here. */
 
+/* Where content may start under the pinned site header: its bottom edge (181.8 px on a desktop,
+   measured; a phone's is below), and the air a focused card gets on top of that. Used for the sticky transcript strip and the cards' scroll-margin-top. */
+:root {
+  --header-h: 182px;
+  --scroll-air: 0px;
+}
+
 /* ---- Header: the search row ---- */
 .site-header {
   --field-h: 54px;
@@ -577,7 +584,7 @@
   --related-border: color-mix(in oklch, var(--border) 100%, var(--muted) 25%);
   position: relative;
   /* Leave room for the pinned header when focus scrolls a card into view. */
-  scroll-margin-top: 180px;
+  scroll-margin-top: calc(var(--header-h) + var(--scroll-air));
 }
 
 /* The focus ring goes round the header and the box together, clear of both. */
@@ -776,11 +783,56 @@ a.hit__time:hover {
   border-radius: var(--r-control);
 }
 
-/* Open, the row has no chip and no excerpt: "+N nearby" at the left and ⋯ at the right of the
-   first row, the view under them across the row. A row without "+N nearby" (hit--bare) has the
-   view beside ⋯ instead. */
+.hit__less {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: center;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Closed, the strip takes no box of its own: ⋯ and "+N nearby" are grid items of the row. */
+.hit__strip {
+  display: contents;
+}
+
+/* Open, the row has no chip and no excerpt. It is a column (not a grid, so that the strip's
+   containing block is the whole row and it sticks until the row scrolls away): the strip, then
+   the view. The strip is "+N nearby" at the left (when there is one), "Show less", then ⋯ at the
+   far right, pinned under the site header (--header-h) for as long as the row is on screen. */
 .hit--open {
-  grid-template-columns: minmax(0, 1fr) 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hit--open .hit__strip {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 30px;
+  align-items: center;
+  gap: 0 12px;
+  margin: 0 -6px;
+  padding: 2px 6px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.result--related .hit--open .hit__strip {
+  background: var(--bg);
 }
 
 .hit--open .hit__nearby {
@@ -788,20 +840,15 @@ a.hit__time:hover {
   grid-row: 1;
 }
 
-.hit--open .more-menu {
+.hit--open .hit__less {
   grid-column: 2;
   grid-row: 1;
-  margin-top: 0;
 }
 
-.hit--open .transcript {
-  grid-column: 1 / -1;
-  grid-row: 2;
-}
-
-.hit--bare .transcript {
-  grid-column: 1;
+.hit--open .more-menu {
+  grid-column: 3;
   grid-row: 1;
+  margin-top: 0;
 }
 
 .transcript__list {
@@ -1138,6 +1185,16 @@ a.passage__time:hover {
 
 /* ---- Phones (below 600 px) ---- */
 @media (max-width: 599.98px) {
+  /* The compact header (nearly always the case when the page is scrolled): the search row
+     (bottom edge 64 px, measured) and the summary button hung under it (96 px); the strip pins
+     below them. At the very top of the page the tall header (221 px, opaque) is in front of a
+     strip that would pin this high: it then shows from the header's edge as soon as the page has
+     scrolled that far (about 120 px, where the header compacts). */
+  :root {
+    --header-h: 98px;
+    --scroll-air: 12px;
+  }
+
   .site-header {
     --field-h: 50px;
     --ctl-h: 44px;
@@ -1173,10 +1230,6 @@ a.passage__time:hover {
     display: none;
   }
 
-  .result {
-    scroll-margin-top: 110px;
-  }
-
   /* The same DOM as a desktop. The chip takes its own first row at its natural width, then the
      excerpt with ⋯ beside it, then "+N nearby". */
   .hit {
@@ -1210,8 +1263,13 @@ a.passage__time:hover {
     margin-top: 0;
   }
 
-  .hit--open {
-    grid-template-columns: minmax(0, 1fr) 44px;
+  .hit--open .hit__strip {
+    grid-template-columns: minmax(0, 1fr) auto 44px;
+  }
+
+  .hit__less {
+    min-height: 44px;
+    padding: 0 8px;
   }
 
   .passage {

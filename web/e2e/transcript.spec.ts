@@ -128,8 +128,9 @@ for (const { name, width, height } of WIDTHS) {
       const cardBox = (await card.locator(".result__card").boundingBox())!;
       const nearbyBox = (await nearby.boundingBox())!;
       const moreBox = (await card.getByRole("button", { name: "More actions" }).boundingBox())!;
-      expect(regionBox.y).toBeGreaterThanOrEqual(nearbyBox.y + nearbyBox.height - 0.5);
-      expect(regionBox.y).toBeGreaterThanOrEqual(moreBox.y + moreBox.height - 0.5);
+      // The strip is pinned under the site header, so the view's top may be scrolled above it: the
+      // order is the strip's DOM position (the view follows it), not their boxes' tops.
+      expect(await card.locator(".hit__strip").evaluate((el) => el.nextElementSibling?.classList.contains("transcript"))).toBe(true);
       expect(moreBox.x).toBeGreaterThanOrEqual(nearbyBox.x + nearbyBox.width);
       expect(regionBox.y + regionBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height + 0.5);
       expect(rowBox.y).toBeLessThanOrEqual(nearbyBox.y);
@@ -221,6 +222,8 @@ for (const { name, width, height } of WIDTHS) {
       await page.keyboard.press("Tab");
       await expect(card.getByRole("button", { name: "+2 nearby" })).toBeFocused();
       await page.keyboard.press("Tab");
+      await expect(card.getByRole("button", { name: "Show less transcript" })).toBeFocused();
+      await page.keyboard.press("Tab");
       await expect(region.getByRole("link").first()).toBeFocused();
 
       await page.keyboard.press("Escape");
@@ -273,6 +276,207 @@ test.describe("the timestamp labels on a phone (390 px)", () => {
     });
   }
 });
+
+// Keeping the reader's place: a results page tall enough to scroll (eight cards), and a stubbed
+// context with long paragraphs, so opening puts a lot above the hit's paragraph.
+const LONG = "Talking about the sprayer and the finish and how long it takes to dry in a cold shop, ".repeat(3);
+function tallResult(i: number) {
+  return {
+    ...result,
+    episode: { ...EPISODE, id: 100 + i, number: 100 + i },
+    chunk_id: i * 100,
+    text: `Result number ${i}. ${FIRST_TEXT}`,
+    ranges: [],
+    folded: [i * 100 + 1],
+    more_in_episode: 1,
+  };
+}
+function tallContext(hit: number, radius: number) {
+  const chunks = [];
+  for (let id = hit - radius; id <= hit + radius; id++) {
+    const start = 4_100 + (id - hit + radius) * 30;
+    const cue = start - 7;
+    chunks.push({
+      chunk_id: id,
+      seq: id - hit + radius,
+      start_ms: start * 1000,
+      end_ms: (start + 30) * 1000,
+      text: id === hit ? tallResult(hit / 100).text : `Chunk ${id}. ${LONG}`,
+      boilerplate: false,
+      ranges: [],
+      cue_s: { youtube: cue, apple: cue, spotify: cue, page: cue },
+      links: EPISODE_LINKS,
+    });
+  }
+  return { chunk_id: hit, episode: EPISODE, chunks };
+}
+
+/** Two animation frames and a bit more, so a scroll and the correction on the next frame are done. */
+const settle = (page: Page) =>
+  page.evaluate(
+    () => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => done())))),
+  );
+
+async function openTall(page: Page) {
+  await page.route("**/api/search*", (route) =>
+    route.fulfill({
+      json: { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results: [1, 2, 3, 4, 5, 6, 7, 8].map(tallResult) },
+    }),
+  );
+  await page.route("**/api/context*", (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    return route.fulfill({ json: tallContext(Number(params.get("chunk")), Number(params.get("radius"))) });
+  });
+  await page.goto("/?q=sprayer");
+  await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
+}
+
+for (const { name, width, height } of WIDTHS) {
+  test.describe(`keeping the reader's place on ${name}`, () => {
+    test.use({ viewport: { width, height } });
+
+    test("the matched text stays where it was on open and on collapse (top Show less)", async ({ page }) => {
+      await openTall(page);
+      const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").nth(4);
+      const excerpt = card.locator(".hit__excerpt");
+      await excerpt.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await settle(page);
+      const before = (await excerpt.boundingBox())!.y;
+
+      // A click on the excerpt: the narrower view, three paragraphs above the hit's.
+      await excerpt.click();
+      const hit = card.locator(".passage--hit");
+      await expect(hit).toBeVisible();
+      await settle(page);
+      const opened = (await hit.boundingBox())!.y;
+      expect(Math.abs(opened - before)).toBeLessThanOrEqual(2);
+
+      // The strip is pinned under the header, so Show less is right there: no scrolling to it.
+      await card.getByRole("button", { name: "Show less transcript" }).click();
+      await expect(card.locator(".transcript")).toHaveCount(0);
+      await settle(page);
+      const after = (await excerpt.boundingBox())!.y;
+      expect(Math.abs(after - opened)).toBeLessThanOrEqual(2);
+      await expect(card.getByRole("button", { name: "More actions" })).toBeFocused();
+    });
+
+    /** The bottom edge of what the site header covers now (a phone's compact header shows only its search row). */
+    const headerEdge = (page: Page) =>
+      page.evaluate(() => {
+        const header = document.querySelector(".site-header")!;
+        const compactPhone = header.classList.contains("site-header--compact") && matchMedia("(max-width: 599.98px)").matches;
+        if (!compactPhone) return header.getBoundingClientRect().bottom;
+        // Compact: the search row and the summary button hung under it.
+        return Math.max(
+          header.querySelector(".search-sticky")!.getBoundingClientRect().bottom,
+          header.querySelector(".compact-summary")!.getBoundingClientRect().bottom,
+        );
+      });
+
+    test("the strip stays pinned under the header while the long view is on screen: Show less and ⋯ are in reach", async ({ page }) => {
+      await openTall(page);
+      const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").nth(4);
+      const excerpt = card.locator(".hit__excerpt");
+      await excerpt.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await settle(page);
+      const before = (await excerpt.boundingBox())!.y;
+      const nearby = card.getByRole("button", { name: "+1 nearby" });
+      await nearby.click();
+      const hit = card.locator(".passage--hit");
+      await expect(hit).toBeVisible();
+      await settle(page);
+      const opened = (await hit.boundingBox())!.y;
+      expect(Math.abs(opened - before)).toBeLessThanOrEqual(2);
+
+      // Six paragraphs are above the hit's: the strip would be off screen if it scrolled with them.
+      const less = card.getByRole("button", { name: "Show less transcript" });
+      const strip = card.locator(".hit__strip");
+      await expect(strip).toBeInViewport({ ratio: 1 });
+      const edge = await headerEdge(page);
+      const stripBox = (await strip.boundingBox())!;
+      expect(stripBox.y).toBeGreaterThanOrEqual(edge - 1);
+      expect(stripBox.y).toBeLessThan(height / 2);
+      // The matched paragraph is not under it.
+      expect(opened).toBeGreaterThanOrEqual(stripBox.y + stripBox.height - 1);
+      await expect(less).toBeInViewport({ ratio: 1 });
+
+      // ⋯ opens from the stuck strip, and its menu is whole and on screen.
+      await card.getByRole("button", { name: "More actions" }).click();
+      const menu = card.locator(".more-menu__list");
+      await expect(menu).toBeVisible();
+      const menuBox = (await menu.boundingBox())!;
+      expect(menuBox.x).toBeGreaterThanOrEqual(0);
+      expect(menuBox.y).toBeGreaterThanOrEqual(edge);
+      expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(width);
+      expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(height);
+      await expect(page.getByRole("menuitem").first()).toBeFocused();
+      await page.keyboard.press("Escape");
+      await expect(menu).toBeHidden();
+
+      // Show less, without scrolling to it first: the excerpt is where the paragraph was.
+      const beforeCollapse = (await hit.boundingBox())!.y;
+      await less.click();
+      await expect(card.locator(".transcript")).toHaveCount(0);
+      await settle(page);
+      expect(Math.abs((await excerpt.boundingBox())!.y - beforeCollapse)).toBeLessThanOrEqual(2);
+      await expect(nearby).toBeFocused();
+    });
+
+    test("the strip leaves with the view: scrolled far past the card it is off screen and never in the next card", async ({ page }) => {
+      await openTall(page);
+      const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").nth(2);
+      await card.getByRole("button", { name: "+1 nearby" }).click();
+      await expect(card.locator(".passage--hit")).toBeVisible();
+      await settle(page);
+      const strip = card.locator(".hit__strip");
+      await expect(strip).toBeInViewport();
+      await page.evaluate(() => {
+        const bottom = document.querySelectorAll("[data-result]")[2]!.getBoundingClientRect().bottom;
+        window.scrollBy(0, bottom + 300);
+      });
+      await settle(page);
+      await expect(strip).not.toBeInViewport();
+      await expect(page.locator(".hit__strip").first()).toBeAttached();
+    });
+
+    test("a hit just under the header, opened by keyboard, ends fully visible below the header", async ({ page }) => {
+      await openTall(page);
+      const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").first();
+      const excerpt = card.locator(".hit__excerpt");
+      // Scroll so the top of the excerpt is 10 px under the header's bottom edge.
+      await page.evaluate(() => {
+        const header = document.querySelector(".site-header")!.getBoundingClientRect().bottom;
+        const top = document.querySelector(".hit__excerpt")!.getBoundingClientRect().top;
+        window.scrollBy(0, top - header + 10);
+      });
+      await settle(page);
+      await card.getByRole("button", { name: "+1 nearby" }).focus();
+      await page.keyboard.press("Enter");
+      const hit = card.locator(".passage--hit");
+      await expect(hit).toBeVisible();
+      await settle(page);
+      const headerBottom = await headerEdge(page);
+      const box = (await hit.boundingBox())!;
+      expect(box.y).toBeGreaterThanOrEqual(headerBottom - 1);
+      expect(box.y + box.height).toBeLessThanOrEqual(height + 0.5);
+      await expect(excerpt).toHaveCount(0);
+    });
+
+    test("the strip above the view has '+1 nearby' at the left, then Show less, then ⋯, with no overflow", async ({ page }) => {
+      await openTall(page);
+      const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").first();
+      await card.getByRole("button", { name: "+1 nearby" }).click();
+      await expect(card.locator(".passage--hit")).toBeVisible();
+      const nearby = (await card.getByRole("button", { name: "+1 nearby" }).boundingBox())!;
+      const less = (await card.getByRole("button", { name: "Show less transcript" }).boundingBox())!;
+      const more = (await card.getByRole("button", { name: "More actions" }).boundingBox())!;
+      expect(nearby.x + nearby.width).toBeLessThanOrEqual(less.x + 0.5);
+      expect(less.x + less.width).toBeLessThanOrEqual(more.x + 0.5);
+      expect(Math.abs(less.y - nearby.y)).toBeLessThanOrEqual(8);
+      expect(await noOverflow(page)).toBe(true);
+    });
+  });
+}
 
 test("Search this episode puts ep:71 in the box, replacing an old one, and searches", async ({ page }) => {
   await page.route("**/api/search*", (route) =>

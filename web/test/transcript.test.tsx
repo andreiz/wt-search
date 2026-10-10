@@ -2,7 +2,7 @@
 // the /api/context answer. The fetch is stubbed; the answers come from test/fixtures/context.ts.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
 import { createRef } from "preact";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContextResponse, SearchResult } from "../../worker/src/api-types";
 import { App } from "../src/app";
 import { ResultList } from "../src/components/ResultList";
@@ -617,6 +617,216 @@ describe("keyboard and focus", () => {
     const order = [...container.querySelectorAll<HTMLElement>("a[href], button")];
     expect(order.indexOf(nearby())).toBeLessThan(order.indexOf(within(region()).getAllByRole("link")[0]!));
     expect(order.at(-1)!.textContent).toBe("Show less");
+  });
+});
+
+describe("the Show less in the strip above the view", () => {
+  const top = () => screen.getByRole("button", { name: "Show less transcript" });
+
+  it("is there while loading, on an error and when loaded, and says Show less", async () => {
+    const calls = stubFetch();
+    renderList();
+    fireEvent.click(nearby());
+    expect(top().textContent).toBe("Show less");
+    calls[0]!.respond({ error: "x" }, 500);
+    await screen.findByRole("alert");
+    expect(top().textContent).toBe("Show less");
+    fireEvent.click(within(region()).getByRole("button", { name: "Try again" }));
+    answer(calls[1]!);
+    await loaded();
+    expect(top().textContent).toBe("Show less");
+    // The strip is above the view and outside it.
+    expect(region().contains(top())).toBe(false);
+  });
+
+  it("collapses the view and returns focus to the opener, like the one at the bottom", async () => {
+    const calls = stubFetch();
+    renderList();
+    const button = nearby();
+    fireEvent.click(button);
+    answer(calls[0]!);
+    await loaded();
+    fireEvent.click(top());
+    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show less transcript" })).toBeNull();
+    expect(document.activeElement).toBe(button);
+  });
+
+  it("comes after '+N nearby' and before the view in the tab order", async () => {
+    const calls = stubFetch();
+    const { container } = renderList();
+    fireEvent.click(nearby());
+    answer(calls[0]!);
+    await loaded();
+    const order = [...container.querySelectorAll<HTMLElement>("a[href], button")];
+    expect(order.indexOf(top())).toBeGreaterThan(order.indexOf(nearby()));
+    expect(order.indexOf(top())).toBeLessThan(order.indexOf(within(region()).getAllByRole("link")[0]!));
+  });
+});
+
+describe("keeping the reader's place", () => {
+  let excerptTop: number;
+  let passageTop: number;
+  let scrollBy: ReturnType<typeof vi.fn>;
+  const setScrollY = (y: number) => Object.defineProperty(window, "scrollY", { value: y, configurable: true });
+
+  beforeEach(() => {
+    excerptTop = 300;
+    passageTop = 540;
+    setScrollY(1000);
+    scrollBy = vi.fn();
+    window.scrollBy = scrollBy as unknown as typeof window.scrollBy;
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      const y = this.classList.contains("hit__excerpt")
+        ? excerptTop
+        : this.classList.contains("passage--hit")
+          ? passageTop
+          : 0;
+      // The strip (not sticky in these tests) is flat, so it does not set the visible top.
+      const high = this.classList.contains("hit__strip") ? 0 : 60;
+      return { top: y, bottom: y + high, height: high, left: 0, right: 0, width: 0, x: 0, y, toJSON: () => ({}) } as DOMRect;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("does not scroll while loading, and scrolls the hit's paragraph to the excerpt's top once loaded", async () => {
+    const calls = stubFetch();
+    const { container } = renderList();
+    fireEvent.click(container.querySelector(".hit__excerpt")!);
+    expect(scrollBy).not.toHaveBeenCalled();
+    answer(calls[0]!);
+    await loaded();
+    // The paragraph is at 540 now and the excerpt was at 300: scroll down by 240.
+    expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 240);
+  });
+
+  it("applies it again, from the paragraph's own top, when the other radius arrives", async () => {
+    const calls = stubFetch();
+    renderList();
+    openFromMenu();
+    answer(calls[0]!);
+    await loaded();
+    scrollBy.mockClear();
+    passageTop = 300; // where the reader has it
+    fireEvent.click(nearby());
+    passageTop = 420; // the wider view pushes it down
+    answer(calls[1]!);
+    await waitFor(() => expect(scrollBy).toHaveBeenCalledWith(0, 120));
+  });
+
+  it("anchors a view from the cache too", async () => {
+    const calls = stubFetch();
+    const { container } = renderList();
+    openFromMenu();
+    answer(calls[0]!);
+    await loaded();
+    fireEvent.click(within(region()).getByRole("button", { name: "Show less" }));
+    scrollBy.mockClear();
+    excerptTop = 200;
+    fireEvent.click(container.querySelector(".hit__excerpt")!);
+    expect(calls).toHaveLength(1);
+    expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 340);
+  });
+
+  it("does not move the page for a reader who has scrolled since the click, if the paragraph is visible", async () => {
+    const calls = stubFetch();
+    const { container } = renderList();
+    fireEvent.click(container.querySelector(".hit__excerpt")!);
+    setScrollY(1400);
+    answer(calls[0]!);
+    await loaded();
+    expect(scrollBy).not.toHaveBeenCalled();
+  });
+
+  it("brings the paragraph into view for a reader who has scrolled away from it", async () => {
+    const calls = stubFetch();
+    const { container } = renderList();
+    fireEvent.click(container.querySelector(".hit__excerpt")!);
+    setScrollY(1400);
+    passageTop = 5000;
+    answer(calls[0]!);
+    await loaded();
+    expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 5000 - 8);
+  });
+
+  it("puts a paragraph that would sit under the header 8 px below it", async () => {
+    const calls = stubFetch();
+    const header = document.createElement("header");
+    header.className = "site-header";
+    document.body.append(header);
+    // An own method (a spy would reuse the prototype's mock and change it for every element).
+    header.getBoundingClientRect = () => ({ bottom: 100, top: 0, height: 100 }) as DOMRect;
+    excerptTop = 60; // under the header
+    const { container } = renderList();
+    fireEvent.click(container.querySelector(".hit__excerpt")!);
+    answer(calls[0]!);
+    await loaded();
+    // Anchor to 60 would be 480, the clamp moves it to 108: 540 - 108.
+    expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 432);
+    header.remove();
+  });
+
+  it("keeps the paragraph clear of the stuck strip, with the strip in its own row of the hit", async () => {
+    const calls = stubFetch();
+    const { container } = renderList();
+    // The strip is one element, the same before and after opening (⋯ keeps its state).
+    const strip = container.querySelector<HTMLElement>(".hit__strip")!;
+    strip.getBoundingClientRect = () => ({ top: 90, bottom: 150, height: 60 }) as DOMRect;
+    excerptTop = 120; // under the strip's bottom edge (150)
+    // A scroll moves the paragraph (the strip, being stuck, stays).
+    scrollBy.mockImplementation((_x: number, dy: number) => {
+      passageTop -= dy;
+    });
+    fireEvent.click(container.querySelector(".hit__excerpt")!);
+    answer(calls[0]!);
+    await loaded();
+    expect(container.querySelector(".hit__strip")).toBe(strip);
+    // It holds "+N nearby", Show less and ⋯, and the view follows it.
+    expect(strip.contains(nearby())).toBe(true);
+    expect(strip.contains(screen.getByRole("button", { name: "Show less transcript" }))).toBe(true);
+    expect(strip.contains(moreActions())).toBe(true);
+    expect(strip.nextElementSibling?.classList.contains("transcript")).toBe(true);
+    // First to the clicked spot (540 -> 120), then, with the strip in place, down to 158.
+    expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 420);
+    expect(scrollBy).toHaveBeenNthCalledWith(2, 0, -38);
+  });
+
+  it("on collapse scrolls the excerpt back to where the paragraph was, then focuses the opener without scrolling", async () => {
+    const calls = stubFetch();
+    const { container } = renderList();
+    fireEvent.click(container.querySelector(".hit__excerpt")!);
+    answer(calls[0]!);
+    await loaded();
+    scrollBy.mockClear();
+    passageTop = 420;
+    excerptTop = 700; // the excerpt returns lower than the paragraph was
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    fireEvent.click(screen.getByRole("button", { name: "Show less transcript" }));
+    expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 280);
+    expect(document.activeElement).toBe(moreActions());
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  });
+
+  it("focuses the region without scrolling when the view opens", async () => {
+    stubFetch();
+    renderList();
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    fireEvent.click(nearby());
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(focus.mock.calls.every(([options]) => options?.preventScroll === true)).toBe(true);
+  });
+
+  it("collapsing a view that never loaded just returns focus", () => {
+    stubFetch();
+    renderList();
+    const button = nearby();
+    fireEvent.click(button);
+    fireEvent.click(screen.getByRole("button", { name: "Show less transcript" }));
+    expect(scrollBy).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(button);
   });
 });
 

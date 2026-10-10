@@ -964,6 +964,22 @@ Pinned to the top (compacting on scroll on phones):
   *(Maintainer, 2026-10-09; was "Smart search" + "page n" + the folding
   note, where "20 results" read as the total and made Next look wrong.
   Folded hits show on their cards as "+N nearby".)*
+- **Smart search explains itself** *(maintainer, 2026-10-10)*, so the
+  missing total and the Related cards do not read as faults:
+  - The Smart summary says "**top** results": "Smart search · top results
+    1–20" ("top result 41" for one).
+  - Beside it, a **How this works** button opens a small popover (like the
+    `?` help): "**Smart search** finds passages two ways: ones that contain
+    your words, and ones that talk about the same thing in different
+    words. Those are marked **Related**." / "It shows the best matches
+    first, up to 100. There is no total, because "about the same thing" has
+    no cut-off: every passage is a little bit related, so a count would
+    mean nothing." / "Want every match and a count? Switch to **Exact**."
+    (Switch to Exact is a button that changes the mode.)
+  - The card's "Related" tag has the tooltip "Matched by meaning, not by
+    your exact words."
+  - Under the last Smart page, when it is not page 1: "That's the end of
+    the top results. Exact search lists every match."
 
 ### 5.3 Result card
 

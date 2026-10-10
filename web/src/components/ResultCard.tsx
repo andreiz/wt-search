@@ -1,6 +1,8 @@
-// A dense result card (DenseResult.dc.html; spec §5.3): the header "Ep. 71 · Title" with the match
-// count and the date, then one hit row per hit. The card is one list item and one stop for the
-// arrow and j/k keys (lib/keys.ts); it is focusable (roving tabindex, set by ResultList).
+// A dense result card (spec §5.3; docs/design/card-separation-options.html, option A): the header
+// "Ep. 71 · Title" with the match count and the date, on the page background, then the card's box
+// (`.result__card`) holding one hit row per hit. The list item is one stop for the arrow and j/k
+// keys (lib/keys.ts) and is labelled by the header; it is focusable (roving tabindex, set by
+// ResultList).
 import type { SearchResult } from "../../../worker/src/api-types";
 import { episodeDate } from "../lib/format";
 import type { Card } from "../lib/group";
@@ -13,16 +15,14 @@ export function ResultCard({
   card,
   related,
   tabIndex,
-  phone,
   onMore = noop,
   onNearby = noop,
   onReport = noop,
 }: Partial<HitActions> & {
   card: Card;
-  /** A meaning-only card: dashed, tagged "Related", outlined pills. */
+  /** A meaning-only card: dashed, tagged "Related", muted excerpt. */
   related: boolean;
   tabIndex: number;
-  phone: boolean;
 }) {
   const { episode, hits } = card;
   const headingId = `card-${hits[0]!.chunk_id}`;
@@ -54,18 +54,18 @@ export function ResultCard({
           <time dateTime={episode.date}>{episodeDate(episode.date)}</time>
         </span>
       </div>
-      {hits.map((hit: SearchResult, index) => (
-        <HitRow
-          key={hit.chunk_id}
-          hit={hit}
-          first={index === 0}
-          related={related}
-          phone={phone}
-          onMore={onMore}
-          onNearby={onNearby}
-          onReport={onReport}
-        />
-      ))}
+      <div class="result__card">
+        {hits.map((hit: SearchResult, index) => (
+          <HitRow
+            key={hit.chunk_id}
+            hit={hit}
+            first={index === 0}
+            onMore={onMore}
+            onNearby={onNearby}
+            onReport={onReport}
+          />
+        ))}
+      </div>
     </li>
   );
 }

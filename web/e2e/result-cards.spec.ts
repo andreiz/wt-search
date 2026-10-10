@@ -1,6 +1,6 @@
-// The dense result cards in the built page under the real CSP (spec §5.3): a two-hit card, play
-// links, the ⋯ menu by keyboard, the related fold closed / opened / hidden, a page with only
-// related hits, and the single play button on a phone.
+// The dense result cards in the built page under the real CSP (spec §5.3): the header above a
+// two-hit card, the timestamp chip (the one play control) and the ⋯ menu at 1280 and 390 px, the
+// related fold closed / opened / hidden, a page with only related hits, and the phone layout.
 import { expect, test, type Page } from "@playwright/test";
 
 const YT = "https://www.youtube.com/watch?v=abc&t=4184s";
@@ -84,49 +84,116 @@ async function open(page: Page, results: unknown[]) {
   };
 }
 
-test.describe("on a desktop", () => {
-  test("a two-hit card, its marks and its play links", async ({ page }) => {
-    const noViolations = await open(page, [...keywordCards, ...relatedCards]);
-    const cards = page.getByRole("list", { name: "Results" }).getByRole("listitem");
-    await expect(cards).toHaveCount(2);
+const WIDTHS = [
+  { name: "a desktop (1280 px)", width: 1280, height: 800 },
+  { name: "a phone (390 px)", width: 390, height: 800 },
+];
 
-    const first = cards.nth(0);
-    await expect(first.getByRole("heading", { level: 3 })).toHaveText("Ep. 71 · Welcome to the Three-Way");
-    await expect(first.getByText("2 matches")).toBeVisible();
-    await expect(first.getByText("Jun 10, 2010")).toBeVisible();
-    await expect(first.locator(".hit")).toHaveCount(2);
-    await expect(first.locator("mark")).toHaveText(["HVLP", "sprayer", "sprayer"]);
-    await expect(first.locator(".hit").nth(0).locator(".hit__time")).toHaveText("1:09:51");
+// The DOM is the same at every width, so every check here runs at both.
+for (const { name, width, height } of WIDTHS) {
+  test.describe(`the chip and ⋯ menu on ${name}`, () => {
+    test.use({ viewport: { width, height } });
 
-    // Every platform, YouTube first and filled; links from the API, in a new tab.
-    const pills = first.locator(".hit").nth(0).locator("a.play");
-    await expect(pills).toHaveCount(3);
-    await expect(pills.nth(0)).toHaveAccessibleName("Play on YouTube, starts at 1:09:44");
-    await expect(pills.nth(1)).toHaveAccessibleName("Play on Apple, starts at 1:09:44");
-    await expect(pills.nth(2)).toHaveAccessibleName("Play on Spotify, starts at 1:09:44");
-    await expect(first.locator(".hit").nth(0).locator("a.hit__time")).toHaveAccessibleName("Play on YouTube 1:09:51, starts at 1:09:44");
-    for (const [i, href] of [YT, AP, SP].entries()) {
-      await expect(pills.nth(i)).toHaveAttribute("href", href);
-      await expect(pills.nth(i)).toHaveAttribute("target", "_blank");
-      await expect(pills.nth(i)).toHaveAttribute("rel", /noopener/);
-    }
-    await expect(first.locator(".hit").nth(0).locator("a.hit__time")).toHaveAttribute("href", YT);
-    await expect(pills.nth(0)).toHaveClass(/play--primary/);
-    await expect(pills.nth(1)).not.toHaveClass(/play--primary/);
-    await expect(first.getByRole("button", { name: "+2 nearby" })).toBeVisible();
-    await expect(first.getByRole("button", { name: /may start a bit early because of ads/ })).toHaveCount(2);
+    test("the header sits above the card's box; the chip is the one play control", async ({ page }) => {
+      const noViolations = await open(page, [...keywordCards, ...relatedCards]);
+      const cards = page.getByRole("list", { name: "Results" }).getByRole("listitem");
+      await expect(cards).toHaveCount(2);
 
-    // Three lines of the serif excerpt at most.
-    const clamp = await first.locator(".hit__excerpt").first().evaluate((el) => getComputedStyle(el).webkitLineClamp);
-    expect(clamp).toBe("3");
+      const first = cards.nth(0);
+      await expect(first.getByRole("heading", { level: 3 })).toHaveText("Ep. 71 · Welcome to the Three-Way");
+      await expect(first.getByText("2 matches")).toBeVisible();
+      await expect(first.getByText("Jun 10, 2010")).toBeVisible();
+      await expect(first.locator(".hit")).toHaveCount(2);
+      await expect(first.locator("mark")).toHaveText(["HVLP", "sprayer", "sprayer"]);
 
-    // The Spotify-only card has one pill, which is not filled-YouTube: it is the first, so it is.
-    const second = cards.nth(1);
-    await expect(second.locator("a.play")).toHaveCount(1);
-    await expect(second.locator("a.play")).toHaveAccessibleName("Play on Spotify, starts at 1:09:44");
+      const headBox = (await first.locator(".result__head").boundingBox())!;
+      const cardBox = (await first.locator(".result__card").boundingBox())!;
+      expect(headBox.y + headBox.height).toBeLessThanOrEqual(cardBox.y + 0.5);
+      // Header on the page background: no border or fill of its own.
+      expect(await first.locator(".result__head").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+      // Episodes are further apart than header and card.
+      const nextBox = (await cards.nth(1).locator(".result__head").boundingBox())!;
+      expect(nextBox.y - (cardBox.y + cardBox.height)).toBeGreaterThanOrEqual(24);
 
-    await noViolations();
+      const chip = first.locator(".hit").nth(0).locator("a.hit__time");
+      await expect(chip).toBeVisible();
+      await expect(chip).toHaveText("1:09:51");
+      await expect(chip).toHaveAttribute("href", YT);
+      await expect(chip).toHaveAttribute("target", "_blank");
+      await expect(chip).toHaveAttribute("rel", /noopener/);
+      await expect(chip).toHaveAccessibleName("Play on YouTube 1:09:51, starts at 1:09:44");
+      await expect(first.locator("a.play, .ads-info")).toHaveCount(0);
+      await expect(first.getByRole("button", { name: "+2 nearby" })).toBeVisible();
+
+      // Three lines of the serif excerpt at most.
+      const clamp = await first.locator(".hit__excerpt").first().evaluate((el) => getComputedStyle(el).webkitLineClamp);
+      expect(clamp).toBe("3");
+
+      // The Spotify-only episode has no play control for the chip: plain text.
+      const second = cards.nth(1);
+      await expect(second.locator("a.hit__time")).toHaveCount(0);
+      await expect(second.locator("span.hit__time--text")).toHaveText("1:09:51");
+
+      // Nothing runs off the screen.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await noViolations();
+    });
+
+    test("the menu, opened by keyboard, lists the other platforms", async ({ page }) => {
+      const noViolations = await open(page, keywordCards);
+      const first = page.getByRole("list", { name: "Results" }).getByRole("listitem").first();
+      const more = first.getByRole("button", { name: "More actions" }).first();
+      await more.focus();
+      await page.keyboard.press("Enter");
+      const menu = page.getByRole("menu", { name: "Actions" });
+      await expect(menu).toBeVisible();
+      await expect(more).toHaveAttribute("aria-expanded", "true");
+      const rows = menu.getByRole("menuitem");
+      await expect(rows).toHaveCount(5);
+      await expect(rows.nth(0)).toHaveAccessibleName("Show page plays from 1:09:51, may play an ad first");
+      await expect(rows.nth(1)).toHaveAccessibleName("Play on Apple at 1:09:51 · may start minutes early, starts at 1:09:44");
+      await expect(rows.nth(2)).toHaveAccessibleName("Play on Spotify at 1:09:51 · may start minutes early, starts at 1:09:44");
+      await expect(rows.nth(3)).toHaveAccessibleName("More transcript");
+      await expect(rows.nth(4)).toHaveAccessibleName("Report transcript error");
+      await expect(rows.nth(0)).toContainText("Show page");
+      await expect(rows.nth(1)).toContainText("Play on Apple");
+      await expect(rows.nth(1)).toContainText("at 1:09:51 · may start minutes early");
+      for (const [i, href] of [PAGE, AP, SP].entries()) {
+        await expect(rows.nth(i)).toHaveAttribute("href", href);
+        await expect(rows.nth(i)).toHaveAttribute("target", "_blank");
+        await expect(rows.nth(i)).toHaveAttribute("rel", /noopener/);
+      }
+      // The first row has focus; the arrows wrap.
+      await expect(rows.nth(0)).toBeFocused();
+      await page.keyboard.press("ArrowUp");
+      await expect(rows.nth(4)).toBeFocused();
+      await page.keyboard.press("ArrowDown");
+      await expect(rows.nth(0)).toBeFocused();
+
+      // The menu fits the screen.
+      const menuBox = (await menu.boundingBox())!;
+      expect(menuBox.x).toBeGreaterThanOrEqual(0);
+      expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(width);
+
+      await page.keyboard.press("Escape");
+      await expect(menu).toHaveCount(0);
+      await expect(more).toBeFocused();
+      await noViolations();
+    });
+
+    test("the Spotify-only episode's menu has no Show page and keeps Spotify", async ({ page }) => {
+      await open(page, keywordCards);
+      const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").nth(1);
+      await card.getByRole("button", { name: "More actions" }).click();
+      const menu = page.getByRole("menu", { name: "Actions" });
+      await expect(menu.getByRole("menuitem")).toHaveCount(3);
+      await expect(menu.getByRole("menuitem", { name: /^Show page/ })).toHaveCount(0);
+      await expect(menu.getByRole("menuitem", { name: /^Play on Spotify/ })).toHaveAttribute("href", SP);
+    });
   });
+}
+
+test.describe("on a desktop", () => {
 
   test("the related fold is closed, opens, and hides again", async ({ page }) => {
     const noViolations = await open(page, [...keywordCards, ...relatedCards]);
@@ -140,11 +207,13 @@ test.describe("on a desktop", () => {
     await expect(related.getByRole("listitem")).toHaveCount(2);
     await expect(page.getByText("Related passage about spraying lacquer.")).toBeVisible();
     await expect(related.getByText("Related", { exact: true })).toHaveCount(2);
-    await expect(related.locator(".play--primary")).toHaveCount(0);
     const hide = page.getByRole("button", { name: "Hide" });
     await expect(hide).toBeFocused();
-    // Dashed border on a related card.
-    expect(await related.getByRole("listitem").first().evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("dashed");
+    // Dashed border on a related card's box; the header above it has none.
+    expect(await related.getByRole("listitem").first().locator(".result__card").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("dashed");
+    expect(await related.getByRole("listitem").first().locator(".result__head").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("none");
+    // A related card has the chip (the page, as the episode has no YouTube) and the menu.
+    await expect(related.getByRole("listitem").nth(1).locator("a.hit__time")).toHaveAccessibleName("Play on the show page 1:09:51, starts at 1:09:44, may play an ad first");
 
     await hide.click();
     await expect(related).toHaveCount(0);
@@ -157,34 +226,6 @@ test.describe("on a desktop", () => {
     await expect(page.getByText("No exact matches — passages about similar things:")).toBeVisible();
     await expect(page.getByRole("list", { name: "Results" }).getByRole("listitem")).toHaveCount(2);
     await expect(page.getByRole("button", { name: /related passages|Hide/ })).toHaveCount(0);
-    await noViolations();
-  });
-
-  test("the ⋯ menu works by keyboard", async ({ page }) => {
-    const noViolations = await open(page, keywordCards);
-    const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").first();
-    const more = card.getByRole("button", { name: "More actions" }).first();
-    await more.focus();
-    await page.keyboard.press("Enter");
-    const menu = page.getByRole("menu", { name: "Actions" });
-    await expect(menu).toBeVisible();
-    await expect(more).toHaveAttribute("aria-expanded", "true");
-    await expect(menu.getByRole("menuitem", { name: "More transcript" })).toBeFocused();
-    await page.keyboard.press("ArrowDown");
-    const episodePage = menu.getByRole("menuitem", { name: "Episode page, jump to 1:09:51" });
-    await expect(episodePage).toBeFocused();
-    await expect(episodePage).toHaveAttribute("href", PAGE);
-    await expect(episodePage).toHaveAttribute("target", "_blank");
-    await page.keyboard.press("ArrowDown");
-    await expect(menu.getByRole("menuitem", { name: "Report transcript error" })).toBeFocused();
-    await page.keyboard.press("ArrowDown");
-    await expect(menu.getByRole("menuitem", { name: "More transcript" })).toBeFocused();
-    // Not on a desktop: the other platforms are pills already.
-    await expect(menu.getByRole("menuitem", { name: /^Play on/ })).toHaveCount(0);
-
-    await page.keyboard.press("Escape");
-    await expect(menu).toHaveCount(0);
-    await expect(more).toBeFocused();
     await noViolations();
   });
 
@@ -201,45 +242,21 @@ test.describe("on a desktop", () => {
 });
 
 test.describe("on a phone", () => {
-  test.use({ viewport: { width: 375, height: 700 } });
+  test.use({ viewport: { width: 390, height: 800 } });
 
-  test("only the first platform shows, as a 44 px pill with the time; the others are in ⋯", async ({ page }) => {
-    const noViolations = await open(page, keywordCards);
-    const row = page.getByRole("list", { name: "Results" }).getByRole("listitem").first().locator(".hit").first();
-    await expect(row.locator(".hit__time")).toHaveCount(0);
-    const pills = row.locator("a.play");
-    await expect(pills).toHaveCount(1);
-    await expect(pills).toHaveText("YouTube1:09:51");
-    await expect(pills).toHaveAccessibleName("Play on YouTube 1:09:51, starts at 1:09:44");
-    const box = (await pills.boundingBox())!;
-    expect(box.height).toBeGreaterThanOrEqual(44);
-
-    // ⋯ stays on the same line as the pill, at the right.
-    const more = row.getByRole("button", { name: "More actions" });
-    const moreBox = (await more.boundingBox())!;
-    expect(moreBox.height).toBeGreaterThanOrEqual(44);
-    expect(Math.abs(moreBox.y - box.y)).toBeLessThan(8);
-    expect(moreBox.x).toBeGreaterThan(box.x + box.width);
-
-    await more.click();
-    const menu = page.getByRole("menu", { name: "Actions" });
-    const apple = menu.getByRole("menuitem", { name: "Play on Apple at 1:09:51 · may start early (ads), starts at 1:09:44" });
-    await expect(apple).toContainText("at 1:09:51 · may start early (ads)");
-    await expect(apple).toHaveAttribute("href", AP);
-    await expect(apple).toHaveAttribute("target", "_blank");
-    await expect(apple).toHaveAttribute("rel", /noopener/);
-    await expect(menu.getByRole("menuitem", { name: /^Play on Spotify/ })).toHaveAttribute("href", SP);
-    // The menu fits the screen.
-    const menuBox = (await menu.boundingBox())!;
-    expect(menuBox.x).toBeGreaterThanOrEqual(0);
-    expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(375);
-    await noViolations();
-  });
-
-  test("a Spotify-first card shows the ads note button", async ({ page }) => {
+  test("the chip is a 44 px touch target on its own row above the excerpt, ⋯ beside the excerpt", async ({ page }) => {
     await open(page, keywordCards);
-    const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").nth(1);
-    await expect(card.locator("a.play")).toHaveText("Spotify1:09:51");
-    await expect(card.getByRole("button", { name: /Spotify may start a bit early because of ads/ })).toBeVisible();
+    const row = page.getByRole("list", { name: "Results" }).getByRole("listitem").first().locator(".hit").first();
+    const chip = (await row.locator("a.hit__time").boundingBox())!;
+    expect(chip.height).toBeGreaterThanOrEqual(44);
+    const excerpt = (await row.locator(".hit__excerpt").boundingBox())!;
+    expect(excerpt.y).toBeGreaterThanOrEqual(chip.y + chip.height);
+    const more = (await row.getByRole("button", { name: "More actions" }).boundingBox())!;
+    expect(more.height).toBeGreaterThanOrEqual(44);
+    expect(more.x).toBeGreaterThanOrEqual(excerpt.x + excerpt.width);
+    const nearby = (await row.getByRole("button", { name: "+2 nearby" }).boundingBox())!;
+    expect(nearby.y).toBeGreaterThanOrEqual(excerpt.y + excerpt.height);
+    // The chip is no wider than its text and icon need, not a full row.
+    expect(chip.width).toBeLessThan(120);
   });
 });

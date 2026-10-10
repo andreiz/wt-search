@@ -1,8 +1,9 @@
-// The dense result card, its hit rows, play buttons and ⋯ menu (spec §5.3; design:
-// DenseResult.dc.html), built from the real response fixtures.
+// The dense result card, its hit rows, the timestamp chip and the ⋯ menu (spec §5.3; design:
+// DenseResult.dc.html and docs/design/card-separation-options.html, option A), built from the
+// real response fixtures.
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { SearchResult } from "../../worker/src/api-types";
+import type { DeepLinks, SearchResult } from "../../worker/src/api-types";
 import exactFixture from "../../pipeline/tests/fixtures/search/exact.json";
 import smartFixture from "../../pipeline/tests/fixtures/search/smart.json";
 import { ResultCard } from "../src/components/ResultCard";
@@ -28,9 +29,13 @@ function card(hits: SearchResult[]) {
 function renderCard(hits: SearchResult[], props: Partial<Parameters<typeof ResultCard>[0]> = {}) {
   return render(
     <ol>
-      <ResultCard card={card(hits)} related={hits[0]!.match === "related"} tabIndex={0} phone={false} {...props} />
+      <ResultCard card={card(hits)} related={hits[0]!.match === "related"} tabIndex={0} {...props} />
     </ol>,
   );
+}
+
+function withLinks(hit: SearchResult, links: DeepLinks): SearchResult {
+  return { ...hit, episode: { ...hit.episode, links } };
 }
 
 describe("the header", () => {
@@ -58,6 +63,19 @@ describe("the header", () => {
     const item = screen.getByRole("listitem", { name: /Dovetails, Glue and Bandsaw Tuning/ });
     expect(item.hasAttribute("data-result")).toBe(true);
     expect(item.getAttribute("tabindex")).toBe("0");
+  });
+
+  it("sits above the card's box, not in it, and still names the list item", () => {
+    const { container } = renderCard([full]);
+    const item = container.querySelector("li")!;
+    const head = item.querySelector(".result__head")!;
+    const box = item.querySelector(".result__card")!;
+    expect(box.contains(head)).toBe(false);
+    expect(item.contains(box)).toBe(true);
+    expect(head.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(box.querySelectorAll(".hit")).toHaveLength(1);
+    const heading = head.querySelector("h3")!;
+    expect(item.getAttribute("aria-labelledby")).toBe(heading.id);
   });
 
   it("a two-hit card says '2 matches' before the date and rules off the second row", () => {
@@ -121,94 +139,64 @@ describe("the excerpt", () => {
   });
 });
 
-describe("the play links on a desktop", () => {
-  it("shows every platform in the order YouTube, Apple, Spotify, the first filled", () => {
-    renderCard([full]);
-    const pills = [...document.querySelectorAll<HTMLAnchorElement>("a.play")];
-    expect(pills.map((p) => p.getAttribute("aria-label"))).toEqual([
-      "Play on YouTube, starts at 20:21",
-      "Play on Apple, starts at 20:21",
-      "Play on Spotify, starts at 20:21",
-    ]);
-    expect(pills.map((p) => p.getAttribute("href"))).toEqual([
-      full.episode.links.youtube,
-      full.episode.links.apple,
-      full.episode.links.spotify,
-    ]);
-    expect(pills.map((p) => p.classList.contains("play--primary"))).toEqual([true, false, false]);
-  });
+describe("the timestamp chip", () => {
+  const timed = { ...full, cue_s: { youtube: 4184, apple: 4100, spotify: 4000, page: 4184 }, hit_ms: 4_191_000 };
 
-  it("opens links in a new tab with rel=noopener, and the page never builds a link", () => {
-    renderCard([full]);
-    for (const link of screen.getAllByRole("link", { name: /^Play on/ })) {
-      expect(link.getAttribute("target")).toBe("_blank");
-      expect(link.getAttribute("rel")).toContain("noopener");
-      expect(Object.values(full.episode.links)).toContain(link.getAttribute("href"));
-    }
-  });
-
-  it("names each link around its visible text, with its own platform's cue time when that differs", () => {
-    const hit = { ...full, cue_s: { youtube: 4184, apple: 4100, spotify: 4000, page: 4184 }, hit_ms: 4_191_000 };
-    renderCard([hit]);
-    expect(screen.getByRole("link", { name: "Play on YouTube 1:09:51, starts at 1:09:44" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Play on YouTube, starts at 1:09:44" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Play on Apple, starts at 1:08:20" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Play on Spotify, starts at 1:06:40" })).toBeTruthy();
+  it("is the one play control: a YouTube link named around its time, opening in a new tab", () => {
+    const { container } = renderCard([timed]);
+    const chip = container.querySelector<HTMLAnchorElement>("a.hit__time")!;
+    expect(chip.textContent).toBe("1:09:51");
+    expect(chip.getAttribute("aria-label")).toBe("Play on YouTube 1:09:51, starts at 1:09:44");
+    expect(chip.getAttribute("title")).toBe("Play on YouTube 1:09:51, starts at 1:09:44");
+    expect(chip.getAttribute("href")).toBe(full.episode.links.youtube);
+    expect(chip.getAttribute("target")).toBe("_blank");
+    expect(chip.getAttribute("rel")).toBe("noopener");
+    expect(screen.getByRole("link", { name: "Play on YouTube 1:09:51, starts at 1:09:44" })).toBe(chip);
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 
   it("adds no 'starts at' when the cue is the hit time", () => {
-    const hit = { ...full, cue_s: { youtube: 4191, apple: 4191, spotify: 4191, page: 4191 }, hit_ms: 4_191_000 };
-    renderCard([hit]);
+    renderCard([{ ...timed, cue_s: { youtube: 4191, apple: 4191, spotify: 4191, page: 4191 } }]);
     expect(screen.getByRole("link", { name: "Play on YouTube 1:09:51" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Play on Apple" })).toBeTruthy();
   });
 
-  it("every play link's name contains its visible text", () => {
-    renderCard([full]);
-    for (const link of screen.getAllByRole("link", { name: /^Play on/ })) {
-      const visible = link.textContent!.trim();
-      expect(link.getAttribute("aria-label")).toContain(visible);
+  it("plays the show page when the episode has no YouTube, says where it starts and that an ad may play first", () => {
+    const hit = withLinks(timed, { page: "https://page.test/ep?seek=4184" });
+    renderCard([hit]);
+    const name = "Play on the show page 1:09:51, starts at 1:09:44, may play an ad first";
+    const chip = screen.getByRole("link", { name });
+    expect(chip.getAttribute("href")).toBe("https://page.test/ep?seek=4184");
+    expect(chip.getAttribute("target")).toBe("_blank");
+    expect(chip.getAttribute("rel")).toBe("noopener");
+    expect(chip.getAttribute("title")).toBe(name);
+    expect(chip.classList.contains("hit__time")).toBe(true);
+  });
+
+  it("names a show page chip without 'starts at' when its cue is the hit time", () => {
+    const hit = withLinks({ ...timed, cue_s: { ...timed.cue_s, page: 4191 } }, { page: "https://page.test/ep" });
+    renderCard([hit]);
+    expect(screen.getByRole("link", { name: "Play on the show page 1:09:51, may play an ad first" })).toBeTruthy();
+  });
+
+  it("is plain text, not a link, with neither YouTube nor a page (Apple or nothing)", () => {
+    for (const links of [{ apple: "https://apple.test/1" }, {}] as DeepLinks[]) {
+      const { container } = renderCard([withLinks(timed, links)]);
+      const chip = container.querySelector(".hit__time")!;
+      expect(chip.tagName).toBe("SPAN");
+      expect(chip.classList.contains("hit__time--text")).toBe(true);
+      expect(chip.textContent).toBe("1:09:51");
+      expect(chip.hasAttribute("href")).toBe(false);
+      expect(screen.queryAllByRole("link")).toHaveLength(0);
+      cleanup();
     }
   });
 
-  it("puts the hit time in the 76 px column; it plays on the first platform", () => {
-    const hit = { ...full, cue_s: { youtube: 4184, apple: 4184, spotify: 4184, page: 4184 }, hit_ms: 4_191_000 };
-    const { container } = renderCard([hit]);
-    const time = container.querySelector<HTMLAnchorElement>("a.hit__time")!;
-    expect(time.textContent).toBe("1:09:51");
-    expect(time.getAttribute("aria-label")).toBe("Play on YouTube 1:09:51, starts at 1:09:44");
-    expect(time.getAttribute("href")).toBe(full.episode.links.youtube);
-    expect(container.querySelector(".hit")!.classList.contains("hit--gutter")).toBe(true);
-  });
-
-  it("with one platform shows one pill, and the note about ads only for Apple or Spotify", () => {
-    renderCard([emoji]);
-    expect(document.querySelectorAll("a.play")).toHaveLength(1);
-    expect(screen.queryByRole("button", { name: /ads/ })).toBeNull();
-    cleanup();
-    renderCard([relatedApple]);
-    expect(document.querySelectorAll("a.play")).toHaveLength(1);
-    expect(screen.getByRole("button", { name: /may start a bit early because of ads/i })).toBeTruthy();
-  });
-
-  it("the ads note opens a visible line and closes again", () => {
-    renderCard([full]);
-    const info = screen.getByRole("button", { name: /may start a bit early because of ads/i });
-    expect(info.getAttribute("title")).toBe("May start a bit early because of ads");
-    expect(info.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(info);
-    expect(info.getAttribute("aria-expanded")).toBe("true");
-    expect(screen.getByText("May start a bit early because of ads")).toBeTruthy();
-    fireEvent.click(info);
-    expect(screen.queryByText("May start a bit early because of ads")).toBeNull();
-  });
-
-  it("with no platform at all shows the time as text, no play links and no filled pill", () => {
-    const { container } = renderCard([bare]);
-    expect(screen.queryAllByRole("link", { name: /^Play on/ })).toHaveLength(0);
-    const time = container.querySelector(".hit__time")!;
-    expect(time.tagName).toBe("SPAN");
-    expect(time.textContent).toBe("0:07");
+  it("is the only play control: no pills, no ⓘ, no ads note, no actions row", () => {
+    const { container } = renderCard([full]);
+    expect(container.querySelector(".play")).toBeNull();
+    expect(container.querySelector(".ads-info")).toBeNull();
+    expect(container.querySelector(".hit__actions")).toBeNull();
+    expect(container.querySelector(".hit__note")).toBeNull();
     expect(screen.queryByRole("button", { name: /ads/ })).toBeNull();
   });
 
@@ -221,22 +209,28 @@ describe("the play links on a desktop", () => {
     renderCard([emoji]);
     expect(screen.queryByText(/nearby/)).toBeNull();
   });
+
+  it("puts the chip, ⋯ and '+N nearby' in the tab order in that order (the visual order)", () => {
+    const { container } = renderCard([full]);
+    const order = [...container.querySelectorAll<HTMLElement>("a[href], button")].map((el) => el.getAttribute("aria-label") ?? el.textContent);
+    expect(order).toEqual(["Play on YouTube 20:28, starts at 20:21", "More actions", "+2 nearby"]);
+  });
 });
 
 describe("a related card", () => {
-  it("is dashed with a Related tag, a muted excerpt and no filled pill", () => {
-    const { container } = renderCard([relatedApple]);
+  it("is dashed with a Related tag in the header, and keeps its chip", () => {
+    const { container } = renderCard([withLinks(relatedApple, { ...relatedApple.episode.links, youtube: "https://yt.test/r" })]);
     expect(container.querySelector("li")!.classList.contains("result--related")).toBe(true);
-    expect(screen.getByText("Related")).toBeTruthy();
-    expect(container.querySelectorAll(".play--primary")).toHaveLength(0);
-    expect(container.querySelectorAll("a.play")).toHaveLength(1);
+    expect(container.querySelector(".result__head .result__tag")?.textContent).toBe("Related");
+    expect(container.querySelector("a.hit__time")?.getAttribute("href")).toBe("https://yt.test/r");
+    expect(container.querySelector(".result__card")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
   });
 
   it("a keyword card has neither the tag nor the dashes", () => {
     const { container } = renderCard([keywordHit]);
     expect(container.querySelector("li")!.classList.contains("result--related")).toBe(false);
     expect(screen.queryByText("Related")).toBeNull();
-    expect(container.querySelectorAll(".play--primary")).toHaveLength(1);
   });
 
   it("marks the ranges the API sent for a related hit", () => {
@@ -248,8 +242,9 @@ describe("a related card", () => {
 describe("the ⋯ menu", () => {
   const open = () => fireEvent.click(screen.getByRole("button", { name: "More actions" }));
   const items = () => within(screen.getByRole("menu")).getAllByRole("menuitem");
+  const label = (el: Element) => el.getAttribute("aria-label") ?? el.textContent;
 
-  it("is a button that opens a menu, with More transcript, Episode page and Report", () => {
+  it("is a button that opens a menu", () => {
     renderCard([full]);
     const button = screen.getByRole("button", { name: "More actions" });
     expect(button.getAttribute("aria-haspopup")).toBe("menu");
@@ -257,34 +252,75 @@ describe("the ⋯ menu", () => {
     expect(screen.queryByRole("menu")).toBeNull();
     open();
     expect(button.getAttribute("aria-expanded")).toBe("true");
-    expect(items().map((i) => i.getAttribute("aria-label") ?? i.textContent)).toEqual([
-      "More transcript",
-      "Episode page, jump to 20:28",
-      "Report transcript error",
-    ]);
   });
 
-  it("links the episode page from the API, in a new tab, and leaves it out without a page link", () => {
+  it("lists Show page, Apple, Spotify, More transcript and Report, with the sub-lines", () => {
+    // Every cue (20:21) differs from the hit time (20:28), the page's too: its row still never says "starts at".
     renderCard([full]);
     open();
-    const page = screen.getByRole("menuitem", { name: "Episode page, jump to 20:28" });
-    expect(page.getAttribute("href")).toBe(full.episode.links.page);
-    expect(page.getAttribute("target")).toBe("_blank");
-    expect(page.getAttribute("rel")).toContain("noopener");
-    cleanup();
-    renderCard([{ ...relatedApple, episode: { ...relatedApple.episode, links: { apple: relatedApple.episode.links.apple } } }]);
+    expect(items().map(label)).toEqual([
+      "Show page plays from 20:28, may play an ad first",
+      "Play on Apple at 20:28 · may start minutes early, starts at 20:21",
+      "Play on Spotify at 20:28 · may start minutes early, starts at 20:21",
+      "More transcript",
+      "Report transcript error",
+    ]);
+    expect(items().map((i) => i.firstChild?.textContent)).toEqual([
+      "Show page",
+      "Play on Apple",
+      "Play on Spotify",
+      "More transcript",
+      "Report transcript error",
+    ]);
+    expect([...document.querySelectorAll(".menu-item__sub")].map((s) => s.textContent)).toEqual([
+      "plays from 20:28, may play an ad first",
+      "at 20:28 · may start minutes early",
+      "at 20:28 · may start minutes early",
+    ]);
+    expect(screen.queryByText("Episode page")).toBeNull();
+  });
+
+  it("links the play rows from the API, in a new tab", () => {
+    renderCard([full]);
     open();
-    expect(screen.queryByRole("menuitem", { name: /Episode page/ })).toBeNull();
+    const [page, apple, spotify] = items() as [HTMLAnchorElement, HTMLAnchorElement, HTMLAnchorElement];
+    expect([page, apple, spotify].map((a) => a.getAttribute("href"))).toEqual([
+      full.episode.links.page,
+      full.episode.links.apple,
+      full.episode.links.spotify,
+    ]);
+    for (const link of [page, apple, spotify]) {
+      expect(link.getAttribute("target")).toBe("_blank");
+      expect(link.getAttribute("rel")).toBe("noopener");
+    }
+  });
+
+  it("has a rule between the play rows and More transcript, and again before Report", () => {
+    renderCard([full]);
+    open();
+    expect(document.querySelectorAll(".more-menu__list [role='separator']")).toHaveLength(2);
+  });
+
+  it("leaves 'Show page' out when the page is the chip's link (no YouTube)", () => {
+    renderCard([withLinks(full, { page: full.episode.links.page, apple: full.episode.links.apple })]);
+    open();
+    expect(items().map((i) => i.firstChild?.textContent)).toEqual(["Play on Apple", "More transcript", "Report transcript error"]);
+  });
+
+  it("with no links at all still opens, with More transcript and Report", () => {
+    renderCard([withLinks(full, {})]);
+    open();
+    expect(items().map(label)).toEqual(["More transcript", "Report transcript error"]);
+    expect(document.querySelectorAll(".more-menu__list [role='separator']")).toHaveLength(1);
+    expect(document.activeElement).toBe(items()[0]);
   });
 
   it("moves focus to the first item on opening, and the arrow keys move and wrap", () => {
-    renderCard([full]);
+    renderCard([withLinks(full, {})]);
     open();
-    const [more, page, report] = items() as [HTMLElement, HTMLElement, HTMLElement];
+    const [more, report] = items() as [HTMLElement, HTMLElement];
     expect(document.activeElement).toBe(more);
     fireEvent.keyDown(more, { key: "ArrowDown" });
-    expect(document.activeElement).toBe(page);
-    fireEvent.keyDown(page, { key: "ArrowDown" });
     expect(document.activeElement).toBe(report);
     fireEvent.keyDown(report, { key: "ArrowDown" });
     expect(document.activeElement).toBe(more);
@@ -344,25 +380,17 @@ describe("the ⋯ menu", () => {
     expect(onReport).toHaveBeenCalledWith(full);
   });
 
-  it("activating the Episode page link closes the menu and returns focus to ⋯", () => {
+  it("activating a play row closes the menu and returns focus to ⋯", () => {
     renderCard([full]);
     const button = screen.getByRole("button", { name: "More actions" });
-    open();
-    const page = screen.getByRole("menuitem", { name: /^Episode page/ });
-    page.addEventListener("click", (event) => event.preventDefault()); // no navigation in the test
-    fireEvent.click(page);
-    expect(screen.queryByRole("menu")).toBeNull();
-    expect(document.activeElement).toBe(button);
-  });
-
-  it("activating a Play link in the phone menu returns focus to ⋯", () => {
-    renderCard([full], { phone: true });
-    const button = screen.getByRole("button", { name: "More actions" });
-    open();
-    const apple = screen.getByRole("menuitem", { name: /^Play on Apple/ });
-    apple.addEventListener("click", (event) => event.preventDefault());
-    fireEvent.click(apple);
-    expect(document.activeElement).toBe(button);
+    for (const name of [/^Show page/, /^Play on Apple/]) {
+      open();
+      const row = screen.getByRole("menuitem", { name });
+      row.addEventListener("click", (event) => event.preventDefault()); // no navigation in the test
+      fireEvent.click(row);
+      expect(screen.queryByRole("menu")).toBeNull();
+      expect(document.activeElement).toBe(button);
+    }
   });
 
   it("belongs to its own hit in a two-hit card", () => {
@@ -372,52 +400,5 @@ describe("the ⋯ menu", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "More actions" })[1]!);
     fireEvent.click(screen.getByRole("menuitem", { name: "More transcript" }));
     expect(onMore).toHaveBeenCalledWith(second);
-  });
-});
-
-describe("on a phone", () => {
-  it("shows the first platform only, as '▶ YouTube 1:09:51', and no time column", () => {
-    const hit = { ...full, cue_s: { youtube: 4184, apple: 4184, spotify: 4184, page: 4184 }, hit_ms: 4_191_000 };
-    const { container } = renderCard([hit], { phone: true });
-    const pills = container.querySelectorAll<HTMLAnchorElement>("a.play");
-    expect(pills).toHaveLength(1);
-    expect(pills[0]!.textContent).toBe("YouTube1:09:51");
-    expect(pills[0]!.getAttribute("aria-label")).toBe("Play on YouTube 1:09:51, starts at 1:09:44");
-    expect(container.querySelector(".hit__time")).toBeNull();
-    expect(container.querySelector(".hit")!.classList.contains("hit--gutter")).toBe(false);
-    expect(screen.getAllByRole("link", { name: /^Play on/ })).toHaveLength(1);
-  });
-
-  it("moves the other platforms into the menu with the sub-line", () => {
-    const hit = { ...full, cue_s: { youtube: 4184, apple: 4100, spotify: 4000, page: 4184 }, hit_ms: 4_191_000 };
-    renderCard([hit], { phone: true });
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
-    const menu = within(screen.getByRole("menu"));
-    const apple = menu.getByRole("menuitem", { name: "Play on Apple at 1:09:51 · may start early (ads), starts at 1:08:20" });
-    expect(apple.getAttribute("href")).toBe(full.episode.links.apple);
-    expect(apple.getAttribute("target")).toBe("_blank");
-    expect(apple.textContent).toContain("at 1:09:51 · may start early (ads)");
-    expect(menu.getByRole("menuitem", { name: "Play on Spotify at 1:09:51 · may start early (ads), starts at 1:06:40" })).toBeTruthy();
-    expect(menu.getAllByRole("menuitem").map((i) => (i.getAttribute("aria-label") ?? i.textContent)?.slice(0, 12))).toEqual([
-      "Play on Appl",
-      "Play on Spot",
-      "More transcri",
-      "Episode page",
-      "Report trans",
-    ].map((s) => s.slice(0, 12)));
-  });
-
-  it("shows the ads note only when the shown platform is Apple or Spotify", () => {
-    renderCard([full], { phone: true });
-    expect(screen.queryByRole("button", { name: /ads/ })).toBeNull();
-    cleanup();
-    renderCard([relatedApple], { phone: true });
-    expect(screen.getByRole("button", { name: /may start a bit early because of ads/i })).toBeTruthy();
-  });
-
-  it("opens the menu with Play on rows only for the platforms it does not show", () => {
-    renderCard([emoji], { phone: true });
-    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
-    expect(screen.queryByRole("menuitem", { name: /^Play on/ })).toBeNull();
   });
 });

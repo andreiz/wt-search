@@ -8,12 +8,11 @@
 // takes focus inside a card makes that card the one in the tab order.
 //
 // Fold state lives here, so it is per page: App keys this component by search, and a new
-// search starts it closed. Phone vs desktop changes the DOM of a hit row's actions (usePhone).
+// search starts it closed.
 import type { RefObject } from "preact";
 import { useLayoutEffect, useState } from "preact/hooks";
 import type { SearchResult } from "../../../worker/src/api-types";
 import { groupNeighbours, splitRelated, type Card } from "../lib/group";
-import { usePhone } from "../lib/use-phone";
 import type { HitActions } from "./HitRow";
 import { RelatedFold } from "./RelatedFold";
 import { ResultCard } from "./ResultCard";
@@ -31,7 +30,6 @@ export function ResultList({
   /** The element holding every list; its cards carry `data-result`. */
   listRef: RefObject<HTMLDivElement | null>;
 }) {
-  const phone = usePhone();
   const [active, setActive] = useState(0);
   const [foldOpen, setFoldOpen] = useState(false);
 
@@ -63,7 +61,6 @@ export function ResultList({
         card={card}
         related={isRelated}
         tabIndex={offset + index === current ? 0 : -1}
-        phone={phone}
         onMore={onMore}
         onNearby={onNearby}
         onReport={onReport}

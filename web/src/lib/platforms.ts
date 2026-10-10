@@ -1,53 +1,73 @@
-// Which platforms a hit can be played on (spec §4.6). The links come from the API (`episode.links`,
-// already carrying their cue times); this module never builds one. It only orders them, YouTube
-// first, and pairs each with that platform's cue time for the name screen readers hear.
+// Which links play a hit (spec §4.6 "Which link the card plays", §5.3). The links come from the
+// API (`episode.links`, already carrying their cue times); this module never builds one. It only
+// picks the chip's link (YouTube, else the show page), lists the others for the ⋯ menu, and words
+// the names screen readers hear.
 import type { SearchResult } from "../../../worker/src/api-types";
 import { timestamp } from "./format";
 
-export type PlatformKey = "youtube" | "apple" | "spotify";
+export type PlayKey = "youtube" | "page" | "apple" | "spotify";
 
-export interface Platform {
-  key: PlatformKey;
+export interface PlayLink {
+  key: PlayKey;
+  /** As it reads after "Play on": "YouTube", "the show page", "Apple", "Spotify". */
   name: string;
   href: string;
-  /** "1:09:44": where this platform starts to play (`cue_s`), for the link's name. */
+  /** "28:54": where this link starts to play (`cue_s`), for the link's name. */
   cue: string;
 }
 
-const ORDER: { key: PlatformKey; name: string }[] = [
-  { key: "youtube", name: "YouTube" },
-  { key: "apple", name: "Apple" },
-  { key: "spotify", name: "Spotify" },
-];
+const NAMES: Record<PlayKey, string> = {
+  youtube: "YouTube",
+  page: "the show page",
+  apple: "Apple",
+  spotify: "Spotify",
+};
 
-/** The platforms the episode has, in the card's order. */
-export function platformsOf(hit: SearchResult): Platform[] {
-  const out: Platform[] = [];
-  for (const { key, name } of ORDER) {
-    const href = hit.episode.links[key];
-    if (href) out.push({ key, name, href, cue: timestamp(hit.cue_s[key]) });
-  }
-  return out;
+function playOf(hit: SearchResult, key: PlayKey): PlayLink | null {
+  const href = hit.episode.links[key];
+  return href ? { key, name: NAMES[key], href, cue: timestamp(hit.cue_s[key]) } : null;
 }
 
-/** What a play control shows: its platform name only, the hit's time too, or a menu row's words. */
-export type Shown = "name" | "time" | "menu";
+/** The hit's one play control: the YouTube link when the episode has one, else the show page. */
+export function primaryPlay(hit: SearchResult): PlayLink | null {
+  return playOf(hit, "youtube") ?? playOf(hit, "page");
+}
+
+/** The other links, for the ⋯ menu: the show page (unless the chip plays it), Apple, Spotify. */
+export function menuPlays(hit: SearchResult): PlayLink[] {
+  const primary = primaryPlay(hit);
+  const keys: PlayKey[] = ["page", "apple", "spotify"];
+  return keys
+    .filter((key) => key !== primary?.key)
+    .flatMap((key) => {
+      const play = playOf(hit, key);
+      return play ? [play] : [];
+    });
+}
+
+function starts(play: PlayLink, time: string): string {
+  return play.cue === time ? "" : `, starts at ${play.cue}`;
+}
 
 /**
- * The accessible name of a play control. It is built around the visible text, in order (WCAG
- * 2.5.3), and adds ", starts at <cue>" only when this platform's cue differs from the hit time:
- * "Play on Apple" / "Play on YouTube 1:09:51, starts at 1:09:44" /
- * "Play on Apple at 1:09:51 · may start early (ads), starts at 1:09:44".
+ * The chip's accessible name, built around its visible text (WCAG 2.5.3): "Play on YouTube 29:01,
+ * starts at 28:54"; for the show page "Play on the show page 29:01, starts at 28:54, may play an ad
+ * first". ", starts at …" is left out when the cue is the hit's time.
  */
-export function playName(platform: Platform, time: string, shown: Shown): string {
-  const visible =
-    shown === "name"
-      ? ""
-      : shown === "time"
-        ? ` ${time}`
-        : ` at ${time} · may start early (ads)`;
-  const starts = platform.cue === time ? "" : `, starts at ${platform.cue}`;
-  return `Play on ${platform.name}${visible}${starts}`;
+export function chipName(play: PlayLink, time: string): string {
+  const ad = play.key === "page" ? ", may play an ad first" : "";
+  return `Play on ${play.name} ${time}${starts(play, time)}${ad}`;
+}
+
+/**
+ * A menu row's accessible name: its visible words in order. Apple and Spotify add ", starts at …"
+ * when the cue differs ("Play on Apple at 29:01 · may start minutes early, starts at 28:20"); the
+ * show page never does, as "plays from 29:01 … starts at 28:54" would contradict itself:
+ * "Show page plays from 29:01, may play an ad first".
+ */
+export function menuName(play: PlayLink, time: string): string {
+  if (play.key === "page") return `Show page plays from ${time}, may play an ad first`;
+  return `Play on ${play.name} at ${time} · may start minutes early${starts(play, time)}`;
 }
 
 /** Where the hit is in the episode, as the card shows it: "1:09:51". */

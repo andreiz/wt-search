@@ -1,25 +1,21 @@
-// The ⋯ menu of a hit row (DenseResult.dc.html; spec §5.3): on a phone the platforms the row
-// does not show, then More transcript, Episode page (a link, with "jump to mm:ss" because the
-// page has no player) and Report transcript error. A menu button with arrow-key movement: Esc,
-// a press outside or Tab closes it, and Esc or a choice returns focus to ⋯ (SortMenu.tsx works
-// the same way).
+// The ⋯ menu of a hit row (spec §5.3), the same at every width: the links the chip does not play
+// (Show page, Apple, Spotify), then More transcript and Report transcript error. A menu button
+// with arrow-key movement: Esc, a press outside or Tab closes it, and Esc or a choice returns
+// focus to ⋯ (SortMenu.tsx works the same way).
 import { useEffect, useRef, useState } from "preact/hooks";
-import type { Platform } from "../lib/platforms";
-import { playName } from "../lib/platforms";
+import type { PlayLink } from "../lib/platforms";
+import { menuName } from "../lib/platforms";
 
 const ITEMS = "[role='menuitem']";
 
 export function MoreMenu({
-  extra,
-  pageHref,
+  plays,
   time,
   onMore,
   onReport,
 }: {
-  /** Phone only: the platforms the row does not show as pills. */
-  extra: Platform[];
-  /** The Wood Talk page link from the API, when the episode has one. */
-  pageHref: string | undefined;
+  /** The links the chip does not play, in menu order (`menuPlays`). */
+  plays: PlayLink[];
   /** The hit's time, "1:09:51". */
   time: string;
   onMore: () => void;
@@ -102,23 +98,27 @@ export function MoreMenu({
       </button>
       {open && (
         <div class="more-menu__list" role="menu" aria-label="Actions" onKeyDown={onMenuKeyDown}>
-          {extra.map((platform) => (
+          {plays.map((play) => (
             <a
-              key={platform.key}
+              key={play.key}
               role="menuitem"
               class="menu-item"
               tabIndex={-1}
-              href={platform.href}
+              href={play.href}
               target="_blank"
               rel="noopener"
-              aria-label={playName(platform, time, "menu")}
+              aria-label={menuName(play, time)}
               onClick={close}
             >
-              Play on {platform.name}
-              <span class="menu-item__sub">at {time} · may start early (ads)</span>
+              {play.key === "page" ? "Show page" : `Play on ${play.name}`}
+              <span class="menu-item__sub">
+                {play.key === "page"
+                  ? `plays from ${time}, may play an ad first`
+                  : `at ${time} · may start minutes early`}
+              </span>
             </a>
           ))}
-          {extra.length > 0 && <div class="menu-rule" role="separator" />}
+          {plays.length > 0 && <div class="menu-rule" role="separator" />}
           <button
             type="button"
             role="menuitem"
@@ -131,21 +131,6 @@ export function MoreMenu({
           >
             More transcript
           </button>
-          {pageHref && (
-            <a
-              role="menuitem"
-              class="menu-item"
-              tabIndex={-1}
-              href={pageHref}
-              target="_blank"
-              rel="noopener"
-              aria-label={`Episode page, jump to ${time}`}
-              onClick={close}
-            >
-              Episode page
-              <span class="menu-item__sub">jump to {time}</span>
-            </a>
-          )}
           <div class="menu-rule" role="separator" />
           <button
             type="button"

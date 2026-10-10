@@ -1,6 +1,5 @@
-// The result list: grouping neighbours, the related fold (spec §5.3, §5.6), the phone layout
-// switch and the keyboard stops.
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
+// The result list: grouping neighbours, the related fold (spec §5.3, §5.6) and the keyboard stops.
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
 import { createRef } from "preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
@@ -132,57 +131,14 @@ describe("the keyboard stops", () => {
   });
 });
 
-describe("phone and desktop", () => {
-  function stubWidth(phone: boolean) {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn((query: string) => ({
-        matches: phone && query.includes("max-width: 599.98px"),
-        media: query,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-      })),
-    );
-  }
-
-  it("shows every platform on a desktop width", () => {
-    stubWidth(false);
+describe("one DOM at every width", () => {
+  it("renders the same chip and ⋯ menu whatever the window width; only CSS differs", () => {
     const hit = result(1, { episode: { ...result(1).episode, links: { youtube: "https://y.test/1", apple: "https://a.test/1" } } });
     renderList([hit]);
-    expect(document.querySelectorAll("a.play")).toHaveLength(2);
-    expect(document.querySelector(".hit__time")).toBeTruthy();
-  });
-
-  it("shows only the first platform, with its time, below 600 px", () => {
-    stubWidth(true);
-    const hit = result(1, { episode: { ...result(1).episode, links: { youtube: "https://y.test/1", apple: "https://a.test/1" } } });
-    renderList([hit]);
-    expect(document.querySelectorAll("a.play")).toHaveLength(1);
-    expect(document.querySelector(".play__time")).toBeTruthy();
-    expect(document.querySelector(".hit__time")).toBeNull();
-  });
-
-  it("follows the width when the window changes", () => {
-    let listener: (() => void) | undefined;
-    let phone = false;
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => ({
-        get matches() {
-          return phone;
-        },
-        addEventListener: (_: string, fn: () => void) => {
-          listener = fn;
-        },
-        removeEventListener: () => {},
-      })),
-    );
-    const hit = result(1, { episode: { ...result(1).episode, links: { youtube: "https://y.test/1", apple: "https://a.test/1" } } });
-    renderList([hit]);
-    expect(document.querySelectorAll("a.play")).toHaveLength(2);
-    phone = true;
-    act(() => listener?.());
-    expect(document.querySelectorAll("a.play")).toHaveLength(1);
+    expect(document.querySelectorAll("a.hit__time")).toHaveLength(1);
+    expect(document.querySelectorAll("a.play")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    expect(screen.getByRole("menuitem", { name: /^Play on Apple/ })).toBeTruthy();
   });
 });
 

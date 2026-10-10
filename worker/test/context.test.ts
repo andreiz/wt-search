@@ -25,7 +25,6 @@ interface ContextBody {
     cue_s: { youtube: number; apple: number; spotify: number; page: number };
     links: Record<string, string>;
     ranges: [number, number][];
-    repeat: [number, number] | null;
   }[];
 }
 
@@ -146,7 +145,6 @@ describe("neighbours", () => {
           cue_s: { youtube: 113, apple: 113, spotify: 113, page: 113 },
           links: {},
           ranges: [],
-          repeat: null,
         },
       ],
     });
@@ -245,24 +243,63 @@ function marked(body: ContextBody): Record<number, string[]> {
   return Object.fromEntries(body.chunks.map((c) => [c.chunk_id, c.ranges.map(([s, e]) => c.text.slice(s, e))]));
 }
 
-describe("repeat (the sentence two chunks share)", () => {
-  const repeats = (body: ContextBody) => body.chunks.map((c) => c.repeat && c.text.slice(...c.repeat));
+describe("the sentence two chunks share is said once", () => {
+  const texts = (body: ContextBody) => body.chunks.map((c) => c.text);
 
-  it("is the end of a chunk before the hit and the start of one after it; the hit is whole", async () => {
+  it("is cut from the end of a chunk before the hit and the start of one after it; the hit is whole", async () => {
     const { body } = await context("?chunk=3502");
-    expect(body.chunks.map((c) => c.repeat)).toEqual([[18, 34], null, [0, 18], null]);
-    expect(repeats(body)).toEqual(["Then we glue it.", null, "Clamps go on next.", null]);
+    expect(texts(body)).toEqual([
+      "We cut the board.",
+      "Then we glue it. Clamps go on next.",
+      "Wait a day.",
+      "Wait a day. Then sand.",
+    ]);
   });
 
   it("follows the hit: every chunk gives up the side that faces it", async () => {
-    expect(repeats((await context("?chunk=3501")).body)).toEqual([null, "Then we glue it.", "Clamps go on next.", null]);
-    expect(repeats((await context("?chunk=3504")).body)).toEqual(["Then we glue it.", "Clamps go on next.", null, null]);
+    expect(texts((await context("?chunk=3501")).body)).toEqual([
+      "We cut the board. Then we glue it.",
+      "Clamps go on next.",
+      "Wait a day.",
+      "Wait a day. Then sand.",
+    ]);
+    // 3503 ends "Wait a day." and 3504 starts with it, five seconds later: not the same words.
+    expect(texts((await context("?chunk=3504")).body)).toEqual([
+      "We cut the board.",
+      "Then we glue it.",
+      "Clamps go on next. Wait a day.",
+      "Wait a day. Then sand.",
+    ]);
   });
 
-  it("is null for the same words said at another time, and for chunks that share nothing", async () => {
-    // 3503 ends "Wait a day." and 3504 starts with it, five seconds later.
-    expect((await context("?chunk=3503")).body.chunks.at(-1)!.repeat).toBeNull();
-    expect((await context("?chunk=3005")).body.chunks.every((c) => c.repeat === null)).toBe(true);
+  it("a chunk cut at its start begins, cues and links at its first word left", async () => {
+    const { body } = await context("?chunk=3502");
+    const after = body.chunks[2]!;
+    // "Wait" is the fifth word of 3503: 4000 + 4 × 500 ms.
+    expect(after.start_ms).toBe(6_000);
+    expect(after.end_ms).toBe(34_000);
+    expect(after.cue_s.page).toBe(0);
+    const whole = (await context("?chunk=3503")).body.chunks[2]!;
+    expect(whole.start_ms).toBe(4_000);
+  });
+
+  it("a chunk cut at its end keeps its start and ends where the next one starts", async () => {
+    const before = (await context("?chunk=3502")).body.chunks[0]!;
+    expect(before.start_ms).toBe(0);
+    expect(before.end_ms).toBe(2_000);
+  });
+
+  it("moves the ranges with the text, and drops the ones in the part taken out", async () => {
+    // "glue" is in the sentence 3501 and 3502 share; "wait" comes after the cut in 3503.
+    const { body } = await context("?chunk=3502&q=glue+wait+board");
+    const marked = body.chunks.map((c) => c.ranges.map(([s, e]) => c.text.slice(s, e)));
+    expect(marked).toEqual([["board"], ["glue"], ["Wait"], ["Wait"]]);
+  });
+
+  it("leaves chunks that share nothing as they are", async () => {
+    const { body } = await context("?chunk=3005");
+    expect(texts(body)).toEqual([1, 2, 3, 4, 5, 6, 7].map((seq) => `thirty chunk ${seq}`));
+    expect(body.chunks.map((c) => c.start_ms)).toEqual([1, 2, 3, 4, 5, 6, 7].map((seq) => seq * 30_000));
   });
 });
 

@@ -112,8 +112,14 @@ export type DegradedReason = "unavailable" | "budget" | "off";
 export interface ContextChunk {
   chunk_id: number;
   seq: number;
+  /** When `text` starts; later than the stored chunk's start if its first sentence was taken out. */
   start_ms: number;
   end_ms: number;
+  /**
+   * The chunk's text as a reader meets it. Stored chunks overlap by a sentence; the copy on the
+   * side away from the hit is taken out (the end of a chunk before the hit, the start of one
+   * after it). The hit's own text is whole.
+   */
   text: string;
   /** A sponsor read or other repeated ad. Still part of the transcript, so it is included. */
   boilerplate: boolean;
@@ -125,13 +131,6 @@ export interface ContextChunk {
    * units, like a search result's `ranges`. Always present; empty without `q` or a match.
    */
   ranges: [number, number][];
-  /**
-   * The part of `text` (`[start, end)`, UTF-16 code units) that the neighbouring chunk on the
-   * hit's side also holds: chunks overlap by a sentence, so a reader meets it twice. It is the
-   * end of a chunk before the hit and the start of one after it; null for the hit and when
-   * nothing is shared.
-   */
-  repeat: [number, number] | null;
 }
 
 export interface ContextResponse {

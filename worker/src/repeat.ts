@@ -1,7 +1,7 @@
-// The sentence two neighbouring chunks share (spec §4.4, `repeat`). The chunker overlaps chunks
-// by one sentence (pipeline/src/wts/chunker.py), so a transcript read chunk after chunk says that
-// sentence twice. The shared words are the same words, so they have the same start times: that,
-// and the same text, is how they are found. Pure; no I/O.
+// The sentence two neighbouring chunks share (spec §4.4). The chunker overlaps chunks by one
+// sentence (pipeline/src/wts/chunker.py), so a transcript read chunk after chunk says that
+// sentence twice; /api/context takes one copy out. The shared words are the same words, so they
+// have the same start times: that, and the same text, is how they are found. Pure; no I/O.
 
 import { decodeWordTimes } from "./wordtimes";
 
@@ -42,15 +42,45 @@ export function sharedWords(before: RepeatChunk, after: RepeatChunk): number {
   return 0;
 }
 
-/** The last `count` words of `text` as a `[start, end)` range in UTF-16 code units; null for 0. */
-export function tailRange(text: string, count: number): [number, number] | null {
-  if (count <= 0) return null;
-  const tokens = text.split(" ");
-  return [text.length - tokens.slice(-count).join(" ").length, text.length];
+/** A chunk as the transcript shows it: its text, when that starts and ends, and the highlights in it. */
+export interface Shown {
+  text: string;
+  start_ms: number;
+  end_ms: number;
+  ranges: [number, number][];
 }
 
-/** The first `count` words of `text` as a `[start, end)` range; null for 0. */
-export function headRange(text: string, count: number): [number, number] | null {
-  if (count <= 0) return null;
-  return [0, text.split(" ").slice(0, count).join(" ").length];
+/** The ranges that fall in `[from, to)` of the old text, as offsets into that slice. */
+function clip(ranges: [number, number][], from: number, to: number): [number, number][] {
+  return ranges
+    .map(([start, end]): [number, number] => [Math.max(start, from) - from, Math.min(end, to) - from])
+    .filter(([start, end]) => end > start);
+}
+
+type Chunk = RepeatChunk & { end_ms: number };
+
+/**
+ * `chunk` without the words at its end that `next` starts with. It then ends where `next`
+ * starts. Unchanged when they share nothing, or when nothing would be left.
+ */
+export function withoutTail(chunk: Chunk, ranges: [number, number][], next: RepeatChunk): Shown {
+  const tokens = chunk.text.split(" ");
+  const count = sharedWords(chunk, next);
+  if (count === 0 || count >= tokens.length) return { text: chunk.text, start_ms: chunk.start_ms, end_ms: chunk.end_ms, ranges };
+  const text = tokens.slice(0, -count).join(" ");
+  return { text, start_ms: chunk.start_ms, end_ms: next.start_ms, ranges: clip(ranges, 0, text.length) };
+}
+
+/**
+ * `chunk` without the words at its start that `previous` ends with. It then starts at its first
+ * word that is left. Unchanged when they share nothing, or when nothing would be left.
+ */
+export function withoutHead(chunk: Chunk, ranges: [number, number][], previous: RepeatChunk): Shown {
+  const tokens = chunk.text.split(" ");
+  const count = sharedWords(previous, chunk);
+  if (count === 0 || count >= tokens.length) return { text: chunk.text, start_ms: chunk.start_ms, end_ms: chunk.end_ms, ranges };
+  const text = tokens.slice(count).join(" ");
+  // sharedWords read the times, so there is one per token.
+  const start_ms = decodeWordTimes(chunk.start_ms, chunk.word_times)[count] ?? chunk.start_ms;
+  return { text, start_ms, end_ms: chunk.end_ms, ranges: clip(ranges, chunk.text.length - text.length, chunk.text.length) };
 }

@@ -27,7 +27,7 @@ main session reviews, runs every suite and commits (one commit per task). Tasks 
 main checkout, one subagent at a time, told not to commit.
 
 **Tests (2026-10-10):** pipeline **702** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **518** in 19 files (`cd worker && npm test`, `npx tsc --noEmit`), web **614** unit +
+Worker **524** in 19 files (`cd worker && npm test`, `npx tsc --noEmit`), web **607** unit +
 **41** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
@@ -365,12 +365,12 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     other in the same render; the collapsed row drops its running request and does not take
     focus. If the collapsed view was above, the page is re-anchored at once and again when
     the paragraphs load. Web **607** unit + **41** e2e.
-  - **The repeated sentence is dimmed** (maintainer, 2026-10-10): chunks overlap by one
-    sentence, so `/api/context` now sends `repeat` per chunk (`worker/src/repeat.ts`: the
-    shared words have the same text and the same `word_times`), the side away from the
-    hit; the page shows it in `--muted` (`.passage__repeat`, `parts()` in `lib/excerpt.ts`).
-    The maintainer chose dimming first; removing the repeat is the next step if it still
-    reads badly. Worker **518**, web **614** unit + **41** e2e.
+  - **The sentence two chunks share is shown once** (maintainer, 2026-10-10): chunks
+    overlap by one sentence, so `/api/context` cuts the copy on the side away from the hit
+    (`worker/src/repeat.ts`: the shared words have the same text and the same
+    `word_times`). A chunk after the hit starts, cues and links at its first word left; the
+    hit is whole. Nothing changed in the page. Dimming was tried first (one commit) and
+    was too faint. Worker **524**, web **607** unit + **41** e2e.
   - The phone timestamp column is 64 px, not the mock's 58: "10:00:00" didn't fit.
   - **Look in a browser:** the transcript's play links landing at each paragraph; the
     focus ring on the opened region; a screen reader on the region, "Matching passage" and

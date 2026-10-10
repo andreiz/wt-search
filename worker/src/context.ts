@@ -10,7 +10,7 @@ import { highlightRanges, withoutStopwords } from "./highlight";
 import { json, logError } from "./http";
 import { cueTimes, deepLinks, type LinkEpisode } from "./links";
 import { boundQuery, HIGHLIGHT_STOPWORDS, parseQuery } from "./query";
-import { headRange, sharedWords, tailRange } from "./repeat";
+import { withoutHead, withoutTail, type Shown } from "./repeat";
 
 /** Chunks either side of the hit when `radius` is missing or bad. */
 export const DEFAULT_RADIUS = 3;
@@ -79,18 +79,18 @@ function rangesOf(text: string, markedText: string | undefined): [number, number
 }
 
 /**
- * The part of `rows[index]` that its neighbour on the hit's side also holds: the end of a chunk
- * before the hit, the start of one after it. Null for the hit itself, which is shown whole, and
- * when the neighbour is not the next chunk of the episode or shares nothing.
+ * `rows[index]` as the transcript shows it: without the sentence its neighbour on the hit's side
+ * also holds (the end of a chunk before the hit, the start of one after it), so the reader meets
+ * it once. The hit itself is whole, and so is a chunk whose neighbour is not the next of the
+ * episode.
  */
-function repeatOf(rows: Row[], index: number, hitIndex: number): [number, number] | null {
+function shownOf(rows: Row[], index: number, hitIndex: number, ranges: [number, number][]): Shown {
   const row = rows[index]!;
-  if (index === hitIndex) return null;
   const neighbour = rows[index < hitIndex ? index + 1 : index - 1];
-  if (!neighbour || Math.abs(neighbour.seq - row.seq) !== 1) return null;
-  return index < hitIndex
-    ? tailRange(row.text, sharedWords(row, neighbour))
-    : headRange(row.text, sharedWords(neighbour, row));
+  if (index === hitIndex || !neighbour || Math.abs(neighbour.seq - row.seq) !== 1) {
+    return { text: row.text, start_ms: row.start_ms, end_ms: row.end_ms, ranges };
+  }
+  return index < hitIndex ? withoutTail(row, ranges, neighbour) : withoutHead(row, ranges, neighbour);
 }
 
 /**
@@ -131,18 +131,20 @@ export async function chunkContext(
       date: hit.published_at.slice(0, 10),
       links: deepLinks(hit, hit.start_ms),
     },
-    chunks: results.map((row, index) => ({
-      chunk_id: row.id,
-      seq: row.seq,
-      start_ms: row.start_ms,
-      end_ms: row.end_ms,
-      text: row.text,
-      boilerplate: row.is_boilerplate !== 0,
-      cue_s: cueTimes(row, row.start_ms),
-      links: deepLinks(row, row.start_ms),
-      ranges: rangesOf(row.text, marked.get(row.id)),
-      repeat: repeatOf(results, index, hitIndex),
-    })),
+    chunks: results.map((row, index) => {
+      const shown = shownOf(results, index, hitIndex, rangesOf(row.text, marked.get(row.id)));
+      return {
+        chunk_id: row.id,
+        seq: row.seq,
+        start_ms: shown.start_ms,
+        end_ms: shown.end_ms,
+        text: shown.text,
+        boilerplate: row.is_boilerplate !== 0,
+        cue_s: cueTimes(row, shown.start_ms),
+        links: deepLinks(row, shown.start_ms),
+        ranges: shown.ranges,
+      };
+    }),
   };
 }
 

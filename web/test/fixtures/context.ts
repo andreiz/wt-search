@@ -63,7 +63,6 @@ export function chunkOf(seq: number): ContextChunk {
     cue_s: cue,
     links: { ...linksAt(cue.youtube, cue.apple, cue.spotify), page: "https://example.com/ep/301" },
     ranges: RANGES[seq] ?? [],
-    repeat: null,
   } satisfies ContextChunk;
 }
 

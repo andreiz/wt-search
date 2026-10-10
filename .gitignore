@@ -13,3 +13,5 @@ web/playwright-report/
 # Local secrets for `wrangler dev` (e.g. TURNSTILE_SECRET); never commit
 worker/.dev.vars*
 worker/.env*
+# Agent workspaces (task ledgers, brainstorm mockups and their server state)
+.superpowers/

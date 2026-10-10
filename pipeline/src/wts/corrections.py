@@ -18,7 +18,7 @@ _TRAILING = re.compile(r"[^\w']+$")
 @dataclass(frozen=True)
 class CorrectionRule:
     match: tuple[str, ...]
-    replace: str
+    replace: str | None  # None: a `keep:` phrase, left exactly as it is
     episode: str | None
 
 
@@ -35,7 +35,9 @@ def load_corrections(path: Path) -> list[CorrectionRule]:
         return []
     # BaseLoader keeps every key and value as text: `no:` stays "no", `uh:` is "" (delete).
     data = yaml.load(path.read_text(), Loader=yaml.BaseLoader) or {}
-    rules = [
+    # Kept phrases come first, so one wins over a global rule with a key of the same length.
+    rules = [CorrectionRule(_match_words(p), None, None) for p in (data.get("keep") or [])]
+    rules += [
         CorrectionRule(_match_words(k), str(v), None) for k, v in (data.get("global") or {}).items()
     ]
     for stem, mapping in (data.get("episodes") or {}).items():
@@ -74,7 +76,8 @@ def _replace(span: list[Word], replacement: str, previous: list[Word]) -> list[W
 
 def apply_corrections(words: list[Word], rules: Sequence[CorrectionRule], stem: str) -> list[Word]:
     def longest_first(rs: list[CorrectionRule]) -> list[CorrectionRule]:
-        return sorted(rs, key=lambda r: -len(r.match))
+        # Kept phrases before replacements of the same length.
+        return sorted(rs, key=lambda r: (-len(r.match), r.replace is not None))
 
     ordered = longest_first([r for r in rules if r.episode == stem]) + longest_first(
         [r for r in rules if r.episode is None]
@@ -88,7 +91,8 @@ def apply_corrections(words: list[Word], rules: Sequence[CorrectionRule], stem: 
         for rule in ordered:
             n = len(rule.match)
             if tuple(keys[i : i + n]) == rule.match:
-                out.extend(_replace(words[i : i + n], rule.replace, out))
+                span = words[i : i + n]
+                out.extend(span if rule.replace is None else _replace(span, rule.replace, out))
                 i += n
                 break
         else:

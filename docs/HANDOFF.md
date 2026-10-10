@@ -36,8 +36,14 @@ this episode" only puts `ep:N` in the box); `wts search` lists them. If the titl
 fails the search still answers, with none, so the Worker can be deployed before the
 migration. **The migration must be applied to staging:**
 `cd worker && npx wrangler d1 migrations apply wts-staging --env staging --remote`.
-Not done: the correction rules for "Craigers"/"Craig-er" → "Kreggers"/"Kregger" (offered,
-waiting on the maintainer). Pipeline **708**, Worker **543**, web **668** unit + **55** e2e.
+**Kreg corrections** (same day): "Craigers" → "Kreggers"; "Craig-er" → "Kregger" in ep613 only
+(two words to Whisper, so the key is `craig er`); and a bare "Craig" → "Kreg" everywhere, since
+all 53 uses in the 37 episodes were the brand. **That last rule would rename a real Craig in a
+later episode: check every new match when episodes are added.** For that, `corrections.yaml`
+has a new **`keep:` list** of phrases no global rule may change ("Craig Jackson", ep608);
+a kept phrase is left exactly as transcribed, and an episode rule still wins over it (spec
+§3.3, the corrections skill). The maintainer applies the rules with `wts chunk`, `wts embed`
+and a publish. Pipeline **713**, Worker **543**, web **668** unit + **55** e2e.
 **None of the 2026-10-10 work was deployed or pushed at the time of writing.**
 **Tasks 6 to 10 are done** (eighth session, 2026-10-09; on `main`): the API client and URL
 state, the search bar, search lifecycle, results list and paging, the year range chip and
@@ -53,7 +59,7 @@ The design is in [`docs/design/system/`](design/system/) — build to its mocks 
 main session reviews, runs every suite and commits (one commit per task). Tasks 6–9 ran in the
 main checkout, one subagent at a time, told not to commit.
 
-**Tests (2026-10-10):** pipeline **708** (`cd pipeline && uv run pytest -q`, ruff clean),
+**Tests (2026-10-10):** pipeline **713** (`cd pipeline && uv run pytest -q`, ruff clean),
 Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **668** unit +
 **55** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 

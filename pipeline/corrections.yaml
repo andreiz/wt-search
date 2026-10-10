@@ -1,5 +1,6 @@
 # Whole-word transcript fixes, applied in `wts chunk` (spec §3.3).
 # Keys are matched case-insensitively, ignoring punctuation; multi-word keys merge into one word.
+# `keep:` lists phrases that stay as they are ("Craig Jackson", while "Craig" becomes "Kreg").
 # After editing, run `wts chunk` — changed episodes are re-chunked automatically.
 global:
   saw stop: SawStop
@@ -73,11 +74,13 @@ global:
   # 37 episodes of 2026-10-10 all 53 uses were the brand (ep595, 597, 608, 610, 613-615), so
   # the bare name is the key. That is the risk the skill warns about: a person called Craig in
   # another episode would be renamed too. Check every new match when episodes are added, and
-  # keep a real Craig with a longer key that maps to itself, as for Craig Jackson (ep608,
-  # 25:36, a person who ran the company).
+  # put a real Craig's full name under `keep:` below.
   craig: Kreg
   craig's: Kreg's
-  craig jackson: Craig Jackson
+# Phrases no global rule may change: matched like keys, and left exactly as transcribed.
+# An episode rule still wins over a kept phrase.
+keep:
+  - Craig Jackson      # ep608, 25:36: a person who ran Kreg, not the brand
 episodes:
   2026-08-19_ep613_shove-a-kregger-in-the-hole:
     # "Craig-er" is two words to Whisper, "Craig" and "-er" (they are joined after the

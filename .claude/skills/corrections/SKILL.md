@@ -19,6 +19,9 @@ global:
   saw stop: SawStop            # multi-word key, one-word value
   festival tools: Festool tools  # values may have several words
   uh: ""                       # empty value deletes the word(s)
+  craig: Kreg                  # the brand, which Whisper writes as the name
+keep:
+  - Craig Jackson              # a phrase no global rule may change
 episodes:
   2026-08-05_ep612_reservations-about-shannon:   # stem: this episode only
     bob: Rob                   # e.g. a guest's name misheard in one episode
@@ -29,10 +32,16 @@ How rules match (`pipeline/src/wts/corrections.py`):
   A word's trailing punctuation is kept.
 - Multi-word keys match consecutive words; the longest matching key wins; episode rules are
   tried before global ones.
+- A `keep:` phrase is matched the same way and left exactly as transcribed. It wins over a
+  global rule whose key is no longer than the phrase, so "Craig Jackson" stays while a bare
+  "Craig" becomes "Kreg". An episode rule still wins over it. It protects only that wording:
+  a later bare "Craig" meaning the same person needs an episode rule (`craig: Craig`).
 - Matching can't see context or case, so a key must never be a word that is also used correctly.
   `mark → Marc` is the cautionary example: it fixes "Mark" for the host Marc Spagnuolo but also
   turns "the 30-second mark" and "question mark" into "Marc". Use a longer key that only occurs
   in the mistake ("festival sustainers", not "festival"), an episode-only rule, or no rule.
+  When nearly every use is the mistake and the correct uses are a few fixed phrases, a short
+  key with those phrases under `keep:` is the other choice.
 
 **`pipeline/vocab.txt`** improves *future* transcriptions only: its terms go into Whisper's
 initial prompt. One term per line, `#` lines are section comments. The prompt is capped at

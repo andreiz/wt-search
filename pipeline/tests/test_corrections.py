@@ -65,6 +65,41 @@ def test_empty_replacement_deletes_words_but_keeps_sentence_end():
     assert [w.text for w in out] == ["so.", "we", "glued"]
 
 
+def test_kept_phrase_is_left_exactly_as_it_is():
+    r = [*rules(g={"craig": "Kreg"}), CorrectionRule(("craig", "jackson"), None, None)]
+    words = ws("a Craig jig from craig, Jackson. Craig said")
+    out = apply_corrections(words, r, "s")
+    assert [w.text for w in out] == ["a", "Kreg", "jig", "from", "craig,", "Jackson.", "Kreg", "said"]
+    assert out[4:6] == words[4:6]
+
+
+def test_kept_phrase_beats_a_global_rule_of_the_same_length():
+    r = [*rules(g={"tight bond": "Titebond"}), CorrectionRule(("tight", "bond"), None, None)]
+    assert [w.text for w in apply_corrections(ws("a tight bond"), r, "s")] == ["a", "tight", "bond"]
+
+
+def test_episode_rule_beats_a_kept_phrase():
+    r = [*rules(e={"s1": {"craig": "Greg"}}), CorrectionRule(("craig", "jackson"), None, None)]
+    assert [w.text for w in apply_corrections(ws("Craig Jackson"), r, "s1")] == ["Greg", "Jackson"]
+    assert [w.text for w in apply_corrections(ws("Craig Jackson"), r, "s2")] == ["Craig", "Jackson"]
+
+
+def test_keep_list_is_loaded(tmp_path):
+    f = tmp_path / "c.yaml"
+    f.write_text("global: {craig: Kreg}\nkeep:\n  - Craig Jackson\n  - '!'\n")
+    assert set(load_corrections(f)) == {
+        CorrectionRule(("craig",), "Kreg", None),
+        CorrectionRule(("craig", "jackson"), None, None),
+    }
+
+
+def test_shipped_file_keeps_craig_jackson():
+    out = apply_corrections(
+        ws("Craig Jackson ran Craig tools"), load_corrections(CORRECTIONS_FILE), "s"
+    )
+    assert [w.text for w in out] == ["Craig", "Jackson", "ran", "Kreg", "tools"]
+
+
 def test_yaml_keys_and_values_stay_text(tmp_path):
     f = tmp_path / "c.yaml"
     f.write_text("global:\n  no: nope\n  uh:\n  '1': one\n")

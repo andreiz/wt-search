@@ -66,4 +66,8 @@ global:
   16quarter: 16/4
   Timbermaid: Timbermate
   Woodcrasp: Woodcraft
+  # "Kregger", the show's word for a Kreg pocket screw (ep613, 50:12, "Shove a Kregger in the
+  # Hole"): Whisper wrote "Craigers" and "Craig-er". The name "Craig" is not touched.
+  craigers: Kreggers
+  craiger: Kregger
 episodes: {}

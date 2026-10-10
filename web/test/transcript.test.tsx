@@ -87,6 +87,42 @@ describe("the three ways in", () => {
     expect(rows[1]!.closest(".result__card")).not.toBeNull();
   });
 
+  it("opening one hit's view collapses the view open on another", async () => {
+    const calls = stubFetch();
+    const other: SearchResult = { ...HIT, chunk_id: 9001, text: "Another one.", ranges: [], folded: [], more_in_episode: 0 };
+    const { container } = renderList([HIT, other]);
+    const rows = container.querySelectorAll(".hit");
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: "+1 nearby" }));
+    answer(calls[0]!);
+    await loaded();
+
+    fireEvent.click(rows[1]!.querySelector(".hit__excerpt")!);
+    expect(rows[0]!.querySelector(".transcript")).toBeNull();
+    expect(rows[0]!.querySelector(".hit__excerpt")).not.toBeNull();
+    expect(rows[1]!.querySelector(".transcript")).not.toBeNull();
+    expect(container.querySelectorAll(".transcript")).toHaveLength(1);
+    // The collapsed row does not pull focus back to itself.
+    expect(rows[0]!.contains(document.activeElement)).toBe(false);
+
+    // And back: the first reopens from its kept answer, the second collapses.
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: "+1 nearby" }));
+    expect(calls).toHaveLength(2);
+    expect(rows[0]!.querySelector(".passage--hit")).not.toBeNull();
+    expect(rows[1]!.querySelector(".transcript")).toBeNull();
+  });
+
+  it("a view collapsed by another one opening drops its running request", async () => {
+    const calls = stubFetch();
+    const other: SearchResult = { ...HIT, chunk_id: 9001, text: "Another one.", ranges: [], folded: [], more_in_episode: 0 };
+    const { container } = renderList([HIT, other]);
+    const rows = container.querySelectorAll(".hit");
+    fireEvent.click(rows[0]!.querySelector(".hit__excerpt")!);
+    fireEvent.click(rows[1]!.querySelector(".hit__excerpt")!);
+    expect(calls).toHaveLength(2);
+    await waitFor(() => expect(calls[0]!.signal.aborted).toBe(true));
+    expect(calls[1]!.signal.aborted).toBe(false);
+  });
+
   it("opens on a related card the same way", async () => {
     const calls = stubFetch();
     renderList([{ ...HIT, match: "related", ranges: [], folded: [], more_in_episode: 0 }]);

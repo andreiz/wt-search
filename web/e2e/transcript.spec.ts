@@ -360,6 +360,30 @@ for (const { name, width, height } of WIDTHS) {
       await expect(card.getByRole("button", { name: "More actions" })).toBeFocused();
     });
 
+    test("opening a hit collapses the view open above it, and the matched text still stays put", async ({ page }) => {
+      await openTall(page);
+      // By attribute: with a view open, its paragraphs are list items of the results list too.
+      const cards = page.locator("[data-result]");
+      const above = cards.nth(1);
+      await above.getByRole("button", { name: "+1 nearby" }).click();
+      await expect(above.locator(".passage--hit")).toBeVisible();
+      await settle(page);
+
+      const card = cards.nth(4);
+      const excerpt = card.locator(".hit__excerpt");
+      await excerpt.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await settle(page);
+      const before = (await excerpt.boundingBox())!.y;
+
+      await excerpt.click();
+      const hit = card.locator(".passage--hit");
+      await expect(hit).toBeVisible();
+      await settle(page);
+      await expect(page.locator(".transcript")).toHaveCount(1);
+      await expect(above.locator(".hit__excerpt")).toBeVisible();
+      expect(Math.abs((await hit.boundingBox())!.y - before)).toBeLessThanOrEqual(2);
+    });
+
     /** The bottom edge of what the site header covers now (a phone's compact header shows only its search row). */
     const headerEdge = (page: Page) =>
       page.evaluate(() => {

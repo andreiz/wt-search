@@ -26,9 +26,9 @@ The design is in [`docs/design/system/`](design/system/) — build to its mocks 
 main session reviews, runs every suite and commits (one commit per task). Tasks 6–9 ran in the
 main checkout, one subagent at a time, told not to commit.
 
-**Tests (2026-10-09):** pipeline **702** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **504** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **605** unit +
-**39** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
+**Tests (2026-10-10):** pipeline **702** (`cd pipeline && uv run pytest -q`, ruff clean),
+Worker **504** in 18 files (`cd worker && npm test`, `npx tsc --noEmit`), web **607** unit +
+**41** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
 - **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the
@@ -360,6 +360,11 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     `--header-h` (182 px desktop, 98 px phone compact) in `:root`, shared with the cards'
     `scroll-margin-top`. On a phone at the very top of the page (tall header) the strip is
     under the header until the header compacts. Web **605** unit + **39** e2e.
+  - **One expanded view per page** (maintainer, 2026-10-10): which hit is open lives with
+    `ResultList` (`OpenView` context in `use-transcript.ts`), so opening one collapses the
+    other in the same render; the collapsed row drops its running request and does not take
+    focus. If the collapsed view was above, the page is re-anchored at once and again when
+    the paragraphs load. Web **607** unit + **41** e2e.
   - The phone timestamp column is 64 px, not the mock's 58: "10:00:00" didn't fit.
   - **Look in a browser:** the transcript's play links landing at each paragraph; the
     focus ring on the opened region; a screen reader on the region, "Matching passage" and

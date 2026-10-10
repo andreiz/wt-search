@@ -31,6 +31,8 @@ interface Pending {
   kind: "open" | "close";
   top: number | null;
   scrollY: number;
+  /** Opening this collapsed another hit's view, so the page moved under the reader at once. */
+  moved?: boolean;
 }
 
 /**
@@ -127,10 +129,21 @@ export function HitRow({
     if (!wanted) return;
     // A collapse is applied in the click's own task, but the browser may already have clamped
     // the scroll position to the shorter page, so only an open can tell that the reader moved.
-    const unmoved = wanted.kind === "close" || window.scrollY === wanted.scrollY;
+    const unmoved = wanted.kind === "close" || window.scrollY === wanted.scrollY || !!wanted.moved;
     if (wanted.kind === "open") {
-      const target = shown !== null && transcript.entry?.kind === "ok" ? region.current?.querySelector(".passage--hit") : null;
-      if (!target) return;
+      if (shown === null) return;
+      const target = transcript.entry?.kind === "ok" ? region.current?.querySelector(".passage--hit") : null;
+      if (!target) {
+        // Still loading. If another view collapsed above this row, the row has jumped: hold the
+        // view where the excerpt was until its paragraphs are there. This runs in the click's own
+        // task, so the reader cannot have scrolled; the browser may have (scroll anchoring).
+        if (wanted.moved && region.current) {
+          place(region.current, wanted.top, strip.current);
+          wanted.moved = false;
+          wanted.scrollY = window.scrollY;
+        }
+        return;
+      }
       pending.current = null;
       settle(target, unmoved ? wanted.top : null, strip.current);
     } else if (shown === null) {
@@ -143,7 +156,13 @@ export function HitRow({
   /** Note where the hit is on screen: its paragraph if the view is open, else its excerpt. */
   function recordOpen() {
     const target = region.current?.querySelector(".passage--hit") ?? excerptText.current;
-    if (target) pending.current = { kind: "open", top: target.getBoundingClientRect().top, scrollY: window.scrollY };
+    if (!target) return;
+    pending.current = {
+      kind: "open",
+      top: target.getBoundingClientRect().top,
+      scrollY: window.scrollY,
+      moved: transcript.otherOpen,
+    };
   }
 
   function collapse() {

@@ -1059,6 +1059,9 @@ states. Behaviour from the design, with the maintainer's calls:)*
   keeps the result's ranges, so it matches its excerpt *(2026-10-09)*.
   For a numbered episode, the expanded view also offers **Search this
   episode** (the query plus `ep:N`).
+- **One expanded view per page** *(maintainer, 2026-10-10)*: opening a
+  hit's view collapses the one open on another hit, and the text the
+  reader clicked stays where it was on screen.
 - The brief's 400 ms hover preview is dropped *(maintainer, 2026-10-08)*:
   More transcript does the same, and hovering gets in the way of selecting
   text to report.

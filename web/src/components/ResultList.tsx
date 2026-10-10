@@ -11,6 +11,7 @@ import type { RefObject } from "preact";
 import { useLayoutEffect, useState } from "preact/hooks";
 import type { SearchResult } from "../../../worker/src/api-types";
 import { groupNeighbours } from "../lib/group";
+import { OpenView, type Open } from "../use-transcript";
 import type { HitActions } from "./HitRow";
 import { ResultCard } from "./ResultCard";
 
@@ -33,6 +34,8 @@ export function ResultList({
   listRef: RefObject<HTMLDivElement | null>;
 }) {
   const [active, setActive] = useState(0);
+  // The one expanded transcript of the page: opening another hit's collapses it.
+  const openView = useState<Open | null>(null);
 
   const cards = groupNeighbours(results);
   const noKeyword = results.length > 0 && results.every((r) => r.match === "related");
@@ -55,16 +58,18 @@ export function ResultList({
     <div class="results-area" ref={listRef}>
       {page === 1 && noKeyword && <p class="results-intro">No exact matches — passages about similar things:</p>}
       <ol class="results" aria-label="Results">
-        {cards.map((card, index) => (
-          <ResultCard
-            key={card.hits[0]!.chunk_id}
-            card={card}
-            tabIndex={index === current ? 0 : -1}
-            q={q}
-            onReport={onReport}
-            onSearchEpisode={onSearchEpisode}
-          />
-        ))}
+        <OpenView.Provider value={openView}>
+          {cards.map((card, index) => (
+            <ResultCard
+              key={card.hits[0]!.chunk_id}
+              card={card}
+              tabIndex={index === current ? 0 : -1}
+              q={q}
+              onReport={onReport}
+              onSearchEpisode={onSearchEpisode}
+            />
+          ))}
+        </OpenView.Provider>
       </ol>
     </div>
   );

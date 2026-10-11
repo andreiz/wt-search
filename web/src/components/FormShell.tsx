@@ -4,9 +4,10 @@
 // Send / Cancel. The two forms differ only in their fields and in what they send.
 //
 // With no Turnstile site key (/api/info failed or has none) the form says reporting is
-// unavailable and has nothing to send. Esc anywhere in the form closes it. Submitting (Enter in a
-// single-line field) goes through `onSend`, which the forms guard with the same `canSend` that
-// disables Send.
+// unavailable and has nothing to send. Esc does not close a form that has fields, so a stray press
+// cannot throw away what was typed; Cancel and × do that. Once there is nothing to lose (sent, or
+// unavailable) Esc closes it. Submitting (Enter in a single-line field) goes through `onSend`,
+// which the forms guard with the same `canSend` that disables Send.
 import type { ComponentChildren, RefObject } from "preact";
 import { useEffect, useRef } from "preact/hooks";
 import { codePoints } from "../lib/length";
@@ -139,6 +140,7 @@ export function FormShell({
       }}
       onKeyDown={(event) => {
         if (event.key !== "Escape") return;
+        if (!unavailable && status !== "sent") return;
         event.preventDefault();
         event.stopPropagation();
         onClose();

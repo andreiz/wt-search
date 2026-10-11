@@ -1,6 +1,6 @@
 // The footer (spec §5.7; design README "Footer"; Screen.dc.html): the unofficial line, links to
 // the show, and the note about search logs. With `feedback`, "Send feedback" toggles the inline
-// feedback form (spec §5.5) below the links; closing it (Esc, Cancel, ×, or the button again)
+// feedback form (spec §5.5) below the links; closing it (Cancel, ×, or the button again)
 // returns focus to the button.
 import { useRef, useState } from "preact/hooks";
 import { FeedbackForm } from "./FeedbackForm";

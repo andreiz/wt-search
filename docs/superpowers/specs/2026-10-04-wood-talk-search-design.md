@@ -1195,7 +1195,9 @@ As in the brief §4.5; the wording there is the copy, and the design's
   open item waits on a backend that can say why
   ([`docs/full-corpus-backlog.md`](../../full-corpus-backlog.md) §2).
 - `/` focuses search; arrow keys **and j/k** move between results
-  *(settled 2026-10-08)*; Esc closes popovers and forms. Enter on a result
+  *(settled 2026-10-08)*; Esc closes popovers. It does not close a report or
+  feedback form that still has its fields, so a stray press cannot lose what
+  was typed *(settled 2026-10-10)*; Cancel and × close those. Enter on a result
   does nothing special (no "play first platform").
 - Results are a list; buttons are real buttons or links with names;
   visible focus everywhere; motion respects `prefers-reduced-motion`;

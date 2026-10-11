@@ -146,6 +146,8 @@ for (const [name, viewport] of [
         reportAnswers: [{ status: 403, json: { error: "forbidden", message: "The check didn't pass. Please try again." } }],
       });
       const form = await openReport(page);
+      // Opening moves focus to the first field; typing before that lands would go nowhere.
+      await expect(form.getByLabel("Quoted text")).toBeFocused();
       await form.getByLabel("Note").fill("heard it twice");
       const send = form.getByRole("button", { name: "Send", exact: true });
       await expect(send).toBeEnabled();
@@ -165,12 +167,16 @@ for (const [name, viewport] of [
       await check();
     });
 
-    test(`Esc closes the report form and returns focus to ⋯ (${name})`, async ({ page }) => {
+    test(`Esc keeps the report form and its text; Cancel closes it and returns focus to ⋯ (${name})`, async ({ page }) => {
       const { check } = await setup(page);
       const form = await openReport(page);
       await expect(form.getByText("fake check")).toBeVisible();
-      await form.getByLabel("Note").focus();
+      await expect(form.getByLabel("Quoted text")).toBeFocused();
+      await form.getByLabel("Note").fill("heard it twice");
       await page.keyboard.press("Escape");
+      await expect(form.getByLabel("Note")).toHaveValue("heard it twice");
+      await expect(form.getByLabel("Note")).toBeFocused();
+      await form.getByRole("button", { name: "Cancel" }).click();
       await expect(form).toBeHidden();
       await expect(page.getByRole("button", { name: "More actions" })).toBeFocused();
       // The widget is removed in the effect's cleanup, which runs a moment after the form changes.
@@ -199,14 +205,18 @@ for (const [name, viewport] of [
       await check();
     });
 
-    test(`feedback: Esc returns focus to the button (${name})`, async ({ page }) => {
+    test(`feedback: Esc keeps the message; Cancel returns focus to the button (${name})`, async ({ page }) => {
       const { check } = await setup(page);
       await page.goto("/");
       const opener = page.getByRole("button", { name: "Send feedback" });
       await opener.click();
-      await expect(page.getByLabel("Message")).toBeFocused();
+      const form = page.getByRole("form", { name: "Send feedback" });
+      await expect(form.getByLabel("Message")).toBeFocused();
+      await form.getByLabel("Message").fill("an idea");
       await page.keyboard.press("Escape");
-      await expect(page.getByRole("form", { name: "Send feedback" })).toBeHidden();
+      await expect(form.getByLabel("Message")).toHaveValue("an idea");
+      await form.getByRole("button", { name: "Cancel" }).click();
+      await expect(form).toBeHidden();
       await expect(opener).toBeFocused();
       await check();
     });

@@ -1,5 +1,5 @@
 // Keyboard shortcuts (spec §5.7): `/` focuses the search box; ArrowDown/ArrowUp and j/k move
-// focus between result cards. Esc belongs to the popovers and forms themselves.
+// focus between result cards. Esc belongs to the popovers themselves.
 //
 // `handleKeydown` returns whether it acted; it calls `preventDefault` only when it did, so a
 // key typed in a field, or an arrow that should scroll the page, is left alone.

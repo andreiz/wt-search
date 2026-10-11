@@ -349,17 +349,36 @@ describe("sending a report", () => {
 });
 
 describe("closing the report form", () => {
-  it("Esc closes it, removes the widget and returns focus to that hit's ⋯", async () => {
+  it("Esc leaves it open with what was typed, so a stray press loses nothing", async () => {
+    renderList();
+    await openReport();
+    typeInto(field("Note"), "typed");
+    fireEvent.keyDown(field("Note"), { key: "Escape" });
+    expect(field("Note").value).toBe("typed");
+    expect(fake.removed).toEqual([]);
+  });
+
+  it("Esc closes it once it is sent and returns focus to that hit's ⋯", async () => {
     renderList();
     await openReport(1);
     const more = screen.getAllByRole("button", { name: "More actions" })[1]!;
-    fireEvent.keyDown(field("Quoted text"), { key: "Escape" });
+    fake.token("tok");
+    fireEvent.click(sendButton(reportForm()));
+    calls[0]!.respond({ ok: true });
+    const thanks = await within(reportForm()).findByRole("status");
+    fireEvent.keyDown(thanks, { key: "Escape" });
     expect(screen.queryByRole("form")).toBeNull();
-    expect(fake.removed).toEqual(["widget-1"]);
     expect(document.activeElement).toBe(more);
   });
 
-  it("Cancel and × do the same", async () => {
+  it("Esc closes it when reporting is unavailable", () => {
+    renderList(NO_KEY);
+    menuReport();
+    fireEvent.keyDown(reportForm(), { key: "Escape" });
+    expect(screen.queryByRole("form")).toBeNull();
+  });
+
+  it("Cancel and × close it, remove the widget and return focus to that hit's ⋯", async () => {
     renderList();
     await openReport();
     const more = screen.getAllByRole("button", { name: "More actions" })[0]!;
@@ -376,7 +395,7 @@ describe("closing the report form", () => {
     renderList();
     await openReport();
     typeInto(field("Note"), "typed");
-    fireEvent.keyDown(field("Note"), { key: "Escape" });
+    fireEvent.click(within(reportForm()).getByRole("button", { name: "Cancel" }));
     menuReport();
     expect(field("Note").value).toBe("");
   });
@@ -487,19 +506,18 @@ describe("the feedback form", () => {
     expect(sendButton(feedbackForm()).disabled).toBe(true);
   });
 
-  it("Esc, Cancel and the button itself close it and return focus to Send feedback", async () => {
+  it("Esc leaves it open; Cancel closes it and returns focus to Send feedback", async () => {
     renderFooter();
     await open();
+    typeInto(message(), "an idea");
     fireEvent.keyDown(message(), { key: "Escape" });
+    expect(message().value).toBe("an idea");
+    expect(opener().getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(within(feedbackForm()).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("form")).toBeNull();
     expect(document.activeElement).toBe(opener());
     expect(opener().getAttribute("aria-expanded")).toBe("false");
-    await act(async () => {
-      fireEvent.click(opener());
-    });
-    fireEvent.click(within(feedbackForm()).getByRole("button", { name: "Cancel" }));
-    expect(document.activeElement).toBe(opener());
-    expect(fake.removed).toEqual(["widget-1", "widget-2"]);
+    expect(fake.removed).toEqual(["widget-1"]);
   });
 
   it("says feedback is unavailable when there is no site key", () => {

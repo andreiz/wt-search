@@ -28,6 +28,7 @@ serves the frontend's static files), D1 and Vectorize serve search.
 - `cd worker && npx tsc --noEmit` — Worker type-check
 - `cd web && npm test` — frontend unit tests and build check (Vitest + happy-dom; runs on Linux)
 - `cd web && npm run e2e` — Playwright against `vite preview` of a fresh build, under the real `public/_headers` CSP
+- `cd web && npm run e2e:smoke` — Playwright against a local `wrangler dev --env e2e` over a seeded local D1, nothing stubbed (needs a normal terminal: the cloud and sandboxed sessions can't reach the local Worker)
 - `cd web && npm run typecheck` — frontend type-check; `npm run dev` serves on 5173, proxying `/api` to `wrangler dev` on 8787
 - `cd worker && npm run deploy:staging` — builds `web/` and deploys the Worker with the static assets
 

@@ -1,4 +1,4 @@
-# Handoff — 2026-10-11 (eighth session, continued; plan 3 Tasks 1–14 done, Task 15 next)
+# Handoff — 2026-10-11 (eighth session, continued; plan 3 Tasks 1–15 done, Checkpoint H next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -9,8 +9,24 @@ then [README.md](../README.md), then the spec sections it points to.
 The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
 fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Next: plan 3 Task 15** (the smoke run against the real Worker), then Checkpoint H:
+**Next: Checkpoint H** (the maintainer on staging; its Turnstile and deploy steps are done,
+and a report and a feedback message have been sent through the real widget), then Task 16
+(the visual pass against the mocks):
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+**Task 15 is done** (2026-10-11, Sonnet subagent wrote it blind; the maintainer ran it on
+the Mac, 8 of 8 after two test fixes). `cd web && npm run e2e:smoke` builds the site, makes
+a fresh local D1 in `worker/.wrangler/e2e-state` (migrations, then `web/e2e/seed.sql`: 3
+episodes with different sets of platform links, 19 chunks), starts `wrangler dev --env e2e
+--local` on port 8799 (`E2E_SMOKE_PORT` overrides) and runs `e2e/smoke.spec.ts` with nothing
+stubbed: assets under the shipped CSP, `/robots.txt`, the JSON 404, a search with the
+"unavailable" notice, sort, More transcript, every play link against the API, and a report
+through Cloudflare's always-pass Turnstile widget into D1 (needs the internet; `--
+--grep-invert report` skips it). `E2E_SMOKE=1` picks the smoke project, so `npm run e2e`
+never starts wrangler. **It cannot run in the sandboxed session** (nothing there can connect
+to the local Worker, on any port): ask the maintainer to run it. The `ai_unavailable` errors
+in its output are expected (no AI binding locally). The two fixes were test mistakes: Esc
+pressed before the ⋯ menu had focus, and an episode with neither YouTube nor a page has no
+play chip (the time is plain text).
 **Task 14 is done** (2026-10-11, Sonnet subagent, reviewed and extended by the main
 session). `web/e2e/fixtures.ts` holds the shared stubs, the console/CSP watcher (`watch`)
 and `STATES`: a table of 21 page states (each §5.6 state, the expanded card, both forms, and

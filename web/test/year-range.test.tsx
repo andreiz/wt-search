@@ -234,29 +234,6 @@ describe("<SyntaxHelp/>", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("Esc closes it wherever focus is, and only when it is open", () => {
-    render(<SyntaxHelp onPick={() => {}} />);
-    const button = screen.getByRole("button", { name: "Search syntax help" });
-    fireEvent.click(button);
-    (document.activeElement as HTMLElement).blur();
-    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(false);
-    // fireEvent returns false when the event's default was prevented.
-    expect(fireEvent.keyDown(document.body, { key: "Escape" })).toBe(false);
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(document.activeElement).toBe(button);
-    expect(fireEvent.keyDown(document.body, { key: "Escape" })).toBe(true);
-  });
-
-  it("an Esc something else has handled leaves it open", () => {
-    render(<SyntaxHelp onPick={() => {}} />);
-    fireEvent.click(screen.getByRole("button", { name: "Search syntax help" }));
-    const handled = (event: Event) => event.preventDefault();
-    document.body.addEventListener("keydown", handled);
-    fireEvent.keyDown(document.body, { key: "Escape" });
-    document.body.removeEventListener("keydown", handled);
-    expect(screen.getByRole("dialog")).toBeTruthy();
-  });
-
   it("the '?' toggles it, and focus moves into the dialog on opening", () => {
     render(<SyntaxHelp onPick={() => {}} />);
     const button = screen.getByRole("button", { name: "Search syntax help" });

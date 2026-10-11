@@ -72,8 +72,8 @@
 				"WTS_ENV": "staging",
 				// Edge cache for /api/search, in seconds (spec §4.7); unset means no caching.
 				"SEARCH_CACHE_TTL_S": "3600",
-				// Placeholder: the public Turnstile site key (not a secret).
-				"TURNSTILE_SITE_KEY": "staging-turnstile-site-key-placeholder",
+				// The public Turnstile site key of the staging widget (not a secret).
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAFT2oiAKScBLCCqy",
 				// Extra origins allowed to send reports (spec §4.8 item 6), besides the Worker's
 				// own: Vite's dev server. curl tests add -H 'origin: http://localhost:5173'.
 				"REPORT_ORIGINS": "http://localhost:5173"

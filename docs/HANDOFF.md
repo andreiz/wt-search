@@ -505,8 +505,9 @@ brainstorm doesn't rediscover them:
   A user-facing `docs/search-syntax.md` is an open idea that would serve both.
 - **Reports:** Turnstile was postponed to this plan: one widget per environment, mode
   Managed, "Add widget manually" (not the dashboard's AI "Spin" setup), its site key into
-  `wrangler.jsonc` `TURNSTILE_SITE_KEY` (a placeholder now), its secret via `wrangler secret
-  put TURNSTILE_SECRET` (staging has Cloudflare's always-pass test secret until then). The
+  `wrangler.jsonc` `TURNSTILE_SITE_KEY` (**staging's real key is in since 2026-10-11**; production's is
+  still a placeholder), its secret via `wrangler secret put TURNSTILE_SECRET --env staging`
+  (the widget's own secret must replace whatever staging had before). The
   report's `Origin` must be in `REPORT_ORIGINS` (staging: `http://localhost:5173`, Vite's dev
   server; production: unset, refusing all). After a failed submit the widget must be reset
   before retrying (Task 15 note). Open decision 9 (a footer "Send feedback" link with no
@@ -525,7 +526,7 @@ brainstorm doesn't rediscover them:
   hostname of the page that embeds it, and there is no web app or domain yet. Use "Add
   widget manually", not the dashboard's AI "Spin" setup, which edits code. Plan 3: one
   widget per environment, mode Managed, real site key into `wrangler.jsonc`
-  (`TURNSTILE_SITE_KEY`, a placeholder now) and the secret via `wrangler secret put`.
+  (`TURNSTILE_SITE_KEY`; staging's is real since 2026-10-11) and the secret via `wrangler secret put`.
   Until then reports on staging fail closed (503, no secret set); for Checkpoint G's
   report step, set Cloudflare's always-pass test secret
   `1x0000000000000000000000000000000AA` as `TURNSTILE_SECRET` and use any token.

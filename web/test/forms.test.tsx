@@ -5,6 +5,7 @@ import { createRef } from "preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
 import { Footer } from "../src/components/Footer";
+import { QUOTE_HINT } from "../src/components/ReportForm";
 import { ResultList } from "../src/components/ResultList";
 import { FormSiteContext, type FormSite } from "../src/use-forms";
 import { ReportMaintenance } from "../src/use-transcript";
@@ -57,6 +58,8 @@ async function openReport(index = 0) {
 
 const reportForm = () => screen.getByRole("form", { name: "Report a transcript error" });
 const field = (label: string) => within(reportForm()).getByLabelText(new RegExp(`^${label}`)) as HTMLTextAreaElement;
+/** A field's counter: the first thing that describes it (a hint, if any, comes after). */
+const counter = (label: string) => document.getElementById(field(label).getAttribute("aria-describedby")!.split(" ")[0]!)!;
 const sendButton = (form: HTMLElement) => within(form).getByRole("button", { name: /^Send/ }) as HTMLButtonElement;
 const typeInto = (el: HTMLElement, value: string) => fireEvent.input(el, { target: { value } });
 
@@ -177,6 +180,13 @@ describe("what is quoted", () => {
     expect(field("Quoted text").value.length).toBeLessThanOrEqual(500);
     expect(field("Quoted text").getAttribute("aria-invalid")).toBeNull();
   });
+
+  it("says how to quote other words, in a hint tied to the field", () => {
+    renderList();
+    menuReport();
+    const hint = within(reportForm()).getByText(QUOTE_HINT);
+    expect(field("Quoted text").getAttribute("aria-describedby")?.split(" ")).toContain(hint.id);
+  });
 });
 
 describe("counters and Send", () => {
@@ -184,12 +194,11 @@ describe("counters and Send", () => {
     renderList();
     await openReport();
     typeInto(field("Quoted text"), "😀😀😀");
-    const count = document.getElementById(field("Quoted text").getAttribute("aria-describedby")!)!;
-    expect(count.textContent).toBe("3 / 500");
+    expect(counter("Quoted text").textContent).toBe("3 / 500");
     typeInto(field("Suggested correction"), "abc");
-    expect(document.getElementById(field("Suggested correction").getAttribute("aria-describedby")!)!.textContent).toBe("3 / 500");
+    expect(counter("Suggested correction").textContent).toBe("3 / 500");
     typeInto(field("Note"), "  hi  ");
-    expect(document.getElementById(field("Note").getAttribute("aria-describedby")!)!.textContent).toBe("2 / 1000");
+    expect(counter("Note").textContent).toBe("2 / 1000");
   });
 
   it("agree with the Worker's limit: 500 emoji fit (1000 UTF-16 units), 501 do not", async () => {
@@ -201,7 +210,7 @@ describe("counters and Send", () => {
     typeInto(field("Quoted text"), "😀".repeat(501));
     expect(sendButton(reportForm()).disabled).toBe(true);
     expect(field("Quoted text").getAttribute("aria-invalid")).toBe("true");
-    expect(document.getElementById(field("Quoted text").getAttribute("aria-describedby")!)!.textContent).toContain("501 / 500");
+    expect(counter("Quoted text").textContent).toContain("501 / 500");
     typeInto(field("Quoted text"), "ok");
     typeInto(field("Note"), "n".repeat(1001));
     expect(sendButton(reportForm()).disabled).toBe(true);

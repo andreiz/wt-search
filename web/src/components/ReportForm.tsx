@@ -12,6 +12,9 @@ export const QUOTED_MAX = 500;
 export const SUGGESTED_MAX = 500;
 export const NOTE_MAX = 1000;
 
+/** The quote starts from a selection only if there was one, and nothing else on the page says so. */
+export const QUOTE_HINT = "Trim this to the words that are wrong. Next time, select them in the transcript before choosing Report.";
+
 export function ReportForm({
   chunkId,
   initialQuote,
@@ -67,6 +70,7 @@ export function ReportForm({
         label="Quoted text"
         value={quoted}
         limit={QUOTED_MAX}
+        hint={QUOTE_HINT}
         rows={3}
         serif
         readOnly={sending}

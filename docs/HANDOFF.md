@@ -28,6 +28,10 @@ to it; "Close" on the sent and unavailable states; a "couldn't load, Try again" 
 the script fails. `e2e/search.spec.ts` "a short results page never compacts" now uses one
 card: "Send feedback" wraps to its own line on a phone and made two cards tall enough to
 scroll past the mark. The subagent wrote the code before the tests (not test-first).
+**A hint under Quoted text** (`QUOTE_HINT`, maintainer 2026-10-11): the quote starts from
+the short excerpt even when the passage is expanded (by design: 500-character limit, and the
+`chunk_id` is stored), so the hint says to trim it, or to select the words before choosing
+Report.
 **Esc does not close a form that has fields** (maintainer, 2026-10-10: a stray press must
 not lose what was typed; spec §5.7): only Cancel, × or the footer button do. Esc still
 closes the sent and unavailable states, where there is nothing to lose. In e2e, wait for
@@ -92,7 +96,7 @@ main session reviews, runs every suite and commits (one commit per task). Tasks 
 main checkout, one subagent at a time, told not to commit.
 
 **Tests (2026-10-10):** pipeline **713** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **722** unit +
+Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **723** unit +
 **67** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**

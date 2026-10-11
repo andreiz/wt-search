@@ -1109,6 +1109,17 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    (slow, costly, can mark the wrong thing).
 11. **A gentler related fold** — two options recorded in spec §5.3 "Considered, for later",
    after the fold was removed on 2026-10-09.
+12. **Usage analytics for the page** (maintainer's idea, 2026-10-11; for the future, not
+   approved, needs spec and plan). Example: how many people open the report form and close
+   it without sending. Today only the Worker records anything (one Analytics Engine point
+   per search and per report sent, spec §8.3), and spec §5.7 says the frontend has no
+   analytics or cookies, so this changes that line and the footer's "Searches are logged
+   anonymously" note. Likely shape: a small `POST /api/event` with a fixed list of event
+   names (form opened, closed unsent, play link clicked, More transcript opened), no
+   identifiers and no cookies, written to Analytics Engine and read by `wts analytics pull`.
+   Without an identifier it gives counts and ratios, not per-visitor paths. Also possible:
+   a phone alert (ntfy) when a report or feedback message arrives, since nothing notifies
+   the maintainer today and `wts reports` is plan 4.
 8. ~~Full transcripts in public history~~ — removed by rewriting `main` (second session).
    Left: ask GitHub Support to purge cached views of `a44eec9`. Clones from before the rewrite
    must `git fetch && git reset --hard origin/main` before committing.

@@ -1,4 +1,4 @@
-# Handoff — 2026-10-10 (eighth session, continued; plan 3 Tasks 1–13 done, Task 14 next)
+# Handoff — 2026-10-11 (eighth session, continued; plan 3 Tasks 1–14 done, Task 15 next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -9,9 +9,24 @@ then [README.md](../README.md), then the spec sections it points to.
 The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
 fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Next: plan 3 Task 14** (end-to-end states and the axe accessibility run), then Task 15 and
-Checkpoint H:
+**Next: plan 3 Task 15** (the smoke run against the real Worker), then Checkpoint H:
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+**Task 14 is done** (2026-10-11, Sonnet subagent, reviewed and extended by the main
+session). `web/e2e/fixtures.ts` holds the shared stubs, the console/CSP watcher (`watch`)
+and `STATES`: a table of 21 page states (each §5.6 state, the expanded card, both forms, and
+every menu and popover open), each with its stubs, address and a ready check.
+`states.spec.ts` checks each shows, fits the screen and logs nothing, plus the behaviour
+tests (loading, Retry, the rate limit's countdown on Playwright's clock, pagination);
+`a11y.spec.ts` runs axe at WCAG 2.1 AA on every state and walks the page by keyboard. All
+at phone and desktop, light and dark, Chromium only. **axe found no violations**, contrast
+included; nothing in the components changed. To add a state to both specs, add it to
+`STATES`. Things to know: axe must wait for a popover's fade-in to end (mid-fade colours
+fail contrast; `violations()` does this); axe cannot judge the contrast of icon-only
+glyphs (⋯, the pager's arrows) and reports `aria-controls` on closed popover buttons as
+undecided, neither is a failure; the real Turnstile iframe is not in the run; the keyboard
+walk focuses Cancel directly instead of tabbing to it. `npm install` needed
+`--cache <scratchpad>` because `~/.npm` has root-owned files (`sudo chown -R 501:20 ~/.npm`
+fixes it).
 **Task 13 is done** (2026-10-10, Sonnet subagent, reviewed and committed by the main
 session): "Report transcript error" (⋯ on a hit) opens a form under the hit row, and the
 footer's "Send feedback" opens one in the footer. `lib/turnstile.ts` loads the script once,
@@ -95,9 +110,9 @@ The design is in [`docs/design/system/`](design/system/) — build to its mocks 
 main session reviews, runs every suite and commits (one commit per task). Tasks 6–9 ran in the
 main checkout, one subagent at a time, told not to commit.
 
-**Tests (2026-10-10):** pipeline **713** (`cd pipeline && uv run pytest -q`, ruff clean),
+**Tests (2026-10-11):** pipeline **713** (`cd pipeline && uv run pytest -q`, ruff clean),
 Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **723** unit +
-**67** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
+**285** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
 - **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the

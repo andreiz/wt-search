@@ -4,28 +4,8 @@
 // `window.turnstile` (render hands the callback a token, reset hands it a fresh one) and records
 // its calls. Every /api answer is stubbed. The real widget needs a person on staging.
 import { expect, test, type Page } from "@playwright/test";
+import { FAKE_TURNSTILE } from "./fixtures";
 import { INFO } from "./info";
-
-const FAKE_TURNSTILE = `
-window.__ts = { renders: [], resets: [], removes: [] };
-var n = 0;
-window.turnstile = {
-  render: function (el, opts) {
-    var id = "w" + (window.__ts.renders.length + 1);
-    window.__ts.renders.push({ id: id, sitekey: opts.sitekey });
-    el.textContent = "fake check";
-    setTimeout(function () { opts.callback("fake-token-" + (++n)); }, 0);
-    window.__ts.last = opts;
-    return id;
-  },
-  reset: function (id) {
-    window.__ts.resets.push(id);
-    var opts = window.__ts.last;
-    setTimeout(function () { opts.callback("fake-token-" + (++n)); }, 0);
-  },
-  remove: function (id) { window.__ts.removes.push(id); }
-};
-`;
 
 const hit = {
   episode: { id: 71, number: 71, title: "Welcome to the Three-Way", date: "2010-06-10", links: {} },

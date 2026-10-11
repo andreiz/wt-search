@@ -40,24 +40,30 @@ describe("<Footer/>", () => {
     expect(screen.getByText("Searches are logged anonymously to improve results.")).toBeTruthy();
   });
 
-  it("Send feedback is a button after the links, and reports a press", () => {
-    const onFeedback = vi.fn();
-    render(<Footer onFeedback={onFeedback} />);
+  it("Send feedback is a button after the links; it toggles the form and says so", () => {
+    render(<Footer feedback />);
     const nav = screen.getByRole("navigation", { name: "The show" });
     const button = within(nav).getByRole("button", { name: "Send feedback" });
     expect(button.getAttribute("type")).toBe("button");
     expect(nav.lastElementChild).toBe(button);
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("form", { name: "Send feedback" })).toBeNull();
     fireEvent.click(button);
-    expect(onFeedback).toHaveBeenCalledTimes(1);
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("form", { name: "Send feedback" })).toBeTruthy();
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("form", { name: "Send feedback" })).toBeNull();
   });
 
-  it("has no Send feedback until there is something for it to open", () => {
+  it("has no Send feedback unless it is given the form to open", () => {
     render(<Footer />);
     expect(screen.queryByRole("button", { name: "Send feedback" })).toBeNull();
   });
 
-  it("sets no style attribute", () => {
-    const { container } = render(<Footer onFeedback={() => {}} />);
+  it("sets no style attribute, closed or open", () => {
+    const { container } = render(<Footer feedback />);
+    fireEvent.click(screen.getByRole("button", { name: "Send feedback" }));
     expect(container.querySelectorAll("[style]").length).toBe(0);
   });
 });

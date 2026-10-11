@@ -132,7 +132,8 @@ test.describe("phone header compaction", () => {
   });
 
   test("on a short results page it never compacts", async ({ page }) => {
-    await search(page, 2);
+    // One card: with the footer's "Send feedback" (Task 13) a page of two can scroll past the mark.
+    await search(page, 1);
     await page.mouse.wheel(0, 400);
     for (let i = 0; i < 4; i++) {
       expect(await compact(page)).toBe(false);

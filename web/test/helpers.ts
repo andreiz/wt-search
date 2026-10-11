@@ -61,6 +61,9 @@ export function exactBody(results: SearchResult[], over: Partial<Extract<SearchD
 export interface PendingCall {
   url: URL;
   signal: AbortSignal;
+  /** The request's method, and its JSON body (undefined for a GET). */
+  method: string;
+  body: unknown;
   /** Answer the request with a 200 and this body (or another status and body). */
   respond(body: unknown, status?: number, headers?: Record<string, string>): void;
   /** Fail the request the way a dropped connection does. */
@@ -95,6 +98,8 @@ export function stubFetch(honorAbort = true): Calls {
         (url.pathname === "/api/info" ? calls.info : calls).push({
           url,
           signal,
+          method: init?.method ?? "GET",
+          body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
           respond(body, status = 200, headers = {}) {
             resolve(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } }));
           },

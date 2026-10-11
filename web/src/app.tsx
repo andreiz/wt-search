@@ -9,10 +9,12 @@
 // shown), no results, the Exact truncation note, the degraded-Smart notice, the rate limit with
 // its countdown, the error with Retry, and the maintenance banner above the header. The banner
 // shows when a search, a context request or /api/info answers `maintenance`, and goes when a
-// later search succeeds. The footer is components/Footer.tsx; its "Send feedback" waits for the
-// form (Task 13). The
+// later search succeeds (a report or feedback that answers `maintenance` raises it too). The
+// footer is components/Footer.tsx, with its "Send feedback" form. The
 // result cards are ResultList's, and More transcript and "+N nearby" are theirs too (Task 10);
-// Report (Task 13) is not wired, so that control does nothing yet. "Search this episode" puts
+// so is "Report transcript error", which opens a form under the hit (Task 13). /api/info is also
+// where the forms get the Turnstile site key: the first form to open asks for it (`FormSite`,
+// use-forms.ts), still at most one request per page load. "Search this episode" puts
 // `ep:N` into the searched query and searches, like the year chip. The Episodes row (TitleHits)
 // shows above the passages when the answer has episodes whose title matched; its "Search this
 // episode" only fills the box with `ep:N`.
@@ -39,6 +41,7 @@ import { handleKeydown } from "./lib/keys";
 import { normalizeQuery } from "./lib/url";
 import { clearRange, effectiveRange, rangeLabel, setRange } from "./lib/years";
 import { useCountdown } from "./use-countdown";
+import { FormSiteContext, type FormSite } from "./use-forms";
 import { useInfo } from "./use-info";
 import { useSearch } from "./use-search";
 import { ReportMaintenance } from "./use-transcript";
@@ -129,7 +132,13 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
   }
 
   const searching = state.q !== "";
-  const info = useInfo(!searching, setMaintenance);
+  const [formOpened, setFormOpened] = useState(false);
+  const { data: info, failed: infoFailed } = useInfo(!searching || formOpened, setMaintenance);
+  const formSite: FormSite = {
+    status: info ? (info.turnstile_site_key ? "ready" : "unavailable") : infoFailed ? "unavailable" : "loading",
+    siteKey: info?.turnstile_site_key ?? null,
+    ask: () => setFormOpened(true),
+  };
 
   // The box shows what is searched: no emoji, no stray spaces.
   function searchFor(raw: string) {
@@ -169,6 +178,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
   }
 
   return (
+    <FormSiteContext.Provider value={formSite}>
     <div class="page">
       {maintenance !== null && <Banner message={maintenance} />}
       <header
@@ -300,7 +310,8 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
           <EmptyState info={info} onPick={searchFor} />
         )}
       </main>
-      <Footer />
+      <Footer feedback />
     </div>
+    </FormSiteContext.Provider>
   );
 }

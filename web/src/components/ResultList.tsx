@@ -11,6 +11,7 @@ import type { RefObject } from "preact";
 import { useLayoutEffect, useState } from "preact/hooks";
 import type { SearchResult } from "../../../worker/src/api-types";
 import { groupNeighbours } from "../lib/group";
+import { OpenReport } from "../use-forms";
 import { OpenView, type Open } from "../use-transcript";
 import type { HitActions } from "./HitRow";
 import { ResultCard } from "./ResultCard";
@@ -36,6 +37,8 @@ export function ResultList({
   const [active, setActive] = useState(0);
   // The one expanded transcript of the page: opening another hit's collapses it.
   const openView = useState<Open | null>(null);
+  // Likewise the one open report form (spec §5.5): the chunk id of its hit.
+  const openReport = useState<number | null>(null);
 
   const cards = groupNeighbours(results);
   const noKeyword = results.length > 0 && results.every((r) => r.match === "related");
@@ -59,16 +62,18 @@ export function ResultList({
       {page === 1 && noKeyword && <p class="results-intro">No exact matches — passages about similar things:</p>}
       <ol class="results" aria-label="Results">
         <OpenView.Provider value={openView}>
-          {cards.map((card, index) => (
-            <ResultCard
-              key={card.hits[0]!.chunk_id}
-              card={card}
-              tabIndex={index === current ? 0 : -1}
-              q={q}
-              onReport={onReport}
-              onSearchEpisode={onSearchEpisode}
-            />
-          ))}
+          <OpenReport.Provider value={openReport}>
+            {cards.map((card, index) => (
+              <ResultCard
+                key={card.hits[0]!.chunk_id}
+                card={card}
+                tabIndex={index === current ? 0 : -1}
+                q={q}
+                onReport={onReport}
+                onSearchEpisode={onSearchEpisode}
+              />
+            ))}
+          </OpenReport.Provider>
         </OpenView.Provider>
       </ol>
     </div>

@@ -1279,6 +1279,248 @@ a.passage__time:hover {
   border-color: var(--accent);
 }
 
+/* ---- Report and feedback forms (design: ResultCard.dc.html 2f/3q–3s, Screen.dc.html 2j/3w/3x) ---- */
+
+/* Under its hit row, across the whole row: the grid's rows are the chip and excerpt (1), "+N nearby"
+   (2); a phone has the chip on its own row, so the form goes one row lower. */
+.hit__report {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  min-width: 0;
+  margin-top: 6px;
+}
+
+.form {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+/* In a card the form hangs from a rule; in the footer it is a surface of its own. */
+.hit__report .form {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.site-footer__form .form {
+  margin: 6px 0;
+  padding: 16px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.form:focus-visible {
+  outline-offset: 3px;
+}
+
+.form__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.form__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.form__close {
+  width: 44px;
+  height: 44px;
+  margin: -4px -8px -4px 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.form__close:hover {
+  color: var(--text);
+}
+
+.form__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.form__body--sending {
+  opacity: 0.7;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.field__label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.field__optional {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.field__count {
+  font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.field__count--over {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.field__input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-control);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.field__input--serif {
+  font-family: var(--serif);
+}
+
+.field__input:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--focus) 25%, transparent);
+}
+
+.field__input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.field__hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.turnstile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.turnstile__widget {
+  width: 300px;
+  max-width: 100%;
+  min-height: 65px;
+}
+
+.turnstile__problem,
+.form__wait {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.form__link {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.form__sent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--r-control);
+  background: color-mix(in oklch, var(--success) 10%, var(--surface));
+  border: 1px solid color-mix(in oklch, var(--success) 35%, transparent);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.form__sent-icon {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.form__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.form__send,
+.form__cancel {
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--r-control);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.form__send {
+  padding: 0 22px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 650;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.form__send:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.form__send:disabled {
+  background: color-mix(in oklch, var(--accent) 35%, var(--surface));
+  color: var(--on-accent);
+  cursor: not-allowed;
+}
+
+.form__cancel {
+  padding: 0 14px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 550;
+}
+
+.form__cancel:hover {
+  color: var(--text);
+}
+
 .banner {
   background: var(--warning);
   color: var(--bg);
@@ -1583,6 +1825,10 @@ a.passage__time:hover {
     grid-column: 1;
     grid-row: 3;
     min-height: 44px;
+  }
+
+  .hit__report {
+    grid-row: 4;
   }
 
   .more-menu {

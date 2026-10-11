@@ -10,15 +10,27 @@
 // above it (beside it, for a row without "+N nearby"). It takes focus when it opens, and
 // when it collapses focus returns to the control that opened it: "+N nearby", or ⋯ for the other
 // two (the excerpt is plain text for selecting, so it is not a control).
-import { useEffect, useLayoutEffect, useRef } from "preact/hooks";
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import type { SearchResult } from "../../../worker/src/api-types";
 import { anchorDelta } from "../lib/anchor";
 import { excerpt } from "../lib/excerpt";
 import { chipName, hitTime, menuPlays, primaryPlay } from "../lib/platforms";
+import { OpenReport } from "../use-forms";
 import { useTranscript } from "../use-transcript";
 import { MoreMenu } from "./MoreMenu";
 import { PlayIcon } from "./PlayIcon";
+import { ReportForm } from "./ReportForm";
 import { Transcript } from "./Transcript";
+
+/** The text the person has selected, if all of it lies inside one of `scopes`; else null. */
+function selectionWithin(scopes: (Element | null)[]): string | null {
+  const selection = window.getSelection?.();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+  const text = selection.toString().replace(/\s+/g, " ").trim();
+  if (text === "") return null;
+  const inside = (node: Node | null) => node !== null && scopes.some((scope) => scope?.contains(node));
+  return inside(selection.anchorNode) && inside(selection.focusNode) ? text : null;
+}
 
 export interface HitActions {
   onReport: (hit: SearchResult) => void;
@@ -112,6 +124,24 @@ export function HitRow({
   const opener = useRef<"more" | "nearby">("more");
   const pending = useRef<Pending | null>(null);
   const regionId = `transcript-${hit.chunk_id}`;
+
+  // The report form (spec §5.5): one is open on the page; it starts from the selection, if that
+  // lies in this card's excerpt or open transcript, else from the excerpt.
+  const ownReport = useState<number | null>(null);
+  const [reportOpen, setReportOpen] = useContext(OpenReport) ?? ownReport;
+  const reporting = reportOpen === hit.chunk_id;
+  const [quote, setQuote] = useState("");
+
+  function startReport() {
+    setQuote(selectionWithin([excerptText.current, region.current]) ?? view.segments.map((s) => s.text).join(""));
+    setReportOpen(hit.chunk_id);
+    onReport(hit);
+  }
+
+  function closeReport() {
+    setReportOpen(null);
+    moreButton.current?.focus();
+  }
 
   // Opening, or moving between the two views, puts focus on the region (without scrolling: the
   // layout effect below has already put the page where it should be).
@@ -227,7 +257,7 @@ export function HitRow({
         moreOpen={shown === 3}
         buttonRef={moreButton}
         onMore={() => (shown === 3 ? collapse() : openMore())}
-        onReport={() => onReport(hit)}
+        onReport={startReport}
       />
       {nearbyShown && (
         <button
@@ -269,6 +299,11 @@ export function HitRow({
           onClose={collapse}
           onSearchEpisode={onSearchEpisode}
         />
+      )}
+      {reporting && (
+        <div class="hit__report">
+          <ReportForm chunkId={hit.chunk_id} initialQuote={quote} onClose={closeReport} />
+        </div>
       )}
     </div>
   );

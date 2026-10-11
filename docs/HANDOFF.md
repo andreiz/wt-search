@@ -1,4 +1,4 @@
-# Handoff — 2026-10-10 (eighth session, continued; plan 3 Tasks 1–12 done, Task 13 next)
+# Handoff — 2026-10-10 (eighth session, continued; plan 3 Tasks 1–13 done, Task 14 next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -9,9 +9,25 @@ then [README.md](../README.md), then the spec sections it points to.
 The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
 fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Next: plan 3 Task 13** (the report and feedback forms with Turnstile), then Tasks 14–15
-and Checkpoint H:
+**Next: plan 3 Task 14** (end-to-end states and the axe accessibility run), then Task 15 and
+Checkpoint H:
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+**Task 13 is done** (2026-10-10, Sonnet subagent, reviewed and committed by the main
+session): "Report transcript error" (⋯ on a hit) opens a form under the hit row, and the
+footer's "Send feedback" opens one in the footer. `lib/turnstile.ts` loads the script once,
+when the first form has a site key; `use-forms.ts` has the site key state (`/api/info`, now
+also asked when a form first opens), the one-open-report state and the sending logic;
+`FormShell.tsx` is what the two forms share. **Never run against the real Turnstile widget**
+(tests fake `window.turnstile`). To check on staging: the widget appears and fits at 390 px
+with no CSP error in the console; Send enables on a token and again after a refused send;
+selecting text in an excerpt or an open transcript and choosing Report pre-fills the quote
+(Safari and iOS too); a real 403/429 message reads well. Choices beyond the plan: Send is
+also disabled while a field is over its limit (no `maxlength`: it counts UTF-16 units); the
+footer button stays visible while its form is open (the mock hides it), so focus can return
+to it; "Close" on the sent and unavailable states; a "couldn't load, Try again" line when
+the script fails. `e2e/search.spec.ts` "a short results page never compacts" now uses one
+card: "Send feedback" wraps to its own line on a phone and made two cards tall enough to
+scroll past the mark. The subagent wrote the code before the tests (not test-first).
 **Task 12 is done** (2026-10-10, main session): `web/src/components/Footer.tsx` with the
 unofficial line (`BLESSING`, one constant: spec §10 item 1 is still open), the show's links
 (`SHOW_LINKS`: `youtube.com/@WoodTalk`, `shows.acast.com/woodtalk`, `woodtalkshow.com`; **the
@@ -70,8 +86,8 @@ main session reviews, runs every suite and commits (one commit per task). Tasks 
 main checkout, one subagent at a time, told not to commit.
 
 **Tests (2026-10-10):** pipeline **713** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **675** unit +
-**55** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
+Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **720** unit +
+**67** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**
 - **Plan 3 (frontend)**: brainstorm, spec §5 rewritten, plan written; **Tasks 1–5 done**: the

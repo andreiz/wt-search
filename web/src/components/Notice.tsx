@@ -7,9 +7,20 @@ export type Tone = "info" | "warning" | "danger";
 
 const ICON: Record<Tone, string> = { info: "i", warning: "!", danger: "!" };
 
-export function Notice({ tone, children, action }: { tone: Tone; children: ComponentChildren; action?: ComponentChildren }) {
+export function Notice({
+  tone,
+  children,
+  action,
+  role = "status",
+}: {
+  tone: Tone;
+  children: ComponentChildren;
+  action?: ComponentChildren;
+  /** `alert` for an error the person has to act on (a form that failed to send). */
+  role?: "status" | "alert";
+}) {
   return (
-    <div class={`notice notice--${tone}`} role="status">
+    <div class={`notice notice--${tone}`} role={role}>
       <span class="notice__icon" aria-hidden="true">
         {ICON[tone]}
       </span>

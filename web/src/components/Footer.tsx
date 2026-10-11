@@ -1,6 +1,9 @@
 // The footer (spec §5.7; design README "Footer"; Screen.dc.html): the unofficial line, links to
-// the show, and the note about search logs. "Send feedback" is shown once it has a form to open
-// (Task 13).
+// the show, and the note about search logs. With `feedback`, "Send feedback" toggles the inline
+// feedback form (spec §5.5) below the links; closing it (Esc, Cancel, ×, or the button again)
+// returns focus to the button.
+import { useRef, useState } from "preact/hooks";
+import { FeedbackForm } from "./FeedbackForm";
 
 /** Spec §10 item 1 is still open (the hosts have not been asked): the phrase lives here only. */
 export const BLESSING = "made with the hosts' blessing";
@@ -12,7 +15,15 @@ export const SHOW_LINKS = [
   { label: "Website", href: "https://www.woodtalkshow.com/" },
 ] as const;
 
-export function Footer({ onFeedback }: { onFeedback?: () => void }) {
+export function Footer({ feedback = false }: { feedback?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+
+  function close() {
+    setOpen(false);
+    button.current?.focus();
+  }
+
   return (
     <footer class="site-footer">
       <div class="column site-footer__inner">
@@ -25,12 +36,24 @@ export function Footer({ onFeedback }: { onFeedback?: () => void }) {
               {link.label}
             </a>
           ))}
-          {onFeedback && (
-            <button type="button" class="site-footer__link site-footer__link--button" onClick={onFeedback}>
+          {feedback && (
+            <button
+              type="button"
+              class="site-footer__link site-footer__link--button"
+              ref={button}
+              aria-expanded={open ? "true" : "false"}
+              aria-controls={open ? "feedback-form" : undefined}
+              onClick={() => (open ? close() : setOpen(true))}
+            >
               Send feedback
             </button>
           )}
         </nav>
+        {feedback && open && (
+          <div id="feedback-form" class="site-footer__form">
+            <FeedbackForm onClose={close} />
+          </div>
+        )}
         <p class="site-footer__line">Searches are logged anonymously to improve results.</p>
       </div>
     </footer>

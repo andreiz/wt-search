@@ -16,8 +16,19 @@ export function usePopover(returnTo: RefObject<HTMLElement | null>) {
     const away = (event: Event) => {
       if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
     };
+    // Esc closes it wherever focus is: a browser may not leave focus in the dialog, and then the
+    // key never reaches `onKeyDown` below (which stops the Esc it handles before it gets here).
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      close();
+    };
     document.addEventListener("pointerdown", away);
-    return () => document.removeEventListener("pointerdown", away);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", away);
+      document.removeEventListener("keydown", escape);
+    };
   }, [open]);
 
   /** Close; focus goes back to the button unless it is going somewhere else. */

@@ -201,6 +201,37 @@ for (const [name, viewport] of [
       await check();
     });
 
+    test(`a form opened at the bottom of the screen is scrolled into view (${name})`, async ({ page }) => {
+      const { check } = await setup(page);
+      // Enough cards to fill several screens; the report opens under the last one.
+      const results = Array.from({ length: 8 }, (_, i) => ({ ...hit, chunk_id: 100 + i, episode: { ...hit.episode, id: 100 + i, number: 100 + i } }));
+      await page.route("**/api/search*", (route) =>
+        route.fulfill({ json: { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results, episodes: [] } }),
+      );
+      await page.setViewportSize({ width: viewport.width, height: 640 });
+      await page.goto("/?q=glue");
+      const more = page.getByRole("button", { name: "More actions" });
+      await expect(more).toHaveCount(8);
+      // Put the card's ⋯ at the bottom edge, as it is under a thumb, so the form opens below the screen.
+      await more.nth(3).evaluate((el) => el.scrollIntoView({ block: "end" }));
+      await more.nth(3).click();
+      await page.getByRole("menuitem", { name: "Report transcript error" }).click();
+      const report = page.getByRole("form", { name: "Report a transcript error" });
+      await expect(report.getByLabel("Quoted text")).toBeFocused();
+      await expect(report.getByRole("heading", { name: "Report a transcript error" })).toBeInViewport({ ratio: 1 });
+      await expect(report.getByRole("button", { name: "Cancel" })).toBeInViewport({ ratio: 1 });
+      await report.getByRole("button", { name: "Cancel" }).click();
+
+      const opener = page.getByRole("button", { name: "Send feedback" });
+      await opener.evaluate((el) => el.scrollIntoView({ block: "end" }));
+      await opener.click();
+      const feedback = page.getByRole("form", { name: "Send feedback" });
+      await expect(feedback.getByLabel("Message")).toBeFocused();
+      await expect(feedback.getByRole("heading", { name: "Send feedback" })).toBeInViewport({ ratio: 1 });
+      await expect(feedback.getByRole("button", { name: "Cancel" })).toBeInViewport({ ratio: 1 });
+      await check();
+    });
+
     test(`no site key: both forms say reporting is unavailable and load nothing (${name})`, async ({ page }) => {
       const { seen, check } = await setup(page, { siteKey: null });
       const form = await openReport(page);

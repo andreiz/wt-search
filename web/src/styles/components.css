@@ -1448,6 +1448,12 @@ a.passage__time:hover {
   color: var(--muted);
 }
 
+/* As tall as the widget that replaces it, so the form does not grow once it has been scrolled to. */
+.form__wait {
+  box-sizing: border-box;
+  min-height: 65px;
+}
+
 .form__link {
   min-height: 44px;
   padding: 0 4px;

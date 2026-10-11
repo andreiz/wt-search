@@ -118,8 +118,13 @@ export function FormShell({
   const ready = canSend && token !== null && status === "open";
 
   // Opening moves focus into the form: its first field, or the form itself when there is nothing to fill in.
+  // Focus alone brings at most the field onto the screen (and on a phone not even that), so the
+  // whole form is scrolled into view: all of it when it fits, from its top when it does not.
   useEffect(() => {
-    (unavailable ? form.current : focusRef.current)?.focus();
+    (unavailable ? form.current : focusRef.current)?.focus({ preventScroll: true });
+    const el = form.current;
+    if (!el) return;
+    el.scrollIntoView({ block: el.getBoundingClientRect().height > window.innerHeight ? "start" : "nearest" });
   }, [unavailable]);
 
   // The fields are gone once sent: focus goes to the thanks.

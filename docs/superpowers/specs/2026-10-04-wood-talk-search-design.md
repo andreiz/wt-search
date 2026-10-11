@@ -220,7 +220,7 @@ system.
 | `wts links <ep> [--at 12:34]` | Prints an episode's links from `state.db` (YouTube, Apple, Spotify, show page, feed audio) by the rules of §4.6: missing IDs left out, YouTube only within 3 s of the feed's length (otherwise the match and the reason are shown), `--at` shifted by each platform's offset, with no lead-in. Takes a number or a selector. *(Added 2026-10-08, maintainer's request.)* |
 | `wts search "<query>" [--env staging\|production] [--mode smart\|exact] [--sort relevance\|newest\|oldest] [--page N] [--json]` | Searches a deployed environment from the terminal, for the maintainer. A thin client of the Worker's `/api/search` (§4.4), so results are exactly what the web app shows: the query syntax, ranking, collapsing, cue times and links all stay in the Worker, with no second implementation in Python. Prints one block per result (episode number, title, date, `mm:ss` and `related` for a meaning-only hit, the text with hits in bold, `+N more in episode`, then the links); `--json` prints the raw response. The environment defaults to `run_env`; its URL is `[env.<name>] api_url` in `config.toml`. The same client serves `wts eval` and the smoke search after `wts run` (§7.2, §8.1). *(Added 2026-10-07.)* |
 | `wts status` | Episode counts by status, episodes in `error` with their reasons, and the last 10 runs. |
-| `wts reports` | Lists listener transcript-error reports (§4.4) and marks them resolved. |
+| `wts reports` | Lists listener transcript-error reports (§4.4) and marks them resolved. Also lists the maintainer's marks (§4.9), apart from the reports. |
 | `wts logs` | Filters the pipeline logs (§8.4). |
 | `wts analytics pull` | Copies Worker search analytics to a local file (§8.4). |
 | `wts eval` | See §7.2. |
@@ -342,6 +342,7 @@ committed:
 - The Spotify client credentials.
 - The YouTube Data API key.
 - The ntfy topic name, and an access token when the ntfy server requires one.
+- The maintainer's mark key (§4.9), also set as the Worker secret `MARK_KEY`.
 
 ### 3.7 Review tool (`wts review`)
 
@@ -425,6 +426,7 @@ reports(
   id INTEGER PRIMARY KEY, chunk_id INTEGER, created_at TEXT,
   quoted_text TEXT, suggested_text TEXT, note TEXT,
   status TEXT NOT NULL DEFAULT 'open'   -- open | resolved | rejected
+  -- planned, migration 0004 (§4.9): source ('form' | 'mark' | 'overcast'), link
 )
 meta(key TEXT PRIMARY KEY, value TEXT)   -- corpus_version, last_published_at
 ```
@@ -868,7 +870,8 @@ the maintainer's phone while it's happening, not in the weekly digest.
 - Unknown paths already get a cheap JSON 404 (plan 2 Task 10), so probes
   for `/wp-admin`, `/.env` and the like cost one Worker invocation and no
   D1 or AI. Logs count 404s per path prefix, without IPs.
-- No endpoint writes anything except `/api/report`. Publishing goes
+- No endpoint writes anything except `/api/report` (and, once built, the
+  maintainer's `/api/mark`, §4.9). Publishing goes
   through the Cloudflare API with the Mac's scoped token (spec §3.6),
   never through the Worker.
 
@@ -906,6 +909,91 @@ later: a lower `/api/context` limit, or Turnstile on `/api/context`.
 - A wrong or missing `Origin` on report gets 403.
 - The security headers are present on every route, and no
   `Access-Control-Allow-Origin` on any.
+
+### 4.9 Maintainer marks *(designed 2026-10-11, not built)*
+
+The maintainer hears something worth checking while listening away from
+the desk (in the car, in Overcast), or sees it in a search result, and
+wants to log that moment for review in one action, with nothing to type.
+A **mark** records where; it has no note.
+
+**Storage.** A mark is a row in `reports` (§4.1), so there is one review
+queue. Migration `0004` adds two columns:
+
+- `source TEXT NOT NULL DEFAULT 'form'`: `form` (a listener's report or
+  feedback, every row so far), `mark` (from the site) or `overcast`.
+- `link TEXT`: the Overcast link of an `overcast` mark, else NULL.
+
+A `mark` row has `chunk_id` and nothing else. An `overcast` row has `link`
+and nothing else: the Worker stores the link as sent and does not look up
+the episode, so marking cannot fail on a lookup. `quoted_text`,
+`suggested_text` and `note` are NULL for both.
+
+**Endpoint.** `POST /api/mark`.
+
+- Allowed only with the maintainer's key: `Authorization: Bearer <key>`,
+  compared in constant time (SHA-256 of both, then a timing-safe compare)
+  with the Worker secret `MARK_KEY`. A missing or wrong key, or an unset
+  secret, is 401 `{error: "unauthorized"}`. There is no Turnstile and no
+  `Origin` check: the key is the proof, and the Shortcut sends no `Origin`.
+- Body: exactly one of `{chunk_id}` (an integer) or `{link}`; anything
+  else is 400 with a `message`. `link` must be an `https://overcast.fm/`
+  URL of at most 300 characters. The same size limits as `/api/report`
+  apply to the body.
+- `{chunk_id}`: one `INSERT … WHERE EXISTS` the chunk (unknown chunk: 400).
+  If an open `mark` row for that chunk is already there, nothing is
+  inserted and the answer is the same, so a double tap leaves one row.
+- `{link}`: inserted as it is. The same link twice while open is one row.
+- Answer `{ok: true}`. Never cached.
+- Rate limit: the `RL_REPORT` binding (3 per 60 s), counted before the key
+  is checked, so guessing the key is limited too.
+- §4.8's "no endpoint writes anything except `/api/report`" becomes
+  "except `/api/report` and `/api/mark`".
+
+**The key.** A long random string the maintainer generates, set with
+`wrangler secret put MARK_KEY` for each environment, and kept in the
+macOS Keychain with the other secrets (§3.6). It is never in the repo. It
+also sits in the Shortcut on the phone and in the storage of each browser
+it was entered into (§5.5). A leaked key lets someone add junk rows to
+`reports`, at 3 per minute, and nothing else: it reads nothing. It is
+replaced by setting a new secret.
+
+**From Overcast: a Siri Shortcut.** Built by hand on the phone, from
+steps in the repo's docs (the Shortcut itself is not in the repo):
+
+1. Overcast's action that gives the link to the current episode at the
+   current time.
+2. `POST` it to `/api/mark` as `{link}` with the key in the header.
+3. Speak "Marked". If the request failed (no signal), append the link to
+   a note named "Wood Talk marks" and speak "Saved for later", so nothing
+   is lost; those are sent or handled by hand afterwards.
+
+It is run by a Siri phrase or Back Tap.
+
+**From the site.** §5.5.
+
+**Review.** Plan 4's `wts reports` lists marks apart from listeners'
+reports. For a `mark` row it shows the episode, the time and the passage.
+For an `overcast` row it works out the episode and the time on the Mac:
+it fetches the link's public page, matches it to an episode, and reads
+the time from the link. The time is approximate, because Overcast plays
+the feed's audio with inserted ads and so runs ahead of the transcript;
+`wts reports` takes off the episode's `offset_apple_s` (the same audio,
+§4.6) and shows the transcript for a minute either side.
+
+**Not verified yet (check before plan 4 builds the review):**
+
+- Overcast's action still exists under a name the Shortcut can use, and
+  what its link looks like (expected `https://overcast.fm/+<id>/<mm:ss>`).
+  The Worker's check is loose (host and length only) for that reason.
+- The link's public page gives a title or an audio URL that matches one
+  episode in `state.db`.
+- `offset_apple_s` is the right correction for Overcast's position.
+
+**Tests:** the key (missing, wrong, unset secret: 401; right: 200); the
+body (both fields, neither, a non-Overcast link, an unknown chunk: 400);
+a repeated mark leaves one row; a `form` report still stores `source`
+`form`; the rate limit applies before the key check.
 
 ## 5. Frontend (`web/`)
 
@@ -1151,6 +1239,16 @@ states. Behaviour from the design, with the maintainer's calls:)*
   Turnstile, for "search didn't find it" and ideas. It posts to
   `/api/report` without a `chunk_id` (§4.4).
 - The Turnstile script loads only when a form first opens.
+- **Mark for review** *(designed 2026-10-11, not built; §4.9)*: for the
+  maintainer only. Opening the site at `/#mark` shows a small prompt for
+  the maintainer's key (a password field, **Save** and **Forget**); the
+  key is kept in that browser's `localStorage` and nothing links to the
+  prompt. While a key is stored, the ⋯ menu has **Mark for review** after
+  "Report transcript error". One tap posts the hit's `chunk_id` to
+  `/api/mark`; there is no form. The row then says "Marked" (announced as
+  a status); a failure says "Couldn't mark it. Try again.", and a 401
+  says the key was refused and offers the prompt again. Visitors without
+  a key see no trace of it.
 
 ### 5.6 States
 

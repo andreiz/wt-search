@@ -1158,6 +1158,13 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    Without an identifier it gives counts and ratios, not per-visitor paths. Also possible:
    a phone alert (ntfy) when a report or feedback message arrives, since nothing notifies
    the maintainer today and `wts reports` is plan 4.
+13. **Maintainer marks** (designed 2026-10-11 with the maintainer, spec §4.9 and §5.5; the
+   spec is awaiting his review, no plan yet, nothing built). One action logs a moment for
+   review: a Siri Shortcut sends Overcast's link at the current time to `POST /api/mark`,
+   and the site's ⋯ menu gets "Mark for review" for a browser that holds the maintainer's
+   key. Rows go to `reports` (new `source` and `link` columns, migration 0004); review is
+   plan 4's `wts reports`. Three things are unverified and listed in §4.9: the Overcast
+   action and its link format, matching the link's page to an episode, and the ad offset.
 8. ~~Full transcripts in public history~~ — removed by rewriting `main` (second session).
    Left: ask GitHub Support to purge cached views of `a44eec9`. Clones from before the rewrite
    must `git fetch && git reset --hard origin/main` before committing.

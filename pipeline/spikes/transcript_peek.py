@@ -2,12 +2,15 @@
 
     cd pipeline
     uv run python spikes/transcript_peek.py read 613 [--from 12:00] [--to 15:00]
+    uv run python spikes/transcript_peek.py listen 613 27:38 [--lead 3] [--for 20]
     uv run python spikes/transcript_peek.py suspects [--top 60]
     uv run python spikes/transcript_peek.py issues 602     # what loop_cut / bad_word_times caught
     uv run python spikes/transcript_peek.py worst 71 [--window 60] [--top 15]
 
 `read` prints the raw Whisper text with timestamps; words Whisper gave a probability below 0.5
 are shown «like this», except short and common words (`--all` marks those too). It also prints an ffplay command to hear the audio from any point.
+`listen` plays the downloaded audio with ffplay from 3 s before a time, and prints the raw text
+of the next 30 s (or of `--for` seconds) to read along.
 `suspects` ranks words across every transcript by the share of times Whisper was unsure of them
 (at least 2 unsure and 25% of uses), with one example each: the usual source of corrections.yaml
 and vocab.txt entries.
@@ -19,8 +22,11 @@ Raw means before `wts chunk`: corrections.yaml and the guards are not applied he
 """
 
 import argparse
+import contextlib
 import json
 import re
+import shutil
+import subprocess
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -86,6 +92,23 @@ def read(path: Path, audio_dir: Path | None, start: float, end: float, mark_all:
             for w in words
         ) if words else seg["text"]
         print(f"[{mmss(seg['start'])}] {text.strip()}")
+
+
+def listen(path: Path, audio_dir: Path, at: float, lead: float, length: float | None) -> None:
+    """Play the episode's audio from `lead` seconds before `at`, printing what Whisper heard."""
+    audio = audio_dir / f"{path.stem}.mp3"
+    if not audio.is_file():
+        raise SystemExit(f"no audio file: {audio}")
+    if shutil.which("ffplay") is None:
+        raise SystemExit("ffplay not found (brew install ffmpeg)")
+    start = max(0.0, at - lead)
+    read(path, None, start, start + (length or 30), mark_all=False)
+    command = ["ffplay", "-nodisp", "-autoexit", "-loglevel", "error", "-ss", f"{start:.1f}"]
+    if length is not None:
+        command += ["-t", f"{length:.1f}"]
+    print(f"\nplaying from {mmss(start)}; q or Ctrl-C stops")
+    with contextlib.suppress(KeyboardInterrupt):
+        subprocess.run([*command, str(audio)], check=False)
 
 
 def issues(path: Path, duration_s: float | None) -> None:
@@ -185,6 +208,11 @@ def main() -> None:
     r.add_argument("--to", dest="end", default="99:59:59")
     r.add_argument("--all", dest="mark_all", action="store_true",
                    help="mark every unsure word, including short and common ones")
+    p = sub.add_parser("listen")
+    p.add_argument("episode", help="episode number or part of a stem")
+    p.add_argument("at", help="time to hear, as M:SS, H:MM:SS or seconds")
+    p.add_argument("--lead", type=float, default=3, help="seconds to start before the time")
+    p.add_argument("--for", dest="length", type=float, help="stop after this many seconds")
     i = sub.add_parser("issues")
     i.add_argument("episode", help="episode number, part of a stem, or a transcript path")
     i.add_argument("--dir", help="transcript folder (default: wts paths' transcripts_dir)")
@@ -200,7 +228,7 @@ def main() -> None:
     args = parser.parse_args()
 
     audio_dir = None
-    if args.dir:
+    if getattr(args, "dir", None):
         transcripts_dir = Path(args.dir)
     else:
         from wts.config import load_config
@@ -211,6 +239,9 @@ def main() -> None:
     if args.cmd == "read":
         read(find(transcripts_dir, args.episode), audio_dir, seconds(args.start), seconds(args.end),
              args.mark_all)
+    elif args.cmd == "listen":
+        listen(find(transcripts_dir, args.episode), audio_dir, seconds(args.at), args.lead,
+               args.length)
     elif args.cmd == "issues":
         # The audio's probed length is in state.db; the transcript's meta has the feed's.
         issues(find(transcripts_dir, args.episode), None)

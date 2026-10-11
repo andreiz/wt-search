@@ -67,6 +67,9 @@ global:
   16quarter: 16/4
   Timbermaid: Timbermate
   Woodcrasp: Woodcraft
+  # The table saw's riving knife (the maintainer's report, 2026-10-10). "writhing" alone stays.
+  writhing knife: riving knife
+  writhing knives: riving knives
   # "Kregger", the show's word for a Kreg pocket screw (ep613, 27:38, "Shove a Kregger in the
   # Hole"): Whisper wrote "Craigers". The name "Craig" is not touched.
   craigers: Kreggers

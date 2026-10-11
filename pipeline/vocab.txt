@@ -53,6 +53,7 @@ chisel
 marking gauge
 crosscut sled
 track saw
+riving knife
 # Finishes
 shellac
 lacquer

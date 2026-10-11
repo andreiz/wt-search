@@ -1,4 +1,4 @@
-# Handoff — 2026-10-10 (eighth session, continued; plan 3 Tasks 1–11 done, Task 12 next)
+# Handoff — 2026-10-10 (eighth session, continued; plan 3 Tasks 1–12 done, Task 13 next)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -9,8 +9,18 @@ then [README.md](../README.md), then the spec sections it points to.
 The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and
 fast-forwarded `main` to it; everything is on `main`, and that branch can be deleted.
 
-**Next: plan 3 Task 12** (the footer), then Tasks 13–15 and Checkpoint H:
+**Next: plan 3 Task 13** (the report and feedback forms with Turnstile), then Tasks 14–15
+and Checkpoint H:
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+**Task 12 is done** (2026-10-10, main session): `web/src/components/Footer.tsx` with the
+unofficial line (`BLESSING`, one constant: spec §10 item 1 is still open), the show's links
+(`SHOW_LINKS`: `youtube.com/@WoodTalk`, `shows.acast.com/woodtalk`, `woodtalkshow.com`; **the
+maintainer has not checked these three addresses**) and the search-logs note. **"Send
+feedback" is not shown yet:** the button renders only when `onFeedback` is passed, and the
+app passes nothing until Task 13 has a form for it to open (no dead control on staging).
+**Esc in Safari with the Vimari extension** does not close popups, menus or the transcript:
+Vimari takes the key and blurs the focused element before the page sees it. Not ours to fix
+(an attempt was made and reverted the same day); Vimari's excluded-URLs setting is the cure.
 **Task 11 is done** (2026-10-10, Sonnet subagent, reviewed and committed by the main
 session): the empty state with example chips and the `/api/info` line, no results, the
 Exact truncation note, the degraded notice, the maintenance banner, the rate limit's
@@ -60,7 +70,7 @@ main session reviews, runs every suite and commits (one commit per task). Tasks 
 main checkout, one subagent at a time, told not to commit.
 
 **Tests (2026-10-10):** pipeline **713** (`cd pipeline && uv run pytest -q`, ruff clean),
-Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **668** unit +
+Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **675** unit +
 **55** e2e (`cd web && npm test`, `npm run e2e`, `npm run typecheck`).
 
 **What the seventh session did (2026-10-08/09):**

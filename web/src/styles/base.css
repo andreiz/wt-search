@@ -117,6 +117,30 @@ body {
   font-weight: 650;
 }
 
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.site-footer__link {
+  padding: 4px 0;
+  color: var(--accent);
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.site-footer__link:hover {
+  color: var(--accent-hover);
+}
+
+.site-footer__link--button {
+  border: 0;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 @media (max-width: 599.98px) {
   .site-header__inner {
     padding: 14px 16px;

@@ -9,7 +9,8 @@
 // shown), no results, the Exact truncation note, the degraded-Smart notice, the rate limit with
 // its countdown, the error with Retry, and the maintenance banner above the header. The banner
 // shows when a search, a context request or /api/info answers `maintenance`, and goes when a
-// later search succeeds. Not here yet: the real footer (Task 13). The
+// later search succeeds. The footer is components/Footer.tsx; its "Send feedback" waits for the
+// form (Task 13). The
 // result cards are ResultList's, and More transcript and "+N nearby" are theirs too (Task 10);
 // Report (Task 13) is not wired, so that control does nothing yet. "Search this episode" puts
 // `ep:N` into the searched query and searches, like the year chip. The Episodes row (TitleHits)
@@ -18,6 +19,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Banner } from "./components/Banner";
 import { EmptyState, NoResults } from "./components/EmptyState";
+import { Footer } from "./components/Footer";
 import { HowItWorks } from "./components/HowItWorks";
 import { ModeSwitch } from "./components/ModeSwitch";
 import { Notice } from "./components/Notice";
@@ -298,14 +300,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
           <EmptyState info={info} onPick={searchFor} />
         )}
       </main>
-      <footer class="site-footer">
-        <div class="column site-footer__inner">
-          <p class="site-footer__line">
-            <strong>Unofficial</strong> · made with the hosts' blessing
-          </p>
-          <p class="site-footer__line">Searches are logged anonymously to improve results.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

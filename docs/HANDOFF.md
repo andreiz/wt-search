@@ -454,7 +454,10 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
   - **The reader's place is kept** (maintainer, same day; `lib/anchor.ts`): on open the
     hit's paragraph lands where the excerpt was, on collapse the excerpt lands where the
     paragraph was (instant scroll in a layout effect), clamped to stay clear of the sticky
-    header. Not re-anchored on open if the reader scrolled while it loaded.
+    header. If the page moved while it loaded, the paragraph goes where the excerpt would
+    be now (2026-10-11; before, any movement, such as a flick still settling on a phone,
+    left the paragraph wherever it fell); if that place is off screen the page is left
+    alone unless the paragraph is off screen too. Not confirmed on an iPhone.
   - **The strip above the open transcript is sticky** ("+N nearby", a second "Show less",
     ⋯), pinned under the site header while its transcript is on screen. The offsets are
     `--header-h` (182 px desktop, 98 px phone compact) in `:root`, shared with the cards'

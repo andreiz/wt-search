@@ -384,6 +384,33 @@ for (const { name, width, height } of WIDTHS) {
       expect(Math.abs((await hit.boundingBox())!.y - before)).toBeLessThanOrEqual(2);
     });
 
+    test("a page still moving when the passage arrives: the matched text lands where its excerpt would be", async ({ page }) => {
+      await openTall(page);
+      // The answer is held, as on a real connection, and the page moves meanwhile (a flick settling).
+      let release = () => {};
+      const held = new Promise<void>((done) => (release = done));
+      await page.route("**/api/context*", async (route) => {
+        const params = new URL(route.request().url()).searchParams;
+        await held;
+        return route.fulfill({ json: tallContext(Number(params.get("chunk")), Number(params.get("radius"))) });
+      });
+      const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").nth(4);
+      const excerpt = card.locator(".hit__excerpt");
+      await excerpt.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await settle(page);
+      const before = (await excerpt.boundingBox())!.y;
+
+      await excerpt.click();
+      await expect(card.locator(".transcript")).toBeVisible();
+      await page.evaluate(() => window.scrollBy(0, 60));
+      await settle(page);
+      release();
+      const hit = card.locator(".passage--hit");
+      await expect(hit).toBeVisible();
+      await settle(page);
+      expect(Math.abs((await hit.boundingBox())!.y - (before - 60))).toBeLessThanOrEqual(2);
+    });
+
     /** The bottom edge of what the site header covers now (a phone's compact header shows only its search row). */
     const headerEdge = (page: Page) =>
       page.evaluate(() => {

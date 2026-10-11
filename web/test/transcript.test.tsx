@@ -767,7 +767,19 @@ describe("keeping the reader's place", () => {
     expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 340);
   });
 
-  it("does not move the page for a reader who has scrolled since the click, if the paragraph is visible", async () => {
+  it("follows a page that moved a little since the click: the paragraph goes where the excerpt would be now", async () => {
+    const calls = stubFetch();
+    const { container } = renderList();
+    const start = window.scrollY;
+    fireEvent.click(container.querySelector(".hit__excerpt")!);
+    setScrollY(start + 40);
+    answer(calls[0]!);
+    await loaded();
+    // The excerpt was at 300 and would be at 260 now; the paragraph is at 540.
+    expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 280);
+  });
+
+  it("does not move the page for a reader who has scrolled the excerpt's place off screen, if the paragraph is visible", async () => {
     const calls = stubFetch();
     const { container } = renderList();
     fireEvent.click(container.querySelector(".hit__excerpt")!);

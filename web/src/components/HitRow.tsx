@@ -151,15 +151,12 @@ export function HitRow({
 
   // Keep the reader's place. The hit's viewport top is recorded at the click (`pending`); once the
   // DOM it is about exists, and before paint, the window is scrolled so the hit's paragraph
-  // (open) or excerpt (collapse) is at that top. A reader who has scrolled since the click is
-  // only rescued from having the hit off screen. Collapsing then returns focus to the opener,
-  // without scrolling.
+  // (open) or excerpt (collapse) is at that top, less whatever the page has scrolled since the
+  // click. A reader who has scrolled that place off the screen is only rescued from having the
+  // hit off screen. Collapsing then returns focus to the opener, without scrolling.
   useLayoutEffect(() => {
     const wanted = pending.current;
     if (!wanted) return;
-    // A collapse is applied in the click's own task, but the browser may already have clamped
-    // the scroll position to the shorter page, so only an open can tell that the reader moved.
-    const unmoved = wanted.kind === "close" || window.scrollY === wanted.scrollY || !!wanted.moved;
     if (wanted.kind === "open") {
       if (shown === null) return;
       const target = transcript.entry?.kind === "ok" ? region.current?.querySelector(".passage--hit") : null;
@@ -175,10 +172,18 @@ export function HitRow({
         return;
       }
       pending.current = null;
-      settle(target, unmoved ? wanted.top : null, strip.current);
+      // The page may have moved while the passage loaded (a flick still settling on a phone, or
+      // the reader scrolling): the hit goes where its excerpt would be now. A reader who has
+      // scrolled that place off the screen is only rescued from having the hit off screen too.
+      const drift = wanted.moved ? 0 : window.scrollY - wanted.scrollY;
+      const top = wanted.top === null ? null : wanted.top - drift;
+      const onScreen = top !== null && (drift === 0 || (top >= headerBottom() && top < window.innerHeight));
+      settle(target, onScreen ? top : null, strip.current);
     } else if (shown === null) {
       pending.current = null;
-      if (excerptText.current && wanted.top !== null) settle(excerptText.current, unmoved ? wanted.top : null, null);
+      // A collapse is applied in the click's own task, so the reader cannot have scrolled since
+      // (the browser may have clamped the scroll position to the shorter page).
+      if (excerptText.current && wanted.top !== null) settle(excerptText.current, wanted.top, null);
       (opener.current === "nearby" ? nearbyButton : moreButton).current?.focus({ preventScroll: true });
     }
   }, [shown, transcript.entry]);

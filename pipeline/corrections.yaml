@@ -82,6 +82,26 @@ global:
   # put a real Craig's full name under `keep:` below.
   craig: Kreg
   craig's: Kreg's
+  # Mortise and tenon (2026-10-12). "mortis" alone is always the joint (ep127, 597, 608); the
+  # others are longer keys because "tenant", "Morse" (ep603, a Morse taper) and "mortars" are
+  # real words.
+  mortis: mortise
+  mortis and tenant: mortise and tenon        # ep127, 27:35
+  morse and tenons: mortise and tenons        # ep300, 24:40
+  mortars and tenons: mortise and tenons      # ep599, 36:24
+  morrison tenon: mortise and tenon           # ep604, 38:45; ep607, 8:55
+  # Marc Spagnuolo, the host: Whisper writes "Mark". A bare `mark: Marc` would also change "the
+  # 30-second mark" and other people called Mark, so the keys are "Mark" beside his surname or
+  # another host's name (the intro, and listeners' greetings). A value's comma is written out:
+  # a replacement keeps only the punctuation after its last word.
+  mark spagnuolo: Marc Spagnuolo
+  mark shannon: Marc, Shannon
+  mark matt: Marc, Matt
+  mark and matt: Marc and Matt
+  mark and shannon: Marc and Shannon
+  matt and mark: Matt and Marc
+  matt mark: Matt, Marc
+  shannon mark: Shannon, Marc
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:

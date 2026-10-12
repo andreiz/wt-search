@@ -21,6 +21,7 @@ import sys
 import tempfile
 import threading
 from collections.abc import Callable
+from dataclasses import asdict
 from datetime import UTC, datetime
 from hashlib import sha256
 from http import HTTPStatus
@@ -30,6 +31,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlencode, urlsplit
 
 from wts.chunking import chunk_episode
+from wts.cloudflare import D1, CloudflareError
 from wts.corrections import (
     CORRECTIONS_FILE,
     CorrectionRule,
@@ -39,6 +41,7 @@ from wts.corrections import (
 from wts.corrections_check import Change, changes_digest, rule_changes
 from wts.corrections_edit import EditFailed, RuleExists, add_rule
 from wts.paths import Paths
+from wts.reports import STATUSES, get_report, set_status
 from wts.review.data import episode_payload
 
 log = logging.getLogger("wts")
@@ -65,7 +68,9 @@ class ReviewApp:
         paths: Paths,
         corrections_file: Path = CORRECTIONS_FILE,
         token: str | None = None,
+        d1: D1 | None = None,
     ) -> None:
+        self.d1 = d1  # listener reports live in D1; without it /api/report answers 503
         self.conn_factory = conn_factory
         self.paths = paths
         self.corrections_file = corrections_file
@@ -196,15 +201,12 @@ def _make_handler(app: ReviewApp) -> type[BaseHTTPRequestHandler]:
             if path.startswith(("/api/", "/audio/")) and not self._token_ok(query):
                 raise _Reply(401, "unauthorized")
 
-            if post_handler is not None and get_handler is None:
-                if method != "POST":
-                    raise _Reply(405, "method_not_allowed")
+            if method == "POST" and post_handler is not None:
                 self._post(post_handler)
-            else:
-                if method != "GET":
-                    raise _Reply(405, "method_not_allowed")
-                assert get_handler is not None
+            elif method == "GET" and get_handler is not None:
                 get_handler(path, query)
+            else:
+                raise _Reply(405, "method_not_allowed")
 
         def _token_ok(self, query: dict[str, list[str]]) -> bool:
             given = self.headers.get("X-Review-Token") or (query.get("t") or [""])[0]
@@ -249,6 +251,8 @@ def _make_handler(app: ReviewApp) -> type[BaseHTTPRequestHandler]:
                 return self._static
             if path == "/api/episode":
                 return self._episode
+            if path == "/api/report":
+                return self._report
             if path.startswith("/audio/"):
                 return self._audio
             return None
@@ -277,6 +281,21 @@ def _make_handler(app: ReviewApp) -> type[BaseHTTPRequestHandler]:
             finally:
                 conn.close()
             self._json(200, payload)
+
+        def _report(self, path, query) -> None:
+            if app.d1 is None:
+                raise _Reply(503, "no_environment")
+            report_id = _int((query.get("id") or [""])[0])
+            if report_id is None:
+                raise _Reply(400, "bad_request")
+            try:
+                report = get_report(app.d1, report_id)
+            except CloudflareError as exc:  # its text never holds the token
+                log.warning("report lookup failed: %s", exc)
+                raise _Reply(502, "d1_unavailable") from None
+            if report is None:
+                raise _Reply(404, "not_found")
+            self._json(200, asdict(report))
 
         def _audio(self, path, query) -> None:
             episode_id = _int(path[len("/audio/") :])
@@ -463,7 +482,7 @@ def _write_replacing(path: Path, text: str) -> None:
 
 
 def register_corrections(app: ReviewApp) -> None:
-    """Add the correction and "reviewed" endpoints to `app.post_routes`."""
+    """Add the correction, "reviewed" and report-status endpoints to `app.post_routes`."""
 
     def preview(body: dict, conn: sqlite3.Connection) -> tuple[int, dict]:
         try:
@@ -518,6 +537,20 @@ def register_corrections(app: ReviewApp) -> None:
             conn.execute("update episodes set reviewed_at = ? where id = ?", (at, row["id"]))
         return 200, {"reviewed_at": at}
 
+    def report(body: dict, conn: sqlite3.Connection) -> tuple[int, dict]:
+        if app.d1 is None:
+            return 503, {"error": "no_environment"}
+        report_id, status = body.get("id"), body.get("status")
+        if not _is_int(report_id) or status not in STATUSES:
+            return 400, {"error": "bad_request"}
+        try:
+            found = set_status(app.d1, report_id, status)
+        except CloudflareError as exc:  # its text never holds the token
+            log.warning("report update failed: %s", exc)
+            return 502, {"error": "d1_unavailable"}
+        return (200, {"ok": True, "status": status}) if found else (404, {"error": "not_found"})
+
+    app.post_routes["/api/report"] = report
     app.post_routes["/api/corrections/preview"] = preview
     app.post_routes["/api/corrections"] = save
     app.post_routes["/api/reviewed"] = reviewed

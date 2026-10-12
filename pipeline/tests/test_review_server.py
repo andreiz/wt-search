@@ -722,3 +722,104 @@ def test_reviewed_errors(base, make_episode):
     ):
         r = _api(base, "/api/reviewed", bad)
         assert (r.status_code, r.json()) == (400, {"error": "bad_request"})
+
+
+# --- /api/report ----------------------------------------------------------------------------------
+
+REPORT_ROW = {
+    "id": 7, "created_at": "2026-10-05 09:30:00", "status": "open", "chunk_id": 10,
+    "quoted_text": "mark said", "suggested_text": "Marc said", "note": "hm",
+    "episode_number": 71, "episode_title": "Hide Glue", "start_ms": 754_000,
+}
+
+
+class FakeD1:
+    """One report (id 7); records each query; `down` makes every query fail."""
+
+    def __init__(self, down=False):
+        self.down = down
+        self.calls = []
+
+    def query(self, sql, params=()):
+        from wts.cloudflare import CloudflareError
+
+        self.calls.append((sql, list(params)))
+        if self.down:
+            raise CloudflareError(0, [{"code": 0, "message": "network error"}])
+        if sql.lstrip().startswith("update"):
+            return [{"id": 7}] if params[1] == 7 else []
+        return [REPORT_ROW] if params == [7] else []
+
+
+def _get_report(base, query="id=7", token=True):
+    return httpx.get(f"{base}/api/report?{query}", headers={"X-Review-Token": TOKEN} if token else {})
+
+
+def test_get_report_found(app, base):
+    app.d1 = FakeD1()
+    r = _get_report(base)
+    assert r.status_code == 200
+    assert r.json() == {k: v for k, v in REPORT_ROW.items()}
+
+
+def test_get_report_needs_the_token(app, base):
+    app.d1 = FakeD1()
+    assert _get_report(base, token=False).status_code == 401
+    assert app.d1.calls == []
+
+
+def test_get_report_unknown_and_bad_ids(app, base):
+    app.d1 = FakeD1()
+    r = _get_report(base, "id=99")
+    assert (r.status_code, r.json()) == (404, {"error": "not_found"})
+    for query in ("id=abc", "id=", "", "id=-1", "id=1.5"):
+        r = _get_report(base, query)
+        assert (r.status_code, r.json()) == (400, {"error": "bad_request"})
+
+
+def test_report_endpoints_without_d1_are_503(app, base):
+    assert app.d1 is None
+    r = _get_report(base)
+    assert (r.status_code, r.json()) == (503, {"error": "no_environment"})
+    r = _api(base, "/api/report", {"id": 7, "status": "resolved"})
+    assert (r.status_code, r.json()) == (503, {"error": "no_environment"})
+
+
+def test_post_report_sets_the_status(app, base):
+    app.d1 = FakeD1()
+    for status in ("resolved", "rejected", "open"):
+        r = _api(base, "/api/report", {"id": 7, "status": status})
+        assert (r.status_code, r.json()) == (200, {"ok": True, "status": status})
+    assert app.d1.calls[0][1] == ["resolved", 7]
+
+
+def test_post_report_unknown_id_is_404(app, base):
+    app.d1 = FakeD1()
+    r = _api(base, "/api/report", {"id": 99, "status": "resolved"})
+    assert (r.status_code, r.json()) == (404, {"error": "not_found"})
+
+
+def test_post_report_bad_bodies_are_400(app, base):
+    app.d1 = FakeD1()
+    for bad in (
+        {},
+        {"id": 7},
+        {"id": 7, "status": "closed"},
+        {"id": 7, "status": None},
+        {"id": "7", "status": "resolved"},
+        {"id": True, "status": "resolved"},
+        {"status": "resolved"},
+    ):
+        r = _api(base, "/api/report", bad)
+        assert (r.status_code, r.json()) == (400, {"error": "bad_request"}), bad
+    assert app.d1.calls == []
+
+
+def test_report_endpoints_when_d1_is_down_are_502(app, base, caplog):
+    app.d1 = FakeD1(down=True)
+    with caplog.at_level("WARNING", logger="wts"):
+        r = _get_report(base)
+        assert (r.status_code, r.json()) == (502, {"error": "d1_unavailable"})
+        r = _api(base, "/api/report", {"id": 7, "status": "resolved"})
+        assert (r.status_code, r.json()) == (502, {"error": "d1_unavailable"})
+    assert TOKEN not in caplog.text

@@ -1,6 +1,7 @@
 import json
 import re
 
+import httpx
 import pytest
 from click.testing import CliRunner
 from conftest import seg, tx
@@ -139,7 +140,9 @@ def test_exactly_one_of_episode_and_next_flagged(fake, conn, paths, make_episode
     for args in ([], ["71", "--next-flagged"]):
         result = run(*args)
         assert result.exit_code == 2
-        assert "EPISODE or --next-flagged" in result.output
+        assert "exactly one of EPISODE, --next-flagged or --report" in result.output
+    result = run("71", "--report", "3")
+    assert result.exit_code == 2
     assert fake["serve"] == []
 
 
@@ -200,3 +203,109 @@ def test_defaults_without_the_environment_variables(fake, conn, paths, make_epis
     app = fake["serve"][0][0]
     assert app.corrections_file == CORRECTIONS_FILE
     assert len(app.token) >= 24
+    assert app.d1 is None
+
+
+# --- --report ------------------------------------------------------------------------------------
+
+ACCOUNT = "acc123"
+DB = "5f3c1a2e-0000-4000-8000-d1d1d1d1d1d1"
+TOKEN = "cf-token-SECRET-abcdef0123456789"
+D1_URL = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT}/d1/database/{DB}/query"
+CONFIG = f"""
+cloudflare_account_id = "{ACCOUNT}"
+run_env = "staging"
+
+[env.staging]
+d1_database_id = "{DB}"
+vectorize_index = "wts-chunks-staging"
+"""
+
+
+def report_row(**overrides) -> dict:
+    base = {
+        "id": 7, "created_at": "2026-10-05 09:30:00", "status": "open", "chunk_id": 10,
+        "quoted_text": "mark said", "suggested_text": "Marc said", "note": None,
+        "episode_number": 71, "episode_title": "Hide Glue", "start_ms": 754_000,
+    }
+    return {**base, **overrides}
+
+
+def answer(*rows: dict) -> httpx.Response:
+    return httpx.Response(200, json={"success": True, "result": [
+        {"success": True, "results": list(rows)}]})
+
+
+@pytest.fixture
+def d1_home(wts_home, monkeypatch, respx_mock):
+    (wts_home / "config.toml").write_text(CONFIG)
+    monkeypatch.setenv("WTS_SECRET_CLOUDFLARE_API_TOKEN", TOKEN)
+    return respx_mock.post(D1_URL)
+
+
+def add_chunk(conn, episode_id, chunk_id=10, start_ms=754_000):
+    conn.execute(
+        "insert into chunks (id, episode_id, seq, start_ms, end_ms, text, word_times) "
+        "values (?, ?, 0, ?, ?, 'x', '[]')",
+        (chunk_id, episode_id, start_ms, start_ms + 4000),
+    )
+    conn.commit()
+
+
+def test_report_opens_the_episode_at_the_chunk_with_the_report_id(
+    fake, conn, paths, make_episode, d1_home
+):
+    e = transcribed(conn, paths, make_episode, number=71)
+    add_chunk(conn, e)
+    d1_home.mock(return_value=answer(report_row()))
+    result = run("--report", "7")
+    assert result.exit_code == 0, result.output
+    (app, _), = fake["serve"]
+    url = f"http://127.0.0.1:5555/?t={app.token}&episode={e}&at=754000&report=7"
+    assert result.output.strip() == url
+    assert fake["opened"] == [url]
+    assert app.d1 is not None
+    assert json.loads(d1_home.calls[0].request.content)["params"] == [7]
+    assert TOKEN not in result.output
+
+
+def test_report_for_an_unknown_id(fake, conn, d1_home):
+    d1_home.mock(return_value=answer())
+    result = run("--report", "9")
+    assert result.exit_code == 1
+    assert "no report #9" in result.output
+    assert fake["serve"] == []
+
+
+def test_feedback_report_is_an_error_that_prints_it(fake, conn, d1_home):
+    d1_home.mock(return_value=answer(report_row(
+        chunk_id=None, quoted_text=None, suggested_text=None, note="Love the show",
+        episode_number=None, episode_title=None, start_ms=None)))
+    result = run("--report", "7")
+    assert result.exit_code == 1
+    assert "feedback with no passage" in result.output
+    assert "Love the show" in result.output
+    assert fake["serve"] == []
+
+
+def test_report_whose_chunk_the_mac_lost(fake, conn, d1_home):
+    d1_home.mock(return_value=answer(report_row()))
+    result = run("--report", "7")
+    assert result.exit_code == 1
+    assert "re-chunked" in result.output
+    assert "mark said" in result.output
+    assert fake["serve"] == []
+
+
+def test_report_without_any_environment(fake, conn, wts_home):
+    (wts_home / "config.toml").write_text(f'cloudflare_account_id = "{ACCOUNT}"\n')
+    result = run("--report", "7")
+    assert result.exit_code == 2
+    assert "config.toml" in result.output
+    assert fake["serve"] == []
+
+
+def test_at_is_not_for_a_report(fake, conn):
+    result = run("--report", "7", "--at", "1:00")
+    assert result.exit_code == 2
+    assert "--at" in result.output

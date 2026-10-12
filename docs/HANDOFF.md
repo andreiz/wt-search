@@ -39,8 +39,8 @@ and a report and a feedback message have been sent through the real widget), the
     Acast page under the episode's guid, with `seek`, for every episode, and the feed's own
     link is "Show notes" in the ⋯ menu (`links.notes`). The maintainer tried both guid forms
     on the iPhone and the desktop (episodes 71 and 597): they start at the time. No
-    republish; needs `npm run deploy:staging`. Cached answers from the old Worker lack
-    `notes` and keep the old page link until the cache turns over.
+    republish; needs `npm run deploy:staging`. `API_VERSION` is 4, so answers cached by the
+    old Worker are not served.
   - Still to do: the rest of the phone (iOS) pass, with the report-form scroll fix of
     2026-10-11 and the change above, which need a fresh `npm run deploy:staging`; the platform
     buttons; a clean browser console; VoiceOver (step 6).

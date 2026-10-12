@@ -1,4 +1,4 @@
-# Handoff — 2026-10-11 (eighth session, continued; plan 3 Tasks 1–15 done, Checkpoint H next)
+# Handoff — 2026-10-11 (eighth session, continued; plan 3 at Checkpoint H, plan 4 built and at Checkpoint J)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -13,11 +13,33 @@ fast-forwarded `main` to it; everything is on `main`, and that branch can be del
 and a report and a feedback message have been sent through the real widget), then Task 16
 (the visual pass against the mocks):
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
-**Plan 4 (the review tool, `wts reports`, the reports digest) is written and awaits the
-maintainer's review** (2026-10-11, started while he does Checkpoint H; nothing built):
+**Plan 4 (the review tool, `wts reports`, the reports digest) is built, Tasks 1–10; next
+is its Checkpoint J** (2026-10-11, done while the maintainer did Checkpoint H; he approved
+the plan and its decisions the same day):
 [`docs/superpowers/plans/2026-10-11-m1-review-tool.md`](superpowers/plans/2026-10-11-m1-review-tool.md).
-Its "Decisions this plan makes" need his yes before Task 1, above all leaving out
-boilerplate flagging (detection is shelved) and the platform sync mode.
+Checkpoint J is his, on the Mac: review two seed episodes with `uv run wts review` (one
+from `--next-flagged`), save one correction through the page and check `git diff`, open a
+reported passage with `--report`, close the test reports on staging with `wts reports`.
+- **What exists:** `wts review [EPISODE|--next-flagged|--report ID]` (a local server on
+  127.0.0.1, `src/wts/review/`; the page is plain HTML/CSS/JS in `review/static/`),
+  `wts reports` with `resolve`/`reject`/`reopen` (`src/wts/reports.py`), the digest in
+  `wts run` (`notify.notify_reports`), `corrections_check.py` and `corrections_edit.py`
+  (the spike `check_corrections.py` now wraps the first), migration 007
+  (`episodes.reviewed_at`). What differs from the spec is listed at the top of spec §3.7.
+- **Not run on real data.** Everything was tested with generated episodes; no real
+  transcript, real audio file (the tests use a silent WAV), Safari, or the real D1 has been
+  through it. Expect Checkpoint J to find things.
+- **One flaky moment:** `review.spec.ts` "Space plays and pauses" failed once in about 15
+  runs and never again; its timeouts were raised, the cause is not known.
+- **A preview oddity:** a rule whose right text has a full stop changes where sentences
+  split, and the preview then shows a "Before" line with no text. It shows what would
+  happen, just confusingly.
+- **The sandbox reaches local servers on port 4173 only** (found by Task 8's subagent:
+  8797 and 8799 are refused). `E2E_REVIEW_PORT=4173 npm run e2e:review` runs here, 13 of
+  13; on the Mac the plain command uses 8797 and has not been run. `E2E_SMOKE_PORT=4173`
+  may make the smoke run work here too; not tried.
+- Counts: pipeline **923**, web **724** unit + **289** e2e + **13** review e2e; Worker
+  unchanged at 543.
 **Task 15 is done** (2026-10-11, Sonnet subagent wrote it blind; the maintainer ran it on
 the Mac, 8 of 8 after two test fixes). `cd web && npm run e2e:smoke` builds the site, makes
 a fresh local D1 in `worker/.wrangler/e2e-state` (migrations, then `web/e2e/seed.sql`: 3

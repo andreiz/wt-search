@@ -220,7 +220,7 @@ system.
 | `wts links <ep> [--at 12:34]` | Prints an episode's links from `state.db` (YouTube, Apple, Spotify, show page, feed audio) by the rules of §4.6: missing IDs left out, YouTube only within 3 s of the feed's length (otherwise the match and the reason are shown), `--at` shifted by each platform's offset, with no lead-in. Takes a number or a selector. *(Added 2026-10-08, maintainer's request.)* |
 | `wts search "<query>" [--env staging\|production] [--mode smart\|exact] [--sort relevance\|newest\|oldest] [--page N] [--json]` | Searches a deployed environment from the terminal, for the maintainer. A thin client of the Worker's `/api/search` (§4.4), so results are exactly what the web app shows: the query syntax, ranking, collapsing, cue times and links all stay in the Worker, with no second implementation in Python. Prints one block per result (episode number, title, date, `mm:ss` and `related` for a meaning-only hit, the text with hits in bold, `+N more in episode`, then the links); `--json` prints the raw response. The environment defaults to `run_env`; its URL is `[env.<name>] api_url` in `config.toml`. The same client serves `wts eval` and the smoke search after `wts run` (§7.2, §8.1). *(Added 2026-10-07.)* |
 | `wts status` | Episode counts by status, episodes in `error` with their reasons, and the last 10 runs. |
-| `wts reports` | Lists listener transcript-error reports (§4.4) and marks them resolved. Also lists the maintainer's marks (§4.9), apart from the reports. |
+| `wts reports [--env E] [--all] [--json]`, `wts reports resolve\|reject\|reopen <id>…` | Lists listener transcript-error reports and feedback (§4.4), open ones unless `--all`, read from D1 with its own chunks and episodes; the subcommands set a report's status. *(Built 2026-10-11, plan 4.)* Planned: also lists the maintainer's marks (§4.9), apart from the reports. |
 | `wts logs` | Filters the pipeline logs (§8.4). |
 | `wts analytics pull` | Copies Worker search analytics to a local file (§8.4). |
 | `wts eval` | See §7.2. |
@@ -348,6 +348,32 @@ committed:
 
 A local web page for checking transcript quality by ear. It runs only on the
 Mac and is never deployed.
+
+> **As built (plan 4, 2026-10-11).** The list below is the original design;
+> these are the differences.
+>
+> - **Left out:** flagging a passage as boilerplate (detection is binned,
+>   §3.5; a chunk with the flag is still greyed) and the platform sync mode
+>   (optional below; downloads are ad-free and every offset is 0, so it
+>   waits for a real drift).
+> - **The words shown are the corrected ones** (`wts chunk`'s output), so
+>   the page shows what search has, not raw Whisper text.
+> - **A correction is previewed before it can be saved:** the page lists
+>   every sentence the rule would change in all transcripts on the Mac, and
+>   the save is refused if that list has changed since. Saving edits
+>   `corrections.yaml` as text (comments and order kept), re-chunks the open
+>   episode at once, and does not commit; other episodes change on the next
+>   `wts chunk`.
+> - **"Reviewed" is recorded** (`episodes.reviewed_at`, set by a button),
+>   and `--next-flagged` opens the oldest flagged episode without it.
+> - **The server checks every request,** because any page in the same
+>   browser can reach `127.0.0.1`: the `Host` header, a per-run token (in
+>   the printed URL), and for writes a JSON content type and the page's own
+>   `Origin`. It sends a strict CSP and no CORS header.
+> - **Also on the page:** the five 60-second stretches with the most unsure
+>   words, as a list to jump to; and with `--report`, the report's text with
+>   Resolve and Reject.
+> - **The browser test** runs in `web/`'s Playwright (`npm run e2e:review`).
 
 - **Launch:**
   - `wts review <episode>` opens an episode.
@@ -1437,6 +1463,10 @@ bearer header). *(Revised 2026-10-07.)* `wts` sends a push for:
   when a step fails), not `updated_at`, which every feed refresh bumps.
 - A failed smoke search.
 - New transcript-error reports (a daily digest: count plus the first few).
+  *(As built, plan 4, 2026-10-11:)* sent by `wts run` after its summary,
+  for the environment it publishes to, at most once in 20 hours: the count
+  of open reports newer than the last digest, and the first three, each
+  cut to 80 characters. D1 being unreachable is a logged warning.
 - No new feed item for 45 days (the feed may have moved): sent when the quiet spell is first
   seen, then at most weekly. *(Revised 2026-10-07: episodes come out about every 13 days, with
   normal breaks of up to 36 days in 2026 and 68 in 2025; 21 days fired on ordinary breaks, and

@@ -57,7 +57,10 @@ the audio (capitalisation of a store name, a brand's punctuation) only needs the
    episode and time. Read around it:
    `cd pipeline && uv run python spikes/transcript_peek.py read <episode-number> --from 6:00 --to 7:00`
    (raw Whisper text; «marked» words are low-confidence). Look for other spellings of the same
-   mistake nearby ("BowShield" next to "Bow Shield").
+   mistake nearby ("BowShield" next to "Bow Shield"). The maintainer can also hear the passage
+   and make the rule himself in the browser: `uv run wts review <episode-number> --at 6:00`
+   (it previews the rule over every transcript and writes `corrections.yaml`; he then commits).
+   A rule he saved that way arrives as a `git diff` to check with step 4's command.
 2. **Draft the rule** and test it without editing anything:
    `uv run python spikes/check_corrections.py --try "festival sustainers: Festool Systainers"`
    It prints every sentence the rule would change, across all transcripts.

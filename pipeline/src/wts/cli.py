@@ -267,6 +267,98 @@ def links_cmd(episode: str, at: str | None) -> None:
             click.echo(f"  {name:8} {url}")
 
 
+@main.command("review")
+@click.argument("episode", required=False)
+@click.option("--at", "at", default=None,
+              help="Start at this time: 12:34, 1:02:03 or seconds. Only with EPISODE.")
+@click.option("--next-flagged", "next_flagged_", is_flag=True,
+              help="Open the oldest flagged episode that is not marked reviewed yet.")
+@click.option("--port", type=int, default=0, show_default=True,
+              help="Port on 127.0.0.1 (0: a free one).")
+@click.option("--no-open", is_flag=True, help="Print the URL without opening the browser.")
+def review_cmd(
+    episode: str | None, at: str | None, next_flagged_: bool, port: int, no_open: bool
+) -> None:
+    """Check an episode's transcript by ear in the browser, and fix a word with a rule.
+
+    EPISODE is a number (71) or a selector (stem:S, ep:71), as in `wts links`; give exactly one
+    of EPISODE and --next-flagged. The server listens on 127.0.0.1 only, prints a URL that holds
+    this run's secret token, and stops on Ctrl-C.
+
+    For tests: WTS_REVIEW_TOKEN sets the token and WTS_CORRECTIONS_FILE the corrections file
+    to edit (default pipeline/corrections.yaml).
+    """
+    import os
+    import webbrowser
+    from pathlib import Path
+
+    from wts.corrections import CORRECTIONS_FILE
+    from wts.links import parse_time
+    from wts.review.data import next_flagged
+    from wts.review.server import ReviewApp, serve
+    from wts.selection import resolve_selector
+
+    if (episode is None) == (not next_flagged_):
+        raise click.UsageError("give exactly one of EPISODE or --next-flagged")
+    at_ms = None
+    if at is not None:
+        if episode is None:
+            raise click.UsageError("--at goes with EPISODE, not --next-flagged")
+        try:
+            at_ms = parse_time(at) * 1000
+        except ValueError as exc:
+            raise click.BadParameter(str(exc), param_hint="--at") from exc
+    ctx = _ctx()
+    conn = ctx.conn()
+    try:
+        if episode is None:
+            row = next_flagged(conn)
+            if row is None:
+                raise click.ClickException("no flagged episodes left to review")
+        else:
+            ids = resolve_selector(conn, f"ep:{episode}" if episode.isdigit() else episode)
+            if not ids:
+                raise click.ClickException(f"no episode matches {episode!r}")
+            if len(ids) > 1:
+                stems = ", ".join(
+                    conn.execute("select stem from episodes where id = ?", (i,)).fetchone()[0]
+                    for i in ids
+                )
+                raise click.ClickException(
+                    f"{episode!r} matches more than one episode: {stems}"
+                )
+            row = conn.execute("select * from episodes where id = ?", (ids[0],)).fetchone()
+        if not row["transcript_path"]:
+            raise click.ClickException(
+                f"{row['stem']} has no transcript yet (status: {row['status']})"
+            )
+        episode_id = row["id"]
+    finally:
+        conn.close()
+
+    from wts.db import connect
+
+    corrections_file = os.environ.get("WTS_CORRECTIONS_FILE")
+    app = ReviewApp(
+        lambda: connect(ctx.paths.state_db),
+        ctx.paths,
+        corrections_file=Path(corrections_file) if corrections_file else CORRECTIONS_FILE,
+        token=os.environ.get("WTS_REVIEW_TOKEN") or None,
+    )
+    server = serve(app, port)
+    try:
+        url = app.url(server.server_address[1], episode_id, at_ms)
+        click.echo(url)
+        if not no_open:
+            webbrowser.open(url)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+    finally:
+        server.server_close()
+
+
 @main.group()
 def scope() -> None:
     """Manage which episodes are in scope (the default selection)."""

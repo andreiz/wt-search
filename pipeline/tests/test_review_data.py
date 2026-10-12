@@ -3,7 +3,13 @@ import json
 from conftest import seg, tx
 
 from wts.corrections import CorrectionRule
-from wts.review.data import LOW_PROB, chunk_position, episode_payload, worst_stretches
+from wts.review.data import (
+    LOW_PROB,
+    chunk_position,
+    episode_payload,
+    next_flagged,
+    worst_stretches,
+)
 
 
 def _row(conn, episode_id):
@@ -64,7 +70,36 @@ def test_payload_flags_and_reviewed_at(conn, paths, make_episode):
     _write(conn, paths, e, tx(seg("Hello there.")))
     payload = episode_payload(conn, _row(conn, e), [])
     assert payload["episode"]["flags"] == ["retimed"]
-    assert payload["episode"]["reviewed_at"] is None  # no column before migration 007
+    assert payload["episode"]["reviewed_at"] is None
+    conn.execute("update episodes set reviewed_at = '2026-01-01T00:00:00+00:00' where id = ?", (e,))
+    assert (
+        episode_payload(conn, _row(conn, e), [])["episode"]["reviewed_at"]
+        == "2026-01-01T00:00:00+00:00"
+    )
+
+
+def test_next_flagged_is_the_oldest_unreviewed_flagged_transcribed_episode(
+    conn, paths, make_episode
+):
+    flagged = json.dumps(["retimed"])
+
+    def make(day, **kw):
+        e = make_episode(published_at=f"2020-01-0{day}T00:00:00+00:00", **kw)
+        _write(conn, paths, e, tx(seg("Hello there.")))
+        return e
+
+    assert next_flagged(conn) is None
+    make(1)  # not flagged
+    make_episode(published_at="2020-01-02T00:00:00+00:00", flags=flagged)  # no transcript
+    reviewed = make(3, flags=flagged)
+    conn.execute("update episodes set reviewed_at = 'x' where id = ?", (reviewed,))
+    want = make(5, flags=flagged)
+    later = make(6, flags=flagged)
+    conn.commit()
+    assert next_flagged(conn)["id"] == want
+    conn.execute("update episodes set reviewed_at = 'x' where id = ?", (want,))
+    conn.commit()
+    assert next_flagged(conn)["id"] == later
 
 
 def test_payload_chunks_in_seq_order_and_empty_before_chunking(conn, paths, make_episode):

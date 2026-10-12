@@ -32,7 +32,6 @@ def episode_payload(
             (row["id"],),
         )
     ]
-    keys = row.keys()
     return {
         "episode": {
             "id": row["id"],
@@ -42,8 +41,7 @@ def episode_payload(
             "stem": row["stem"],
             "duration_s": row["duration_s"],
             "flags": json.loads(row["flags"]),
-            # Added by migration 007; an older database has no such column.
-            "reviewed_at": row["reviewed_at"] if "reviewed_at" in keys else None,
+            "reviewed_at": row["reviewed_at"],
             "has_audio": bool(row["audio_path"]) and Path(row["audio_path"]).is_file(),
         },
         "words": words,
@@ -74,6 +72,15 @@ def worst_stretches(
     # Ties go to the lower mean probability, then the earlier stretch.
     stretches.sort(key=lambda s: (-s[1], s[2], s[0]))
     return [{"start_ms": k * window_ms, "share": share} for k, share, _ in stretches[:top]]
+
+
+def next_flagged(conn: sqlite3.Connection) -> sqlite3.Row | None:
+    """The oldest episode (by `published_at`) with flags, not yet reviewed, and a transcript."""
+    return conn.execute(
+        "select * from episodes where flags != '[]' and reviewed_at is null "
+        "and transcript_path is not null and transcript_path != '' "
+        "order by published_at, id limit 1"
+    ).fetchone()
 
 
 def chunk_position(conn: sqlite3.Connection, chunk_id: int) -> tuple[int, int] | None:

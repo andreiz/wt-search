@@ -12,18 +12,32 @@ Write endpoints are added by putting a function in `ReviewApp.post_routes`:
 import hmac
 import json
 import logging
+import os
 import re
 import secrets
+import shutil
 import sqlite3
 import sys
+import tempfile
+import threading
 from collections.abc import Callable
+from datetime import UTC, datetime
+from hashlib import sha256
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlencode, urlsplit
 
-from wts.corrections import CORRECTIONS_FILE, load_corrections
+from wts.chunking import chunk_episode
+from wts.corrections import (
+    CORRECTIONS_FILE,
+    CorrectionRule,
+    _match_words,
+    load_corrections,
+)
+from wts.corrections_check import Change, changes_digest, rule_changes
+from wts.corrections_edit import EditFailed, RuleExists, add_rule
 from wts.paths import Paths
 from wts.review.data import episode_payload
 
@@ -57,6 +71,9 @@ class ReviewApp:
         self.corrections_file = corrections_file
         self.token = token or secrets.token_urlsafe(24)
         self.post_routes: dict[str, PostHandler] = {}
+        # The server is threaded: reading, checking and replacing corrections.yaml is one step.
+        self.corrections_lock = threading.Lock()
+        register_corrections(self)
 
     def url(
         self, port: int, episode_id: int, at_ms: int | None = None, report_id: int | None = None
@@ -357,3 +374,150 @@ def _parse_range(header: str | None, size: int) -> tuple[int, int] | str | None:
     if start >= size:
         return "unsatisfiable"
     return start, min(end, size - 1)
+
+
+# -- write endpoints --
+
+MAX_RULE_TEXT = 200
+
+
+class _Bad(Exception):
+    """A write handler's early exit: `(status, {"error": slug})`."""
+
+    def __init__(self, status: int, error: str) -> None:
+        super().__init__(error)
+        self.status = status
+        self.error = error
+
+
+def _is_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _episode_row(conn: sqlite3.Connection, episode_id: object) -> sqlite3.Row:
+    """The episode with this id: 400 for a non-integer, 404 for an unknown one."""
+    if not _is_int(episode_id):
+        raise _Bad(400, "bad_request")
+    row = conn.execute("select * from episodes where id = ?", (episode_id,)).fetchone()
+    if row is None:
+        raise _Bad(404, "not_found")
+    return row
+
+
+def _parse_rule(body: dict, conn: sqlite3.Connection) -> tuple[str, str, str | None]:
+    """`(key, value, stem or None)` from a request body, or a `_Bad`."""
+    key, value, scope = body.get("key"), body.get("value"), body.get("episode_id")
+    if not isinstance(key, str) or not isinstance(value, str) or "episode_id" not in body:
+        raise _Bad(400, "bad_request")
+    if len(key) > MAX_RULE_TEXT or len(value) > MAX_RULE_TEXT or not _match_words(key):
+        raise _Bad(400, "bad_request")
+    if scope is None:
+        return key, value, None
+    return key, value, _episode_row(conn, scope)["stem"]
+
+
+def _rule_digest(changes: list[Change], key: str, value: str, stem: str | None) -> str:
+    """The changes' digest bound to the rule, so a preview of one rule cannot save another."""
+    text = f"{changes_digest(changes)}|{key}|{value}|{stem or ''}"
+    return sha256(text.encode("utf-8")).hexdigest()
+
+
+def _corrections_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def _changes_for(app: ReviewApp, key: str, value: str, stem: str | None) -> list[Change]:
+    before = load_corrections(app.corrections_file)
+    after = [*before, CorrectionRule(_match_words(key), value, stem)]
+    return rule_changes(app.paths.transcripts_dir, before, after)
+
+
+def _checked_edit(text: str, key: str, value: str, stem: str | None) -> str:
+    """`add_rule`, with its failures as `_Bad`."""
+    try:
+        return add_rule(text, key, value, stem)
+    except ValueError:
+        raise _Bad(400, "bad_request") from None
+    except RuleExists:
+        raise _Bad(409, "exists") from None
+    except EditFailed:
+        log.exception("corrections.yaml edit failed")
+        raise _Bad(500, "edit_failed") from None
+
+
+def _write_replacing(path: Path, text: str) -> None:
+    """Write `text` to a temporary file beside `path`, then replace `path` with it."""
+    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    tmp = Path(tmp_name)
+    try:
+        with open(fd, "w", encoding="utf-8", newline="") as f:
+            f.write(text)
+        if path.exists():
+            shutil.copymode(path, tmp)
+        else:
+            tmp.chmod(0o644)
+        os.replace(tmp, path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def register_corrections(app: ReviewApp) -> None:
+    """Add the correction and "reviewed" endpoints to `app.post_routes`."""
+
+    def preview(body: dict, conn: sqlite3.Connection) -> tuple[int, dict]:
+        try:
+            key, value, stem = _parse_rule(body, conn)
+            _checked_edit(_corrections_text(app.corrections_file), key, value, stem)
+            changes = _changes_for(app, key, value, stem)
+        except _Bad as bad:
+            return bad.status, {"error": bad.error}
+        return 200, {
+            "changes": [
+                {"stem": c.stem, "start_ms": c.start_ms, "before": c.before, "after": c.after}
+                for c in changes
+            ],
+            "count": len(changes),
+            "digest": _rule_digest(changes, key, value, stem),
+        }
+
+    def save(body: dict, conn: sqlite3.Connection) -> tuple[int, dict]:
+        try:
+            key, value, stem = _parse_rule(body, conn)
+            digest = body.get("digest")
+            if not isinstance(digest, str):
+                raise _Bad(400, "bad_request")
+            open_row = _episode_row(conn, body.get("open_episode_id"))
+            if not open_row["transcript_path"]:
+                raise _Bad(409, "not_transcribed")
+            with app.corrections_lock:
+                changes = _changes_for(app, key, value, stem)
+                if not hmac.compare_digest(
+                    digest.encode(), _rule_digest(changes, key, value, stem).encode()
+                ):
+                    raise _Bad(409, "changed")
+                new_text = _checked_edit(_corrections_text(app.corrections_file), key, value, stem)
+                _write_replacing(app.corrections_file, new_text)
+                rules = load_corrections(app.corrections_file)
+                chunk_episode(conn, open_row, rules)
+                conn.commit()
+                return 200, episode_payload(conn, open_row, rules)
+        except _Bad as bad:
+            return bad.status, {"error": bad.error}
+
+    def reviewed(body: dict, conn: sqlite3.Connection) -> tuple[int, dict]:
+        flag = body.get("reviewed")
+        if not isinstance(flag, bool):
+            return 400, {"error": "bad_request"}
+        try:
+            row = _episode_row(conn, body.get("episode_id"))
+        except _Bad as bad:
+            return bad.status, {"error": bad.error}
+        at = datetime.now(UTC).isoformat(timespec="seconds") if flag else None
+        with conn:
+            conn.execute("update episodes set reviewed_at = ? where id = ?", (at, row["id"]))
+        return 200, {"reviewed_at": at}
+
+    app.post_routes["/api/corrections/preview"] = preview
+    app.post_routes["/api/corrections"] = save
+    app.post_routes["/api/reviewed"] = reviewed

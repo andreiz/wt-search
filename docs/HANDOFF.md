@@ -47,6 +47,12 @@ and a report and a feedback message have been sent through the real widget), the
     listener sees it ("Play on Acast", like Apple and Spotify), and the site link is
     **Episode page** ("on woodtalkshow.com"), under a rule of its own. Web only; not yet
     looked at in a browser.
+  - Step 6, VoiceOver (Mac): it read an excerpt a few words at a time, a keystroke for
+    each piece, because every `<mark>` is a stop of its own. Changed the same day: the
+    excerpt's and each transcript paragraph's text is inside one `<span role="text">`
+    (`web/src/lib/one-text.ts`; a WebKit role, not ARIA, which axe accepts). **Not yet
+    heard with VoiceOver**: needs a deploy and a second listen. If it does not help, the
+    fallback is the full text for screen readers only beside an `aria-hidden` marked copy.
   - Still to do: the rest of the phone (iOS) pass, with the report-form scroll fix of
     2026-10-11 and the change above, which need a fresh `npm run deploy:staging`; the platform
     buttons; a clean browser console; VoiceOver (step 6).

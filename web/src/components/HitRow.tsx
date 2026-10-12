@@ -14,6 +14,7 @@ import { useContext, useEffect, useLayoutEffect, useRef, useState } from "preact
 import type { SearchResult } from "../../../worker/src/api-types";
 import { anchorDelta, openTop } from "../lib/anchor";
 import { excerpt } from "../lib/excerpt";
+import { ONE_TEXT } from "../lib/one-text";
 import { chipName, hitTime, menuPlays, notesLink, primaryPlay } from "../lib/platforms";
 import { OpenReport } from "../use-forms";
 import { useTranscript } from "../use-transcript";
@@ -252,11 +253,13 @@ export function HitRow({
       )}
       {!open && (
         <p class="hit__excerpt" ref={excerptText} title="Show full passage" onClick={onExcerptClick}>
-          {view.cutStart && "… "}
-          {view.segments.map((segment, index) =>
-            segment.mark ? <mark key={index}>{segment.text}</mark> : segment.text,
-          )}
-          {view.cutEnd && " …"}
+          <span {...ONE_TEXT}>
+            {view.cutStart && "… "}
+            {view.segments.map((segment, index) =>
+              segment.mark ? <mark key={index}>{segment.text}</mark> : segment.text,
+            )}
+            {view.cutEnd && " …"}
+          </span>
         </p>
       )}
       {/* Closed, the strip is transparent to the row's grid (display: contents). Open, it is the

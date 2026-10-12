@@ -12,6 +12,7 @@
 import type { Ref } from "preact";
 import type { ContextChunk, SearchResult } from "../../../worker/src/api-types";
 import { segments } from "../lib/excerpt";
+import { ONE_TEXT } from "../lib/one-text";
 import { chipName, chunkTime, hitTime, primaryPlay } from "../lib/platforms";
 import type { Entry, Radius } from "../use-transcript";
 import { PlayIcon } from "./PlayIcon";
@@ -51,7 +52,9 @@ function Passage({ chunk, hit, radius }: { chunk: ContextChunk; hit: SearchResul
         {isHit && <span class="visually-hidden">Matching passage</span>}
         {folded && <span class="passage__tag">Nearby match</span>}
         <p class="passage__text">
-          {pieces.map((piece, index) => (piece.mark ? <mark key={index}>{piece.text}</mark> : piece.text))}
+          <span {...ONE_TEXT}>
+            {pieces.map((piece, index) => (piece.mark ? <mark key={index}>{piece.text}</mark> : piece.text))}
+          </span>
         </p>
       </div>
     </li>

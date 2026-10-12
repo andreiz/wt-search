@@ -238,6 +238,18 @@ describe("a related card", () => {
     expect(screen.queryByText("Related")).toBeNull();
   });
 
+  // VoiceOver stops at every inline element; role="text" makes it read the excerpt in one go.
+  it("wraps the excerpt, highlights and all, in one role=text span", () => {
+    const { container } = renderCard([full]);
+    const excerpt = container.querySelector(".hit__excerpt")!;
+    expect(excerpt.children).toHaveLength(1);
+    const text = excerpt.firstElementChild!;
+    expect(text.getAttribute("role")).toBe("text");
+    expect(text.textContent).toBe(excerpt.textContent);
+    expect(text.querySelectorAll("mark").length).toBeGreaterThan(0);
+    expect(text.querySelector("a, button")).toBeNull();
+  });
+
   it("marks the ranges the API sent for a related hit", () => {
     const { container } = renderCard([relatedBare]);
     expect([...container.querySelectorAll("mark")].map((m) => m.textContent)).toEqual(["glue"]);

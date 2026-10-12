@@ -33,8 +33,12 @@ def _match_words(key: str) -> tuple[str, ...]:
 def load_corrections(path: Path) -> list[CorrectionRule]:
     if not path.exists():
         return []
+    return rules_from_text(path.read_text())
+
+
+def rules_from_text(text: str) -> list[CorrectionRule]:
     # BaseLoader keeps every key and value as text: `no:` stays "no", `uh:` is "" (delete).
-    data = yaml.load(path.read_text(), Loader=yaml.BaseLoader) or {}
+    data = yaml.load(text, Loader=yaml.BaseLoader) or {}
     # Kept phrases come first, so one wins over a global rule with a key of the same length.
     rules = [CorrectionRule(_match_words(p), None, None) for p in (data.get("keep") or [])]
     rules += [

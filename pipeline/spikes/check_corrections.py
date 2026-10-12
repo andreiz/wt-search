@@ -16,17 +16,15 @@ Also prints the Whisper prompt's length: vocab.txt feeds a prompt capped at 150 
 """
 
 import argparse
-import json
 import subprocess
 import tempfile
 from pathlib import Path
 
 import yaml
 
-from wts.corrections import CORRECTIONS_FILE, apply_corrections, load_corrections
-from wts.guards import clean_transcript
+from wts.corrections import CORRECTIONS_FILE, load_corrections
+from wts.corrections_check import rule_changes
 from wts.transcribe import VOCAB_FILE, build_initial_prompt
-from wts.words import join_split_words, split_sentences
 
 PROMPT_CAP = 150
 
@@ -51,13 +49,6 @@ def tried_rules(specs: list[str]):
         yaml.safe_dump({"global": dict(s.split(":", 1) for s in specs)}, f)
         f.flush()
         return load_corrections(Path(f.name))
-
-
-def sentences(data: dict, rules, stem: str) -> dict[int, str]:
-    words, _ = clean_transcript(data, data["meta"].get("duration_s"))
-    # The same order as wts chunk (chunking.prepare_episode), so the preview is the chunk text.
-    corrected = join_split_words(apply_corrections(words, rules, stem))
-    return {s.start_ms: s.text for s in split_sentences(corrected)}
 
 
 def mmss(ms: int) -> str:
@@ -86,17 +77,12 @@ def main() -> None:
     print(f"{len(before)} rules at {args.before_ref} → {len(after)} rules now; "
           f"{len(files)} transcripts in {transcripts_dir}\n")
 
-    changed = 0
-    for path in files:
-        data = json.loads(path.read_text())
-        old, new = sentences(data, before, path.stem), sentences(data, after, path.stem)
-        for start in sorted(set(old) | set(new)):
-            if old.get(start) != new.get(start):
-                changed += 1
-                print(f"{path.stem} [{mmss(start)}]")
-                print(f"  - {old.get(start, '(none)')}")
-                print(f"  + {new.get(start, '(none)')}")
-    print(f"\n{changed} sentences change.")
+    changes = rule_changes(transcripts_dir, before, after)
+    for c in changes:
+        print(f"{c.stem} [{mmss(c.start_ms)}]")
+        print(f"  - {c.before or '(none)'}")
+        print(f"  + {c.after or '(none)'}")
+    print(f"\n{len(changes)} sentences change.")
 
     prompt, _ = build_initial_prompt(VOCAB_FILE)
     n = len(prompt.split())

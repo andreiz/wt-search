@@ -49,3 +49,4 @@ times on the show's own timeline.
 | Spotify | Android app | `?t=<s>` (what the Worker uses) | not checked |
 | Spotify | Desktop web | `?t=<s>` (what the Worker uses) | works (2026-10-07) |
 | Show page (Acast) | Desktop web | `?seek=<s>` (what the Worker uses) | works; an ad may play first (WT616, 2026-10-09) |
+| Show page (Acast) | iOS Safari | `?seek=<s>` (what the Worker uses) | reported not starting at the time (maintainer, 2026-10-11); not yet known whether the link reaches the page with `seek` or the page ignores it |

@@ -391,6 +391,22 @@ test("a correction is previewed, saved into corrections.yaml and shown", async (
 
   // The page that is served after a reload says the same.
   await page.reload();
-  await expect(page.locator("#transcript span[data-i]", { hasText: /^Titebond$/ })).toHaveCount(1);
+  const fixedWord = page.locator("#transcript span[data-i]", { hasText: /^Titebond$/ });
+  await expect(fixedWord).toHaveCount(1);
+
+  // A rule is matched against what Whisper wrote, so a selection over a corrected word offers
+  // that text, not the corrected word (a key with "Titebond" in it would match nothing here).
+  const at = Number(await fixedWord.getAttribute("data-i"));
+  await selectWords(page, at - 1, at + 1);
+  await page.keyboard.press("e");
+  await expect(page.getByLabel("Wrong text")).toHaveValue("a tight bond is");
+  // And a rule that changes nothing says why that may be.
+  await page.getByLabel("Wrong text").fill("a titebond is");
+  await page.getByLabel("Right text").fill("one Titebond is");
+  await page.getByRole("button", { name: "Preview" }).click();
+  await expect(page.locator("#edit-preview .count")).toHaveText("This rule changes nothing.");
+  await expect(page.locator("#edit-preview .hint")).toContainText("what Whisper wrote");
+  await expect(save).toBeDisabled();
+  await page.keyboard.press("Escape");
   await done();
 });

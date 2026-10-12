@@ -44,6 +44,8 @@ const S = {
   raf: 0,
   report: null, // the report object once loaded
   lastSelection: null, // {lo, hi} of the last selection inside the transcript
+  wasAt: new Map(), // word index -> the struck-out text shown before it
+  fixStart: new Map(), // corrected word -> the first word of its correction
 };
 
 // ---------------------------------------------------------------- helpers
@@ -225,6 +227,11 @@ function renderTranscript(payload) {
     if (!Number.isInteger(index) || !Number.isInteger(count) || index < 0 || index > words.length) continue;
     wasAt.set(index, wasAt.has(index) ? `${wasAt.get(index)} ${was}` : String(was));
     for (let i = index; i < index + count && i < words.length; i++) fixed.add(i);
+  }
+  S.wasAt = wasAt;
+  S.fixStart = new Map(); // corrected word -> the first word of its correction
+  for (const [index, count] of payload.fixes || []) {
+    for (let i = index; i < index + count && i < words.length; i++) S.fixStart.set(i, index);
   }
   const wasNode = (index) => {
     const del = el("del", "was", wasAt.get(index));
@@ -428,9 +435,20 @@ function selectedWordRange() {
   return lo <= hi ? { lo, hi } : null;
 }
 
+// The words lo..hi as Whisper wrote them: a rule is matched against that, never against the
+// result of another rule, so for a corrected word the struck-out text is what a key must say.
 function rangeText({ lo, hi }) {
   const parts = [];
+  const done = new Set();
   for (let i = lo; i <= hi; i++) {
+    const start = S.fixStart.has(i) ? S.fixStart.get(i) : i;
+    // Struck-out text before this word: its own correction's, or words a rule deleted
+    // (inside the range only).
+    if (S.wasAt.has(start) && !done.has(start) && (S.fixStart.has(i) || i > lo)) {
+      done.add(start);
+      parts.push(S.wasAt.get(start));
+    }
+    if (S.fixStart.has(i)) continue;
     const t = String(S.words[i][0]).trim();
     if (t) parts.push(t);
   }
@@ -634,6 +652,9 @@ function renderPreview(data) {
   const n = data.count;
   const text = n === 0 ? "This rule changes nothing." : n === 1 ? "1 sentence changes" : `${n} sentences change`;
   box.append(el("p", "count", text));
+  if (n === 0) {
+    box.append(el("p", "hint", "The wrong text must be what Whisper wrote (the struck-out words), not words another rule already corrected."));
+  }
   const changes = data.changes || [];
   if (changes.length < n) box.append(el("p", "hint", `Showing the first ${changes.length}.`));
   const ul = el("ul");

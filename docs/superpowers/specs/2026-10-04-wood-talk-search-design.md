@@ -389,7 +389,11 @@ Mac and is never deployed.
 > - **Corrections show inline:** what Whisper wrote is struck out, in red,
 >   before the words that replaced it, in green (payload `fixes`). The
 >   struck-out text is not a word: it can't be clicked or selected. A
->   corrected word is no longer marked unsure.
+>   corrected word is no longer marked unsure. A selection over a corrected
+>   word offers the struck-out text as the wrong text, in lower case: a
+>   rule is matched against what Whisper wrote, never against another
+>   rule's result (`mortise and tenant` matches nothing where Whisper
+>   wrote "mortis and tenant").
 > - **A preview reads only the transcripts the rule can change:** those in
 >   which the rule's words occur in a row (the server keeps each
 >   transcript's words in memory, read once at start), and only the one

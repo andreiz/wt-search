@@ -3,11 +3,82 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Wood Talk review</title>
 <link rel="stylesheet" href="/static/review.css">
 </head>
 <body>
-<div id="app"></div>
+<header id="bar">
+  <div class="titleline">
+    <h1 id="title">Loading…</h1>
+    <span id="meta" class="muted"></span>
+    <ul id="flags" class="flags" aria-label="Quality flags" hidden></ul>
+    <span class="spacer"></span>
+    <button id="edit-selection" type="button" hidden>Edit selection</button>
+    <button id="reviewed" type="button" aria-pressed="false" hidden>Mark reviewed</button>
+  </div>
+  <div class="player">
+    <audio id="player" controls preload="metadata" hidden></audio>
+    <p id="no-audio" hidden>Audio not found (is the audio folder mounted?)</p>
+    <label class="speed">Speed
+      <select id="speed">
+        <option value="0.75">0.75×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.25">1.25×</option>
+        <option value="1.5">1.5×</option>
+        <option value="1.75">1.75×</option>
+        <option value="2">2×</option>
+      </select>
+    </label>
+  </div>
+  <div id="worst" class="worst" hidden>
+    <span class="muted">Worst stretches</span>
+    <span id="worst-list"></span>
+  </div>
+  <p id="status" role="status" aria-live="polite"></p>
+</header>
+
+<main id="main">
+  <p id="message" role="alert" hidden></p>
+
+  <section id="report-panel" aria-labelledby="report-heading" hidden>
+    <h2 id="report-heading">Listener report</h2>
+    <p id="report-error" hidden></p>
+    <dl id="report-body"></dl>
+    <div class="buttons">
+      <button id="report-resolve" type="button">Resolve</button>
+      <button id="report-reject" type="button">Reject</button>
+      <button id="report-reopen" type="button" hidden>Reopen</button>
+      <button id="report-edit" type="button">Edit from this report</button>
+    </div>
+  </section>
+
+  <article id="transcript" aria-label="Transcript"></article>
+</main>
+
+<dialog id="edit-dialog" aria-labelledby="edit-heading">
+  <form id="edit-form">
+    <h2 id="edit-heading">Fix a transcript mistake</h2>
+    <label for="edit-wrong">Wrong text</label>
+    <input id="edit-wrong" type="text" autocomplete="off" spellcheck="false">
+    <label for="edit-right">Right text</label>
+    <input id="edit-right" type="text" autocomplete="off" spellcheck="false">
+    <p class="hint">Leave the right text empty to delete the wrong words.</p>
+    <fieldset>
+      <legend>Applies to</legend>
+      <label class="radio"><input type="radio" name="edit-scope" id="edit-scope-all" value="all" checked> Everywhere</label>
+      <label class="radio"><input type="radio" name="edit-scope" id="edit-scope-episode" value="episode"> This episode only</label>
+    </fieldset>
+    <div id="edit-preview" aria-live="polite"></div>
+    <p id="edit-error" role="alert" hidden></p>
+    <div class="buttons">
+      <button id="edit-preview-btn" type="submit">Preview</button>
+      <button id="edit-save" type="button" disabled>Save</button>
+      <button id="edit-cancel" type="button">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
 <script type="module" src="/static/review.js"></script>
 </body>
 </html>

@@ -1,1 +1,281 @@
-/* The review page's styles; written in Task 5. */
+/* Styles for the local review page. Light and dark follow the system. */
+
+:root {
+  --bg: #fbfaf7;
+  --bar: #f1efe9;
+  --text: #1d1d1b;
+  --muted: #5c584f;
+  --line: #cfcbc0;
+  --accent: #1d5a9e;
+  --accent-text: #ffffff;
+  --now-bg: #ffd966;
+  --now-text: #1d1d1b;
+  --low-bg: #fbe3d3;
+  --low-line: #a2420f;
+  --reported-bg: #d4ecd6;
+  --reported-line: #1f6b2c;
+  --del-bg: #f6cfcf;
+  --ins-bg: #cdeccf;
+  --error: #a3200f;
+  --focus: #0b57d0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17171a;
+    --bar: #202024;
+    --text: #e9e7e2;
+    --muted: #a9a59b;
+    --line: #45444a;
+    --accent: #8ab9f0;
+    --accent-text: #0e1620;
+    --now-bg: #6b5300;
+    --now-text: #ffffff;
+    --low-bg: #4a2a18;
+    --low-line: #f0a070;
+    --reported-bg: #1f4a28;
+    --reported-line: #8fd49a;
+    --del-bg: #5c2323;
+    --ins-bg: #1f4a28;
+    --error: #ff9a8a;
+    --focus: #8ab9f0;
+  }
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html { color-scheme: light dark; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.muted { color: var(--muted); }
+
+button, select, input[type="text"] {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.25rem 0.7rem;
+}
+
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.6; }
+
+button[aria-pressed="true"],
+#edit-preview-btn,
+#edit-save:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+/* The sticky top bar */
+
+#bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bar);
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem 1rem;
+}
+
+.titleline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+}
+
+.titleline h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.spacer { flex: 1; }
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flags li {
+  border: 1px solid var(--low-line);
+  background: var(--low-bg);
+  border-radius: 999px;
+  padding: 0 0.6rem;
+  font-size: 0.85rem;
+}
+
+.player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-top: 0.4rem;
+}
+
+.player audio { flex: 1 1 18rem; min-width: 0; max-width: 40rem; }
+.player p { margin: 0; }
+.speed { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); }
+
+.worst {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+}
+
+#worst-list { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; }
+#worst-list button { padding: 0 0.5rem; font-size: 0.85rem; }
+
+#status {
+  margin: 0.3rem 0 0;
+  min-height: 1.5rem;
+  color: var(--muted);
+}
+
+/* The transcript */
+
+#main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+#message { color: var(--error); font-size: 1.1rem; }
+
+#transcript {
+  font-family: Charter, "Iowan Old Style", Georgia, "Times New Roman", serif;
+  font-size: 1.2rem;
+  line-height: 1.7;
+  padding-bottom: 60vh;
+}
+
+.para {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  max-width: 70ch;
+  margin: 0 0 1.2em;
+  padding-left: 0;
+}
+
+.para .time {
+  justify-self: start;
+  align-self: start;
+  margin-top: 0.3rem;
+  padding: 0 0.3rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 0.85rem/1.6 ui-monospace, "SF Mono", Menlo, monospace;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.para .time:hover { text-decoration: underline; }
+
+.para.boilerplate { opacity: 0.6; }
+.para.boilerplate .text { color: var(--muted); }
+
+#transcript [data-i] { cursor: pointer; border-radius: 3px; }
+#transcript [data-i]:hover { background: var(--bar); }
+
+#transcript .low {
+  background: var(--low-bg);
+  text-decoration: underline dotted var(--low-line);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+#transcript .reported {
+  background: var(--reported-bg);
+  box-shadow: 0 0 0 1px var(--reported-line);
+}
+
+#transcript .now,
+#transcript .now:hover {
+  background: var(--now-bg);
+  color: var(--now-text);
+}
+
+/* The report panel */
+
+#report-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.5rem 1rem 1rem;
+  margin-bottom: 1.5rem;
+  max-width: 70ch;
+}
+
+#report-panel h2 { font-size: 1rem; margin: 0.5rem 0; }
+#report-body { margin: 0 0 0.75rem; }
+#report-body dt { color: var(--muted); font-size: 0.85rem; margin-top: 0.5rem; }
+#report-body dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+#report-error { color: var(--error); }
+
+.buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+
+/* The edit dialog */
+
+dialog {
+  width: min(34rem, calc(100vw - 2rem));
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+
+dialog::backdrop { background: rgb(0 0 0 / 0.5); }
+
+dialog h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+dialog label { display: block; margin-top: 0.6rem; }
+dialog input[type="text"] { width: 100%; }
+dialog .radio { display: inline-block; margin-right: 1rem; }
+dialog fieldset { border: 0; padding: 0; margin: 0.6rem 0 0; }
+dialog legend { padding: 0; color: var(--muted); }
+.hint { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.9rem; }
+
+#edit-preview { margin-top: 0.75rem; max-height: 40vh; overflow: auto; }
+#edit-preview .count { font-weight: 600; margin: 0 0 0.4rem; }
+#edit-preview ul { list-style: none; margin: 0; padding: 0; }
+#edit-preview li { border-top: 1px solid var(--line); padding: 0.4rem 0; font-size: 0.95rem; }
+#edit-preview .where { color: var(--muted); font-size: 0.85rem; }
+#edit-preview .label { color: var(--muted); display: inline-block; min-width: 3.5rem; }
+#edit-preview .line { margin: 0.1rem 0; overflow-wrap: anywhere; }
+
+del { background: var(--del-bg); color: inherit; text-decoration: line-through; }
+ins { background: var(--ins-bg); color: inherit; text-decoration: underline; }
+
+#edit-error { color: var(--error); margin: 0.6rem 0 0; }
+
+@media (max-width: 40rem) {
+  .para { grid-template-columns: 3.5rem minmax(0, 1fr); }
+  #transcript { font-size: 1.1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}

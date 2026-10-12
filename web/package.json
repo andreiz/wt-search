@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "playwright test",
-    "e2e:smoke": "npm run build && npm run e2e:smoke:db && E2E_SMOKE=1 playwright test --project smoke",
+    "e2e:review": "E2E_REVIEW=1 playwright test --project review",
+    "e2e:smoke":"npm run build && npm run e2e:smoke:db && E2E_SMOKE=1 playwright test --project smoke",
     "e2e:smoke:db": "cd ../worker && rm -rf .wrangler/e2e-state && npx wrangler d1 migrations apply DB --env e2e --local --persist-to .wrangler/e2e-state && npx wrangler d1 execute DB --env e2e --local --persist-to .wrangler/e2e-state --file ../web/e2e/seed.sql",
     "typecheck": "tsc --noEmit"
   },

@@ -80,7 +80,17 @@ reported passage with `--report`, close the test reports on staging with `wts re
   (2) `e` did nothing without a selection, so it now edits the current word, and
   shift-click selects a word without seeking. Not yet seen by him. Steps 2–6 are open
   (an unflagged episode with `--at`, saving a correction, `--report`, `wts reports`).
-- **Still not run on real data:** saving a correction, Safari, the real D1 (reports).
+- **Checkpoint J, a correction previewed on real data (2026-10-12):** it took several
+  seconds, even for "this episode only". Preview read, cleaned and corrected all 37
+  transcripts twice (6 s with the 56 real rules; it would be minutes at 626 episodes). Now
+  it reads only the transcripts in which the rule's words occur (`corrections_check.py`
+  `WordKeys`, filled in the background when the server starts, 1.3 s) and
+  `apply_corrections` looks rules up by their first word: 0.1 s for a one-episode or rare
+  rule, 1.5 s for "glue" (155 sentences). Checked against the old result on the real
+  transcripts: the same changes, and `apply_corrections` gives identical text for all 37.
+  Also added: Shift-`n`, the previous unsure word.
+- **Still not run on real data:** a saved correction's `git diff`, Safari, the real D1
+  (reports).
   `npm run e2e:review` has now run on its normal port (15 pass).
 - **One flaky moment:** `review.spec.ts` "Space plays and pauses" failed once in about 15
   runs and never again; its timeouts were raised, the cause is not known.

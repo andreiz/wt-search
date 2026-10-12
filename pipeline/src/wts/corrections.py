@@ -88,11 +88,16 @@ def apply_corrections(words: list[Word], rules: Sequence[CorrectionRule], stem: 
     )
     if not ordered:
         return list(words)
+    # A rule can only match where its first word is: look up those, in the same order, and not
+    # every rule at every word (a preview over all transcripts spent most of its time here).
+    by_first: dict[str, list[CorrectionRule]] = {}
+    for rule in ordered:
+        by_first.setdefault(rule.match[0], []).append(rule)
     keys = [_key(w.text) for w in words]
     out: list[Word] = []
     i = 0
     while i < len(words):
-        for rule in ordered:
+        for rule in by_first.get(keys[i], ()):
             n = len(rule.match)
             if tuple(keys[i : i + n]) == rule.match:
                 span = words[i : i + n]

@@ -385,6 +385,12 @@ Mac and is never deployed.
 > - **`e` with nothing selected edits the current word,** so `n` then `e`
 >   fixes an unsure word. **Shift-click** selects a word without seeking,
 >   and a second shift-click stretches the selection to that word.
+>   **Shift-`n`** goes to the previous unsure word.
+> - **A preview reads only the transcripts the rule can change:** those in
+>   which the rule's words occur in a row (the server keeps each
+>   transcript's words in memory, read once at start), and only the one
+>   episode for an episode rule. Reading and correcting all of them twice
+>   took 6 s for 37 episodes; a one-episode rule now takes about 0.1 s.
 
 - **Launch:**
   - `wts review <episode>` opens an episode.

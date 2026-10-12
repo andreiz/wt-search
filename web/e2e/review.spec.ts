@@ -131,6 +131,15 @@ test("n jumps to the next unsure word", async ({ page }) => {
   expect(await audioPaused(page)).toBe(true);
   await page.keyboard.press("n");
   await expect(page.locator("#status")).toContainText("No more unsure words");
+  // Shift-n goes back: from further on to the unsure word, and from there nowhere.
+  await page.keyboard.press("]");
+  await expect.poll(() => audioTime(page)).toBeCloseTo(80, 1);
+  await page.keyboard.press("Shift+N");
+  await expect(word(page, LOW_INDEX)).toHaveClass(/\bnow\b/);
+  expect(Math.abs((await audioTime(page)) - LOW_START_S)).toBeLessThan(0.05);
+  await page.keyboard.press("Shift+N");
+  await expect(page.locator("#status")).toContainText("No unsure words before this point");
+  await expect(word(page, LOW_INDEX)).toHaveClass(/\bnow\b/);
   await done();
 });
 

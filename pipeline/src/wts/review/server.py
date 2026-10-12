@@ -38,7 +38,7 @@ from wts.corrections import (
     _match_words,
     load_corrections,
 )
-from wts.corrections_check import Change, changes_digest, rule_changes
+from wts.corrections_check import Change, WordKeys, added_rule_changes, changes_digest
 from wts.corrections_edit import EditFailed, RuleExists, add_rule
 from wts.paths import Paths
 from wts.reports import STATUSES, get_report, set_status
@@ -78,6 +78,8 @@ class ReviewApp:
         self.post_routes: dict[str, PostHandler] = {}
         # The server is threaded: reading, checking and replacing corrections.yaml is one step.
         self.corrections_lock = threading.Lock()
+        # What a correction preview searches (corrections_check.WordKeys); `serve` fills it.
+        self.word_keys = WordKeys()
         register_corrections(self)
 
     def url(
@@ -103,6 +105,10 @@ class _Server(ThreadingHTTPServer):
 
 def serve(app: ReviewApp, port: int = 0) -> ThreadingHTTPServer:
     """A server bound to 127.0.0.1; the caller runs `serve_forever()`."""
+    # Reading every transcript takes seconds; done now, the first preview does not wait for it.
+    threading.Thread(
+        target=app.word_keys.warm, args=(app.paths.transcripts_dir,), daemon=True
+    ).start()
     return _Server(("127.0.0.1", port), _make_handler(app))
 
 
@@ -447,8 +453,8 @@ def _corrections_text(path: Path) -> str:
 
 def _changes_for(app: ReviewApp, key: str, value: str, stem: str | None) -> list[Change]:
     before = load_corrections(app.corrections_file)
-    after = [*before, CorrectionRule(_match_words(key), value, stem)]
-    return rule_changes(app.paths.transcripts_dir, before, after)
+    rule = CorrectionRule(_match_words(key), value, stem)
+    return added_rule_changes(app.paths.transcripts_dir, before, rule, app.word_keys)
 
 
 def _checked_edit(text: str, key: str, value: str, stem: str | None) -> str:

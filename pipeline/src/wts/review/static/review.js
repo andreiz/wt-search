@@ -355,6 +355,12 @@ function nextLowWord() {
   else setStatus("No more unsure words after this point.");
 }
 
+function prevLowWord() {
+  const k = lowerBound(S.lowIdx, S.cur) - 1; // the last one before the current word
+  if (k >= 0) seekWord(S.lowIdx[k], false);
+  else setStatus("No unsure words before this point.");
+}
+
 // ------------------------------------------------- selection and keyboard
 
 // Word index at one edge of a range, or null if it can't be told quickly.
@@ -495,6 +501,9 @@ function onKeyDown(e) {
       break;
     case "n":
       nextLowWord();
+      break;
+    case "N": // Shift-n
+      prevLowWord();
       break;
     case "e":
       e.preventDefault();

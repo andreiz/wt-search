@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { APPLE_PODCAST_ID, cueSeconds, cueTimes, deepLinks, PARAGRAPH_LEAD_S, pageLink } from "../src/links";
+import { APPLE_PODCAST_ID, cueSeconds, cueTimes, deepLinks, notesLink, PARAGRAPH_LEAD_S, pageLink } from "../src/links";
 import type { LinkEpisode } from "../src/links";
 
 const FULL: LinkEpisode = {
+  guid: "65b16e479edb2b0016f6f435",
   youtube_video_id: "dQw4w9WgXcQ",
   apple_episode_id: "1000612345678",
   spotify_episode_id: "4rOoJ6Egrf8K2IrywzwOMk",
@@ -13,6 +14,7 @@ const FULL: LinkEpisode = {
 };
 
 const EMPTY: LinkEpisode = {
+  guid: "",
   youtube_video_id: null,
   apple_episode_id: null,
   spotify_episode_id: null,
@@ -36,6 +38,7 @@ describe("another lead-in (a transcript paragraph's 1 s)", () => {
 
   it("cueTimes and deepLinks pass it on to every platform", () => {
     const episode = {
+      guid: "x",
       youtube_video_id: "yt",
       apple_episode_id: "ap",
       spotify_episode_id: "sp",
@@ -89,27 +92,42 @@ describe("cueTimes", () => {
 });
 
 describe("pageLink", () => {
-  it("adds seek to an Acast show page", () => {
-    expect(pageLink("https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616", 1734)).toBe(
-      "https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616?seek=1734",
+  // Both forms tried on a phone and a desktop, 2026-10-11: the player starts at the time.
+  it("is the Acast page under the episode's guid, with seek", () => {
+    expect(pageLink("6968079fe9172b83203dbacf", 600)).toBe(
+      "https://shows.acast.com/woodtalk/episodes/6968079fe9172b83203dbacf?seek=600",
     );
   });
-  it("keeps other parameters and the fragment, and replaces an existing seek", () => {
-    expect(pageLink("https://shows.acast.com/woodtalk/episodes/x?a=1&seek=5#notes", 90)).toBe(
-      "https://shows.acast.com/woodtalk/episodes/x?a=1&seek=90#notes",
+  it("encodes an old episode's guid, which is a URL", () => {
+    expect(pageLink("http://archive.org/download/wt089/WT_071.mp3", 4184)).toBe(
+      "https://shows.acast.com/woodtalk/episodes/http%3A%2F%2Farchive.org%2Fdownload%2Fwt089%2FWT_071.mp3?seek=4184",
     );
   });
-  it("passes any other host through unchanged", () => {
-    expect(pageLink("https://example.com/ep/612", 90)).toBe("https://example.com/ep/612");
-    expect(pageLink("https://shows.acast.com.evil.example/x", 90)).toBe("https://shows.acast.com.evil.example/x");
-  });
-  it("passes a URL that does not parse through unchanged", () => {
-    expect(pageLink("not a url", 90)).toBe("not a url");
+  it("cannot be steered off the episodes path by a guid", () => {
+    expect(pageLink("../../x?seek=1#y", 5)).toBe("https://shows.acast.com/woodtalk/episodes/..%2F..%2Fx%3Fseek%3D1%23y?seek=5");
   });
   it("seeks to 0 at the start", () => {
-    expect(pageLink("https://shows.acast.com/woodtalk/episodes/x", 0)).toBe(
-      "https://shows.acast.com/woodtalk/episodes/x?seek=0",
+    expect(pageLink("x", 0)).toBe("https://shows.acast.com/woodtalk/episodes/x?seek=0");
+  });
+});
+
+describe("notesLink", () => {
+  it("is the feed's link when that is the show's own site", () => {
+    expect(notesLink("https://woodtalkshow.com/episodes/wood-talk-online-71/")).toBe(
+      "https://woodtalkshow.com/episodes/wood-talk-online-71/",
     );
+  });
+  it("is left out when the feed's link is the Acast page (the show page link goes there)", () => {
+    expect(notesLink("https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616")).toBeUndefined();
+  });
+  it("keeps a look-alike host: it is not Acast", () => {
+    expect(notesLink("https://shows.acast.com.evil.example/x")).toBe("https://shows.acast.com.evil.example/x");
+  });
+  it("is left out with no link, one that does not parse, or one that is not http(s)", () => {
+    expect(notesLink(null)).toBeUndefined();
+    expect(notesLink("")).toBeUndefined();
+    expect(notesLink("not a url")).toBeUndefined();
+    expect(notesLink("javascript:alert(1)")).toBeUndefined();
   });
 });
 
@@ -140,24 +158,30 @@ describe("deepLinks", () => {
     );
   });
 
-  it("passes a non-Acast page URL as is", () => {
-    expect(deepLinks(FULL, 0).page).toBe("https://woodtalk.example/episodes/250");
+  it("plays the show page on Acast whatever the feed's link is, and gives that link as the notes", () => {
+    const links = deepLinks({ ...FULL, offset_apple_s: 30 }, 65_432);
+    expect(links.page).toBe("https://shows.acast.com/woodtalk/episodes/65b16e479edb2b0016f6f435?seek=58");
+    expect(links.notes).toBe("https://woodtalk.example/episodes/250");
   });
 
-  it("seeks an Acast page to the cue, without the platform offsets", () => {
-    const acast = { ...FULL, page_url: "https://shows.acast.com/woodtalk/episodes/x", offset_apple_s: 30 };
-    expect(deepLinks(acast, 65_432).page).toBe("https://shows.acast.com/woodtalk/episodes/x?seek=58");
+  it("has no notes link when the feed's link is the Acast page", () => {
+    const acast = { ...FULL, page_url: "https://shows.acast.com/woodtalk/episodes/x" };
+    expect(deepLinks(acast, 65_432).page).toBe("https://shows.acast.com/woodtalk/episodes/65b16e479edb2b0016f6f435?seek=58");
+    expect("notes" in deepLinks(acast, 65_432)).toBe(false);
   });
 
   it("omits each link when its ID is null", () => {
-    expect(Object.keys(deepLinks({ ...FULL, youtube_video_id: null }, 0))).toEqual(["apple", "spotify", "page"]);
-    expect(Object.keys(deepLinks({ ...FULL, apple_episode_id: null }, 0))).toEqual(["youtube", "spotify", "page"]);
-    expect(Object.keys(deepLinks({ ...FULL, spotify_episode_id: null }, 0))).toEqual(["youtube", "apple", "page"]);
-    expect(Object.keys(deepLinks({ ...FULL, page_url: null }, 0))).toEqual(["youtube", "apple", "spotify"]);
+    expect(Object.keys(deepLinks({ ...FULL, youtube_video_id: null }, 0))).toEqual(["apple", "spotify", "page", "notes"]);
+    expect(Object.keys(deepLinks({ ...FULL, apple_episode_id: null }, 0))).toEqual(["youtube", "spotify", "page", "notes"]);
+    expect(Object.keys(deepLinks({ ...FULL, spotify_episode_id: null }, 0))).toEqual(["youtube", "apple", "page", "notes"]);
+    expect(Object.keys(deepLinks({ ...FULL, page_url: null }, 0))).toEqual(["youtube", "apple", "spotify", "page"]);
   });
 
   it("omits a link whose ID is an empty string", () => {
-    const links = deepLinks({ ...FULL, youtube_video_id: "", apple_episode_id: "", spotify_episode_id: "", page_url: "" }, 0);
+    const links = deepLinks(
+      { ...FULL, guid: "", youtube_video_id: "", apple_episode_id: "", spotify_episode_id: "", page_url: "" },
+      0,
+    );
     expect(links).toEqual({});
   });
 
@@ -165,8 +189,8 @@ describe("deepLinks", () => {
     expect(deepLinks(EMPTY, 12_345)).toEqual({});
   });
 
-  it("keeps card order: youtube, apple, spotify, page", () => {
-    expect(Object.keys(deepLinks(FULL, 0))).toEqual(["youtube", "apple", "spotify", "page"]);
+  it("keeps card order: youtube, apple, spotify, page, then the notes", () => {
+    expect(Object.keys(deepLinks(FULL, 0))).toEqual(["youtube", "apple", "spotify", "page", "notes"]);
   });
 
   it("encodes IDs", () => {

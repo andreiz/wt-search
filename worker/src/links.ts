@@ -12,6 +12,8 @@ const APPLE_SHOW_URL = `https://podcasts.apple.com/us/podcast/wood-talk-woodwork
 
 /** The D1 `episodes` columns the links need, so a row can be passed as is. */
 export interface LinkEpisode {
+  /** The feed's id for the episode, which is also Acast's. */
+  guid: string;
   youtube_video_id: string | null;
   apple_episode_id: string | null;
   spotify_episode_id: string | null;
@@ -43,28 +45,38 @@ export function cueTimes(episode: LinkEpisode, hitMs: number, leadS = LEAD_S): C
   };
 }
 
-/** The host whose episode pages take `?seek=<seconds>` (spec §4.6; tried on WT616, 2026-10-09). */
+/** The host of Acast's episode pages, whose player takes `?seek=<seconds>` (spec §4.6). */
 const ACAST_SHOW_HOST = "shows.acast.com";
+/** Wood Talk's episode pages on Acast; an episode's own page is this plus its feed guid. */
+const ACAST_EPISODES_URL = `https://${ACAST_SHOW_HOST}/woodtalk/episodes/`;
 
-/** The show page at the cue: `seek` added to an Acast show page, any other URL unchanged. */
-export function pageLink(pageUrl: string, cue: number): string {
-  let url: URL;
+/**
+ * The episode's Acast page at the cue. Acast serves every episode under its feed guid (also the
+ * old ones, whose guid is the first host's audio URL), so this does not depend on where the
+ * feed's own link points: for most episodes that is the show's site, which cannot seek.
+ */
+export function pageLink(guid: string, cue: number): string {
+  return `${ACAST_EPISODES_URL}${encodeURIComponent(guid)}?seek=${cue}`;
+}
+
+/** The feed's own episode link when it is not the Acast page: the show's site, with the show notes. */
+export function notesLink(pageUrl: string | null): string | undefined {
+  if (!pageUrl) return undefined;
   try {
-    url = new URL(pageUrl);
+    const url = new URL(pageUrl);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return undefined;
+    return url.hostname === ACAST_SHOW_HOST ? undefined : pageUrl;
   } catch {
-    return pageUrl;
+    return undefined;
   }
-  if (url.hostname !== ACAST_SHOW_HOST) return pageUrl;
-  url.searchParams.set("seek", String(cue));
-  return url.toString();
 }
 
 /**
- * Deep links, keys in card order; a platform is left out when its ID (or page_url) is null or
- * empty. Every platform link carries the cue time (with that platform's offset), in the
- * format the platform's own share sheet makes when sharing from the current time: Spotify
- * `?t=<seconds>`, Apple `&t=<seconds>` (both 2026-10-07, docs/deep-links.md). The show page
- * gets `?seek=<seconds>` on Acast (the lead-in, no offset); any other page URL is as is.
+ * Deep links, keys in card order; a platform is left out when its ID is null or empty. Every
+ * platform link carries the cue time (with that platform's offset), in the format the
+ * platform's own share sheet makes when sharing from the current time: Spotify `?t=<seconds>`,
+ * Apple `&t=<seconds>` (both 2026-10-07, docs/deep-links.md). The show page is the Acast page
+ * with `?seek=<seconds>` (the lead-in, no offset). `notes` plays nothing and has no time.
  */
 export function deepLinks(episode: LinkEpisode, hitMs: number, leadS = LEAD_S): DeepLinks {
   const links: DeepLinks = {};
@@ -80,6 +92,8 @@ export function deepLinks(episode: LinkEpisode, hitMs: number, leadS = LEAD_S): 
     const t = cueSeconds(hitMs, episode.offset_spotify_s, leadS);
     links.spotify = `https://open.spotify.com/episode/${encodeURIComponent(episode.spotify_episode_id)}?t=${t}`;
   }
-  if (episode.page_url) links.page = pageLink(episode.page_url, cueSeconds(hitMs, 0, leadS));
+  if (episode.guid) links.page = pageLink(episode.guid, cueSeconds(hitMs, 0, leadS));
+  const notes = notesLink(episode.page_url);
+  if (notes) links.notes = notes;
   return links;
 }

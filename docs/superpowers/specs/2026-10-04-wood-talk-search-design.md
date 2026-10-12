@@ -695,9 +695,9 @@ Parser rules (`worker/src/query.ts`):
 - One function computes the cue time for each platform `p`:
   `cue_s[p] = max(0, floor(hit_ms/1000) − 7 + episode.offset_<p>_s)`.
 - **The show page plays from an offset too** *(maintainer, 2026-10-09; was
-  "has no player, so it gets no cue")*: the feed's episode link is an Acast
-  page (`https://shows.acast.com/woodtalk/episodes/<slug>`) whose player
-  takes `?seek=<seconds>` (tried on WT616). `cue_s.page = max(0,
+  "has no player, so it gets no cue")*: the episode's Acast page
+  (`https://shows.acast.com/woodtalk/episodes/<guid>`, §4.6) has a player
+  that takes `?seek=<seconds>` (tried on WT616). `cue_s.page = max(0,
   floor(hit_ms/1000) − 7)`: the same lead-in and no offset column, because
   the page plays the show's own timeline. An ad may play first, and then
   playback starts at the cue, so unlike Apple and Spotify the position is
@@ -723,10 +723,21 @@ Built from the episode row and `cue_s`, in this order on the card:
 2. **Apple Podcasts:**
    `https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=<apple_episode_id>&t=<cue>`.
 3. **Spotify:** `https://open.spotify.com/episode/<spotify_episode_id>?t=<cue>`.
-4. **Show page:** `page_url`, when the episode has one. When its host is
-   `shows.acast.com`, the link carries `seek=<cue>` (added to any query the
-   URL already has); any other host is passed through unchanged, with no
-   cue. *(2026-10-09; was the bare `page_url`.)*
+4. **Show page:**
+   `https://shows.acast.com/woodtalk/episodes/<guid, URL-encoded>?seek=<cue>`,
+   for every episode. *(Revised 2026-10-11, maintainer, after a phone's
+   play button opened a page with no time: was `page_url` with `seek` added
+   only when its host was `shows.acast.com`. The feed's own link is the
+   Acast page for only 47 of 626 episodes, the newest; the other 579 link
+   to `woodtalkshow.com`, which cannot seek. Acast serves every episode
+   under its feed guid, including the old ones whose guid is the first
+   host's audio URL, and the guid is the id in all 626 audio URLs. Tried on
+   an iPhone and a desktop with episodes 71 and 597: both start at the
+   time.)*
+5. **Show notes** (`links.notes`): `page_url`, when it is an http(s) link
+   whose host is not `shows.acast.com`, so the show's own site. It plays
+   nothing and carries no time; the card lists it in the ⋯ menu (§5.3).
+   *(Added 2026-10-11, maintainer: the show's site is worth linking to.)*
 
 **Which link the card plays** *(maintainer, 2026-10-09)*: YouTube when the
 episode has it, otherwise the show page. Both are on the show's own
@@ -1191,8 +1202,11 @@ states. Behaviour from the design, with the maintainer's calls:)*
 - **⋯ menu, the same at every width:** **Show page** ("plays from 29:01,
   may play an ad first"; left out when the chip already plays there),
   **Play on Apple** and **Play on Spotify** ("at 29:01 · may start minutes
-  early"), then More transcript and Report transcript error. "Show page"
-  replaces the label "Episode page".
+  early"), **Show notes** ("on the show's site", when the API sends
+  `links.notes`, §4.6; *added 2026-10-11*), then More transcript and Report
+  transcript error. "Show page" replaces the label "Episode page". Since
+  2026-10-11 every episode has a show page link (§4.6), so the chip always
+  plays somewhere; the plain-text time stays for an answer without one.
 - What the items below say about content, names and links still holds
   except where the four items above change it; their layout is the
   design's.

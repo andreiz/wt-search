@@ -18,7 +18,7 @@ from wts.net import describe_http_error
 
 RETRY_S = (1, 2)  # one retry per entry, on network errors, 429 and 5xx
 TIMEOUT_S = 30
-LINK_ORDER = ("youtube", "apple", "spotify", "page")  # card order (spec §4.6)
+LINK_ORDER = ("youtube", "apple", "spotify", "page", "notes")  # card order (spec §4.6)
 MAX_ERROR_CHARS = 100
 # Why smart search answered keyword-only (`smart_degraded`, spec §4.4, §4.8); an unknown reason
 # is shown as is, and an older Worker's `true` without one.

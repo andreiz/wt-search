@@ -21,11 +21,17 @@ time as text for this reason. When checking a format, judge it by whether the pl
 at all, not by landing on the exact word.
 
 - Show page: Acast's episode page takes `?seek=<s>`, e.g.
-  `https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616?seek=1734`. The
-  Worker (`pageLink`) and `wts links --at` add it to pages on `shows.acast.com` only, keeping
-  other query parameters and the fragment; any other page URL is left as it is. The time is
-  the cue on the show's own timeline (lead-in, no platform offset). Tried on WT616 on
+  `https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616?seek=1734`. The time
+  is the cue on the show's own timeline (lead-in, no platform offset). Tried on WT616 on
   2026-10-09 in a desktop browser: the page's player starts at the time. An ad may play first.
+  Since 2026-10-11 the Worker (`pageLink`) and `wts links` build the page's address from the
+  episode's feed guid, not from the feed's link:
+  `https://shows.acast.com/woodtalk/episodes/<guid, URL-encoded>?seek=<s>`, e.g.
+  `…/episodes/6968079fe9172b83203dbacf?seek=600` (597) and
+  `…/episodes/http%3A%2F%2Farchive.org%2Fdownload%2Fwt089%2FWT_071.mp3?seek=4184` (71, whose
+  guid is its first host's audio URL). The feed links to the Acast page for only the 47 newest
+  of 626 episodes; the rest link to `woodtalkshow.com`, which cannot seek. That link is now the
+  card's "Show notes" (`links.notes`), with no time.
 
 The Apple link names the US storefront (`/us/`), as the share sheet did. Listeners in other
 countries should be redirected to their own store; worth a look if one reports otherwise.
@@ -49,4 +55,4 @@ times on the show's own timeline.
 | Spotify | Android app | `?t=<s>` (what the Worker uses) | not checked |
 | Spotify | Desktop web | `?t=<s>` (what the Worker uses) | works (2026-10-07) |
 | Show page (Acast) | Desktop web | `?seek=<s>` (what the Worker uses) | works; an ad may play first (WT616, 2026-10-09) |
-| Show page (Acast) | iOS Safari | `?seek=<s>` (what the Worker uses) | reported not starting at the time (maintainer, 2026-10-11); not yet known whether the link reaches the page with `seek` or the page ignores it |
+| Show page (Acast, by guid) | iOS Safari and desktop web | `/episodes/<guid, URL-encoded>?seek=<s>` (what the Worker uses since 2026-10-11) | works (episodes 71 and 597, maintainer, 2026-10-11) |

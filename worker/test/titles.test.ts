@@ -61,7 +61,13 @@ const numbers = async (q: string) => (await hits(q)).map((e) => e.number);
 describe("titleHits", () => {
   it("finds an episode by a word that is only in its title", async () => {
     expect(await hits("kregger")).toEqual([
-      { id: 43, number: 613, title: "Shove a Kregger in the Hole", date: "2026-08-19", links: {} },
+      {
+        id: 43,
+        number: 613,
+        title: "Shove a Kregger in the Hole",
+        date: "2026-08-19",
+        links: { page: "https://shows.acast.com/woodtalk/episodes/t43?seek=0" },
+      },
     ]);
   });
 
@@ -102,7 +108,8 @@ describe("titleHits", () => {
       youtube: "https://www.youtube.com/watch?v=yt44&t=10s",
       apple: "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=ap44&t=20",
       spotify: "https://open.spotify.com/episode/sp44?t=30",
-      page: "https://shows.acast.com/woodtalk/episodes/hide-glue-holiday?seek=0",
+      // Under the guid, not the feed's slug; that link is the Acast page, so there are no notes.
+      page: "https://shows.acast.com/woodtalk/episodes/t44?seek=0",
     });
   });
 

@@ -246,7 +246,10 @@ describe("meaning-only hits", () => {
     const related = (await body({ q: "zzunmatched" }, [3202])).results;
     expect(related).toHaveLength(1);
     expect(related[0]).toMatchObject({ chunk_id: 3202, match: "related", ranges: [], hit_ms: 600_000 });
-    expect(related[0]!.episode.links).toEqual({ youtube: "https://www.youtube.com/watch?v=yt32&t=603s" });
+    expect(related[0]!.episode.links).toEqual({
+      youtube: "https://www.youtube.com/watch?v=yt32&t=603s",
+      page: "https://shows.acast.com/woodtalk/episodes/g32?seek=593",
+    });
   });
 
   it("are dropped when they contain an excluded word", async () => {

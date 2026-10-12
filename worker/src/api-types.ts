@@ -4,12 +4,15 @@
 // own, and `deepLinks()` / `cueTimes()` in links.ts are annotated with `DeepLinks` / `CueTimes`,
 // so the compiler checks that the names and the functions agree.
 
-/** Deep links; a platform is left out when its ID (or the page URL) is missing. */
+/** Deep links; a platform is left out when its ID is missing. */
 export interface DeepLinks {
   youtube?: string;
   apple?: string;
   spotify?: string;
+  /** The episode's Acast page, which plays from the cue. */
   page?: string;
+  /** The episode's page on the show's own site (show notes); plays nothing, has no time. */
+  notes?: string;
 }
 
 /** Where each platform should start to play, in seconds. */

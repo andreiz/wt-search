@@ -91,7 +91,7 @@ function expectResultTypes(r: Json): void {
   expect(typeof episode.title).toBe("string");
   expect(episode.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   for (const [name, url] of Object.entries(episode.links as Json)) {
-    expect(["youtube", "apple", "spotify", "page"]).toContain(name);
+    expect(["youtube", "apple", "spotify", "page", "notes"]).toContain(name);
     expect(typeof url).toBe("string");
   }
   for (const seconds of Object.values(r.cue_s as Json)) expect(typeof seconds).toBe("number");
@@ -105,7 +105,7 @@ function expectResultsLike(fixture: Json, live: Json): void {
     expect(keys(r.cue_s as Json)).toEqual(keys(real.cue_s as Json));
     // links omit the platforms a result lacks, so its keys need only be known ones.
     for (const name of Object.keys((r.episode as Json).links as Json)) {
-      expect(["youtube", "apple", "spotify", "page"]).toContain(name);
+      expect(["youtube", "apple", "spotify", "page", "notes"]).toContain(name);
     }
     expectResultTypes(r);
   }
@@ -132,7 +132,7 @@ describe("the Worker's own responses", () => {
     const results = liveExact.results as Json[];
     expect(results).toHaveLength(2);
     expect(Object.keys((results[0]!.episode as Json).links as Json).sort()).toEqual(
-      ["apple", "page", "spotify", "youtube"],
+      ["apple", "notes", "page", "spotify", "youtube"],
     );
   });
 

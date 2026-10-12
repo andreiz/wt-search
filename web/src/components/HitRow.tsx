@@ -14,7 +14,7 @@ import { useContext, useEffect, useLayoutEffect, useRef, useState } from "preact
 import type { SearchResult } from "../../../worker/src/api-types";
 import { anchorDelta, openTop } from "../lib/anchor";
 import { excerpt } from "../lib/excerpt";
-import { chipName, hitTime, menuPlays, primaryPlay } from "../lib/platforms";
+import { chipName, hitTime, menuPlays, notesLink, primaryPlay } from "../lib/platforms";
 import { OpenReport } from "../use-forms";
 import { useTranscript } from "../use-transcript";
 import { MoreMenu } from "./MoreMenu";
@@ -265,6 +265,7 @@ export function HitRow({
       <div class="hit__strip" ref={strip}>
       <MoreMenu
         plays={menuPlays(hit)}
+        notes={notesLink(hit)}
         time={time}
         moreOpen={shown === 3}
         buttonRef={moreButton}

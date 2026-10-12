@@ -133,7 +133,13 @@ describe("neighbours", () => {
     const { body } = await context("?chunk=3005&radius=0");
     expect(body).toEqual({
       chunk_id: 3005,
-      episode: { id: 30, number: 300, title: "The Long One", date: "2020-05-04", links: {} },
+      episode: {
+        id: 30,
+        number: 300,
+        title: "The Long One",
+        date: "2020-05-04",
+        links: { page: "https://shows.acast.com/woodtalk/episodes/g30?seek=113" },
+      },
       chunks: [
         {
           chunk_id: 3005,
@@ -143,7 +149,7 @@ describe("neighbours", () => {
           text: "thirty chunk 4",
           boilerplate: false,
           cue_s: { youtube: 119, apple: 119, spotify: 119, page: 119 },
-          links: {},
+          links: { page: "https://shows.acast.com/woodtalk/episodes/g30?seek=119" },
           ranges: [],
         },
       ],
@@ -204,7 +210,8 @@ describe("links and flags", () => {
         youtube: "https://www.youtube.com/watch?v=yt33&t=103s",
         apple: "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=ap33&t=113",
         spotify: "https://open.spotify.com/episode/sp33?t=123",
-        page: "https://example.com/ep/301",
+        page: "https://shows.acast.com/woodtalk/episodes/g33?seek=93",
+        notes: "https://example.com/ep/301",
       },
     });
     // A chunk plays from 1 s before its own start (the episode's links keep the hit's 7 s): start - 1 + offset.
@@ -217,7 +224,8 @@ describe("links and flags", () => {
       youtube: "https://www.youtube.com/watch?v=yt33&t=49s",
       apple: "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=ap33&t=59",
       spotify: "https://open.spotify.com/episode/sp33?t=69",
-      page: "https://example.com/ep/301",
+      page: "https://shows.acast.com/woodtalk/episodes/g33?seek=39",
+      notes: "https://example.com/ep/301",
     });
     expect(body.chunks[2]?.links.spotify).toBe("https://open.spotify.com/episode/sp33?t=159");
   });
@@ -233,9 +241,11 @@ describe("links and flags", () => {
     expect(body.chunks.map((c) => c.boilerplate)).toEqual([false, false, true]);
   });
 
-  it("serves an episode with no number and no links", async () => {
+  it("serves an episode with no number and only the Acast page to link to", async () => {
     const { body } = await context("?chunk=3201&radius=1");
-    expect(body.episode).toEqual({ id: 32, number: null, title: "After It", date: "2020-05-11", links: {} });
+    expect(body.episode).toMatchObject({ id: 32, number: null, title: "After It", date: "2020-05-11" });
+    expect(Object.keys(body.episode.links)).toEqual(["page"]);
+    expect(body.episode.links.page).toMatch(/^https:\/\/shows\.acast\.com\/woodtalk\/episodes\/g32\?seek=\d+$/);
   });
 });
 

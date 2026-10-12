@@ -1,5 +1,5 @@
 // The ⋯ menu of a hit row (spec §5.3), the same at every width: the links the chip does not play
-// (Show page, Apple, Spotify), then More transcript and Report transcript error. A menu button
+// (Show page, Apple, Spotify) and the show notes, then More transcript and Report transcript error. A menu button
 // with arrow-key movement: Esc, a press outside or Tab closes it, and Esc or a choice returns
 // focus to ⋯ (SortMenu.tsx works the same way).
 import type { RefObject } from "preact";
@@ -11,6 +11,7 @@ const ITEMS = "[role='menuitem']";
 
 export function MoreMenu({
   plays,
+  notes,
   time,
   moreOpen,
   buttonRef,
@@ -19,6 +20,8 @@ export function MoreMenu({
 }: {
   /** The links the chip does not play, in menu order (`menuPlays`). */
   plays: PlayLink[];
+  /** The episode's page on the show's own site, when the API sent one (`notesLink`). */
+  notes?: string;
   /** The hit's time, "1:09:51". */
   time: string;
   /** Whether the More transcript view is open: "More transcript" then reads as expanded, and closes it. */
@@ -125,7 +128,22 @@ export function MoreMenu({
               </span>
             </a>
           ))}
-          {plays.length > 0 && <div class="menu-rule" role="separator" />}
+          {notes && (
+            <a
+              role="menuitem"
+              class="menu-item"
+              tabIndex={-1}
+              href={notes}
+              target="_blank"
+              rel="noopener"
+              aria-label="Show notes on the show's site"
+              onClick={close}
+            >
+              Show notes
+              <span class="menu-item__sub">on the show's site</span>
+            </a>
+          )}
+          {(plays.length > 0 || notes) && <div class="menu-rule" role="separator" />}
           <button
             type="button"
             role="menuitem"

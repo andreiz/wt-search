@@ -33,6 +33,14 @@ and a report and a feedback message have been sent through the real widget), the
     it landed at the bottom of the screen when the excerpt was there; changed the same day
     (spec §5.4 "Where the passage lands": from the lower half it goes a third of the way
     down), not yet deployed.
+  - Phone: play buttons that go to the show page opened `woodtalkshow.com` with no time.
+    The handoff's "every feed link is Acast today" (below) was wrong: 579 of 626 feed links
+    are the show's site. Fixed the same day (spec §4.6 items 4–5): the show page link is the
+    Acast page under the episode's guid, with `seek`, for every episode, and the feed's own
+    link is "Show notes" in the ⋯ menu (`links.notes`). The maintainer tried both guid forms
+    on the iPhone and the desktop (episodes 71 and 597): they start at the time. No
+    republish; needs `npm run deploy:staging`. Cached answers from the old Worker lack
+    `notes` and keep the old page link until the cache turns over.
   - Still to do: the rest of the phone (iOS) pass, with the report-form scroll fix of
     2026-10-11 and the change above, which need a fresh `npm run deploy:staging`; the platform
     buttons; a clean browser console; VoiceOver (step 6).
@@ -470,8 +478,9 @@ Decisions from the brainstorm (maintainer, 2026-10-08; all took the recommended 
     page 1 with no keyword hit; the Smart summary reads "Smart search · results 1–20".
     `RelatedFold.tsx` is deleted (it is in git history). Two gentler folds are recorded in
     spec §5.3 "Considered, for later". Web **513** unit + **20** e2e.
-  - **Deferred (Worker):** `cue_s.page` is hit − 7 even when the page isn't on Acast and
-    doesn't seek; every feed link is Acast today.
+  - ~~**Deferred (Worker):** `cue_s.page` is hit − 7 even when the page isn't on Acast and
+    doesn't seek; every feed link is Acast today.~~ Wrong and overtaken, 2026-10-11: most
+    feed links are the show's site; the page link is now always Acast (see the top).
   - **Look in a browser:** the chip's links land at the passage (YouTube and the show
     page); on a phone the `?` help button wraps onto its own line under the controls and
     ⋯ sits beside the middle of the excerpt, not its first line; the menu over the next

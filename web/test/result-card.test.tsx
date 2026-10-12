@@ -312,6 +312,37 @@ describe("the ⋯ menu", () => {
     expect(items().map((i) => i.firstChild?.textContent)).toEqual(["Play on Apple", "More transcript", "Report transcript error"]);
   });
 
+  it("lists Show notes after the play rows when the API sends the show's own page, with no time", () => {
+    renderCard([withLinks(full, { ...full.episode.links, notes: "https://woodtalkshow.com/episodes/x/" })]);
+    open();
+    expect(items().map(label)).toEqual([
+      "Show page plays from 20:28, may play an ad first",
+      "Play on Apple at 20:28 · may start minutes early, starts at 20:21",
+      "Play on Spotify at 20:28 · may start minutes early, starts at 20:21",
+      "Show notes on the show's site",
+      "More transcript",
+      "Report transcript error",
+    ]);
+    const notes = items()[3] as HTMLAnchorElement;
+    expect(notes.firstChild?.textContent).toBe("Show notes");
+    expect(notes.getAttribute("href")).toBe("https://woodtalkshow.com/episodes/x/");
+    expect(notes.getAttribute("target")).toBe("_blank");
+    expect(notes.getAttribute("rel")).toBe("noopener");
+  });
+
+  it("keeps the rule under Show notes when it is the only link in the menu", () => {
+    renderCard([withLinks(full, { page: full.episode.links.page, notes: "https://woodtalkshow.com/episodes/x/" })]);
+    open();
+    expect(items().map((i) => i.firstChild?.textContent)).toEqual(["Show notes", "More transcript", "Report transcript error"]);
+    expect(document.querySelectorAll(".more-menu__list [role='separator']")).toHaveLength(2);
+  });
+
+  it("leaves Show notes out when the link is not http(s)", () => {
+    renderCard([withLinks(full, { ...full.episode.links, notes: "javascript:alert(1)" })]);
+    open();
+    expect(items().map((i) => i.firstChild?.textContent)).not.toContain("Show notes");
+  });
+
   it("with no links at all still opens, with More transcript and Report", () => {
     renderCard([withLinks(full, {})]);
     open();

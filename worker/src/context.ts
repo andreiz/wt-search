@@ -40,7 +40,7 @@ interface Row extends LinkEpisode {
 // makes `hit` empty and the answer no rows.
 const SELECT_CONTEXT = `WITH hit AS (SELECT episode_id, seq FROM chunks WHERE id = ?)
 SELECT c.id, c.episode_id, c.seq, c.start_ms, c.end_ms, c.text, c.word_times, c.is_boilerplate,
-       e.number, e.title, e.published_at, e.youtube_video_id, e.apple_episode_id,
+       e.number, e.title, e.published_at, e.guid, e.youtube_video_id, e.apple_episode_id,
        e.spotify_episode_id, e.page_url, e.offset_youtube_s, e.offset_apple_s, e.offset_spotify_s
 FROM hit
 JOIN chunks c ON c.episode_id = hit.episode_id AND c.seq BETWEEN hit.seq - ? AND hit.seq + ?

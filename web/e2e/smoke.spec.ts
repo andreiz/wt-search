@@ -117,8 +117,8 @@ test("every play link on the page is the one /api/search returned", async ({ pag
   for (const [i, result] of results.entries()) {
     const links = result.episode.links;
     const row = rows.nth(i);
-    // The chip is YouTube, or else the show page (lib/platforms.ts primaryPlay); an episode with
-    // neither shows its time as plain text.
+    // The chip is YouTube, or else the show page (lib/platforms.ts primaryPlay), which every
+    // episode has: the Worker builds it from the guid.
     const chip = links.youtube ?? links.page ?? null;
     const chipLink = row.locator("a.hit__time");
     if (chip === null) await expect(chipLink).toHaveCount(0);
@@ -130,14 +130,15 @@ test("every play link on the page is the one /api/search returned", async ({ pag
     // Esc is heard in the menu, so wait for the opening focus to land there before pressing it.
     await expect(menu.getByRole("menuitem").first()).toBeFocused();
     const hrefs = await menu.getByRole("menuitem").evaluateAll((items) => items.map((m) => m.getAttribute("href")).filter((h) => h !== null));
-    const others = [links.page, links.apple, links.spotify].filter((h): h is string => !!h && h !== chip);
+    // So is the show's own page (Show notes), when the feed's link is not the Acast page.
+    const others = [links.page, links.apple, links.spotify, links.notes].filter((h): h is string => !!h && h !== chip);
     expect(hrefs.sort()).toEqual(others.sort());
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
 
     for (const key of Object.keys(links)) if (links[key]) seen.add(key);
   }
-  expect([...seen].sort()).toEqual(["apple", "page", "spotify", "youtube"]);
+  expect([...seen].sort()).toEqual(["apple", "notes", "page", "spotify", "youtube"]);
   await check();
 });
 

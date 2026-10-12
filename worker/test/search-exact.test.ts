@@ -138,7 +138,14 @@ describe("matching", () => {
     expect(response.headers.get("content-type")).toBe(JSON_TYPE);
     const first = body.results.find((r) => r.chunk_id === 1001);
     expect(first).toEqual({
-      episode: { id: 10, number: 100, title: "Early Days", date: "2014-03-01", links: {} },
+      // With no platform ids and no feed link, the Acast page (under the guid) is the one link.
+      episode: {
+        id: 10,
+        number: 100,
+        title: "Early Days",
+        date: "2014-03-01",
+        links: { page: "https://shows.acast.com/woodtalk/episodes/g10?seek=0" },
+      },
       chunk_id: 1001,
       text: "We love a good dovetail joint on every drawer",
       ranges: [[15, 23]],
@@ -361,7 +368,8 @@ describe("hit time and links", () => {
         youtube: "https://www.youtube.com/watch?v=yt12&t=1005s",
         apple: "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480?i=ap12&t=1015",
         spotify: "https://open.spotify.com/episode/sp12?t=1025",
-        page: "https://example.com/ep/201",
+        page: "https://shows.acast.com/woodtalk/episodes/g12?seek=995",
+        notes: "https://example.com/ep/201",
       },
     });
     // floor(1306 s) - 7 = 1299.

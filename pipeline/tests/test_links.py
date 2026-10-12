@@ -1,5 +1,7 @@
 """`wts links`: an episode's links, built as the Worker builds them (worker/src/links.ts)."""
 
+from urllib.parse import quote
+
 import pytest
 from click.testing import CliRunner
 from conftest import insert_episode
@@ -9,6 +11,7 @@ from wts.db import connect
 from wts.links import episode_links, parse_time
 
 APPLE = "https://podcasts.apple.com/us/podcast/wood-talk-woodworking/id251471480"
+ACAST_EPISODES = "https://shows.acast.com/woodtalk/episodes/"
 IDS = {"apple_episode_id": "1000654321", "spotify_episode_id": "25v5lMYTgOxsTSJ2jaZ6Rt",
        "youtube_video_id": "dQw4w9WgXcQ", "youtube_duration_s": 3602}
 
@@ -19,16 +22,19 @@ def row(conn, **overrides):
 
 
 def test_every_link_without_a_time(conn):
-    links = episode_links(row(conn, page_url="https://woodtalkshow.com/ep171",
-                              audio_url="https://cdn.example/ep171.mp3", **IDS))
+    episode = row(conn, page_url="https://woodtalkshow.com/ep171",
+                  audio_url="https://cdn.example/ep171.mp3", **IDS)
+    guid = episode["guid"]
+    links = episode_links(episode)
     assert links == {
         "youtube": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         "apple": f"{APPLE}?i=1000654321",
         "spotify": "https://open.spotify.com/episode/25v5lMYTgOxsTSJ2jaZ6Rt",
-        "page": "https://woodtalkshow.com/ep171",
+        "page": f"{ACAST_EPISODES}{quote(guid, safe='')}",
+        "notes": "https://woodtalkshow.com/ep171",
         "audio": "https://cdn.example/ep171.mp3",
     }
-    assert list(links) == ["youtube", "apple", "spotify", "page", "audio"]  # card order
+    assert list(links) == ["youtube", "apple", "spotify", "page", "notes", "audio"]  # card order
 
 
 def test_a_time_uses_each_platform_format_and_offset(conn):
@@ -46,33 +52,44 @@ def test_a_time_never_goes_below_zero(conn):
 ACAST = "https://shows.acast.com/woodtalk/episodes/should-i-buy-a-jointer-wt616"
 
 
-def test_an_acast_page_seeks_to_the_time(conn):
+def test_the_show_page_is_the_acast_page_under_the_guid_and_seeks_to_the_time(conn):
     # No lead-in and no offset, like the other links; the page is on the show's own timeline.
-    links = episode_links(row(conn, page_url=ACAST, offset_apple_s=30), at_s=1741)
-    assert links["page"] == f"{ACAST}?seek=1741"
-    assert episode_links(row(conn, page_url=ACAST), at_s=0)["page"] == f"{ACAST}?seek=0"
+    # Both forms tried on a phone and a desktop, 2026-10-11 (the same links as the Worker's test).
+    new = row(conn, guid="6968079fe9172b83203dbacf", offset_apple_s=30)
+    assert episode_links(new, at_s=600)["page"] == f"{ACAST_EPISODES}6968079fe9172b83203dbacf?seek=600"
+    assert episode_links(new, at_s=0)["page"] == f"{ACAST_EPISODES}6968079fe9172b83203dbacf?seek=0"
+    old = row(conn, guid="http://archive.org/download/wt089/WT_071.mp3")
+    assert episode_links(old, at_s=4184)["page"] == (
+        f"{ACAST_EPISODES}http%3A%2F%2Farchive.org%2Fdownload%2Fwt089%2FWT_071.mp3?seek=4184")
 
 
-def test_an_acast_page_keeps_other_parameters_and_the_fragment(conn):
-    page = "https://shows.acast.com/woodtalk/episodes/x?a=1&seek=5#notes"
-    assert episode_links(row(conn, page_url=page), at_s=90)["page"] == (
-        "https://shows.acast.com/woodtalk/episodes/x?a=1&seek=90#notes")
+def test_the_show_page_is_bare_without_a_time(conn):
+    assert episode_links(row(conn, guid="abc"))["page"] == f"{ACAST_EPISODES}abc"
 
 
-def test_an_acast_page_is_bare_without_a_time(conn):
-    assert episode_links(row(conn, page_url=ACAST))["page"] == ACAST
+def test_a_guid_is_encoded_as_the_worker_encodes_it(conn):
+    # JavaScript's encodeURIComponent leaves ! * ' ( ) alone and escapes the rest.
+    page = episode_links(row(conn, guid="a b/c?d#e!*'()"))["page"]
+    assert page == f"{ACAST_EPISODES}a%20b%2Fc%3Fd%23e!*'()"
 
 
-@pytest.mark.parametrize("page", [
-    "https://example.com/ep/612", "https://shows.acast.com.evil.example/x", "not a url"])
-def test_any_other_page_is_unchanged(conn, page):
-    assert episode_links(row(conn, page_url=page), at_s=90)["page"] == page
-    assert episode_links(row(conn, page_url=page))["page"] == page
+def test_the_feeds_own_link_is_the_notes_unless_it_is_the_acast_page(conn):
+    assert episode_links(row(conn, page_url="https://woodtalkshow.com/episodes/x/"), at_s=90)[
+        "notes"] == "https://woodtalkshow.com/episodes/x/"
+    assert "notes" not in episode_links(row(conn, page_url=ACAST), at_s=90)
+    # A look-alike host is not Acast, so it is kept as it is.
+    assert episode_links(row(conn, page_url="https://shows.acast.com.evil.example/x"))[
+        "notes"] == "https://shows.acast.com.evil.example/x"
+
+
+@pytest.mark.parametrize("page", [None, "", "not a url", "javascript:alert(1)"])
+def test_no_notes_without_a_web_link(conn, page):
+    assert "notes" not in episode_links(row(conn, page_url=page))
 
 
 def test_missing_ids_are_left_out(conn):
     links = episode_links(row(conn, page_url=None))
-    assert links == {"audio": links["audio"]}
+    assert links == {"page": links["page"], "audio": links["audio"]}
 
 
 def test_youtube_follows_the_length_rule(conn):

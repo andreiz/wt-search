@@ -235,7 +235,7 @@ def search_cmd(env: str | None, mode: str, sort: str, page: int, limit: int | No
               help="Start at this time: 12:34, 1:02:03 or seconds (each platform's offset is "
                    "applied).")
 def links_cmd(episode: str, at: str | None) -> None:
-    """An episode's links (YouTube, Apple, Spotify, show page, audio), as the site builds them.
+    """An episode's links (YouTube, Apple, Spotify, show page, notes, audio), as the site builds them.
 
     EPISODE is a number (71) or a selector (stem:S, recent:3, ep:71,ep:171). YouTube is linked
     only when the video's length is within 3 s of the feed's; otherwise the match is shown

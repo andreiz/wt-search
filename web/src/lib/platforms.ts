@@ -65,6 +65,15 @@ export function menuPlays(hit: Playable): PlayLink[] {
     });
 }
 
+/**
+ * The episode's page on the show's own site, for the ⋯ menu's "Show notes". It plays nothing and
+ * has no time. Only an http(s) link is passed on: it becomes an href.
+ */
+export function notesLink(item: Playable): string | undefined {
+  const href = linksOf(item).notes;
+  return typeof href === "string" && /^https?:\/\//i.test(href) ? href : undefined;
+}
+
 function starts(play: PlayLink, time: string): string {
   return play.cue === time ? "" : `, starts at ${play.cue}`;
 }

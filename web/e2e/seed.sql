@@ -9,8 +9,10 @@
 -- Chunks are 30 s apart from 10:00 in, so the lead-in cue is not clamped to 0. word_times is
 -- 400 ms per word (worker/test/seed.ts wordTimes).
 
--- Episode 1 has every platform; 2 has YouTube and an Acast page (which takes ?seek=); 3 has the
--- two audio platforms and no page. Apple and Spotify carry an offset (the ad gap), YouTube none.
+-- Episode 1 has every platform and a feed link to the show's own site (its "Show notes"); 2 has
+-- YouTube and a feed link that is the Acast page (so no notes); 3 has the two audio platforms and
+-- no feed link. Every episode's show page link is its Acast page, built from the guid.
+-- Apple and Spotify carry an offset (the ad gap), YouTube none.
 INSERT INTO episodes (id, guid, number, title, published_at, year, duration_s, page_url,
                       youtube_video_id, apple_episode_id, spotify_episode_id,
                       offset_youtube_s, offset_apple_s, offset_spotify_s)

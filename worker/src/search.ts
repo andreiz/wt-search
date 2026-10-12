@@ -91,7 +91,7 @@ const ORDER_BY: Record<Sort, string> = {
 };
 
 const ROW_COLUMNS = `c.id, c.episode_id, c.seq, c.start_ms, c.word_times,
-       e.number, e.title, e.published_at, e.youtube_video_id, e.apple_episode_id,
+       e.number, e.title, e.published_at, e.guid, e.youtube_video_id, e.apple_episode_id,
        e.spotify_episode_id, e.page_url, e.offset_youtube_s, e.offset_apple_s, e.offset_spotify_s`;
 
 // The count reads at most COUNT_CAP + 1 matches: enough to tell "exactly 1000" from "more".

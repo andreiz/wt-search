@@ -12,8 +12,9 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 from wts.chunking import prepare_episode
-from wts.corrections import CorrectionRule
-from wts.words import Word
+from wts.corrections import CorrectionRule, apply_corrections
+from wts.guards import clean_transcript
+from wts.words import Word, joined_words
 
 LOW_PROB = 0.5  # a word Whisper was less sure of than this counts as unsure
 
@@ -45,21 +46,39 @@ def is_unsure(text: str, prob: float) -> bool:
     return bool(word) and word not in SMALL_WORDS
 
 
-def corrected_spans(heard: Sequence[Word], shown: Sequence[Word]) -> list[list]:
-    """Where corrections changed the words: `[index, count, text Whisper wrote]`, in order.
+Joined = tuple[Word, list[Word]]  # a word as shown, and the words it was joined from
+
+
+def key_text(parts: Sequence[Word]) -> str:
+    """These words as a rule's key would name them: one by one, without outer punctuation.
+
+    Corrections are matched before split words are joined, so "three-eighths" (Whisper's
+    "three" and "-eighths") is the key `three eighths`; `three-eighths` matches nothing.
+    """
+    return " ".join(t for t in (_EDGES.sub("", w.text) for w in parts) if t)
+
+
+def corrected_spans(heard: Sequence[Joined], shown: Sequence[Joined]) -> list[list]:
+    """Where corrections changed the words, in order: `[index, count, was, key]`.
 
     `index` and `count` are the corrected words in `shown` (`count` is 0 where a rule deleted
-    words: the text then belongs before word `index`, which can be one past the end). A word is
-    the same when its text and start are, so the comparison has almost nothing to try.
+    words: the text then belongs before word `index`, which can be one past the end). `was` is
+    the text Whisper wrote, to show, and `key` the same as a rule would name it (`key_text`).
+    A word is the same when its text and start are, so the comparison has almost nothing to try.
     """
     matcher = SequenceMatcher(
         None,
-        [(w.text, w.start_ms) for w in heard],
-        [(w.text, w.start_ms) for w in shown],
+        [(w.text, w.start_ms) for w, _ in heard],
+        [(w.text, w.start_ms) for w, _ in shown],
         autojunk=False,
     )
     return [
-        [j1, j2 - j1, " ".join(w.text.strip() for w in heard[i1:i2])]
+        [
+            j1,
+            j2 - j1,
+            " ".join(w.text.strip() for w, _ in heard[i1:i2]),
+            key_text([part for _, parts in heard[i1:i2] for part in parts]),
+        ]
         for tag, i1, i2, j1, j2 in matcher.get_opcodes()
         if tag != "equal" and i2 > i1
     ]
@@ -69,12 +88,17 @@ def episode_payload(
     conn: sqlite3.Connection, row: sqlite3.Row, corrections: Sequence[CorrectionRule]
 ) -> dict:
     sentences, _ = prepare_episode(row, corrections)
-    shown = [w for s in sentences for w in s.words]
-    heard = [w for s in prepare_episode(row, [])[0] for w in s.words] if corrections else shown
-    words = [[w.text, w.start_ms, w.end_ms, w.prob] for w in shown]
+    # The same steps as `prepare_episode`, keeping what each shown word was joined from.
+    data = json.loads(Path(row["transcript_path"]).read_text())
+    cleaned, _ = clean_transcript(data, row["audio_duration_s"] or row["duration_s"])
+    shown = joined_words(apply_corrections(cleaned, corrections, row["stem"]))
+    heard = joined_words(cleaned) if corrections else shown
+    words = [[w.text, w.start_ms, w.end_ms, w.prob] for s in sentences for w in s.words]
+    if [w for w, _ in shown] != [w for s in sentences for w in s.words]:
+        raise RuntimeError("the review page's words differ from wts chunk's")
     fixes = corrected_spans(heard, shown)
     # A corrected word keeps Whisper's doubt about what it replaced, but it has been dealt with.
-    fixed = {i for index, count, _ in fixes for i in range(index, index + count)}
+    fixed = {i for index, count, *_ in fixes for i in range(index, index + count)}
     firsts, index = [], 0
     for s in sentences:
         firsts.append(index)
@@ -104,6 +128,12 @@ def episode_payload(
             i for i, w in enumerate(words) if i not in fixed and is_unsure(w[0], w[3])
         ],
         "fixes": fixes,
+        # Joined words outside a correction: `[index, key]`, what a rule must call the word.
+        "joined": [
+            [i, key_text(parts)]
+            for i, (_, parts) in enumerate(shown)
+            if len(parts) > 1 and i not in fixed
+        ],
         "sentences": firsts,
         "chunks": chunks,
         "worst": worst_stretches(words),

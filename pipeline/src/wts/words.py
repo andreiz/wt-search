@@ -71,14 +71,24 @@ def join_split_words(words: Sequence[Word]) -> list[Word]:
     A dash or comma on its own is punctuation and stays; nothing is joined across a sentence
     end.
     """
-    out: list[Word] = []
+    return [joined for joined, _ in joined_words(words)]
+
+
+def joined_words(words: Sequence[Word]) -> list[tuple[Word, list[Word]]]:
+    """`join_split_words`, with the words each result was joined from (one, for most).
+
+    The review page needs the parts: a correction is matched before the join, so a rule for
+    "three-eighths" must name its two words, "three" and "-eighths".
+    """
+    out: list[tuple[Word, list[Word]]] = []
     for w in words:
-        prev = out[-1] if out else None
+        prev = out[-1][0] if out else None
         if prev and _is_tail(prev.text, w.text):
-            out[-1] = Word(prev.text + w.text, prev.start_ms, max(prev.end_ms, w.end_ms),
-                           min(prev.prob, w.prob))
+            joined = Word(prev.text + w.text, prev.start_ms, max(prev.end_ms, w.end_ms),
+                          min(prev.prob, w.prob))
+            out[-1] = (joined, [*out[-1][1], w])
         else:
-            out.append(w)
+            out.append((w, [w]))
     return out
 
 

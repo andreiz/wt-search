@@ -44,8 +44,9 @@ const S = {
   raf: 0,
   report: null, // the report object once loaded
   lastSelection: null, // {lo, hi} of the last selection inside the transcript
-  wasAt: new Map(), // word index -> the struck-out text shown before it
+  keyAt: new Map(), // word index -> the struck-out text before it, as a rule's key names it
   fixStart: new Map(), // corrected word -> the first word of its correction
+  joinedKey: new Map(), // a joined word ("three-eighths") -> its key ("three eighths")
 };
 
 // ---------------------------------------------------------------- helpers
@@ -228,11 +229,15 @@ function renderTranscript(payload) {
     wasAt.set(index, wasAt.has(index) ? `${wasAt.get(index)} ${was}` : String(was));
     for (let i = index; i < index + count && i < words.length; i++) fixed.add(i);
   }
-  S.wasAt = wasAt;
-  S.fixStart = new Map(); // corrected word -> the first word of its correction
-  for (const [index, count] of payload.fixes || []) {
+  S.keyAt = new Map();
+  S.fixStart = new Map();
+  for (const [index, count, was, key] of payload.fixes || []) {
+    if (!wasAt.has(index)) continue;
+    const text = String(key || was);
+    S.keyAt.set(index, S.keyAt.has(index) ? `${S.keyAt.get(index)} ${text}` : text);
     for (let i = index; i < index + count && i < words.length; i++) S.fixStart.set(i, index);
   }
+  S.joinedKey = new Map((payload.joined || []).map(([index, key]) => [index, String(key)]));
   const wasNode = (index) => {
     const del = el("del", "was", wasAt.get(index));
     del.title = "What Whisper wrote, before a correction";
@@ -437,6 +442,8 @@ function selectedWordRange() {
 
 // The words lo..hi as Whisper wrote them: a rule is matched against that, never against the
 // result of another rule, so for a corrected word the struck-out text is what a key must say.
+// And before split words are joined: "three-eighths" is Whisper's "three" and "-eighths", the
+// key `three eighths`. The server sends both as key text (`keyAt`, `joinedKey`).
 function rangeText({ lo, hi }) {
   const parts = [];
   const done = new Set();
@@ -444,12 +451,12 @@ function rangeText({ lo, hi }) {
     const start = S.fixStart.has(i) ? S.fixStart.get(i) : i;
     // Struck-out text before this word: its own correction's, or words a rule deleted
     // (inside the range only).
-    if (S.wasAt.has(start) && !done.has(start) && (S.fixStart.has(i) || i > lo)) {
+    if (S.keyAt.has(start) && !done.has(start) && (S.fixStart.has(i) || i > lo)) {
       done.add(start);
-      parts.push(S.wasAt.get(start));
+      parts.push(S.keyAt.get(start));
     }
     if (S.fixStart.has(i)) continue;
-    const t = String(S.words[i][0]).trim();
+    const t = S.joinedKey.has(i) ? S.joinedKey.get(i) : String(S.words[i][0]).trim();
     if (t) parts.push(t);
   }
   return stripPunct(parts.join(" "));
@@ -653,7 +660,7 @@ function renderPreview(data) {
   const text = n === 0 ? "This rule changes nothing." : n === 1 ? "1 sentence changes" : `${n} sentences change`;
   box.append(el("p", "count", text));
   if (n === 0) {
-    box.append(el("p", "hint", "The wrong text must be what Whisper wrote (the struck-out words), not words another rule already corrected."));
+    box.append(el("p", "hint", "The wrong text must be what Whisper wrote (the struck-out words), not words another rule already corrected. A hyphenated word is two words: three eighths, not three-eighths."));
   }
   const changes = data.changes || [];
   if (changes.length < n) box.append(el("p", "hint", `Showing the first ${changes.length}.`));

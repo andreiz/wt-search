@@ -8,6 +8,7 @@ from wts.review.data import (
     chunk_position,
     episode_payload,
     is_unsure,
+    key_text,
     next_flagged,
     worst_stretches,
 )
@@ -71,12 +72,12 @@ def test_payload_fixes_say_what_whisper_wrote(conn, paths, make_episode):
     payload = episode_payload(conn, _row(conn, e), rules)
     texts = [w[0] for w in payload["words"]]
     assert " ".join(texts) == "Ask Marc about the Titebond. Cut a mortise and tenon now."
-    shown = [(was, texts[i : i + n]) for i, n, was in payload["fixes"]]
+    shown = [(was, key, texts[i : i + n]) for i, n, was, key in payload["fixes"]]
     assert shown == [
-        ("mark", ["Marc"]),
+        ("mark", "mark", ["Marc"]),
         # The deleted word's full stop moves onto the word before it.
-        ("tight bond um.", ["Titebond."]),
-        ("mortis", ["mortise", "and", "tenon"]),
+        ("tight bond um.", "tight bond um", ["Titebond."]),
+        ("mortis", "mortis", ["mortise", "and", "tenon"]),
     ]
     assert episode_payload(conn, _row(conn, e), [])["fixes"] == []
 
@@ -87,7 +88,8 @@ def test_payload_fixes_give_deleted_words_a_place(conn, paths, make_episode):
     rules = [CorrectionRule(("uh",), "", None), CorrectionRule(("yeah",), "", None)]
     payload = episode_payload(conn, _row(conn, e), rules)
     assert [w[0] for w in payload["words"]] == ["Well", "glue", "it", "up"]
-    assert payload["fixes"] == [[1, 0, "uh"], [4, 0, "yeah"]]  # before "glue"; after the end
+    # Before "glue", and after the end.
+    assert payload["fixes"] == [[1, 0, "uh", "uh"], [4, 0, "yeah", "yeah"]]
 
 
 def test_payload_does_not_mark_a_corrected_word_unsure(conn, paths, make_episode):
@@ -99,7 +101,23 @@ def test_payload_does_not_mark_a_corrected_word_unsure(conn, paths, make_episode
     rules = [CorrectionRule(("borefoot",), "board foot", None)]
     payload = episode_payload(conn, _row(conn, e), rules)
     assert [payload["words"][i][0] for i in payload["unsure"]] == ["walnut."]
-    assert payload["fixes"] == [[1, 2, "borefoot"]]
+    assert payload["fixes"] == [[1, 2, "borefoot", "borefoot"]]
+
+
+def test_payload_gives_a_joined_word_the_key_a_rule_needs(conn, paths, make_episode):
+    # Whisper's word timings split "three-eighths" and "four-quarter" in two; the page shows
+    # them joined, but a rule is matched before the join, against "three" and "-eighths".
+    e = make_episode()
+    data = tx(seg("Use three -eighths ply, not four -quarter. It is 22 .5 wide."))
+    _write(conn, paths, e, data)
+    rules = [CorrectionRule(("four", "quarter"), "4/4", None)]
+    payload = episode_payload(conn, _row(conn, e), rules)
+    texts = [w[0] for w in payload["words"]]
+    assert texts == ["Use", "three-eighths", "ply,", "not", "4/4.", "It", "is", "22.5", "wide."]
+    assert payload["joined"] == [[1, "three eighths"], [7, "22 5"]]
+    # A corrected word is not in `joined`: its fix carries the key.
+    assert payload["fixes"] == [[4, 1, "four-quarter.", "four quarter"]]
+    assert key_text([]) == ""
 
 
 def test_payload_has_audio_false_when_missing(conn, paths, make_episode, tmp_path):

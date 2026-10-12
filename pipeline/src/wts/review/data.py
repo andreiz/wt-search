@@ -8,10 +8,12 @@ import json
 import re
 import sqlite3
 from collections.abc import Sequence
+from difflib import SequenceMatcher
 from pathlib import Path
 
 from wts.chunking import prepare_episode
 from wts.corrections import CorrectionRule
+from wts.words import Word
 
 LOW_PROB = 0.5  # a word Whisper was less sure of than this counts as unsure
 
@@ -43,11 +45,36 @@ def is_unsure(text: str, prob: float) -> bool:
     return bool(word) and word not in SMALL_WORDS
 
 
+def corrected_spans(heard: Sequence[Word], shown: Sequence[Word]) -> list[list]:
+    """Where corrections changed the words: `[index, count, text Whisper wrote]`, in order.
+
+    `index` and `count` are the corrected words in `shown` (`count` is 0 where a rule deleted
+    words: the text then belongs before word `index`, which can be one past the end). A word is
+    the same when its text and start are, so the comparison has almost nothing to try.
+    """
+    matcher = SequenceMatcher(
+        None,
+        [(w.text, w.start_ms) for w in heard],
+        [(w.text, w.start_ms) for w in shown],
+        autojunk=False,
+    )
+    return [
+        [j1, j2 - j1, " ".join(w.text.strip() for w in heard[i1:i2])]
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes()
+        if tag != "equal" and i2 > i1
+    ]
+
+
 def episode_payload(
     conn: sqlite3.Connection, row: sqlite3.Row, corrections: Sequence[CorrectionRule]
 ) -> dict:
     sentences, _ = prepare_episode(row, corrections)
-    words = [[w.text, w.start_ms, w.end_ms, w.prob] for s in sentences for w in s.words]
+    shown = [w for s in sentences for w in s.words]
+    heard = [w for s in prepare_episode(row, [])[0] for w in s.words] if corrections else shown
+    words = [[w.text, w.start_ms, w.end_ms, w.prob] for w in shown]
+    fixes = corrected_spans(heard, shown)
+    # A corrected word keeps Whisper's doubt about what it replaced, but it has been dealt with.
+    fixed = {i for index, count, _ in fixes for i in range(index, index + count)}
     firsts, index = [], 0
     for s in sentences:
         firsts.append(index)
@@ -73,7 +100,10 @@ def episode_payload(
             "has_audio": bool(row["audio_path"]) and Path(row["audio_path"]).is_file(),
         },
         "words": words,
-        "unsure": [i for i, w in enumerate(words) if is_unsure(w[0], w[3])],
+        "unsure": [
+            i for i, w in enumerate(words) if i not in fixed and is_unsure(w[0], w[3])
+        ],
+        "fixes": fixes,
         "sentences": firsts,
         "chunks": chunks,
         "worst": worst_stretches(words),

@@ -216,6 +216,21 @@ function renderTranscript(payload) {
   S.spans = new Array(words.length);
   S.lowIdx = (payload.unsure || []).filter((i) => Number.isInteger(i) && i >= 0 && i < words.length);
   const unsure = new Set(S.lowIdx);
+  // Corrections, shown inline: what Whisper wrote, struck out, before the words that replaced
+  // it. `wasAt` is by the index of the word the struck-out text goes before.
+  const wasAt = new Map();
+  const fixed = new Set();
+  for (const fix of payload.fixes || []) {
+    const [index, count, was] = fix;
+    if (!Number.isInteger(index) || !Number.isInteger(count) || index < 0 || index > words.length) continue;
+    wasAt.set(index, wasAt.has(index) ? `${wasAt.get(index)} ${was}` : String(was));
+    for (let i = index; i < index + count && i < words.length; i++) fixed.add(i);
+  }
+  const wasNode = (index) => {
+    const del = el("del", "was", wasAt.get(index));
+    del.title = "What Whisper wrote, before a correction";
+    return del;
+  };
   S.cur = -1;
 
   const starts = paragraphStarts(payload);
@@ -238,10 +253,14 @@ function renderTranscript(payload) {
       span.dataset.i = String(i);
       span.textContent = String(w[0]).trim();
       if (unsure.has(i)) span.className = "low";
+      if (fixed.has(i)) span.classList.add("fixed");
       S.spans[i] = span;
       if (i > from) text.append(" ");
+      if (wasAt.has(i)) text.append(wasNode(i), " ");
       text.append(span);
     }
+    // Words a rule deleted at the very end of the episode.
+    if (to === words.length && wasAt.has(to)) text.append(" ", wasNode(to));
     para.append(time, text);
     frag.append(para);
   }

@@ -208,6 +208,19 @@ button[aria-pressed="true"],
   text-underline-offset: 3px;
 }
 
+/* A correction, inline: what Whisper wrote, then what replaced it. The struck-out text is not
+   a word of the transcript: it can't be clicked or selected. */
+#transcript .was {
+  background: var(--del-bg);
+  color: var(--error);
+  text-decoration: line-through;
+  border-radius: 3px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#transcript .fixed { background: var(--ins-bg); }
+
 #transcript .reported {
   background: var(--reported-bg);
   box-shadow: 0 0 0 1px var(--reported-line);

@@ -58,6 +58,50 @@ def test_payload_shows_corrected_words(conn, paths, make_episode):
     assert [w[0] for w in payload["words"]] == ["Ask", "Marc", "about", "it."]
 
 
+def test_payload_fixes_say_what_whisper_wrote(conn, paths, make_episode):
+    e = make_episode()
+    _write(conn, paths, e, tx(seg("Ask mark about the tight bond um. Cut a mortis now.")))
+    rules = [
+        CorrectionRule(("mark",), "Marc", None),
+        CorrectionRule(("tight", "bond"), "Titebond", None),
+        CorrectionRule(("um",), "", None),
+        CorrectionRule(("mortis",), "mortise and tenon", None),
+        CorrectionRule(("nails",), "Nayls", None),
+    ]
+    payload = episode_payload(conn, _row(conn, e), rules)
+    texts = [w[0] for w in payload["words"]]
+    assert " ".join(texts) == "Ask Marc about the Titebond. Cut a mortise and tenon now."
+    shown = [(was, texts[i : i + n]) for i, n, was in payload["fixes"]]
+    assert shown == [
+        ("mark", ["Marc"]),
+        # The deleted word's full stop moves onto the word before it.
+        ("tight bond um.", ["Titebond."]),
+        ("mortis", ["mortise", "and", "tenon"]),
+    ]
+    assert episode_payload(conn, _row(conn, e), [])["fixes"] == []
+
+
+def test_payload_fixes_give_deleted_words_a_place(conn, paths, make_episode):
+    e = make_episode()
+    _write(conn, paths, e, tx(seg("Well uh glue it up yeah")))
+    rules = [CorrectionRule(("uh",), "", None), CorrectionRule(("yeah",), "", None)]
+    payload = episode_payload(conn, _row(conn, e), rules)
+    assert [w[0] for w in payload["words"]] == ["Well", "glue", "it", "up"]
+    assert payload["fixes"] == [[1, 0, "uh"], [4, 0, "yeah"]]  # before "glue"; after the end
+
+
+def test_payload_does_not_mark_a_corrected_word_unsure(conn, paths, make_episode):
+    e = make_episode()
+    data = tx(seg("The borefoot price of walnut."))
+    for w in data["segments"][0]["words"]:
+        w["probability"] = 0.2 if w["word"].strip() in ("borefoot", "walnut.") else 0.9
+    _write(conn, paths, e, data)
+    rules = [CorrectionRule(("borefoot",), "board foot", None)]
+    payload = episode_payload(conn, _row(conn, e), rules)
+    assert [payload["words"][i][0] for i in payload["unsure"]] == ["walnut."]
+    assert payload["fixes"] == [[1, 2, "borefoot"]]
+
+
 def test_payload_has_audio_false_when_missing(conn, paths, make_episode, tmp_path):
     no_path = make_episode()
     gone = make_episode(audio_path=str(tmp_path / "nope.mp3"))

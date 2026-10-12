@@ -370,7 +370,17 @@ test("a correction is previewed, saved into corrections.yaml and shown", async (
   await expect(page.locator("#status")).toContainText("Saved to corrections.yaml");
   await expect(words(page)).toHaveCount(WORDS - 1);
   await expect(page.locator("#transcript span[data-i]", { hasText: /^Titebond$/ })).toHaveCount(1);
-  await expect(page.locator("#transcript")).not.toContainText("tight");
+  await expect(page.locator("#transcript span[data-i]", { hasText: /^(tight|bond)$/ })).toHaveCount(0);
+  // The correction shows inline: what Whisper wrote, struck out, then the word that replaced it.
+  const was = page.locator("#transcript del.was");
+  await expect(was).toHaveText(["tight bond"]);
+  const fixed = page.locator("#transcript span.fixed");
+  await expect(fixed).toHaveText(["Titebond"]);
+  expect(await was.evaluate((d) => d.nextElementSibling?.textContent)).toBe("Titebond");
+  // The struck-out text is not a word: a click on it does not seek.
+  const time = await audioTime(page);
+  await was.click();
+  expect(await audioTime(page)).toBe(time);
 
   const after = fs.readFileSync(CORRECTIONS, "utf8");
   expect(after).toContain("\n  tight bond: Titebond\n");

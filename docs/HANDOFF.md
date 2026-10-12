@@ -88,7 +88,9 @@ reported passage with `--report`, close the test reports on staging with `wts re
   `apply_corrections` looks rules up by their first word: 0.1 s for a one-episode or rare
   rule, 1.5 s for "glue" (155 sentences). Checked against the old result on the real
   transcripts: the same changes, and `apply_corrections` gives identical text for all 37.
-  Also added: Shift-`n`, the previous unsure word.
+  Also added: Shift-`n`, the previous unsure word; and corrections shown inline in the
+  transcript (the original struck out in red, the replacement in green; `data.py`
+  `corrected_spans`), which he asked for and has not seen yet.
 - **Still not run on real data:** a saved correction's `git diff`, Safari, the real D1
   (reports).
   `npm run e2e:review` has now run on its normal port (15 pass).

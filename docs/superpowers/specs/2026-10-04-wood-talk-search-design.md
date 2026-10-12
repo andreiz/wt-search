@@ -386,6 +386,10 @@ Mac and is never deployed.
 >   fixes an unsure word. **Shift-click** selects a word without seeking,
 >   and a second shift-click stretches the selection to that word.
 >   **Shift-`n`** goes to the previous unsure word.
+> - **Corrections show inline:** what Whisper wrote is struck out, in red,
+>   before the words that replaced it, in green (payload `fixes`). The
+>   struck-out text is not a word: it can't be clicked or selected. A
+>   corrected word is no longer marked unsure.
 > - **A preview reads only the transcripts the rule can change:** those in
 >   which the rule's words occur in a row (the server keeps each
 >   transcript's words in memory, read once at start), and only the one

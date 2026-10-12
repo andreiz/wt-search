@@ -26,7 +26,8 @@ and a report and a feedback message have been sent through the real widget), the
     again later." and no results. The rate-limit notice has not been seen in the page yet;
     the limit itself works (see "Closed 2026-10-11" below, which says how to trigger it).
   - Step 5: `/` answers with the CSP, `referrer-policy: no-referrer` and `nosniff`;
-    `/robots.txt` answers 200 (checked with `curl -I`, so the body was not shown).
+    `/robots.txt` answers 200 with `User-agent: *` / `Disallow: /`; the browser console is
+    clean. Step 5 is done.
   - **The reports rows on staging stay:** the maintainer wants to review them, so step 3's
     "then delete them" is dropped. They are material for Checkpoint J (`wts reports`,
     `wts review --report <id>`).
@@ -45,8 +46,8 @@ and a report and a feedback message have been sent through the real widget), the
   - The menu's labels, after the maintainer found "Show page" beside "Show notes"
     confusing (same day, spec §5.3): the show page link is called **Acast** wherever the
     listener sees it ("Play on Acast", like Apple and Spotify), and the site link is
-    **Episode page** ("on woodtalkshow.com"), under a rule of its own. Web only; not yet
-    looked at in a browser.
+    **Episode page** ("on woodtalkshow.com"), under a rule of its own. Web only; deployed,
+    and the maintainer's verdict was "that works".
   - Step 6, VoiceOver (Mac): it read an excerpt a few words at a time, a keystroke for
     each piece, because every `<mark>` is a stop of its own. Changed the same day: the
     excerpt's and each transcript paragraph's text is inside one `<span role="text">`

@@ -18,9 +18,10 @@ and a report and a feedback message have been sent through the real widget), the
     and "off" anywhere in a chunk, and marks them separately, so "roll off" is marked and
     the "%" is not). `hvlp sprayer year:2020` gives the "No exact matches — passages about
     similar things" page: 16 related results, all from Ep. 466, in one card.
-  - **Raised, not decided:** in that card the rows are in rank order (48:07, 31:25, 39:10,
-    …), which reads as scrambled times. Offered: time order inside a card under Relevance,
-    cards still ranked by their best hit (a change to spec §5.5's "never reordered").
+  - In that card the rows were in rank order (48:07, 31:25, 39:10, …), which read as
+    scrambled times. **Decided and built the same day:** inside a card the rows run in the
+    order of the episode, in every sort; cards stay in the API's order (spec §5.3
+    "Grouping"; `web/src/lib/group.ts`). Web only; needs a deploy.
   - Step 4: `SEARCH_OVERRIDE` = `exact` shows "Meaning search is paused; these are keyword
     matches."; `maintenance` shows the banner "Search is down for maintenance. Please try
     again later." and no results. The rate-limit notice has not been seen in the page yet;

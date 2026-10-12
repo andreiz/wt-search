@@ -1167,7 +1167,14 @@ states. Behaviour from the design, with the maintainer's calls:)*
 - **Grouping:** consecutive results from the same episode (in the API's
   order, never reordered) share one card header, with "N matches" before
   the date, and one hit row each. Date sorts group naturally; relevance
-  groups only neighbours. *(Maintainer, 2026-10-09.)*
+  groups only neighbours. *(Maintainer, 2026-10-09.)* **Inside a card the
+  hit rows run in the order of the episode**, earliest first, in every
+  sort; the cards themselves stay in the API's order. *(Maintainer,
+  2026-10-11, revising "never reordered": `hvlp sprayer year:2020` put 16
+  related hits of one episode in one card, in rank order, and the times
+  read 48:07, 31:25, 39:10. The best hit of a card is therefore no longer
+  always its first row. The page does this, `groupNeighbours`; the API's
+  order is unchanged.)*
 - **Related hits are shown in the API's order, among the keyword hits**
   (Smart), each on a card with a dashed border, a "Related" pill and a
   muted excerpt. Nothing is folded away. *(Maintainer, 2026-10-09, after

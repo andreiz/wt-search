@@ -844,6 +844,19 @@ that. The binding's `period` must be 10 or 60, and bindings that share a
 ids. Without the binding (local runs, tests that don't set it) nothing is
 limited.
 
+*How approximate, measured on staging 2026-10-11:* the count is exact for
+requests on one connection, which is how a browser talks to the site: of
+200 requests on one reused connection the first 60 passed and the other 140
+got 429. A client that opens a new connection for every request (`curl` in
+a shell loop) is spread over many machines, each with a count of its own
+that is shared only loosely: at 10 requests a second the first 429 came at
+request 300, after 28 s, and after that about a quarter were refused. So
+the limit holds a browser and a simple script to 60 a minute and only slows
+a client that reconnects every time; the budget (item 2) is what bounds the
+cost of that one. The report limit let 4 through, not 3, on one connection.
+**Test it on one connection** (many URLs in a single `curl` command), or the
+limit looks as if it never triggers, which is what it did for three days.
+
 **2. A global daily budget for smart search.** A D1 table, `usage(day TEXT
 PRIMARY KEY, smart INTEGER, alerted_half INTEGER, alerted_full INTEGER)`
 (`schema/0002_usage.sql`), counts uncached smart searches per UTC day

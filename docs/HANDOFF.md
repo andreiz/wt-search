@@ -23,7 +23,8 @@ and a report and a feedback message have been sent through the real widget), the
     cards still ranked by their best hit (a change to spec §5.5's "never reordered").
   - Step 4: `SEARCH_OVERRIDE` = `exact` shows "Meaning search is paused; these are keyword
     matches."; `maintenance` shows the banner "Search is down for maintenance. Please try
-    again later." and no results. The rate-limit notice has not been seen.
+    again later." and no results. The rate-limit notice has not been seen in the page yet;
+    the limit itself works (see "Closed 2026-10-11" below, which says how to trigger it).
   - Step 5: `/` answers with the CSP, `referrer-policy: no-referrer` and `nosniff`;
     `/robots.txt` answers 200 (checked with `curl -I`, so the body was not shown).
   - **The reports rows on staging stay:** the maintainer wants to review them, so step 3's
@@ -234,7 +235,7 @@ Worker **543** in 20 files (`cd worker && npm test`, `npx tsc --noEmit`), web **
 
 **Plan 2: Tasks 1–19 and Checkpoint F are done; Checkpoint G is done except the parts
 that wait on Tasks 17–19's deploy** (results below). Staging runs Task 17 at least (robots.txt
-and the headers are live); whether Task 18's bindings are live is the open debugging item.
+and the headers are live), and Task 18's bindings are live and limiting (closed 2026-10-11, below).
 **Next (maintainer):** finish deploying Tasks 17–19 (steps below), then Checkpoint G's rest: its
 revised step 2 (rate limits, kill switch, budget and alerts) and the three paraphrase queries
 of step 3. (Plan 3 is written and under way; plans 4–5 come after it.)
@@ -253,7 +254,21 @@ of step 3. (Plan 3 is written and under way; plans 4–5 come after it.)
 5. A homelab monitor (e.g. Uptime Kuma → ntfy) on `<staging>/api/health`: the only error
    alerting, since the in-Worker 5xx alert was dropped.
 
-**Open: rate limits don't trigger on staging (to debug on the desktop, 2026-10-08).**
+**Closed 2026-10-11: the rate limits work; the test was wrong.** The binding counts exactly
+for requests on one connection (a browser, or one `curl` command given many URLs): 200
+requests on one connection gave 60 × 200 then 140 × 429, with `retry-after: 60`. Every test
+below was a shell loop of separate `curl` calls, so each request opened a new connection,
+landed on a different machine and met a nearly empty counter. Those counters are shared only
+loosely: at 10 requests a second the first 429 came at request 300, after 28 s, and the
+earlier runs of 200 had finished by then. Checked on the live version (`wrangler versions
+view` lists `RL_READ` 60/60s and `RL_REPORT` 3/60s; `wrangler tail` showed
+`cf-connecting-ip` present and no `rate_limiter_unavailable`). Reports on one connection:
+four 400s, then 429 (the limit is 3; approximate). No code change. Spec §4.8 item 1 has the
+numbers and Checkpoint G step 2 the right way to test. To see the site's rate-limit notice:
+in the browser console on staging, `for (let i = 0; i < 70; i++) fetch("/api/health")`, then
+search within the minute. The notes below are the history.
+
+**Was open: rate limits don't trigger on staging (to debug on the desktop, 2026-10-08).**
 - **2026-10-09, after a fresh `npm run deploy:staging` of current `main`:** 200 sequential
   `GET /api/health` → 200 × 200 again. So the stale-version theory below is **ruled out**.
   `ratelimit.ts` lets a request through silently when (1) the binding is missing, (2)

@@ -57,6 +57,13 @@ def list_reports(d1: D1, status: str | None = "open", limit: int = 200) -> list[
     return [_report(row) for row in rows]
 
 
+def new_since(d1: D1, after_id: int) -> list[Report]:
+    """Open reports with an id above `after_id`, oldest first (at most 50), for the digest."""
+    rows = d1.query(f"{_SELECT}where r.status = 'open' and r.id > ? order by r.id limit 50",
+                    [after_id])
+    return [_report(row) for row in rows]
+
+
 def get_report(d1: D1, report_id: int) -> Report | None:
     rows = d1.query(f"{_SELECT}where r.id = ?", [report_id])
     return _report(rows[0]) if rows else None

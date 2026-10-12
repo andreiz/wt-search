@@ -12,11 +12,13 @@ from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from datetime import UTC, datetime
 from pathlib import Path
 
+import click
 import httpx
 
 from wts import storage
 from wts.backup import BackupFailed, backup
 from wts.chunking import chunk_episode, chunking_inputs, refresh_chunks
+from wts.cloudflare import CloudflareError
 from wts.config import Config
 from wts.corrections import CORRECTIONS_FILE, corrections_sha, load_corrections
 from wts.db import kv_get, kv_set
@@ -30,10 +32,18 @@ from wts.embed import Embedder, embed_episode, get_embedder
 from wts.feed import parse_feed, upsert_episodes
 from wts.log import clock, plural, run_record
 from wts.net import describe_http_error, new_client
-from wts.notify import Notifier, get_notifier, notify_run
+from wts.notify import (
+    REPORTS_ID_KEY,
+    Notifier,
+    get_notifier,
+    notify_reports,
+    notify_run,
+    reports_digest_due,
+)
 from wts.paths import Paths
 from wts.platforms import match_platform_ids
 from wts.publish import run_publish as publish_to
+from wts.reports import new_since, open_d1
 from wts.secrets import SecretStore, get_store
 from wts.selection import resolve_selector
 from wts.state import Status, advance, episodes_for_step, fail, reset
@@ -367,7 +377,9 @@ def run_all(
     is notified and re-raised. The summary goes last, so it covers publish and backup.
     """
     started = datetime.now(UTC).isoformat(timespec="seconds")
-    notifier = notifier or get_notifier(client or new_client(), get_store(), cfg.ntfy_url)
+    store = get_store()
+    client_ = client or new_client()
+    notifier = notifier or get_notifier(client_, store, cfg.ntfy_url)
     results: dict[str, Counter] = {}
     try:
         if cfg.feed_url:
@@ -413,4 +425,28 @@ def run_all(
             notifier.send("wts: backup failed", str(exc), priority="high", tags=("warning",))
     results["backup"] = run.counts
     notify_run(notifier, conn, results, started)
+    if env:
+        _reports_digest(conn, cfg, env, store, client_, notifier)
     return results
+
+
+def _reports_digest(
+    conn: sqlite3.Connection, cfg: Config, env: str, store: SecretStore, client: httpx.Client,
+    notifier: Notifier,
+) -> None:
+    """Tell the maintainer about listener reports new since the last digest (plan 4, Task 9).
+
+    Asks D1 only when a digest is due. D1 being down or the token missing is a warning: the
+    run's result does not change.
+    """
+    now = datetime.now(UTC)
+    if not reports_digest_due(conn, now):
+        return
+    try:
+        d1 = open_d1(cfg, env, store, client)
+        after_id = int(kv_get(conn, REPORTS_ID_KEY) or 0)
+        new = new_since(d1, after_id)
+    except (CloudflareError, click.ClickException) as exc:
+        log.warning(f"could not check for new reports: {exc}", extra={"step": "reports"})
+        return
+    notify_reports(notifier, conn, new, now=now)

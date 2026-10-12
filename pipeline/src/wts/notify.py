@@ -18,8 +18,9 @@ from typing import Protocol
 import httpx
 
 from wts.db import kv_get, kv_set
-from wts.log import plural
+from wts.log import clock, plural
 from wts.net import describe_http_error
+from wts.reports import Report, _clean
 from wts.secrets import KeychainError, SecretStore
 from wts.state import MAX_RETRIES
 
@@ -34,6 +35,11 @@ QUIET_REPEAT = timedelta(days=7)
 QUIET_KEY = "notify.quiet_feed_alerted_at"
 MAX_LISTED = 10  # episodes listed per section; ntfy messages are limited to 4096 bytes
 MAX_REASON = 120
+REPORTS_AT_KEY = "notify.reports_digest_at"
+REPORTS_ID_KEY = "notify.reports_last_id"
+REPORTS_DIGEST_EVERY = timedelta(hours=20)  # a daily run is a little under 24 hours apart
+REPORTS_LISTED = 3
+REPORT_TEXT_CHARS = 80
 
 
 class Notifier(Protocol):
@@ -157,6 +163,64 @@ def _quiet_days(conn: sqlite3.Connection, now: datetime) -> int | None:
     if newest is None or now - newest <= timedelta(days=QUIET_FEED_DAYS):
         return None
     return (now - newest).days
+
+
+def reports_digest_due(conn: sqlite3.Connection, now: datetime) -> bool:
+    """True when no reports digest went out in the last REPORTS_DIGEST_EVERY."""
+    last = kv_get(conn, REPORTS_AT_KEY)
+    if last is None:
+        return True
+    try:
+        return now - datetime.fromisoformat(last) >= REPORTS_DIGEST_EVERY
+    except ValueError:
+        return True
+
+
+def _short(text: str | None) -> str:
+    """Listener text on one line, cleaned of control characters, cut to REPORT_TEXT_CHARS."""
+    one = " ".join(_clean(text).replace("\n", " ").replace("\t", " ").split())
+    return one if len(one) <= REPORT_TEXT_CHARS else one[: REPORT_TEXT_CHARS - 1] + "…"
+
+
+def _report_line(report: Report) -> str:
+    if report.is_feedback:
+        return f'feedback: "{_short(report.note)}"'
+    if report.start_ms is None:
+        where = "a passage no longer in the index"
+    elif report.episode_number is None:
+        where = f"at {clock(report.start_ms / 1000)}"
+    else:
+        where = f"ep {report.episode_number} at {clock(report.start_ms / 1000)}"
+    return f'{where}: "{_short(report.quoted_text)}"'
+
+
+def notify_reports(
+    notifier: Notifier,
+    conn: sqlite3.Connection,
+    reports: Sequence[Report],
+    *,
+    now: datetime | None = None,
+) -> bool:
+    """Send ONE digest of new listener reports, or nothing (plan 4, Task 9).
+
+    Nothing when there are no reports or a digest went out less than 20 hours ago; the reports
+    then stay unannounced (`notify.reports_last_id` is left alone) and go in the next digest.
+    When the message is sent, the time and the highest report id are kept in `kv`.
+    """
+    now = now or datetime.now(UTC)
+    if not reports or not reports_digest_due(conn, now):
+        return False
+    lines = [_report_line(r) for r in reports[:REPORTS_LISTED]]
+    if len(reports) > REPORTS_LISTED:
+        lines.append(f"…and {len(reports) - REPORTS_LISTED} more")
+    lines.append("wts reports")
+    sent = notifier.send(
+        f"wts: {plural(len(reports), 'new report')}", "\n".join(lines), priority="default",
+        tags=("memo",))
+    if sent:
+        kv_set(conn, REPORTS_AT_KEY, now.isoformat(timespec="seconds"))
+        kv_set(conn, REPORTS_ID_KEY, str(max(r.id for r in reports)))
+    return sent
 
 
 def notify_run(

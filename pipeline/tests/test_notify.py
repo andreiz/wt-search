@@ -16,9 +16,18 @@ from conftest import FakeEmbedder, FakeTranscriber, status_of
 
 from wts import notify
 from wts.cli import main
+from wts.db import kv_get, kv_set
 from wts.feed import parse_feed, upsert_episodes
-from wts.notify import NtfyNotifier, NullNotifier, get_notifier, notify_run
+from wts.notify import (
+    NtfyNotifier,
+    NullNotifier,
+    get_notifier,
+    notify_reports,
+    notify_run,
+    reports_digest_due,
+)
 from wts.paths import resolve_paths
+from wts.reports import Report
 from wts.secrets import EnvStore, KeychainError
 from wts.selection import add_to_scope, resolve_selector
 from wts.state import MAX_RETRIES, fail
@@ -653,6 +662,94 @@ def test_run_takes_an_injected_notifier(conn, paths, cfg, web, notifier, quiet_f
     go(conn, paths, cfg, web, notifier=notifier)
     assert [m["title"] for m in notifier.sent] == [QUIET_TITLE]
     assert not web.ntfy.called
+
+
+# --- the reports digest ---------------------------------------------------------------------
+
+NOW = datetime(2026, 10, 11, 8, 0, tzinfo=UTC)
+
+
+def report(id_: int, **overrides) -> Report:
+    base = {
+        "id": id_, "created_at": "2026-10-10 09:30:00", "status": "open", "chunk_id": 10,
+        "quoted_text": "mark said", "suggested_text": None, "note": None,
+        "episode_number": 71, "episode_title": "Hide Glue", "start_ms": 754_000,
+    }
+    return Report(**{**base, **overrides})
+
+
+def test_no_reports_no_message(conn, notifier):
+    assert notify_reports(notifier, conn, [], now=NOW) is False
+    assert notifier.sent == []
+    assert kv_get(conn, "notify.reports_digest_at") is None
+
+
+def test_one_report_is_one_message(conn, notifier):
+    assert notify_reports(notifier, conn, [report(4)], now=NOW) is True
+    (msg,) = notifier.sent
+    assert msg["title"] == "wts: 1 new report"
+    assert msg["body"] == 'ep 71 at 12:34: "mark said"\nwts reports'
+    assert msg["priority"] == "default" and msg["tags"] == ("memo",)
+
+
+def test_five_reports_list_three_and_count_the_rest(conn, notifier):
+    reports = [report(i, quoted_text=f"text {i}") for i in range(1, 6)]
+    reports[1] = report(2, chunk_id=None, episode_number=None, start_ms=None, note="Great show")
+    notify_reports(notifier, conn, reports, now=NOW)
+    (msg,) = notifier.sent
+    assert msg["title"] == "wts: 5 new reports"
+    assert msg["body"].splitlines() == [
+        'ep 71 at 12:34: "text 1"', 'feedback: "Great show"', 'ep 71 at 12:34: "text 3"',
+        "…and 2 more", "wts reports"]
+    assert kv_get(conn, "notify.reports_last_id") == "5"
+    assert kv_get(conn, "notify.reports_digest_at") == "2026-10-11T08:00:00+00:00"
+
+
+def test_where_the_passage_is_unknown(conn, notifier):
+    reports = [
+        report(1, episode_number=None),
+        report(2, chunk_id=None, start_ms=None, episode_number=None, note="hi"),
+        report(3, start_ms=None, episode_number=None, quoted_text="gone"),
+    ]
+    notify_reports(notifier, conn, reports, now=NOW)
+    assert notifier.sent[0]["body"].splitlines()[:3] == [
+        'at 12:34: "mark said"', 'feedback: "hi"',
+        'a passage no longer in the index: "gone"']
+
+
+def test_a_digest_within_20_hours_sends_nothing_and_keeps_the_last_id(conn, notifier):
+    assert notify_reports(notifier, conn, [report(1)], now=NOW)
+    again = notify_reports(notifier, conn, [report(2)], now=NOW + timedelta(hours=19, minutes=59))
+    assert again is False and len(notifier.sent) == 1
+    assert kv_get(conn, "notify.reports_last_id") == "1"
+    assert notify_reports(notifier, conn, [report(2)], now=NOW + timedelta(hours=20))
+    assert len(notifier.sent) == 2 and kv_get(conn, "notify.reports_last_id") == "2"
+
+
+def test_a_failed_send_moves_nothing(conn):
+    class Down:
+        def send(self, *args, **kwargs):
+            return False
+
+    assert notify_reports(Down(), conn, [report(3)], now=NOW) is False
+    assert kv_get(conn, "notify.reports_last_id") is None
+    assert kv_get(conn, "notify.reports_digest_at") is None
+
+
+def test_reports_digest_due(conn):
+    assert reports_digest_due(conn, NOW)
+    kv_set(conn, "notify.reports_digest_at", NOW.isoformat())
+    assert not reports_digest_due(conn, NOW + timedelta(hours=19))
+    assert reports_digest_due(conn, NOW + timedelta(hours=20))
+
+
+def test_long_listener_text_is_cleaned_and_cut(conn, notifier):
+    text = "a\x1b[2Jb\nc " + "x" * 200
+    notify_reports(notifier, conn, [report(1, quoted_text=text)], now=NOW)
+    line = notifier.sent[0]["body"].splitlines()[0]
+    assert "\x1b" not in line
+    quoted = line.split('"')[1]
+    assert quoted.startswith("a[2Jb c xxx") and len(quoted) == 80 and quoted.endswith("…")
 
 
 # --- wts notify test ------------------------------------------------------------------------

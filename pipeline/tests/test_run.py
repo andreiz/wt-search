@@ -1,6 +1,7 @@
 import sqlite3
 from collections import Counter
 from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from types import SimpleNamespace
@@ -18,7 +19,7 @@ from wts import backup as backup_mod
 from wts import publish, steps
 from wts.backup import BackupFailed
 from wts.cli import main
-from wts.db import connect
+from wts.db import connect, kv_set
 from wts.feed import parse_feed, upsert_episodes
 from wts.selection import add_to_scope, resolve_selector
 from wts.steps import run_all
@@ -204,6 +205,84 @@ def test_run_all_end_to_end_publishes_and_backs_up(paths, cfg, mocked_feed_and_a
     assert statuses == ["published"] * 2  # the backup is taken after publishing
     (msg,) = notifier.sent
     assert msg["title"] == "wts: published 2 episodes"
+
+
+# --- the reports digest in a run --------------------------------------------------------------
+
+D1_URL = "https://api.cloudflare.com/client/v4/accounts/acc/d1/database/d/query"
+
+
+@pytest.fixture
+def digest_cfg(cfg):
+    return replace(cfg, cloudflare_account_id="acc",
+                   env_tables={"staging": {"d1_database_id": "d",
+                                           "vectorize_index": "wts-chunks-staging"}})
+
+
+def d1_reply(*rows: dict) -> httpx.Response:
+    return httpx.Response(200, json={"success": True, "result": [
+        {"success": True, "results": list(rows)}]})
+
+
+REPORT_ROW = {
+    "id": 5, "created_at": "2026-10-10 09:30:00", "status": "open", "chunk_id": 10,
+    "quoted_text": "mark said", "suggested_text": None, "note": None,
+    "episode_number": 71, "episode_title": "Hide Glue", "start_ms": 754_000,
+}
+
+
+@pytest.fixture
+def digest(calls, monkeypatch, respx_mock):
+    monkeypatch.setenv("WTS_SECRET_CLOUDFLARE_API_TOKEN", "cf-token-SECRET")
+    return respx_mock.post(D1_URL)
+
+
+def test_run_all_sends_the_reports_digest_after_the_run_summary(
+        conn, paths, digest_cfg, digest):
+    digest.mock(return_value=d1_reply(REPORT_ROW))
+    notifier = FakeNotifier()
+    quick_run(conn, paths, digest_cfg, env="staging", notifier=notifier)
+    (msg,) = notifier.sent
+    assert msg["title"] == "wts: 1 new report"
+    assert digest.calls[0].request.read().decode().count('"params":[0]') == 1
+    assert conn.execute("select value from kv where key = 'notify.reports_last_id'"
+                        ).fetchone()[0] == "5"
+
+
+def test_run_all_reads_reports_after_the_last_id(conn, paths, digest_cfg, digest):
+    kv_set(conn, "notify.reports_last_id", "41")
+    digest.mock(return_value=d1_reply())
+    quick_run(conn, paths, digest_cfg, env="staging")
+    assert '"params":[41]' in digest.calls[0].request.read().decode()
+
+
+def test_run_all_survives_d1_being_down(conn, paths, digest_cfg, digest, wts_messages):
+    digest.mock(return_value=httpx.Response(500, text="down"))
+    notifier = FakeNotifier()
+    results = quick_run(conn, paths, digest_cfg, env="staging", notifier=notifier)
+    assert results["backup"]["ok"] == 1 and notifier.sent == []
+    assert any("reports" in m for m in wts_messages)
+    assert "cf-token-SECRET" not in "\n".join(wts_messages)
+
+
+def test_run_all_survives_a_missing_token(conn, paths, digest_cfg, digest, monkeypatch,
+                                          wts_messages):
+    monkeypatch.delenv("WTS_SECRET_CLOUDFLARE_API_TOKEN")
+    quick_run(conn, paths, digest_cfg, env="staging")
+    assert not digest.called
+    assert any("reports" in m for m in wts_messages)
+
+
+def test_run_all_does_not_ask_d1_within_20_hours_of_a_digest(conn, paths, digest_cfg, digest):
+    kv_set(conn, "notify.reports_digest_at",
+           (datetime.now(UTC) - timedelta(hours=3)).isoformat(timespec="seconds"))
+    quick_run(conn, paths, digest_cfg, env="staging")
+    assert not digest.called
+
+
+def test_run_all_without_env_has_no_reports_digest(conn, paths, digest_cfg, digest):
+    quick_run(conn, paths, digest_cfg)
+    assert not digest.called
 
 
 # --- wts run --env --------------------------------------------------------------------------

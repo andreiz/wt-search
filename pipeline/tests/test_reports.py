@@ -16,6 +16,7 @@ from wts.reports import (
     format_reports,
     get_report,
     list_reports,
+    new_since,
     open_d1,
     set_status,
 )
@@ -89,6 +90,17 @@ def test_list_reports_with_no_status_lists_all(route, d1):
     body = sent(route)
     assert body["params"] == [5]
     assert "where" not in body["sql"]
+
+
+def test_new_since_asks_for_open_reports_after_an_id(route, d1):
+    route.mock(return_value=envelope([row(8), row(9, chunk_id=None)]))
+    assert [r.id for r in new_since(d1, 7)] == [8, 9]
+    body = sent(route)
+    assert body["params"] == [7]
+    sql = " ".join(body["sql"].split())
+    assert "left join chunks c on c.id = r.chunk_id" in sql
+    assert "where r.status = 'open' and r.id > ?" in sql
+    assert sql.endswith("order by r.id limit 50")
 
 
 def test_get_report(route, d1):

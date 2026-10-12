@@ -5,6 +5,7 @@ page shows what search has.
 """
 
 import json
+import re
 import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
@@ -13,6 +14,33 @@ from wts.chunking import prepare_episode
 from wts.corrections import CorrectionRule
 
 LOW_PROB = 0.5  # a word Whisper was less sure of than this counts as unsure
+
+# Whisper is often unsure of small words, fillers and whatever starts a sentence ("And", "Like,",
+# "Yeah."), and almost always right about them: in three real episodes they were 200 of every 300
+# words under LOW_PROB, half of them the first word of a sentence. They are not marked, so the
+# marks that are left are worth a look. Function words and fillers only: nothing that means
+# something in a shop ("saw", "oak", "up", "off", "set").
+SMALL_WORDS = frozenset(
+    """
+a an the and or but if then so than as because of at by for from in into on onto to with about
+is are was were be been being am do does did doing have has had having
+i me my we us our you your he him his she her it its they them their
+this that these those there here what which who whom whose when where why how
+can could would should will shall may might must not no just very any some also too
+i'm i've i'd i'll it's that's there's what's let's you're we're they're
+don't doesn't didn't can't won't isn't wasn't
+yeah yes yep like well right okay ok oh uh um mm hmm huh ah
+""".split()  # noqa: SIM905 — a block of words is easier to edit than a list literal
+)
+_EDGES = re.compile(r"^[\W_]+|[\W_]+$")
+
+
+def is_unsure(text: str, prob: float) -> bool:
+    """Whether the page marks this word: Whisper doubted it, and it is not a small word."""
+    if prob >= LOW_PROB:
+        return False
+    word = _EDGES.sub("", text.lower().replace("’", "'"))
+    return bool(word) and word not in SMALL_WORDS
 
 
 def episode_payload(
@@ -45,6 +73,7 @@ def episode_payload(
             "has_audio": bool(row["audio_path"]) and Path(row["audio_path"]).is_file(),
         },
         "words": words,
+        "unsure": [i for i, w in enumerate(words) if is_unsure(w[0], w[3])],
         "sentences": firsts,
         "chunks": chunks,
         "worst": worst_stretches(words),
@@ -54,20 +83,20 @@ def episode_payload(
 def worst_stretches(
     words: Sequence[Sequence], window_ms: int = 60_000, top: int = 5, min_words: int = 20
 ) -> list[dict]:
-    """The stretches with the largest share of unsure words, worst first.
+    """The stretches with the largest share of unsure words (`is_unsure`), worst first.
 
-    The rule of `spikes/transcript_peek.py worst`: fixed consecutive windows from 0 (0-60 s,
+    The windows of `spikes/transcript_peek.py worst`: fixed and consecutive from 0 (0-60 s,
     60-120 s, ...), by each word's start; a stretch with fewer than `min_words` words is mostly
     music or silence, so its share means little and it is skipped. Words are
     `[text, start_ms, end_ms, prob]`.
     """
-    probs: dict[int, list[float]] = {}
-    for _, start_ms, _, prob in words:
-        probs.setdefault(start_ms // window_ms, []).append(prob)
+    stretches_words: dict[int, list[Sequence]] = {}
+    for word in words:
+        stretches_words.setdefault(word[1] // window_ms, []).append(word)
     stretches = [
-        (k, sum(p < LOW_PROB for p in ps) / len(ps), sum(ps) / len(ps))
-        for k, ps in probs.items()
-        if len(ps) >= min_words
+        (k, sum(is_unsure(w[0], w[3]) for w in ws) / len(ws), sum(w[3] for w in ws) / len(ws))
+        for k, ws in stretches_words.items()
+        if len(ws) >= min_words
     ]
     # Ties go to the lower mean probability, then the earlier stretch.
     stretches.sort(key=lambda s: (-s[1], s[2], s[0]))

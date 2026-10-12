@@ -7,6 +7,7 @@ from wts.review.data import (
     LOW_PROB,
     chunk_position,
     episode_payload,
+    is_unsure,
     next_flagged,
     worst_stretches,
 )
@@ -121,12 +122,44 @@ def test_payload_chunks_in_seq_order_and_empty_before_chunking(conn, paths, make
 
 def test_payload_worst_stretches(conn, paths, make_episode):
     e = make_episode()
-    data = tx(seg("a b c d e f g h i j k l m n o p q r s t u v w x y z"))
+    data = tx(seg("b c d e f g h j k l m n o p q r s t u v w x y z"))
     for w in data["segments"][0]["words"]:
         w["probability"] = 0.2
     _write(conn, paths, e, data)
     worst = episode_payload(conn, _row(conn, e), [])["worst"]
     assert worst == [{"start_ms": 0, "share": 1.0}]
+
+
+def test_is_unsure_leaves_out_small_words_and_bare_punctuation():
+    assert is_unsure("Titebond", 0.2)
+    assert is_unsure(" board", 0.49)
+    assert is_unsure("saw.", 0.2)  # short, but it means something in a shop
+    assert not is_unsure("Titebond", LOW_PROB)
+    assert not is_unsure("Titebond", 0.9)
+    # Small words and fillers, whatever their case and punctuation.
+    for small in ("And", " But", "Like,", "Right.", "that.", "a", "I'm", "I’m", "Yeah!"):
+        assert not is_unsure(small, 0.1), small
+    for bare in ("–", "...", "", " "):
+        assert not is_unsure(bare, 0.1), repr(bare)
+
+
+def test_payload_unsure_lists_the_marked_words_by_index(conn, paths, make_episode):
+    e = make_episode()
+    data = tx(seg("And the borefoot plane works."))
+    for w in data["segments"][0]["words"]:
+        w["probability"] = 0.2 if w["word"].strip() in ("And", "borefoot", "works.") else 0.9
+    _write(conn, paths, e, data)
+    payload = episode_payload(conn, _row(conn, e), [])
+    assert [payload["words"][i][0] for i in payload["unsure"]] == ["borefoot", "works."]
+
+
+def test_worst_stretches_do_not_count_small_words():
+    small = [["and", i * 500, i * 500 + 400, 0.1] for i in range(20)]
+    real = [["dovetail", 60_000 + i * 500, 60_400 + i * 500, 0.1 if i < 2 else 0.9] for i in range(20)]
+    assert worst_stretches(small + real) == [
+        {"start_ms": 60_000, "share": 0.1},
+        {"start_ms": 0, "share": 0.0},
+    ]
 
 
 def test_worst_stretches_orders_by_share_and_skips_short_stretches():

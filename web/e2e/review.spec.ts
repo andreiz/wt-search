@@ -1,7 +1,8 @@
 // The review page of `wts review` (pipeline/src/wts/review/static), in a real browser against the
 // real Python server. `npm run e2e:review` builds a throwaway WTS_HOME with e2e/review-home.py
-// (one episode: 40 words in three sentences at 0 s, 38 s and 80 s, so three chunks; the word
-// "sets" has probability 0.2; the audio is 90 s of silence) and starts `wts review` on it.
+// (one episode: 40 words in three sentences at 0 s, 38 s and 80 s, so three chunks; the words
+// "sets" and "Then" have probability 0.2; the audio is 90 s of silence) and starts `wts review`
+// on it.
 // Nothing is stubbed. Every test fails on a console problem or a CSP violation, as the other
 // specs do.
 //
@@ -83,6 +84,8 @@ test("the episode loads", async ({ page }) => {
   await expect(page.locator("#transcript .low")).toHaveCount(1);
   await expect(word(page, LOW_INDEX)).toHaveText("sets");
   await expect(word(page, LOW_INDEX)).toHaveClass(/\blow\b/);
+  // "Then" is as doubtful to Whisper, but a small word at the start of a sentence is not marked.
+  await expect(word(page, await indexOf(page, "Then"))).not.toHaveClass(/\blow\b/);
   await expect(page.locator("#transcript .para .time")).toHaveText(["0:00", "0:38", "1:20"]);
   await expect(page.locator("#flags li")).toHaveText(["wpm_low"]);
   // Only the first minute has 20 words or more (28), one of them unsure: 1/28.
@@ -118,7 +121,7 @@ test("clicking a word seeks to its start", async ({ page }) => {
   await done();
 });
 
-test("n jumps to the next low-confidence word", async ({ page }) => {
+test("n jumps to the next unsure word", async ({ page }) => {
   const done = await watch(page);
   await open(page);
   await page.keyboard.press("n");
@@ -127,7 +130,43 @@ test("n jumps to the next low-confidence word", async ({ page }) => {
   expect(Math.abs((await audioTime(page)) - LOW_START_S)).toBeLessThan(0.05);
   expect(await audioPaused(page)).toBe(true);
   await page.keyboard.press("n");
-  await expect(page.locator("#status")).toContainText("No more low-confidence words");
+  await expect(page.locator("#status")).toContainText("No more unsure words");
+  await done();
+});
+
+test("e with nothing selected edits the current word, so n then e fixes an unsure word", async ({ page }) => {
+  const done = await watch(page);
+  await open(page);
+  await page.keyboard.press("n");
+  await expect(word(page, LOW_INDEX)).toHaveClass(/\bnow\b/);
+  await page.keyboard.press("e");
+  await expect(dialog(page)).toBeVisible();
+  await expect(page.getByLabel("Wrong text")).toHaveValue("sets");
+  await expect(page.getByLabel("Right text")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog(page)).toBeHidden();
+  await done();
+});
+
+test("shift-click selects a word without seeking, and a second one stretches the selection", async ({ page }) => {
+  const done = await watch(page);
+  await open(page);
+  const selected = () => page.evaluate(() => window.getSelection()!.toString());
+  const tight = await indexOf(page, "tight");
+  await word(page, tight).click({ modifiers: ["Shift"] });
+  expect(await selected()).toBe("tight");
+  await expect(page.getByRole("button", { name: "Edit selection" })).toBeVisible();
+  await word(page, tight + 3).click({ modifiers: ["Shift"] });
+  expect(await selected()).toBe("tight bond is what");
+  await word(page, tight - 2).click({ modifiers: ["Shift"] });
+  expect(await selected()).toBe("Honestly a tight bond is what");
+  // None of it moved the player or started it.
+  expect(await audioTime(page)).toBe(0);
+  expect(await audioPaused(page)).toBe(true);
+  await expect(word(page, 0)).toHaveClass(/\bnow\b/);
+  await page.keyboard.press("e");
+  await expect(page.getByLabel("Wrong text")).toHaveValue("Honestly a tight bond is what");
+  await page.keyboard.press("Escape");
   await done();
 });
 

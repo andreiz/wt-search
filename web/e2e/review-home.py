@@ -7,8 +7,9 @@ transcribed and chunked by the real `chunk_episode`, its transcript JSON, a sile
 audio, and a corrections.yaml (the test edits this copy, never the repo's).
 
 The transcript has 40 words in three sentences. They are spread over 90 s so that the real
-chunker, which closes a chunk at about 30 s, makes three chunks (0 s, 38 s and 80 s); one word
-has probability 0.2 and the rest 0.9. The sentence at 38 s holds "tight bond".
+chunker, which closes a chunk at about 30 s, makes three chunks (0 s, 38 s and 80 s); two words
+have probability 0.2 ("sets", and the small word "Then") and the rest 0.9. The sentence at 38 s
+holds "tight bond".
 """
 
 import json
@@ -26,7 +27,9 @@ SENTENCES = [
     (38.0, 0.65, "Honestly a tight bond is what you want when the glue sets up quickly."),
     (80.0, 0.6, "Then I let it cure overnight before taking the clamps off again."),
 ]
-LOW_WORD = "sets"
+# "Then" is a small word at the start of a sentence: Whisper doubts those all the time, and the
+# page does not mark them.
+LOW_WORDS = {"sets", "Then"}
 
 CORRECTIONS = """\
 # Whole-word transcript fixes for the review page's browser test.
@@ -55,7 +58,7 @@ def main(target: Path) -> None:
     for start, step, text in SENTENCES:
         words = []
         for i, token in enumerate(text.split()):
-            low = token == LOW_WORD
+            low = token in LOW_WORDS
             words.append(
                 {
                     "start": round(start + i * step, 3),

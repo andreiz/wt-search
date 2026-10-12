@@ -13,7 +13,6 @@
 // Sections: helpers, API, rendering, following playback, keyboard and
 // selection, the edit dialog, the report panel, startup.
 
-const LOW_PROB = 0.5;
 const SCROLL_PAUSE_MS = 5000;
 const SEEK_STEP_S = 5;
 const SPEEDS_OK = new Set(["0.75", "1", "1.25", "1.5", "1.75", "2"]);
@@ -38,7 +37,7 @@ const S = {
   starts: [], // start_ms of each word, for binary search
   spans: [], // the <span data-i> of each word
   breaks: [], // word indexes where paragraphs start
-  lowIdx: [], // indexes of low-confidence words
+  lowIdx: [], // indexes of the unsure words, as the server chose them (data.py `is_unsure`)
   cur: -1, // index of the word marked `now`
   virtualMs: 0, // the "current time" when there is no audio
   pausedUntil: 0, // auto-scroll is paused until this time (Date.now())
@@ -215,7 +214,8 @@ function renderTranscript(payload) {
   S.words = words;
   S.starts = words.map((w) => w[1]);
   S.spans = new Array(words.length);
-  S.lowIdx = [];
+  S.lowIdx = (payload.unsure || []).filter((i) => Number.isInteger(i) && i >= 0 && i < words.length);
+  const unsure = new Set(S.lowIdx);
   S.cur = -1;
 
   const starts = paragraphStarts(payload);
@@ -237,10 +237,7 @@ function renderTranscript(payload) {
       const span = document.createElement("span");
       span.dataset.i = String(i);
       span.textContent = String(w[0]).trim();
-      if (typeof w[3] === "number" && w[3] < LOW_PROB) {
-        span.className = "low";
-        S.lowIdx.push(i);
-      }
+      if (unsure.has(i)) span.className = "low";
       S.spans[i] = span;
       if (i > from) text.append(" ");
       text.append(span);
@@ -355,7 +352,7 @@ function wordIndexOfLast(arr, v) {
 function nextLowWord() {
   const k = lowerBound(S.lowIdx, S.cur + 1);
   if (k < S.lowIdx.length) seekWord(S.lowIdx[k], false);
-  else setStatus("No more low-confidence words after this point.");
+  else setStatus("No more unsure words after this point.");
 }
 
 // ------------------------------------------------- selection and keyboard
@@ -421,13 +418,39 @@ function onSelectionChange() {
   $("edit-selection").hidden = !r;
 }
 
+// With nothing selected, `e` edits the current word: after `n`, that is the unsure word.
 function editSelection() {
-  const r = selectedWordRange() || S.lastSelection;
+  const r = selectedWordRange() || S.lastSelection || (S.cur >= 0 ? { lo: S.cur, hi: S.cur } : null);
   if (!r) {
     setStatus("Select the words to fix first.");
     return;
   }
   openEdit(rangeText(r), "");
+}
+
+// Select whole words lo..hi, as a drag across them would.
+function selectWords(lo, hi) {
+  const first = S.spans[lo].firstChild;
+  const last = S.spans[hi].firstChild;
+  if (!first || !last) return;
+  const range = document.createRange();
+  range.setStart(first, 0);
+  range.setEnd(last, last.length);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+// Shift-click selects a word without seeking, or stretches the selection to it. On mousedown,
+// before the browser makes its own selection (from wherever the last click was to here).
+function onTranscriptMouseDown(e) {
+  if (!e.shiftKey || e.button !== 0) return;
+  const t = e.target.closest ? e.target.closest("[data-i]") : null;
+  if (!t) return;
+  e.preventDefault();
+  const i = Number(t.dataset.i);
+  const had = selectedWordRange();
+  selectWords(had ? Math.min(had.lo, i) : i, had ? Math.max(had.hi, i) : i);
 }
 
 // Whether the focused element wants this key for itself. Fields and the speed menu take every
@@ -783,6 +806,7 @@ function wire() {
   window.addEventListener("touchmove", pauseAutoScroll, { passive: true });
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener("selectionchange", onSelectionChange);
+  transcriptEl.addEventListener("mousedown", onTranscriptMouseDown);
   transcriptEl.addEventListener("click", onTranscriptClick);
 
   $("reviewed").addEventListener("click", toggleReviewed);

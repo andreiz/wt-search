@@ -374,6 +374,17 @@ Mac and is never deployed.
 >   words, as a list to jump to; and with `--report`, the report's text with
 >   Resolve and Reject.
 > - **The browser test** runs in `web/`'s Playwright (`npm run e2e:review`).
+> - **Small words are not marked as unsure** (Checkpoint J, 2026-10-12).
+>   Whisper doubts function words, fillers and whatever starts a sentence
+>   ("And", "Like,", "Yeah.") all the time and is almost always right: in
+>   episodes 71, 597 and 600 they were about 200 of every 300 words under
+>   0.5, half of them the first word of a sentence. A word is marked when
+>   its probability is under 0.5 and it is not in a fixed list of such
+>   words (`review/data.py`), which leaves 70 to 105 marks an episode; `n`
+>   and the worst stretches use the same rule.
+> - **`e` with nothing selected edits the current word,** so `n` then `e`
+>   fixes an unsure word. **Shift-click** selects a word without seeking,
+>   and a second shift-click stretches the selection to that word.
 
 - **Launch:**
   - `wts review <episode>` opens an episode.

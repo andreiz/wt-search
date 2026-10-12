@@ -72,9 +72,16 @@ reported passage with `--report`, close the test reports on staging with `wts re
   `wts run` (`notify.notify_reports`), `corrections_check.py` and `corrections_edit.py`
   (the spike `check_corrections.py` now wraps the first), migration 007
   (`episodes.reviewed_at`). What differs from the spec is listed at the top of spec §3.7.
-- **Not run on real data.** Everything was tested with generated episodes; no real
-  transcript, real audio file (the tests use a silent WAV), Safari, or the real D1 has been
-  through it. Expect Checkpoint J to find things.
+- **Checkpoint J, step 1 done (2026-10-12):** `--next-flagged` opened episode 597;
+  playback, following and the keys work on real audio. Two findings, both fixed the same
+  day: (1) too many marks, almost all small words ("But", "And", "Like,", "a"), so the
+  page now leaves a fixed list of function words and fillers unmarked (301 marks → 82 in
+  episode 597; `review/data.py` `is_unsure`, also used by `n` and the worst stretches);
+  (2) `e` did nothing without a selection, so it now edits the current word, and
+  shift-click selects a word without seeking. Not yet seen by him. Steps 2–6 are open
+  (an unflagged episode with `--at`, saving a correction, `--report`, `wts reports`).
+- **Still not run on real data:** saving a correction, Safari, the real D1 (reports).
+  `npm run e2e:review` has now run on its normal port (15 pass).
 - **One flaky moment:** `review.spec.ts` "Space plays and pauses" failed once in about 15
   runs and never again; its timeouts were raised, the cause is not known.
 - **A preview oddity:** a rule whose right text has a full stop changes where sentences

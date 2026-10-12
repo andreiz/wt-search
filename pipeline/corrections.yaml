@@ -67,6 +67,36 @@ global:
   12quarter: 12/4
   16 quarter: 16/4
   16quarter: 16/4
+  # Fractions of an inch as digits, the way people type them in a search (the maintainer,
+  # 2026-10-12). Whisper writes "three-eighths" as two words, "three" and "-eighths", so the
+  # keys are two words; the one-word keys are for a transcript where it does not split them.
+  # 3/4, 3/8, 5/8 and 7/8 in every spelling; the others only as found in the 37 episodes.
+  # Not "a quarter", "a half", "a 16th" or "a sixteenth": ordinary speech, or the "a" would
+  # be lost. "three quarters of a gallon" becomes "3/4 of a gallon", which reads fine.
+  three quarter: 3/4
+  three quarters: 3/4
+  threequarter: 3/4
+  threequarters: 3/4
+  3 quarter: 3/4
+  3 quarters: 3/4
+  one eighth: 1/8
+  three eighths: 3/8
+  threeeighths: 3/8
+  3 8ths: 3/8
+  3 8 inch: 3/8-inch        # ep609 "3-8-inch Greenwood blade"; a bare "3 8" could be anything
+  five eighths: 5/8
+  fiveeighths: 5/8
+  5 8ths: 5/8
+  5 8 bowl: 5/8 bowl        # ep597, 13:06: "a 5-8 bowl gouge"
+  seven eighths: 7/8
+  seveneighths: 7/8
+  7 8ths: 7/8
+  three sixteenth: 3/16
+  three sixteenths: 3/16
+  five sixteenths: 5/16
+  5 16ths: 5/16
+  nine 16th: 9/16
+  11 16ths: 11/16
   Timbermaid: Timbermate
   Woodcrasp: Woodcraft
   # The table saw's riving knife (the maintainer's report, 2026-10-10). "writhing" alone stays.
@@ -102,6 +132,8 @@ global:
   matt and mark: Matt and Marc
   matt mark: Matt, Marc
   shannon mark: Shannon, Marc
+  bull blank: bowl blank
+  chisel mortars: chisel mortiser's
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:

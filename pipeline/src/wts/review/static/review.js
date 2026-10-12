@@ -450,7 +450,9 @@ function editSelection() {
     setStatus("Select the words to fix first.");
     return;
   }
-  openEdit(rangeText(r), "");
+  // In lower case, as a rule's key is written: matching ignores case, and a capital here only
+  // invites one in the right text (which would then be used everywhere).
+  openEdit(rangeText(r).toLowerCase(), "");
 }
 
 // Select whole words lo..hi, as a drag across them would.

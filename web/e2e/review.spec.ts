@@ -174,7 +174,8 @@ test("shift-click selects a word without seeking, and a second one stretches the
   expect(await audioPaused(page)).toBe(true);
   await expect(word(page, 0)).toHaveClass(/\bnow\b/);
   await page.keyboard.press("e");
-  await expect(page.getByLabel("Wrong text")).toHaveValue("Honestly a tight bond is what");
+  // The wrong text is offered in lower case, whatever the transcript's capitals.
+  await expect(page.getByLabel("Wrong text")).toHaveValue("honestly a tight bond is what");
   await page.keyboard.press("Escape");
   await done();
 });

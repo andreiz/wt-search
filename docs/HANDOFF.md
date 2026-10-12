@@ -91,8 +91,31 @@ reported passage with `--report`, close the test reports on staging with `wts re
   Also added: Shift-`n`, the previous unsure word; and corrections shown inline in the
   transcript (the original struck out in red, the replacement in green; `data.py`
   `corrected_spans`), which he asked for and has not seen yet.
-- **Still not run on real data:** a saved correction's `git diff`, Safari, the real D1
-  (reports).
+- **Checkpoint J, corrections made through the page (2026-10-12):** he saved `mortis`,
+  `bull blank` and `chisel mortars` himself, so saving works on real data. What it showed
+  about how rules match, each now handled in the page or the matcher:
+  - A replacement in lower case keeps the capital of a sentence it starts (`mortis: mortise`
+    gives "Mortise and tenon." and "this mortise"); one with a capital is used as written
+    (spec §3.3, `corrections.py` `_replace`). `e` on a capitalised word offers it in lower
+    case.
+  - Rules match what Whisper wrote, never another rule's result, and before split words are
+    joined. So a selection over a corrected word offers the original text, and a hyphenated
+    word is offered as its two words ("three-eighths" is the key `three eighths`;
+    `words.py` `joined_words`, the payload's `joined`). The "changes nothing" hint says both.
+  - Each spelling, plural and possessive needs a rule of its own.
+- **Rules added 2026-10-12** (all checked sentence by sentence on the 37 transcripts):
+  mortise and tenon mishearings; "Mark" beside his surname or another host's name → Marc
+  (a bare "Mark" is still left alone: "Mark sent me the flyer"); fractions of an inch as
+  digits (3/4, 3/8, 5/8, 7/8 in every spelling, 1/8, 3/16, 5/16, 9/16, 11/16 as found; 81
+  sentences), the maintainer's choice over making search treat `3/8` and "three eighths"
+  as the same. Doubtful ones he may want to hear: "a 3/4 hour saw" (ep609), "3/4 TPI"
+  (ep616, 5:22), "Mortice and Tenon Tool" (ep608, 44:39), "cabrio leg" (ep608, 17:54).
+  To apply: `uv run wts chunk`, `uv run wts embed`, then publish.
+- **Correcting will go on for a while** (the maintainer, 2026-10-12): it is ongoing work
+  beside the plans, not a step to finish before the next one.
+- **Still not run on real data:** Safari, the real D1 (reports: `wts reports`,
+  `wts review --report <id>`, `reports resolve/reject`), an unflagged episode with `--at`
+  and "Reviewed".
   `npm run e2e:review` has now run on its normal port (15 pass).
 - **One flaky moment:** `review.spec.ts` "Space plays and pauses" failed once in about 15
   runs and never again; its timeouts were raised, the cause is not known.
@@ -103,7 +126,7 @@ reported passage with `--report`, close the test reports on staging with `wts re
   8797 and 8799 are refused). `E2E_REVIEW_PORT=4173 npm run e2e:review` runs here, 13 of
   13; on the Mac the plain command uses 8797 and has not been run. `E2E_SMOKE_PORT=4173`
   may make the smoke run work here too; not tried.
-- Counts: pipeline **923**, web **724** unit + **289** e2e + **13** review e2e; Worker
+- Counts: pipeline **936**, web **724** unit + **289** e2e + **15** review e2e; Worker
   unchanged at 543.
 **Task 15 is done** (2026-10-11, Sonnet subagent wrote it blind; the maintainer ran it on
 the Mac, 8 of 8 after two test fixes). `cd web && npm run e2e:smoke` builds the site, makes

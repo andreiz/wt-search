@@ -734,9 +734,9 @@ Built from the episode row and `cue_s`, in this order on the card:
    host's audio URL, and the guid is the id in all 626 audio URLs. Tried on
    an iPhone and a desktop with episodes 71 and 597: both start at the
    time.)*
-5. **Show notes** (`links.notes`): `page_url`, when it is an http(s) link
-   whose host is not `shows.acast.com`, so the show's own site. It plays
-   nothing and carries no time; the card lists it in the ⋯ menu (§5.3).
+5. **The show's own site** (`links.notes`): `page_url`, when it is an
+   http(s) link whose host is not `shows.acast.com`. It plays nothing and
+   carries no time; the card lists it in the ⋯ menu as "Episode page" (§5.3).
    *(Added 2026-10-11, maintainer: the show's site is worth linking to.)*
 
 **Which link the card plays** *(maintainer, 2026-10-09)*: YouTube when the
@@ -1137,7 +1137,7 @@ Pinned to the top (compacting on scroll on phones):
   Kregger in the Hole · Aug 19, 2026" (the title cleaned as on a card,
   §5.3). The title is a play link from the episode's start (YouTube, else
   the show page; plain text with neither), named "Play episode 613 from the
-  start on YouTube". Beside it, **Search this episode** puts `ep:613`
+  start on YouTube" (or "… on Acast"). Beside it, **Search this episode** puts `ep:613`
   alone in the box and puts the cursor there, without searching: the word
   that found the title is often not in the transcript, so searching it
   inside the episode would find nothing. With title hits and no passages,
@@ -1196,17 +1196,23 @@ states. Behaviour from the design, with the maintainer's calls:)*
   the episode has it, otherwise on the show page (§4.6); with neither it is
   plain text. Desktop: the chip in a column left of the excerpt. Phone: no
   column, the chip sits above the excerpt. Its name follows the rule below
-  ("Play on YouTube 29:01, starts at 28:54"; for the show page, "Play on the
-  show page 29:01, starts at 28:54, may play an ad first"), and its tooltip
+  ("Play on YouTube 29:01, starts at 28:54"; for the show page, "Play on
+  Acast 29:01, starts at 28:54, may play an ad first"), and its tooltip
   says the same.
-- **⋯ menu, the same at every width:** **Show page** ("plays from 29:01,
-  may play an ad first"; left out when the chip already plays there),
-  **Play on Apple** and **Play on Spotify** ("at 29:01 · may start minutes
-  early"), **Show notes** ("on the show's site", when the API sends
-  `links.notes`, §4.6; *added 2026-10-11*), then More transcript and Report
-  transcript error. "Show page" replaces the label "Episode page". Since
-  2026-10-11 every episode has a show page link (§4.6), so the chip always
-  plays somewhere; the plain-text time stays for an answer without one.
+- **⋯ menu, the same at every width:** the other places to play, each
+  named "Play on …": **Play on Acast** ("from 29:01 · may play an ad
+  first"; left out when the chip already plays there), **Play on Apple**
+  and **Play on Spotify** ("at 29:01 · may start minutes early"). Then,
+  under a rule of its own because it is not a player, **Episode page**
+  ("on woodtalkshow.com", the host of `links.notes`, §4.6; shown when the
+  API sends it). Then More transcript and Report transcript error.
+  *(Wording revised 2026-10-11, maintainer: the show page link was "Show
+  page" and the site link "Show notes", which read as a pair and hid that
+  one plays on Acast and the other is the show's website. Everywhere the
+  listener sees it, the show page link is now called Acast: the chip's
+  name, the menu, the title hits of §5.2.)* Since 2026-10-11 every episode
+  has a show page link (§4.6), so the chip always plays somewhere; the
+  plain-text time stays for an answer without one.
 - What the items below say about content, names and links still holds
   except where the four items above change it; their layout is the
   design's.

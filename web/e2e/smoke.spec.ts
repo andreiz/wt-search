@@ -130,7 +130,7 @@ test("every play link on the page is the one /api/search returned", async ({ pag
     // Esc is heard in the menu, so wait for the opening focus to land there before pressing it.
     await expect(menu.getByRole("menuitem").first()).toBeFocused();
     const hrefs = await menu.getByRole("menuitem").evaluateAll((items) => items.map((m) => m.getAttribute("href")).filter((h) => h !== null));
-    // So is the show's own page (Show notes), when the feed's link is not the Acast page.
+    // So is the show's own page (Episode page), when the feed's link is not the Acast page.
     const others = [links.page, links.apple, links.spotify, links.notes].filter((h): h is string => !!h && h !== chip);
     expect(hrefs.sort()).toEqual(others.sort());
     await page.keyboard.press("Escape");

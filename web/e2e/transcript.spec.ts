@@ -194,7 +194,7 @@ for (const { name, width, height } of WIDTHS) {
       await more.focus();
       await page.keyboard.press("Enter");
       await expect(page.getByRole("menuitem").first()).toBeFocused();
-      // Show page, Apple, Spotify, then More transcript.
+      // Acast, Apple, Spotify, then More transcript.
       await page.keyboard.press("ArrowDown");
       await page.keyboard.press("ArrowDown");
       await page.keyboard.press("ArrowDown");

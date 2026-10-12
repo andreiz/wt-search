@@ -25,7 +25,7 @@ export type PlayKey = "youtube" | "page" | "apple" | "spotify";
 
 export interface PlayLink {
   key: PlayKey;
-  /** As it reads after "Play on": "YouTube", "the show page", "Apple", "Spotify". */
+  /** As it reads after "Play on": "YouTube", "Acast" (the show page), "Apple", "Spotify". */
   name: string;
   href: string;
   /** "28:54": where this link starts to play (`cue_s`), for the link's name. */
@@ -34,7 +34,7 @@ export interface PlayLink {
 
 const NAMES: Record<PlayKey, string> = {
   youtube: "YouTube",
-  page: "the show page",
+  page: "Acast",
   apple: "Apple",
   spotify: "Spotify",
 };
@@ -66,12 +66,21 @@ export function menuPlays(hit: Playable): PlayLink[] {
 }
 
 /**
- * The episode's page on the show's own site, for the ⋯ menu's "Show notes". It plays nothing and
- * has no time. Only an http(s) link is passed on: it becomes an href.
+ * The episode's page on the show's own site, for the ⋯ menu's "Episode page". It plays nothing
+ * and has no time. Only an http(s) link is passed on: it becomes an href.
  */
 export function notesLink(item: Playable): string | undefined {
   const href = linksOf(item).notes;
   return typeof href === "string" && /^https?:\/\//i.test(href) ? href : undefined;
+}
+
+/** Where a link goes, as the menu says it: "woodtalkshow.com" (no "www."); "" if it does not parse. */
+export function siteOf(href: string): string {
+  try {
+    return new URL(href).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
 }
 
 function starts(play: PlayLink, time: string): string {
@@ -80,8 +89,8 @@ function starts(play: PlayLink, time: string): string {
 
 /**
  * The chip's accessible name, built around its visible text (WCAG 2.5.3): "Play on YouTube 29:01,
- * starts at 28:54"; for the show page "Play on the show page 29:01, starts at 28:54, may play an ad
- * first". ", starts at …" is left out when the cue is the hit's time.
+ * starts at 28:54"; for the show page (Acast) "Play on Acast 29:01, starts at 28:54, may play an
+ * ad first". ", starts at …" is left out when the cue is the hit's time.
  */
 export function chipName(play: PlayLink, time: string): string {
   const ad = play.key === "page" ? ", may play an ad first" : "";
@@ -91,11 +100,11 @@ export function chipName(play: PlayLink, time: string): string {
 /**
  * A menu row's accessible name: its visible words in order. Apple and Spotify add ", starts at …"
  * when the cue differs ("Play on Apple at 29:01 · may start minutes early, starts at 28:20"); the
- * show page never does, as "plays from 29:01 … starts at 28:54" would contradict itself:
- * "Show page plays from 29:01, may play an ad first".
+ * show page (Acast) never does, as "from 29:01 … starts at 28:54" would contradict itself:
+ * "Play on Acast from 29:01 · may play an ad first".
  */
 export function menuName(play: PlayLink, time: string): string {
-  if (play.key === "page") return `Show page plays from ${time}, may play an ad first`;
+  if (play.key === "page") return `Play on ${play.name} from ${time} · may play an ad first`;
   return `Play on ${play.name} at ${time} · may start minutes early${starts(play, time)}`;
 }
 

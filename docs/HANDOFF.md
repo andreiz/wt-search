@@ -41,6 +41,11 @@ and a report and a feedback message have been sent through the real widget), the
     on the iPhone and the desktop (episodes 71 and 597): they start at the time. No
     republish; needs `npm run deploy:staging`. `API_VERSION` is 4, so answers cached by the
     old Worker are not served.
+  - The menu's labels, after the maintainer found "Show page" beside "Show notes"
+    confusing (same day, spec §5.3): the show page link is called **Acast** wherever the
+    listener sees it ("Play on Acast", like Apple and Spotify), and the site link is
+    **Episode page** ("on woodtalkshow.com"), under a rule of its own. Web only; not yet
+    looked at in a browser.
   - Still to do: the rest of the phone (iOS) pass, with the report-form scroll fix of
     2026-10-11 and the change above, which need a fresh `npm run deploy:staging`; the platform
     buttons; a clean browser console; VoiceOver (step 6).

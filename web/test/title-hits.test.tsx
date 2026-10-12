@@ -64,7 +64,7 @@ describe("the Episodes row", () => {
 
   it("falls back to the show page, named for it", async () => {
     await answered(smartBody([result(1)], { episodes: [episodeHit(613, { links: { page: "https://example.test/page/613" } })] }));
-    const link = within(row()).getByRole("link", { name: /play episode 613 from the start on the show page/ });
+    const link = within(row()).getByRole("link", { name: /play episode 613 from the start on Acast/ });
     expect(link.getAttribute("href")).toBe("https://example.test/page/613");
   });
 

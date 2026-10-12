@@ -25,7 +25,7 @@ export function TitleHits({
         {episodes.map((episode) => {
           const title = displayTitle(episode.title, episode.number);
           const href = episode.links.youtube ?? episode.links.page;
-          const where = episode.links.youtube ? "YouTube" : "the show page";
+          const where = episode.links.youtube ? "YouTube" : "Acast";
           const which = episode.number === null ? "this episode" : `episode ${episode.number}`;
           return (
             <li key={episode.id} class="title-hit">

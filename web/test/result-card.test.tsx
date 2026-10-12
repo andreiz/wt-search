@@ -168,7 +168,7 @@ describe("the timestamp chip", () => {
   it("plays the show page when the episode has no YouTube, says where it starts and that an ad may play first", () => {
     const hit = withLinks(timed, { page: "https://page.test/ep?seek=4184" });
     renderCard([hit]);
-    const name = "Play on the show page 1:09:51, starts at 1:09:44, may play an ad first";
+    const name = "Play on Acast 1:09:51, starts at 1:09:44, may play an ad first";
     const chip = screen.getByRole("link", { name });
     expect(chip.getAttribute("href")).toBe("https://page.test/ep?seek=4184");
     expect(chip.getAttribute("target")).toBe("_blank");
@@ -180,7 +180,7 @@ describe("the timestamp chip", () => {
   it("names a show page chip without 'starts at' when its cue is the hit time", () => {
     const hit = withLinks({ ...timed, cue_s: { ...timed.cue_s, page: 4191 } }, { page: "https://page.test/ep" });
     renderCard([hit]);
-    expect(screen.getByRole("link", { name: "Play on the show page 1:09:51, may play an ad first" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Play on Acast 1:09:51, may play an ad first" })).toBeTruthy();
   });
 
   it("is plain text, not a link, with neither YouTube nor a page (Apple or nothing)", () => {
@@ -259,26 +259,26 @@ describe("the ⋯ menu", () => {
     expect(button.getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("lists Show page, Apple, Spotify, More transcript and Report, with the sub-lines", () => {
+  it("lists Acast, Apple, Spotify, More transcript and Report, with the sub-lines", () => {
     // Every cue (20:21) differs from the hit time (20:28), the page's too: its row still never says "starts at".
     renderCard([full]);
     open();
     expect(items().map(label)).toEqual([
-      "Show page plays from 20:28, may play an ad first",
+      "Play on Acast from 20:28 · may play an ad first",
       "Play on Apple at 20:28 · may start minutes early, starts at 20:21",
       "Play on Spotify at 20:28 · may start minutes early, starts at 20:21",
       "More transcript",
       "Report transcript error",
     ]);
     expect(items().map((i) => i.firstChild?.textContent)).toEqual([
-      "Show page",
+      "Play on Acast",
       "Play on Apple",
       "Play on Spotify",
       "More transcript",
       "Report transcript error",
     ]);
     expect([...document.querySelectorAll(".menu-item__sub")].map((s) => s.textContent)).toEqual([
-      "plays from 20:28, may play an ad first",
+      "from 20:28 · may play an ad first",
       "at 20:28 · may start minutes early",
       "at 20:28 · may start minutes early",
     ]);
@@ -306,41 +306,47 @@ describe("the ⋯ menu", () => {
     expect(document.querySelectorAll(".more-menu__list [role='separator']")).toHaveLength(2);
   });
 
-  it("leaves 'Show page' out when the page is the chip's link (no YouTube)", () => {
+  it("leaves 'Play on Acast' out when the page is the chip's link (no YouTube)", () => {
     renderCard([withLinks(full, { page: full.episode.links.page, apple: full.episode.links.apple })]);
     open();
     expect(items().map((i) => i.firstChild?.textContent)).toEqual(["Play on Apple", "More transcript", "Report transcript error"]);
   });
 
-  it("lists Show notes after the play rows when the API sends the show's own page, with no time", () => {
-    renderCard([withLinks(full, { ...full.episode.links, notes: "https://woodtalkshow.com/episodes/x/" })]);
+  it("lists Episode page after the play rows, in a group of its own, naming the site and no time", () => {
+    renderCard([withLinks(full, { ...full.episode.links, notes: "https://www.woodtalkshow.com/episodes/x/" })]);
     open();
     expect(items().map(label)).toEqual([
-      "Show page plays from 20:28, may play an ad first",
+      "Play on Acast from 20:28 · may play an ad first",
       "Play on Apple at 20:28 · may start minutes early, starts at 20:21",
       "Play on Spotify at 20:28 · may start minutes early, starts at 20:21",
-      "Show notes on the show's site",
+      "Episode page on woodtalkshow.com",
       "More transcript",
       "Report transcript error",
     ]);
     const notes = items()[3] as HTMLAnchorElement;
-    expect(notes.firstChild?.textContent).toBe("Show notes");
-    expect(notes.getAttribute("href")).toBe("https://woodtalkshow.com/episodes/x/");
+    expect(notes.firstChild?.textContent).toBe("Episode page");
+    expect(notes.querySelector(".menu-item__sub")?.textContent).toBe("on woodtalkshow.com");
+    expect(notes.getAttribute("href")).toBe("https://www.woodtalkshow.com/episodes/x/");
     expect(notes.getAttribute("target")).toBe("_blank");
     expect(notes.getAttribute("rel")).toBe("noopener");
+    // A rule after the play rows, after Episode page, and before Report.
+    expect(document.querySelectorAll(".more-menu__list [role='separator']")).toHaveLength(3);
+    expect(notes.previousElementSibling?.getAttribute("role")).toBe("separator");
+    expect(notes.nextElementSibling?.getAttribute("role")).toBe("separator");
   });
 
-  it("keeps the rule under Show notes when it is the only link in the menu", () => {
+  it("has no rule above Episode page when it is the only link in the menu", () => {
     renderCard([withLinks(full, { page: full.episode.links.page, notes: "https://woodtalkshow.com/episodes/x/" })]);
     open();
-    expect(items().map((i) => i.firstChild?.textContent)).toEqual(["Show notes", "More transcript", "Report transcript error"]);
+    expect(items().map((i) => i.firstChild?.textContent)).toEqual(["Episode page", "More transcript", "Report transcript error"]);
     expect(document.querySelectorAll(".more-menu__list [role='separator']")).toHaveLength(2);
+    expect(document.querySelector(".more-menu__list")?.firstElementChild).toBe(items()[0]);
   });
 
-  it("leaves Show notes out when the link is not http(s)", () => {
+  it("leaves Episode page out when the link is not http(s)", () => {
     renderCard([withLinks(full, { ...full.episode.links, notes: "javascript:alert(1)" })]);
     open();
-    expect(items().map((i) => i.firstChild?.textContent)).not.toContain("Show notes");
+    expect(items().map((i) => i.firstChild?.textContent)).not.toContain("Episode page");
   });
 
   it("with no links at all still opens, with More transcript and Report", () => {
@@ -422,7 +428,7 @@ describe("the ⋯ menu", () => {
   it("activating a play row closes the menu and returns focus to ⋯", () => {
     renderCard([full]);
     const button = screen.getByRole("button", { name: "More actions" });
-    for (const name of [/^Show page/, /^Play on Apple/]) {
+    for (const name of [/^Play on Acast/, /^Play on Apple/]) {
       open();
       const row = screen.getByRole("menuitem", { name });
       row.addEventListener("click", (event) => event.preventDefault()); // no navigation in the test

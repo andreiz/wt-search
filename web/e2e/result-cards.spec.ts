@@ -151,12 +151,12 @@ for (const { name, width, height } of WIDTHS) {
       await expect(more).toHaveAttribute("aria-expanded", "true");
       const rows = menu.getByRole("menuitem");
       await expect(rows).toHaveCount(5);
-      await expect(rows.nth(0)).toHaveAccessibleName("Show page plays from 1:09:51, may play an ad first");
+      await expect(rows.nth(0)).toHaveAccessibleName("Play on Acast from 1:09:51 · may play an ad first");
       await expect(rows.nth(1)).toHaveAccessibleName("Play on Apple at 1:09:51 · may start minutes early, starts at 1:09:44");
       await expect(rows.nth(2)).toHaveAccessibleName("Play on Spotify at 1:09:51 · may start minutes early, starts at 1:09:44");
       await expect(rows.nth(3)).toHaveAccessibleName("More transcript");
       await expect(rows.nth(4)).toHaveAccessibleName("Report transcript error");
-      await expect(rows.nth(0)).toContainText("Show page");
+      await expect(rows.nth(0)).toContainText("Play on Acast");
       await expect(rows.nth(1)).toContainText("Play on Apple");
       await expect(rows.nth(1)).toContainText("at 1:09:51 · may start minutes early");
       for (const [i, href] of [PAGE, AP, SP].entries()) {
@@ -182,13 +182,13 @@ for (const { name, width, height } of WIDTHS) {
       await noViolations();
     });
 
-    test("the Spotify-only episode's menu has no Show page and keeps Spotify", async ({ page }) => {
+    test("the Spotify-only episode's menu has no Acast row and keeps Spotify", async ({ page }) => {
       await open(page, keywordCards);
       const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").nth(1);
       await card.getByRole("button", { name: "More actions" }).click();
       const menu = page.getByRole("menu", { name: "Actions" });
       await expect(menu.getByRole("menuitem")).toHaveCount(3);
-      await expect(menu.getByRole("menuitem", { name: /^Show page/ })).toHaveCount(0);
+      await expect(menu.getByRole("menuitem", { name: /^Play on Acast/ })).toHaveCount(0);
       await expect(menu.getByRole("menuitem", { name: /^Play on Spotify/ })).toHaveAttribute("href", SP);
     });
   });
@@ -221,7 +221,7 @@ test.describe("on a desktop", () => {
     expect(await related.locator(".result__head").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("none");
     expect(await cards.nth(0).locator(".result__card").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("solid");
     // A related card has the chip (the page, as the episode has no YouTube) and the menu.
-    await expect(cards.nth(3).locator("a.hit__time")).toHaveAccessibleName("Play on the show page 1:09:51, starts at 1:09:44, may play an ad first");
+    await expect(cards.nth(3).locator("a.hit__time")).toHaveAccessibleName("Play on Acast 1:09:51, starts at 1:09:44, may play an ad first");
     await noViolations();
   });
 

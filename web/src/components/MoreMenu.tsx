@@ -1,11 +1,11 @@
 // The ⋯ menu of a hit row (spec §5.3), the same at every width: the links the chip does not play
-// (Show page, Apple, Spotify) and the show notes, then More transcript and Report transcript error. A menu button
-// with arrow-key movement: Esc, a press outside or Tab closes it, and Esc or a choice returns
-// focus to ⋯ (SortMenu.tsx works the same way).
+// (Acast, Apple, Spotify), the episode's page on the show's site, then More transcript and Report
+// transcript error. A menu button with arrow-key movement: Esc, a press outside or Tab closes
+// it, and Esc or a choice returns focus to ⋯ (SortMenu.tsx works the same way).
 import type { RefObject } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { PlayLink } from "../lib/platforms";
-import { menuName } from "../lib/platforms";
+import { menuName, siteOf } from "../lib/platforms";
 
 const ITEMS = "[role='menuitem']";
 
@@ -32,6 +32,7 @@ export function MoreMenu({
   onReport: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const site = notes ? siteOf(notes) : "";
   const root = useRef<HTMLDivElement>(null);
   const button = buttonRef;
 
@@ -120,14 +121,16 @@ export function MoreMenu({
               aria-label={menuName(play, time)}
               onClick={close}
             >
-              {play.key === "page" ? "Show page" : `Play on ${play.name}`}
+              {`Play on ${play.name}`}
               <span class="menu-item__sub">
                 {play.key === "page"
-                  ? `plays from ${time}, may play an ad first`
+                  ? `from ${time} · may play an ad first`
                   : `at ${time} · may start minutes early`}
               </span>
             </a>
           ))}
+          {plays.length > 0 && <div class="menu-rule" role="separator" />}
+          {/* Not a player: the episode's page on the show's own site, in a group of its own. */}
           {notes && (
             <a
               role="menuitem"
@@ -136,14 +139,14 @@ export function MoreMenu({
               href={notes}
               target="_blank"
               rel="noopener"
-              aria-label="Show notes on the show's site"
+              aria-label={site ? `Episode page on ${site}` : "Episode page"}
               onClick={close}
             >
-              Show notes
-              <span class="menu-item__sub">on the show's site</span>
+              Episode page
+              {site && <span class="menu-item__sub">{`on ${site}`}</span>}
             </a>
           )}
-          {(plays.length > 0 || notes) && <div class="menu-rule" role="separator" />}
+          {notes && <div class="menu-rule" role="separator" />}
           <button
             type="button"
             role="menuitem"

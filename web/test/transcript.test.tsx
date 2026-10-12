@@ -280,7 +280,7 @@ describe("the timestamp labels", () => {
       return { ...chunk, links };
     });
     await openWith(body);
-    const link = screen.getByRole("link", { name: "Play on the show page 2:30, starts at 2:23, may play an ad first" });
+    const link = screen.getByRole("link", { name: "Play on Acast 2:30, starts at 2:23, may play an ad first" });
     expect(link.getAttribute("href")).toBe("https://example.com/ep/301");
   });
 

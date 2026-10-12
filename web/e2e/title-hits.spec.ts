@@ -73,7 +73,7 @@ for (const [name, width, height] of [
     await expect(play).toHaveAttribute("href", YOUTUBE);
     await expect(play).toHaveAttribute("target", "_blank");
     await expect(play).toHaveText("Shove a Kregger in the Hole");
-    await expect(row.getByRole("link", { name: /play episode 600 from the start on the show page/ })).toHaveAttribute(
+    await expect(row.getByRole("link", { name: /play episode 600 from the start on Acast/ })).toHaveAttribute(
       "href",
       "https://example.test/600",
     );

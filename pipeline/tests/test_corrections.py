@@ -53,6 +53,22 @@ def test_case_insensitive_whole_word_only():
     assert [w.text for w in out] == ["Cremona", "kremonas"]
 
 
+def test_lower_case_replacement_keeps_the_capital_that_starts_a_sentence():
+    fix = rules(g={"mortis": "mortise", "bore foot": "board foot", "tight bond": "Titebond"})
+
+    def text(said):
+        return " ".join(w.text for w in apply_corrections(ws(said), fix, "s"))
+
+    assert text("Mortis and tenon. This mortis is loose.") == "Mortise and tenon. This mortise is loose."
+    assert text("Done! Bore foot prices? mortis.") == "Done! Board foot prices? mortise."
+    # A capital in the middle of a sentence is Whisper's, not the sentence's: the rule's case wins.
+    assert text("Cut the Mortis first.") == "Cut the mortise first."
+    # An abbreviation's full stop does not end a sentence.
+    assert text("Ask Mr. Mortis.") == "Ask Mr. mortise."
+    # A replacement written with a capital is used as written, wherever it lands.
+    assert text("tight bond. Tight bond and TIGHT BOND.") == "Titebond. Titebond and Titebond."
+
+
 def test_replacement_with_space_becomes_separate_timed_words():
     out = apply_corrections(ws("welcome to woodtalk."), rules(g={"woodtalk": "Wood Talk"}), "s")
     assert [w.text for w in out] == ["welcome", "to", "Wood", "Talk."]

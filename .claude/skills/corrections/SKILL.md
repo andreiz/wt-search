@@ -30,6 +30,9 @@ episodes:
 How rules match (`pipeline/src/wts/corrections.py`):
 - Whole words only, ignoring case and punctuation: `t9` matches "T9", "T-9" and "t9,".
   A word's trailing punctuation is kept.
+- The replacement is used as written, with one exception: written all in lower case, it keeps
+  the capital of a sentence it starts (`mortis: mortise` turns "Mortis and tenon." into
+  "Mortise and tenon."). So write ordinary words in lower case and names as they are spelled.
 - Multi-word keys match consecutive words; the longest matching key wins; episode rules are
   tried before global ones.
 - A `keep:` phrase is matched the same way and left exactly as transcribed. It wins over a

@@ -8,11 +8,12 @@ from pathlib import Path
 
 import yaml
 
-from wts.words import Word
+from wts.words import Word, _ends_sentence
 
 CORRECTIONS_FILE = Path(__file__).resolve().parents[2] / "corrections.yaml"
 _PUNCT = re.compile(r"[^\w']+")
 _TRAILING = re.compile(r"[^\w']+$")
+_LEADING = re.compile(r"^[\W_]+")
 
 
 @dataclass(frozen=True)
@@ -53,6 +54,14 @@ def corrections_sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else ""
 
 
+def _starts_sentence_capitalised(text: str, previous: list[Word]) -> bool:
+    """Whether a word with this text, after `previous`, opens a sentence with a capital."""
+    letters = _LEADING.sub("", text)
+    if not letters[:1].isupper():
+        return False
+    return not previous or _ends_sentence(previous[-1].text)
+
+
 def _replace(span: list[Word], replacement: str, previous: list[Word]) -> list[Word]:
     """The replacement as one Word per token (sharing the span's time), keeping punctuation.
 
@@ -66,6 +75,11 @@ def _replace(span: list[Word], replacement: str, previous: list[Word]) -> list[W
             last = previous[-1]
             previous[-1] = Word(last.text + trailing, last.start_ms, last.end_ms, last.prob)
         return []
+    if _starts_sentence_capitalised(span[0].text, previous) and replacement == replacement.lower():
+        # A rule written in lower case ("mortis: mortise") is an ordinary word: it keeps the
+        # capital of the sentence it starts. One with a capital (Titebond, SawStop) is used as
+        # written everywhere.
+        tokens[0] = tokens[0][:1].upper() + tokens[0][1:]
     start, end = span[0].start_ms, span[-1].end_ms
     step = (end - start + 1) / len(tokens)
     prob = min(w.prob for w in span)

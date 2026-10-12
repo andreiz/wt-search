@@ -19,6 +19,16 @@ export interface AnchorInput {
   viewportHeight: number;
 }
 
+/**
+ * Where the hit's paragraph goes when the transcript opens from an excerpt at `excerptTop`: the
+ * same place while that is in the upper half of the room under the header; from lower down, a
+ * third of the way down the room, so what follows the passage is on screen too.
+ */
+export function openTop(excerptTop: number, headerBottom: number, viewportHeight: number): number {
+  const room = viewportHeight - headerBottom;
+  return excerptTop > headerBottom + room / 2 ? headerBottom + room / 3 : excerptTop;
+}
+
 export function anchorDelta({
   recordedTop,
   top,

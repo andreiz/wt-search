@@ -1246,6 +1246,13 @@ states. Behaviour from the design, with the maintainer's calls:)*
 - **One expanded view per page** *(maintainer, 2026-10-10)*: opening a
   hit's view collapses the one open on another hit, and the text the
   reader clicked stays where it was on screen.
+- **Where the passage lands** *(maintainer, 2026-10-11, after trying it on
+  a phone)*: the hit's paragraph goes where the excerpt was while that is
+  in the upper half of the room under the header. From lower down it is
+  brought up to a third of the way down that room, so the text after the
+  passage is on screen too. A view that is already open (switching to the
+  wider one) keeps its paragraph where the reader has it, and collapsing
+  puts the excerpt where the paragraph was.
 - The brief's 400 ms hover preview is dropped *(maintainer, 2026-10-08)*:
   More transcript does the same, and hovering gets in the way of selecting
   text to report.

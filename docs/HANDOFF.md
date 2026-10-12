@@ -29,8 +29,12 @@ and a report and a feedback message have been sent through the real widget), the
   - **The reports rows on staging stay:** the maintainer wants to review them, so step 3's
     "then delete them" is dropped. They are material for Checkpoint J (`wts reports`,
     `wts review --report <id>`).
-  - Still to do: the phone (iOS) pass, with the two scroll fixes of 2026-10-11 (the report
-    form, a tapped excerpt), which need a fresh `npm run deploy:staging`; the platform
+  - Phone: a tapped excerpt now shows its passage (confirmed by the maintainer). He found
+    it landed at the bottom of the screen when the excerpt was there; changed the same day
+    (spec §5.4 "Where the passage lands": from the lower half it goes a third of the way
+    down), not yet deployed.
+  - Still to do: the rest of the phone (iOS) pass, with the report-form scroll fix of
+    2026-10-11 and the change above, which need a fresh `npm run deploy:staging`; the platform
     buttons; a clean browser console; VoiceOver (step 6).
 **Plan 4 (the review tool, `wts reports`, the reports digest) is built, Tasks 1–10; next
 is its Checkpoint J** (2026-10-11, done while the maintainer did Checkpoint H; he approved

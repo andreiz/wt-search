@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { anchorDelta } from "../../src/lib/anchor";
+import { anchorDelta, openTop } from "../../src/lib/anchor";
 
 // The viewport is 800 px high, the sticky header's bottom edge is at 80.
 const base = { height: 60, headerBottom: 80, viewportHeight: 800 };
+
+describe("openTop", () => {
+  // The room under the header is 720 px: its middle is at 440, a third of the way down at 320.
+  it.each([
+    ["near the top", 100, 100],
+    ["exactly at the middle", 440, 440],
+    ["just below the middle", 441, 320],
+    ["at the bottom of the screen", 780, 320],
+  ])("an excerpt %s", (_name, excerptTop, expected) => {
+    expect(openTop(excerptTop, 80, 800)).toBe(expected);
+  });
+});
 
 describe("anchorDelta", () => {
   it.each([

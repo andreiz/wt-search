@@ -12,7 +12,7 @@
 // two (the excerpt is plain text for selecting, so it is not a control).
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import type { SearchResult } from "../../../worker/src/api-types";
-import { anchorDelta } from "../lib/anchor";
+import { anchorDelta, openTop } from "../lib/anchor";
 import { excerpt } from "../lib/excerpt";
 import { chipName, hitTime, menuPlays, primaryPlay } from "../lib/platforms";
 import { OpenReport } from "../use-forms";
@@ -45,6 +45,8 @@ interface Pending {
   scrollY: number;
   /** Opening this collapsed another hit's view, so the page moved under the reader at once. */
   moved?: boolean;
+  /** The view was closed at the click, so `top` is the excerpt's, not the open paragraph's. */
+  fromExcerpt?: boolean;
 }
 
 /**
@@ -178,7 +180,10 @@ export function HitRow({
       const drift = wanted.moved ? 0 : window.scrollY - wanted.scrollY;
       const top = wanted.top === null ? null : wanted.top - drift;
       const onScreen = top !== null && (drift === 0 || (top >= headerBottom() && top < window.innerHeight));
-      settle(target, onScreen ? top : null, strip.current);
+      // An excerpt low on the screen would leave what follows the passage out of view: from
+      // there the paragraph is brought up (openTop). A view that is already open stays put.
+      const goal = onScreen && wanted.fromExcerpt ? openTop(top, headerBottom(), window.innerHeight) : top;
+      settle(target, onScreen ? goal : null, strip.current);
     } else if (shown === null) {
       pending.current = null;
       // A collapse is applied in the click's own task, so the reader cannot have scrolled since
@@ -190,10 +195,12 @@ export function HitRow({
 
   /** Note where the hit is on screen: its paragraph if the view is open, else its excerpt. */
   function recordOpen() {
-    const target = region.current?.querySelector(".passage--hit") ?? excerptText.current;
+    const paragraph = region.current?.querySelector(".passage--hit");
+    const target = paragraph ?? excerptText.current;
     if (!target) return;
     pending.current = {
       kind: "open",
+      fromExcerpt: !paragraph,
       top: target.getBoundingClientRect().top,
       scrollY: window.scrollY,
       moved: transcript.otherOpen,

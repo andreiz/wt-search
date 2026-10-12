@@ -739,6 +739,34 @@ describe("keeping the reader's place", () => {
     expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 240);
   });
 
+  it("brings the paragraph up to a third of the way down when the excerpt was in the lower half of the screen", async () => {
+    vi.spyOn(window, "innerHeight", "get").mockReturnValue(900);
+    excerptTop = 700;
+    passageTop = 940;
+    const calls = stubFetch();
+    const { container } = renderList();
+    fireEvent.click(container.querySelector(".hit__excerpt")!);
+    answer(calls[0]!);
+    await loaded();
+    // No header here, so the room is the 900 px screen: the paragraph goes to 300, from 940.
+    expect(scrollBy).toHaveBeenNthCalledWith(1, 0, 640);
+  });
+
+  it("leaves an open view's paragraph low on the screen when the other radius arrives", async () => {
+    vi.spyOn(window, "innerHeight", "get").mockReturnValue(900);
+    const calls = stubFetch();
+    renderList();
+    openFromMenu();
+    answer(calls[0]!);
+    await loaded();
+    scrollBy.mockClear();
+    passageTop = 700; // where the reader has it
+    fireEvent.click(nearby());
+    passageTop = 820;
+    answer(calls[1]!);
+    await waitFor(() => expect(scrollBy).toHaveBeenCalledWith(0, 120));
+  });
+
   it("applies it again, from the paragraph's own top, when the other radius arrives", async () => {
     const calls = stubFetch();
     renderList();

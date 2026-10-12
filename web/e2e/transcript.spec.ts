@@ -424,6 +424,28 @@ for (const { name, width, height } of WIDTHS) {
         );
       });
 
+    test("an excerpt tapped at the bottom of the screen: the matched text comes up, with what follows it in view", async ({ page }) => {
+      await openTall(page);
+      const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").nth(4);
+      const excerpt = card.locator(".hit__excerpt");
+      await excerpt.evaluate((el) => el.scrollIntoView({ block: "end" }));
+      await settle(page);
+      const before = (await excerpt.boundingBox())!.y;
+      const height = page.viewportSize()!.height;
+      expect(before).toBeGreaterThan(height / 2);
+
+      await excerpt.click();
+      const hit = card.locator(".passage--hit");
+      await expect(hit).toBeVisible();
+      await settle(page);
+      const box = (await hit.boundingBox())!;
+      // About a third of the way down the room under the header (the header may have changed
+      // height on the way), and never under it.
+      expect(box.y).toBeGreaterThan(await headerEdge(page));
+      expect(box.y).toBeLessThan(height / 2);
+      await expect(card.locator(".passage--hit + .passage")).toBeInViewport();
+    });
+
     test("the strip stays pinned under the header while the long view is on screen: Show less and ⋯ are in reach", async ({ page }) => {
       await openTall(page);
       const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").nth(4);

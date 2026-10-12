@@ -13,6 +13,11 @@ fast-forwarded `main` to it; everything is on `main`, and that branch can be del
 and a report and a feedback message have been sent through the real widget), then Task 16
 (the visual pass against the mocks):
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+**Plan 4 (the review tool, `wts reports`, the reports digest) is written and awaits the
+maintainer's review** (2026-10-11, started while he does Checkpoint H; nothing built):
+[`docs/superpowers/plans/2026-10-11-m1-review-tool.md`](superpowers/plans/2026-10-11-m1-review-tool.md).
+Its "Decisions this plan makes" need his yes before Task 1, above all leaving out
+boilerplate flagging (detection is shelved) and the platform sync mode.
 **Task 15 is done** (2026-10-11, Sonnet subagent wrote it blind; the maintainer ran it on
 the Mac, 8 of 8 after two test fixes). `cd web && npm run e2e:smoke` builds the site, makes
 a fresh local D1 in `worker/.wrangler/e2e-state` (migrations, then `web/e2e/seed.sql`: 3

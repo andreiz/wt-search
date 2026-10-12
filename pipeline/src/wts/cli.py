@@ -464,3 +464,89 @@ def logs_cmd(run_id: str | None, episode: str | None, level: str | None, since: 
         click.echo(json.dumps(line, ensure_ascii=False) if as_json else format_line(line))
     if not found:
         click.echo("no log lines match", err=True)
+
+
+_reports_env_option = click.option(
+    "--env", "env", type=click.Choice(ENV_NAMES), default=None,
+    help="Environment to read [default: run_env in config.toml].")
+
+
+def _reports_d1(env: str | None, client):
+    """The D1 for `env` (or run_env), with the usual config and token errors."""
+    from wts.reports import open_d1
+    from wts.secrets import get_store
+
+    ctx = _ctx()
+    name = env or ctx.cfg.run_env
+    if not name:
+        raise click.UsageError(f"no environment: use --env or run_env in {ctx.paths.config_file}")
+    return open_d1(ctx.cfg, name, get_store(), client)
+
+
+@main.group("reports", invoke_without_command=True)
+@_reports_env_option
+@click.option("--all", "show_all", is_flag=True, help="Include resolved and rejected reports.")
+@click.option("--json", "as_json", is_flag=True, help="Print the reports as JSON.")
+@click.pass_context
+def reports_cmd(ctx: click.Context, env: str | None, show_all: bool, as_json: bool) -> None:
+    """List listener reports from D1 (open ones unless --all), or close them.
+
+    wts reports resolve|reject|reopen ID... changes the status of those reports.
+    """
+    ctx.obj = {"env": env}
+    if ctx.invoked_subcommand is not None:
+        return
+    import json
+    from dataclasses import asdict
+
+    from wts.cloudflare import CloudflareError
+    from wts.net import new_client
+    from wts.reports import format_reports, list_reports
+
+    try:
+        with new_client() as client:
+            reports = list_reports(_reports_d1(env, client), status=None if show_all else "open")
+    except CloudflareError as exc:  # never holds the token
+        raise click.ClickException(str(exc)) from exc
+    if as_json:
+        click.echo(json.dumps([asdict(r) for r in reports], indent=2, ensure_ascii=False))
+    elif not reports:
+        click.echo("no reports" if show_all else "no open reports")
+    else:
+        color = sys.stdout.isatty()
+        click.echo(format_reports(reports, color=color), color=color)
+
+
+def _reports_close(ctx: click.Context, env: str | None, ids: tuple[int, ...], status: str) -> None:
+    from wts.cloudflare import CloudflareError
+    from wts.net import new_client
+    from wts.reports import set_status
+
+    missing = False
+    try:
+        with new_client() as client:
+            d1 = _reports_d1(env or ctx.obj["env"], client)
+            for report_id in ids:
+                if set_status(d1, report_id, status):
+                    click.echo(f"#{report_id} {status}")
+                else:
+                    click.echo(f"#{report_id} not found")
+                    missing = True
+    except CloudflareError as exc:  # never holds the token
+        raise click.ClickException(str(exc)) from exc
+    if missing:
+        raise SystemExit(1)
+
+
+def _reports_status_command(name: str, status: str, verb: str) -> None:
+    @reports_cmd.command(name, help=f"Mark reports {verb}; exit 1 if any ID is not found.")
+    @_reports_env_option
+    @click.argument("ids", nargs=-1, required=True, type=click.IntRange(min=1))
+    @click.pass_context
+    def _command(ctx: click.Context, env: str | None, ids: tuple[int, ...]) -> None:
+        _reports_close(ctx, env, ids, status)
+
+
+_reports_status_command("resolve", "resolved", "resolved")
+_reports_status_command("reject", "rejected", "rejected")
+_reports_status_command("reopen", "open", "open again")

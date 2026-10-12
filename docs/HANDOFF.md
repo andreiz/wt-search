@@ -13,6 +13,25 @@ fast-forwarded `main` to it; everything is on `main`, and that branch can be del
 and a report and a feedback message have been sent through the real widget), then Task 16
 (the visual pass against the mocks):
 [`docs/superpowers/plans/2026-10-08-m1-frontend.md`](superpowers/plans/2026-10-08-m1-frontend.md).
+- **Checkpoint H so far (maintainer, 2026-10-11, desktop, staging):**
+  - Step 3: `"10% off"` in Exact gives 39 matches, `10% off` unquoted 62 (it matches "10"
+    and "off" anywhere in a chunk, and marks them separately, so "roll off" is marked and
+    the "%" is not). `hvlp sprayer year:2020` gives the "No exact matches — passages about
+    similar things" page: 16 related results, all from Ep. 466, in one card.
+  - **Raised, not decided:** in that card the rows are in rank order (48:07, 31:25, 39:10,
+    …), which reads as scrambled times. Offered: time order inside a card under Relevance,
+    cards still ranked by their best hit (a change to spec §5.5's "never reordered").
+  - Step 4: `SEARCH_OVERRIDE` = `exact` shows "Meaning search is paused; these are keyword
+    matches."; `maintenance` shows the banner "Search is down for maintenance. Please try
+    again later." and no results. The rate-limit notice has not been seen.
+  - Step 5: `/` answers with the CSP, `referrer-policy: no-referrer` and `nosniff`;
+    `/robots.txt` answers 200 (checked with `curl -I`, so the body was not shown).
+  - **The reports rows on staging stay:** the maintainer wants to review them, so step 3's
+    "then delete them" is dropped. They are material for Checkpoint J (`wts reports`,
+    `wts review --report <id>`).
+  - Still to do: the phone (iOS) pass, with the two scroll fixes of 2026-10-11 (the report
+    form, a tapped excerpt), which need a fresh `npm run deploy:staging`; the platform
+    buttons; a clean browser console; VoiceOver (step 6).
 **Plan 4 (the review tool, `wts reports`, the reports digest) is built, Tasks 1–10; next
 is its Checkpoint J** (2026-10-11, done while the maintainer did Checkpoint H; he approved
 the plan and its decisions the same day):

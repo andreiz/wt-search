@@ -144,6 +144,28 @@ reported passage with `--report`, close the test reports on staging with `wts re
   as the same. Doubtful ones he may want to hear: "a 3/4 hour saw" (ep609), "3/4 TPI"
   (ep616, 5:22), "Mortice and Tenon Tool" (ep608, 44:39), "cabrio leg" (ep608, 17:54).
   To apply: `uv run wts chunk`, `uv run wts embed`, then publish.
+- **Checkpoint J, 2026-10-13 (the maintainer reviewed episode 603 end to end):** done except
+  a pass of the review page in Safari. He marked 603 reviewed, and did the reports part
+  (`wts reports`, `--report <id>`, resolve/reject) himself. What it turned up, all fixed:
+  - `wts status --flagged` lists the flagged episodes and whether each is reviewed (only 602
+    and 613 are flagged, both `loop_cut`, now that the end guard trims the made-up endings).
+  - A jump to before the first word (603 opens with music; the "0:00" worst stretch) now
+    scrolls to the top.
+  - Switching "Everywhere" / "This episode only" on a previewed rule previews the other scope
+    at once; a greyed-out Save says why in its tooltip.
+  - A tab outlives its server (he started `wts review 614` with the 603 tab still open):
+    Preview, Save and Mark reviewed now say the server has stopped.
+  - Two joining rules in `words.py` (spec §3.3): a word starting with a dot and a letter
+    joins the word before it ("woodcraft" ".com", "a" ".m."; 365 over 37 episodes), and
+    "four 30" becomes "4:30" only where a.m./p.m., "from … to" or a clock time before "to"
+    marks a time (five, all class times; "the DW seven 35" and "starts at four 49" stay).
+  - Rules added: Woodcraft (with `woodcraft com` kept), Wood Whisperer, Wood Talk, Lumber
+    Update, Krenov, Moxon, vise/vises (`vice versa`, `vice president` kept), the guild and
+    Patreon addresses; for 603 only: Matt problem, generous contributions, Copilot, a pole
+    lathe, spins. Not heard, so left: "mocks and vices" (ep599, 56:11, probably Moxon
+    vises), "pole lathes" at 603 0:13 / 47:57 / 50:17, and `www guild com: TWWguild.com`
+    (ep607, 10:19) was added from context only.
+  To apply: `uv run wts chunk`, `uv run wts embed`, then publish.
 - **Checkpoint G step 3, the three paraphrase queries (the maintainer, 2026-10-12, staging,
   Smart):** all three gave "No exact matches — passages about similar things".
   - `aspirational builds`, meaning Shannon's bucket list in episode 71 (40:30–46:00, the

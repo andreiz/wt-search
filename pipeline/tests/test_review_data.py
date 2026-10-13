@@ -217,7 +217,8 @@ def test_payload_unsure_lists_the_marked_words_by_index(conn, paths, make_episod
 
 def test_worst_stretches_do_not_count_small_words():
     small = [["and", i * 500, i * 500 + 400, 0.1] for i in range(20)]
-    real = [["dovetail", 60_000 + i * 500, 60_400 + i * 500, 0.1 if i < 2 else 0.9] for i in range(20)]
+    # 2 s apart, so the episode's last stretch is more than half a minute long and counts.
+    real = [["dovetail", 60_000 + i * 2000, 60_400 + i * 2000, 0.1 if i < 2 else 0.9] for i in range(20)]
     assert worst_stretches(small + real) == [
         {"start_ms": 60_000, "share": 0.1},
         {"start_ms": 0, "share": 0.0},
@@ -243,7 +244,11 @@ def test_worst_stretches_top_and_threshold():
     for k in range(7):
         words += [[*w[:3], 0.1 if i <= k else 0.9] for i, w in enumerate(_words_at(k * 60, 20, 0))]
     top = worst_stretches(words)
-    assert [s["start_ms"] for s in top] == [360_000, 300_000, 240_000, 180_000, 120_000]
+    # The last stretch (360 s) is 10 s of sign-off, so it is left out, though it is the worst.
+    assert [s["start_ms"] for s in top] == [300_000, 240_000, 180_000, 120_000, 60_000]
+    # With a word 40 s into it, it is a stretch like any other.
+    closed = [*words, ["done.", 400_000, 400_400, 0.9]]
+    assert worst_stretches(closed)[0]["start_ms"] == 360_000
     assert len(worst_stretches(words, top=2)) == 2
     # A probability of exactly LOW_PROB is not "under".
     edge = _words_at(0, 20, LOW_PROB)

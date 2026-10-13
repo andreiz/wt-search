@@ -234,6 +234,7 @@ system.
 | Hard failure (corrupt audio, crash, out of memory) | The `ffprobe` check after download catches bad files early. Failures set `error`, and the episode is retried up to 3 times. |
 | Made-up text over silence | Drop segments Whisper marks as probably not speech (`no_speech_prob > 0.6` and low average log probability). |
 | Repetition loops | Cut segments where the same phrase (2–8 words) repeats 4 or more times in a row, or a single word 8 or more times, and the repeats make up at least half the segment; flag the episode `loop_cut`. *(Revised 2026-10-05: the original "any n-gram 4 times" rule dropped normal speech like "yeah, yeah, yeah, yeah".)* |
+| Made-up text at the end | Over the music or silence that ends an episode Whisper keeps writing: the last word again and again, each as a confident segment of its own ("Bye." eight times, "He just shows up." six times), then stray words ("debug.", "besser.", "很多."). The two guards above judge one segment at a time and miss it. In the last 45 seconds, the text is cut from the first of these to the end: the second of 4 or more segments in a row that say the same thing (the first is kept), or a segment with letters outside the Latin script. No flag: it is routine. *(Added 2026-10-12, after the review tool's worst stretch turned out to be the last minute in 7 of 37 episodes. On the 37 it cuts the ending of 16, between 3 and 14 segments each, every one a repeated goodbye or a stray word; "Bye. Bye. Bye." after the network's outro in episode 171 stays. Three repeats are left alone: "Thank you." three times after episode 127's outro is still there.)* |
 | Suspicious episode | Flag it for a manual look (it still publishes) if it has fewer than 80 or more than 260 words per minute. |
 | Bad timestamps | Word start times must never go backwards and must stay within the episode's length (the downloaded file's probed length, which can exceed the feed's when ads are inserted). If a segment's words don't, flag the episode and spread that segment's words evenly across it; other segments keep their word timings. |
 | Split hyphenated words | Whisper's word timings split "split-top" into "split" and "-top", so chunk text read "split -top". `wts chunk` joins a word starting with `-` and a letter or digit to the word before it, after corrections (so "Rubo -style" is still corrected), keeping the first half's start time so `word_times` stays one per word. A lone `-`/`–` is speech punctuation and stays; nothing joins across a sentence end. *(Added 2026-10-07: 1,259 joins over the 36 seed episodes, all real hyphenations, including numbers like 623-242-2450, CARB-2 and catch-22; no minus numbers.)* Numbers split the same way ("22" ".5", "45" ",000", "10" "%", read as "22 .5", "45 ,000", "10 %"): after a word ending in a digit, a word starting with `.` or `,` and a digit, or `%`, is joined too. A lone `,` stays. *(Added 2026-10-08; search was unaffected, since FTS5 splits on `.`, `,` and `%`; only the displayed text was.)* |
@@ -381,7 +382,12 @@ Mac and is never deployed.
 >   0.5, half of them the first word of a sentence. A word is marked when
 >   its probability is under 0.5 and it is not in a fixed list of such
 >   words (`review/data.py`), which leaves 70 to 105 marks an episode; `n`
->   and the worst stretches use the same rule.
+>   and the worst stretches use the same rule. The stretch an episode
+>   ends in is left out of the worst stretches when it is under half a
+>   minute, and "bye", "bye-bye" and "goodbye" count as small words
+>   *(2026-10-12: with the made-up endings cut, §3.3, a few seconds of
+>   sign-off with one doubted "Bye." still came first; the last minute is
+>   now the worst stretch in 2 of the 37 episodes, both real doubts)*.
 > - **`e` with nothing selected edits the current word,** so `n` then `e`
 >   fixes an unsure word. **Shift-click** selects a word without seeking,
 >   and a second shift-click stretches the selection to that word.

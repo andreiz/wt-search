@@ -142,6 +142,17 @@ reported passage with `--report`, close the test reports on staging with `wts re
     at 33:37 ("I needed wider than 12 inches") in the top 5. Not confirmed by him which
     passage he meant.
   - `glue in cold shop`: Claude's made-up example, with no known passage; nothing to judge.
+- **Made-up endings (the maintainer, 2026-10-12):** the first worst stretch was almost
+  always the end of the show. In 16 of the 37 episodes Whisper wrote on over the closing
+  music ("Bye." ten times, "He just shows up." six times, "debug. debug. besser.",
+  "很多."), each as a confident segment of its own, so the guards missed it and it was in
+  the search index. A new guard cuts it (spec §3.3 "Made-up text at the end";
+  `guards.py` `_trim_tail`); every segment it cuts on the 37 was read. The review page
+  also leaves the last stretch out of the worst ones when it is under half a minute.
+  Needs `uv run wts chunk` and `uv run wts embed` on the Mac, then a publish.
+- **The review page has a Boost menu** (2×, 4×, 8×, through a limiter, remembered per
+  episode): episode 71's audio is 15 dB quieter than episode 597's, episode 85's 10 dB.
+  Not yet heard by Claude or confirmed by the maintainer.
 - **Correcting will go on for a while** (the maintainer, 2026-10-12): it is ongoing work
   beside the plans, not a step to finish before the next one.
 - **Still not run on real data:** Safari, the real D1 (reports: `wts reports`,

@@ -32,7 +32,7 @@ this that these those there here what which who whom whose when where why how
 can could would should will shall may might must not no just very any some also too
 i'm i've i'd i'll it's that's there's what's let's you're we're they're
 don't doesn't didn't can't won't isn't wasn't
-yeah yes yep like well right okay ok oh uh um mm hmm huh ah
+yeah yes yep like well right okay ok oh uh um mm hmm huh ah bye bye-bye goodbye
 """.split()  # noqa: SIM905 — a block of words is easier to edit than a list literal
 )
 _EDGES = re.compile(r"^[\W_]+|[\W_]+$")
@@ -153,6 +153,11 @@ def worst_stretches(
     stretches_words: dict[int, list[Sequence]] = {}
     for word in words:
         stretches_words.setdefault(word[1] // window_ms, []).append(word)
+    # The stretch the episode ends in is the sign-off, and usually a few seconds of it: one
+    # doubted "Bye." made it the worst of the episode. It counts only if it is half a stretch
+    # (or the only one).
+    if len(stretches_words) > 1 and words[-1][1] % window_ms < window_ms // 2:
+        stretches_words.pop(words[-1][1] // window_ms, None)
     stretches = [
         (k, sum(is_unsure(w[0], w[3]) for w in ws) / len(ws), sum(w[3] for w in ws) / len(ws))
         for k, ws in stretches_words.items()

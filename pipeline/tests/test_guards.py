@@ -40,6 +40,59 @@ def test_conversational_repeats_are_kept():
     assert _text(words) == text and "loop_cut" not in flags
 
 
+def _signoff(*endings):
+    return tx(seg("Thanks for listening, everybody."), *[seg(e) for e in endings])
+
+
+def test_made_up_ending_is_cut_after_the_first_repeat():
+    # Episode 597: the goodbye again and again over the closing music, then stray words.
+    words, flags = clean_transcript(
+        _signoff("Bye-bye.", "Bye.", "Bye.", "Bye.", "Bye.", "debug.", "besser."), 3
+    )
+    assert _text(words) == "Thanks for listening, everybody. Bye-bye. Bye."
+    assert flags == []  # routine, not a reason to look at the episode
+
+
+def test_made_up_ending_takes_what_follows_it():
+    # Episode 604's phrase, and episode 608's "Thank you." after the run.
+    words, _ = clean_transcript(_signoff(*["He just shows up."] * 5, "Thank you."), 60)
+    assert _text(words) == "Thanks for listening, everybody. He just shows up."
+
+
+def test_ending_in_another_script_is_cut():
+    # Episode 616.
+    words, _ = clean_transcript(_signoff("Bye.", "很多.", "Thank you."), 60)
+    assert _text(words) == "Thanks for listening, everybody. Bye."
+
+
+def test_three_goodbyes_are_kept():
+    # Episode 171 ends "Bye. Bye. Bye." after the network's outro, and the hosts said it.
+    text = "Thanks for listening, everybody. Bye. Bye. Bye."
+    words, _ = clean_transcript(_signoff("Bye.", "Bye.", "Bye."), 60)
+    assert _text(words) == text
+
+
+def test_accented_words_at_the_end_are_kept():
+    words, _ = clean_transcript(_signoff("André Roubo.", "Adiós."), 60)
+    assert _text(words) == "Thanks for listening, everybody. André Roubo. Adiós."
+
+
+def test_repeats_before_the_ending_are_kept():
+    # Four segments in a row that say the same, but a minute before the end.
+    middle = [seg("No.")] * 4
+    talk = [seg("So we glued it up and clamped it overnight and it held fine.", word_ms=5000)]
+    words, _ = clean_transcript(tx(seg("Really?"), *middle, *talk), 120)
+    assert _text(words).startswith("Really? No. No. No. No. So we glued")
+
+
+def test_ending_with_segments_out_of_order_is_cut_by_position():
+    # Episode 616's last segment starts before the one ahead of it.
+    last = seg_with_word_starts("Thank you.", starts=[0.9, 1.0], start=0.9, end=1.0)
+    segments = [seg("Thanks for listening, everybody."), *[seg("Bye.")] * 4, last]
+    words, _ = clean_transcript(tx(*segments), 60)
+    assert _text(words) == "Thanks for listening, everybody. Bye."
+
+
 def test_dropped_loop_is_flagged():
     _, flags = clean_transcript(tx(seg(" ".join(["the glue"] * 4)), seg("Clamp it.")), 60)
     assert "loop_cut" in flags

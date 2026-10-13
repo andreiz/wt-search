@@ -1,5 +1,7 @@
 """Transcript quality guards (spec §3.3), applied to raw Whisper output in `wts chunk`."""
 
+import unicodedata
+
 from wts.words import Word, normalize_text
 
 NO_SPEECH_PROB = 0.6
@@ -8,6 +10,8 @@ MAX_NGRAM = 8
 LOOP_REPEATS = 4  # phrases of 2+ words
 SINGLE_WORD_LOOP_REPEATS = 8  # "yeah, yeah, yeah, yeah" is normal conversation
 LOOP_SHARE = 0.5  # the loop must be at least half the segment
+TAIL_S = 45  # how far from the end the made-up ending is looked for
+TAIL_REPEATS = 4  # segments in a row that say the same thing
 WPM_LOW = 80
 WPM_HIGH = 260
 
@@ -30,6 +34,40 @@ def _has_loop(tokens: list[str]) -> bool:
                 return True
             i += 1
     return False
+
+
+def _not_latin(text: str) -> bool:
+    return any(c.isalpha() and not unicodedata.name(c, "").startswith("LATIN") for c in text)
+
+
+def _trim_tail(segments: list[dict]) -> list[dict]:
+    """Cut what Whisper made up after the sign-off (spec §3.3, "Made-up text at the end").
+
+    Over the music or silence that ends an episode it keeps writing: the last word again and
+    again, each as a confident segment of its own ("Bye." eight times, "He just shows up." six
+    times), then stray words ("debug.", "besser.", "很多."). Neither guard above sees it, since
+    they judge one segment at a time. In the last `TAIL_S` seconds, the text is cut from the
+    first of these to the end: the second of `TAIL_REPEATS` or more segments in a row that say
+    the same thing (the first is kept: that one was probably said), or a segment with letters
+    outside the Latin script.
+    """
+    spoken = [i for i, seg in enumerate(segments) if normalize_text(seg["text"])]
+    if not spoken:
+        return segments
+    end = max(segments[i]["end"] for i in spoken)
+    tail = [i for i in spoken if segments[i]["start"] >= end - TAIL_S]
+    texts = [normalize_text(segments[i]["text"]) for i in tail]
+    for k, i in enumerate(tail):
+        if _not_latin(segments[i]["text"]):
+            return segments[:i]
+        if k and texts[k] == texts[k - 1]:
+            continue  # inside a run: judged at its start
+        run = 1
+        while k + run < len(texts) and texts[k + run] == texts[k]:
+            run += 1
+        if run >= TAIL_REPEATS:
+            return segments[: i + 1]
+    return segments
 
 
 def _spread(texts: list[str], start_s: float, end_s: float) -> list[Word]:
@@ -72,6 +110,7 @@ def clean_transcript(data: dict, duration_s: float | None) -> tuple[list[Word], 
                 flags.append("loop_cut")
             continue
         kept.append(seg)
+    kept = _trim_tail(kept)
 
     limit_ms = (duration_s + 1) * 1000 if duration_s else None
     words: list[Word] = []

@@ -24,6 +24,29 @@ describe("<SearchBar/>", () => {
     expect(placeholder()).toMatch(/^Search 1,234 episodes/);
   });
 
+  it("on a touch screen a search takes the focus out of the box, so the keyboard goes away", () => {
+    const coarse = (matches: boolean) =>
+      vi.stubGlobal("matchMedia", (query: string) => ({ matches: matches && query === "(pointer: coarse)" }));
+    try {
+      coarse(true);
+      render(<SearchBar value="glue" onInput={() => {}} onSubmit={() => {}} />);
+      const box = screen.getByRole("textbox");
+      box.focus();
+      fireEvent.submit(screen.getByRole("search"));
+      expect(document.activeElement).not.toBe(box);
+      cleanup();
+      // With a mouse the box keeps the focus.
+      coarse(false);
+      render(<SearchBar value="glue" onInput={() => {}} onSubmit={() => {}} />);
+      const again = screen.getByRole("textbox");
+      again.focus();
+      fireEvent.submit(screen.getByRole("search"));
+      expect(document.activeElement).toBe(again);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("submits the text on the Search button and on form submit (Enter), and not on typing", () => {
     const onSubmit = vi.fn();
     const onInput = vi.fn();

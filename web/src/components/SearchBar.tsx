@@ -12,6 +12,11 @@ function isPhone(): boolean {
   return typeof window.matchMedia === "function" && window.matchMedia("(max-width: 599.98px)").matches;
 }
 
+/** A finger, not a mouse: the device brings up a keyboard on screen. */
+function isTouch(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+}
+
 export interface SearchBarProps {
   value: string;
   onInput: (value: string) => void;
@@ -37,6 +42,10 @@ export function SearchBar({ value, onInput, onSubmit, inputRef, disabled = false
       role="search"
       onSubmit={(event) => {
         event.preventDefault();
+        // A phone's keyboard stays up over the results while the box has focus, also after a tap
+        // on Search (Safari keeps the focus where it was). With a mouse the focus stays: the
+        // next thing typed is usually a changed query.
+        if (isTouch() && "current" in input) input.current?.blur();
         onSubmit();
       }}
     >

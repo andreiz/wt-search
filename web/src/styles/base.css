@@ -159,8 +159,10 @@ body {
     padding: 20px 4px 8px;
   }
 
+  /* One line on any phone: at 28 px the heading is 385 px wide and broke in two on a 390 px
+     screen. */
   .empty__title {
-    font-size: 28px;
+    font-size: min(28px, 6.6vw);
   }
 
   .site-footer__inner {

@@ -111,6 +111,17 @@ reported passage with `--report`, close the test reports on staging with `wts re
   as the same. Doubtful ones he may want to hear: "a 3/4 hour saw" (ep609), "3/4 TPI"
   (ep616, 5:22), "Mortice and Tenon Tool" (ep608, 44:39), "cabrio leg" (ep608, 17:54).
   To apply: `uv run wts chunk`, `uv run wts embed`, then publish.
+- **Checkpoint G step 3, the three paraphrase queries (the maintainer, 2026-10-12, staging,
+  Smart):** all three gave "No exact matches — passages about similar things".
+  - `aspirational builds`, meaning Shannon's bucket list in episode 71 (40:30–46:00, the
+    Nakashima Conoid chair at 40:54): the episode is 7th (a passage at 15:55) and the
+    bucket-list segment 11th (45:38, the wooden hand planes); the chair passage itself is
+    not in the 20. `projects I dream of building someday` puts the segment 5th. A partial
+    pass, and a first entry for plan 5's test search set.
+  - `board wider than jointer bed`: episode 616 "Should I Buy A Jointer?" first, episode 598
+    at 33:37 ("I needed wider than 12 inches") in the top 5. Not confirmed by him which
+    passage he meant.
+  - `glue in cold shop`: Claude's made-up example, with no known passage; nothing to judge.
 - **Correcting will go on for a while** (the maintainer, 2026-10-12): it is ongoing work
   beside the plans, not a step to finish before the next one.
 - **Still not run on real data:** Safari, the real D1 (reports: `wts reports`,

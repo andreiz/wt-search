@@ -112,6 +112,12 @@ global:
   # put a real Craig's full name under `keep:` below.
   craig: Kreg
   craig's: Kreg's
+  # Woodcraft, the store and sponsor (2026-10-13): Whisper writes "Wood Craft", "WoodCraft"
+  # and "woodcraft". Every use in the 37 episodes is the store. "woodcraft.com" is kept as
+  # said (see `keep:`).
+  wood craft: Woodcraft
+  woodcraft: Woodcraft
+  woodcraft's: Woodcraft's
   # Mortise and tenon (2026-10-12). "mortis" alone is always the joint (ep127, 597, 608); the
   # others are longer keys because "tenant", "Morse" (ep603, a Morse taper) and "mortars" are
   # real words.
@@ -139,6 +145,7 @@ global:
 # An episode rule still wins over a kept phrase.
 keep:
   - Craig Jackson      # ep608, 25:36: a person who ran Kreg, not the brand
+  - woodcraft com      # the web address ("woodcraft" ".com" to Whisper), not "Woodcraft.com"
 episodes:
   2026-08-19_ep613_shove-a-kregger-in-the-hole:
     # "Craig-er" is two words to Whisper, "Craig" and "-er" (they are joined after the

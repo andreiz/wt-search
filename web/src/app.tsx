@@ -199,6 +199,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
               onSubmit={() => searchFor(text)}
               inputRef={inputRef}
               disabled={waiting > 0}
+              episodes={info?.episodes}
             />
           </div>
           <div class="controls" id="search-controls">

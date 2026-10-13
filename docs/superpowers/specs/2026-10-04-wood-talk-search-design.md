@@ -1388,6 +1388,10 @@ As in the brief §4.5; the wording there is the copy, and the design's
   `/assets/` (SIL Open Font License), not loaded from Google Fonts: that
   would need a CSP exception and send every visitor's IP to Google. UI text
   stays on the system font stack.)*
+- The search box's placeholder names the real number of episodes, from
+  `GET /api/info` ("Search 37 episodes — tools, joinery, finishes…"), and
+  says "Search the episodes" until that has answered *(2026-10-12; the
+  design's "625" was written into the page, and staging has 37)*.
 - Deviations from the design export: no "Sponsor read" label and no
   `include:ads` hint (detection is binned, §3.5); no separate `years` URL
   parameter (the range travels in `q`, §5.2); the "why is this related?"

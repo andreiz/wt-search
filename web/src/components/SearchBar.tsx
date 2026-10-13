@@ -2,6 +2,7 @@
 // button, and the Search button. It searches only on submit (Enter or the button), never on typing.
 import type { Ref } from "preact";
 import { useRef } from "preact/hooks";
+import { count } from "../lib/format";
 
 /** The Worker cuts queries at 200 code points (worker/src/query.ts MAX_QUERY_CHARS). */
 export const MAX_QUERY_LENGTH = 200;
@@ -18,9 +19,15 @@ export interface SearchBarProps {
   inputRef?: Ref<HTMLInputElement>;
   /** The Search button is off (while the rate limit's countdown runs); typing still works. */
   disabled?: boolean;
+  /**
+   * How many episodes are indexed, for the placeholder ("Search 625 episodes"). Known only once
+   * /api/info has answered, which the empty state asks for; until then, and if it fails, the
+   * placeholder says "the episodes". The design's mock has the number written in.
+   */
+  episodes?: number | null;
 }
 
-export function SearchBar({ value, onInput, onSubmit, inputRef, disabled = false }: SearchBarProps) {
+export function SearchBar({ value, onInput, onSubmit, inputRef, disabled = false, episodes }: SearchBarProps) {
   const own = useRef<HTMLInputElement>(null);
   const input = inputRef ?? own;
 
@@ -44,7 +51,7 @@ export function SearchBar({ value, onInput, onSubmit, inputRef, disabled = false
           type="text"
           name="q"
           aria-label="Search the transcripts"
-          placeholder={isPhone() ? "Search 625 episodes" : "Search 625 episodes — tools, joinery, finishes…"}
+          placeholder={`Search ${episodes ? `${count(episodes, false)} episodes` : "the episodes"}${isPhone() ? "" : " — tools, joinery, finishes…"}`}
           maxLength={MAX_QUERY_LENGTH}
           value={value}
           onInput={(event) => onInput((event.currentTarget as HTMLInputElement).value)}

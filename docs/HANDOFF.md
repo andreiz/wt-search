@@ -59,6 +59,26 @@ and a report and a feedback message have been sent through the real widget), the
   - Still to do: the rest of the phone (iOS) pass, with the report-form scroll fix of
     2026-10-11 and the change above, which need a fresh `npm run deploy:staging`; the platform
     buttons; a clean browser console; VoiceOver (step 6).
+**Task 16 (the visual pass), steps 1–2 done 2026-10-12; step 3, the maintainer's look, is
+open.** `cd web && npm run e2e:shots` writes a full-page capture of every state of
+`e2e/fixtures.ts` plus loading, at phone and desktop width, light and dark, to
+`web/screenshots/` (92 files, not committed; `e2e/screenshots.spec.ts`, skipped in a plain
+`npm run e2e`). They use the tests' fixtures, not the brief's sample data as the plan said.
+Held beside the mocks' canvas (rendered from `docs/design/system/` over a local server):
+- The site fits the mocks wherever the spec has not since decided otherwise (the card
+  header above the card, one play chip, no pills, related hits inline: §5.3).
+- **Fixed:** the search box's placeholder said "Search 625 episodes" whatever the corpus;
+  it now takes the number from `/api/info` (spec §5.7).
+- **For the maintainer to decide:** (1) the serif headings ("Find the moment it was said.",
+  "Nothing found.") are about 10% wider and heavier than the mocks', because the mocks load
+  Source Serif 4 with its optical-size axis and the site ships two fixed files (20 KB each);
+  on a phone the 28 px heading wraps to two lines where the mock fits one. The variable
+  font (`@fontsource-variable/source-serif-4`) would match, at a larger download. (2) The
+  mocks' report form has placeholders ("What it should say", "Anything else we should
+  know"); the site's fields are empty. (3) In the mocks the results column is about 22 px
+  narrower than the header on each side; the site lines them up.
+- A full-page capture of a scrolled state (the report form, the expanded card) shows the
+  sticky header part-way down the page; that is the capture, not the page.
 **Plan 4 (the review tool, `wts reports`, the reports digest) is built, Tasks 1–10; next
 is its Checkpoint J** (2026-10-11, done while the maintainer did Checkpoint H; he approved
 the plan and its decisions the same day):

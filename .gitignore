@@ -8,6 +8,7 @@ web/dist/
 # Playwright output (screenshots, traces)
 web/test-results/
 web/playwright-report/
+web/screenshots/
 # wrangler's local cache/state, created in whatever directory wrangler runs from
 .wrangler/
 # Local secrets for `wrangler dev` (e.g. TURNSTILE_SECRET); never commit

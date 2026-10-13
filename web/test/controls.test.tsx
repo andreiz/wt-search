@@ -14,6 +14,16 @@ describe("<SearchBar/>", () => {
     expect(screen.getByRole("textbox", { name: /search/i }).getAttribute("maxlength")).toBe("200");
   });
 
+  it("names the real number of episodes in the placeholder, and none until it is known", () => {
+    const { rerender } = render(<SearchBar value="" onInput={() => {}} onSubmit={() => {}} />);
+    const placeholder = () => screen.getByRole("textbox").getAttribute("placeholder");
+    expect(placeholder()).toMatch(/^Search the episodes/);
+    rerender(<SearchBar value="" onInput={() => {}} onSubmit={() => {}} episodes={37} />);
+    expect(placeholder()).toMatch(/^Search 37 episodes/);
+    rerender(<SearchBar value="" onInput={() => {}} onSubmit={() => {}} episodes={1234} />);
+    expect(placeholder()).toMatch(/^Search 1,234 episodes/);
+  });
+
   it("submits the text on the Search button and on form submit (Enter), and not on typing", () => {
     const onSubmit = vi.fn();
     const onInput = vi.fn();

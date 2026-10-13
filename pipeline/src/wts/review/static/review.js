@@ -400,7 +400,10 @@ function seekMs(ms, { play }) {
   } else {
     S.virtualMs = ms;
   }
-  setCurrent(wordIndexAt(ms + 30), "force");
+  const i = wordIndexAt(ms + 30);
+  setCurrent(i, "force");
+  // Before the first word (music at the start) there is no word to bring into view.
+  if (i < 0) window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
 }
 
 function seekWord(i, play) {

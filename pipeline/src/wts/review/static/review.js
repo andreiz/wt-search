@@ -673,7 +673,12 @@ function openEdit(wrong, right) {
   (wrong ? $("edit-right") : $("edit-wrong")).focus();
 }
 
+// The page outlives its server: stopping `wts review`, or starting it for another episode,
+// leaves this tab open with nothing behind it.
+const SERVER_GONE = "This page's review server has stopped. Run `wts review` again and use the page it opens.";
+
 function errorSentence(r, action) {
+  if (r.status === 0) return SERVER_GONE;
   const slug = r.data && r.data.error;
   if (slug === "exists") return "That rule is already in corrections.yaml.";
   if (slug === "changed") return "The transcripts changed since the preview. Preview again.";
@@ -900,7 +905,7 @@ async function toggleReviewed() {
   const r = await api("/api/reviewed", { episode_id: S.ep.id, reviewed: want });
   b.disabled = false;
   if (r.status !== 200 || !r.data) {
-    setStatus("Couldn't change the reviewed mark. Nothing was changed.");
+    setStatus(r.status === 0 ? SERVER_GONE : "Couldn't change the reviewed mark. Nothing was changed.");
     return;
   }
   S.ep.reviewed_at = want ? r.data.reviewed_at || "yes" : null;

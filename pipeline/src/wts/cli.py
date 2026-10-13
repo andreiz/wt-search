@@ -40,11 +40,14 @@ def main() -> None:
 
 
 @main.command()
-def status() -> None:
+@click.option("--flagged", is_flag=True,
+              help="List the episodes the guards flagged, and whether each is reviewed.")
+def status(flagged: bool) -> None:
     """Episode counts by status, errors, and recent runs."""
-    from wts.status import status_report
+    from wts.status import flagged_report, status_report
 
-    click.echo(status_report(_ctx().conn()))
+    report = flagged_report if flagged else status_report
+    click.echo(report(_ctx().conn()))
 
 
 @main.command()

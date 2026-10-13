@@ -30,3 +30,21 @@ def status_report(conn: sqlite3.Connection) -> str:
         counts = describe(json.loads(r["counts"])) if r["counts"] else "(running)"
         lines.append(f"  {r['started_at']}  {r['command']}  {counts}")
     return "\n".join(lines)
+
+
+def flagged_report(conn: sqlite3.Connection) -> str:
+    """Episodes the guards flagged, oldest first, and whether each has been reviewed."""
+    rows = conn.execute(
+        "select number, stem, title, flags, reviewed_at from episodes where flags != '[]' "
+        "order by published_at, id"
+    ).fetchall()
+    if not rows:
+        return "No flagged episodes"
+    left = sum(1 for r in rows if r["reviewed_at"] is None)
+    lines = [f"Flagged episodes: {len(rows)} ({left} to review)"]
+    for r in rows:
+        name = r["number"] if r["number"] is not None else r["stem"]
+        state = "reviewed" if r["reviewed_at"] else "to review"
+        flags = ", ".join(json.loads(r["flags"]))
+        lines.append(f"  {name} | {state} | {flags} | {r['title']}")
+    return "\n".join(lines)

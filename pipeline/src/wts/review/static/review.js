@@ -649,7 +649,9 @@ function updateSaveState() {
     edit.last = null;
     $("edit-preview").replaceChildren();
   }
-  $("edit-save").disabled = !(same && p.count > 0);
+  const save = $("edit-save");
+  save.disabled = !(same && p.count > 0);
+  save.title = !save.disabled ? "" : same ? "This rule changes nothing" : "Preview the rule first";
 }
 
 function setEditError(text) {
@@ -948,9 +950,18 @@ function wire() {
   });
   $("edit-save").addEventListener("click", saveEdit);
   $("edit-cancel").addEventListener("click", () => editDialog.close());
-  for (const id of ["edit-wrong", "edit-right", "edit-scope-all", "edit-scope-episode"]) {
+  for (const id of ["edit-wrong", "edit-right"]) {
     $(id).addEventListener("input", updateSaveState);
     $(id).addEventListener("change", updateSaveState);
+  }
+  // The other scope is one click away from a preview that was just read, so it is previewed
+  // at once; a changed text waits for the Preview button.
+  for (const id of ["edit-scope-all", "edit-scope-episode"]) {
+    $(id).addEventListener("change", () => {
+      const previewed = edit.last !== null;
+      updateSaveState();
+      if (previewed) previewEdit();
+    });
   }
   editDialog.addEventListener("close", onSelectionChange);
 

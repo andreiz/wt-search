@@ -388,6 +388,14 @@ test("a correction is previewed, saved into corrections.yaml and shown", async (
   await page.getByRole("button", { name: "Preview" }).click();
   await expect(save).toBeEnabled();
 
+  // The other scope of a previewed rule is previewed at once, so Save stays usable.
+  await page.getByLabel("This episode only").check();
+  await expect(page.locator("#edit-preview .count")).toHaveText("1 sentence changes");
+  await expect(save).toBeEnabled();
+  await page.getByLabel("Everywhere").check();
+  await expect(page.locator("#edit-preview .count")).toHaveText("1 sentence changes");
+  await expect(save).toBeEnabled();
+
   await save.click();
   await expect(dialog(page)).toBeHidden();
   await expect(page.locator("#status")).toContainText("Saved to corrections.yaml");

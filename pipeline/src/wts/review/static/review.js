@@ -16,6 +16,7 @@
 const SCROLL_PAUSE_MS = 5000;
 const SEEK_STEP_S = 5;
 const SPEEDS_OK = new Set(["0.75", "1", "1.25", "1.5", "1.75", "2"]);
+const BOOSTS_OK = new Set(["1", "2", "4", "8"]);
 
 const params = new URLSearchParams(location.search);
 const token = params.get("t") || "";
@@ -158,7 +159,64 @@ function renderHeader() {
   audio.hidden = !ep.has_audio;
   $("no-audio").hidden = !!ep.has_audio;
   $("speed").disabled = !ep.has_audio;
+  $("boost").disabled = !ep.has_audio;
   if (ep.has_audio && audio.getAttribute("src") !== url) audio.setAttribute("src", url);
+  // An episode keeps the boost it was last given: the quiet ones are the same ones every time.
+  const saved = stored(boostKey(ep));
+  $("boost").value = BOOSTS_OK.has(saved) ? saved : "1";
+  setBoost(Number($("boost").value));
+}
+
+// --- Boost ---------------------------------------------------------------------------------
+// The player's own volume stops at the file's level, and the files differ a lot (episode 71 is
+// 15 dB under episode 597). A boost sends the sound through a gain and then a limiter, so loud
+// moments are held down rather than clipped. The audio graph is made only when a boost is first
+// asked for: once made, the player's sound runs through it for good.
+let boostGraph = null;
+
+function boostKey(ep) {
+  return `wts-review-boost-${ep.id}`;
+}
+
+function stored(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function store(key, value) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    // a private window: the boost just isn't remembered
+  }
+}
+
+function setBoost(times) {
+  if (!boostGraph) {
+    const Context = window.AudioContext || window.webkitAudioContext;
+    if (times === 1 || !Context) return;
+    const context = new Context();
+    const gain = context.createGain();
+    const limiter = context.createDynamicsCompressor();
+    limiter.threshold.value = -3;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.1;
+    context.createMediaElementSource(audio).connect(gain).connect(limiter).connect(context.destination);
+    boostGraph = { context, gain };
+  }
+  boostGraph.gain.gain.value = times;
+  resumeBoost();
+}
+
+// A graph made before the first click starts out suspended, and then the player is silent.
+function resumeBoost() {
+  if (boostGraph && boostGraph.context.state === "suspended") boostGraph.context.resume().catch(() => {});
 }
 
 function renderReviewedButton() {
@@ -859,6 +917,15 @@ function wire() {
     if (SPEEDS_OK.has(v)) audio.playbackRate = Number(v);
     e.target.blur(); // a focused menu would swallow the page's keys
   });
+  $("boost").addEventListener("change", (e) => {
+    const v = e.target.value;
+    if (BOOSTS_OK.has(v)) {
+      setBoost(Number(v));
+      if (S.ep) store(boostKey(S.ep), v === "1" ? null : v);
+    }
+    e.target.blur();
+  });
+  audio.addEventListener("play", resumeBoost);
 
   window.addEventListener("wheel", pauseAutoScroll, { passive: true });
   window.addEventListener("touchmove", pauseAutoScroll, { passive: true });

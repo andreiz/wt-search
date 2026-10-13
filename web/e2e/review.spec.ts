@@ -219,6 +219,28 @@ test("the page's keys still work with focus on the player, a button or the speed
   await done();
 });
 
+test("a boost keeps playing, hands the keys back and is remembered for the episode", async ({ page }) => {
+  const done = await watch(page);
+  await open(page);
+  const boost = page.locator("#boost");
+  await expect(boost).toHaveValue("1");
+  await boost.selectOption("4");
+  // The sound now runs through an audio graph; a suspended one would leave the player silent.
+  await page.keyboard.press(" ");
+  await expect.poll(() => audioTime(page)).toBeGreaterThan(0.2);
+  expect(await page.evaluate(() => (document.getElementById("player") as HTMLAudioElement).paused)).toBe(false);
+  await page.keyboard.press(" ");
+  await page.reload();
+  await expect(boost).toHaveValue("4");
+  // Remembered and applied before any click: the player still plays.
+  await page.keyboard.press(" ");
+  await expect.poll(() => audioTime(page)).toBeGreaterThan(0.2);
+  await boost.selectOption("1");
+  await page.reload();
+  await expect(boost).toHaveValue("1");
+  await done();
+});
+
 test("Space plays and pauses",async ({ page }) => {
   const done = await watch(page);
   await open(page);

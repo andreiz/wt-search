@@ -386,6 +386,9 @@ Mac and is never deployed.
 >   fixes an unsure word. **Shift-click** selects a word without seeking,
 >   and a second shift-click stretches the selection to that word.
 >   **Shift-`n`** goes to the previous unsure word.
+> - **Boost** *(2026-10-12)*: beside Speed, a menu that plays the audio 2×, 4× or 8× louder
+>   than the file, through a limiter, remembered per episode in the browser. The files differ
+>   a lot: episode 71 is 15 dB quieter than episode 597, episode 85 10 dB.
 > - **Corrections show inline:** what Whisper wrote is struck out, in red,
 >   before the words that replaced it, in green (payload `fixes`). The
 >   struck-out text is not a word: it can't be clicked or selected. A

@@ -35,6 +35,18 @@ def test_join_split_words_never_crosses_a_sentence_end_or_starts_with_nothing():
     assert texts(join_split_words(ws("It ended. -top again"))) == ["It", "ended.", "-top", "again"]
 
 
+def test_join_split_words_dot_tails():
+    # "woodcraft" ".com" and "a" ".m." (365 of these in the first 37 transcripts), so chunk
+    # text read "Learn more at woodcraft .com".
+    assert texts(join_split_words(ws("at woodcraft .com today"))) == ["at", "woodcraft.com", "today"]
+    assert texts(join_split_words(ws("www .guild .com. Next"))) == ["www.guild.com.", "Next"]
+    assert texts(join_split_words(ws("at 10 a .m. P .S. a .k .a. Matt"))) == (
+        ["at", "10", "a.m.", "P.S.", "a.k.a.", "Matt"])
+    # Not across a sentence end, and a dot on its own or before a digit is not this rule's.
+    assert texts(join_split_words(ws("It ended. .com is"))) == ["It", "ended.", ".com", "is"]
+    assert texts(join_split_words(ws("he's ... well just .89"))) == ["he's", "...", "well", "just", ".89"]
+
+
 def test_join_split_numbers():
     # Whisper's word timings split numbers too: "22" ".5", "45" ",000", "10" "%" (all seen in
     # the real fixtures), so chunk text read "22 .5 degree", "45 ,000 hits", "10 % off".

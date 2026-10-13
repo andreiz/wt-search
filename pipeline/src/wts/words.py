@@ -15,6 +15,8 @@ _DIGITS = re.compile(r"\d+")
 # A second half that Whisper's word timings split off: "-top", ".5", ",000", "%".
 _HYPHEN_TAIL = re.compile(r"^-\w")
 _NUMBER_TAIL = re.compile(r"^(?:[.,]\d|%)")
+# ".com", and the ".m." of "a.m.": a dot and a letter is never the start of a word.
+_DOT_TAIL = re.compile(r"^\.[^\W\d_]")
 _ENDS_IN_DIGIT = re.compile(r"\d$")
 
 
@@ -57,7 +59,7 @@ def _ends_sentence(text: str) -> bool:
 def _is_tail(prev: str, text: str) -> bool:
     if _ends_sentence(prev):
         return False
-    return bool(_HYPHEN_TAIL.match(text)
+    return bool(_HYPHEN_TAIL.match(text) or _DOT_TAIL.match(text)
                 or (_NUMBER_TAIL.match(text) and _ENDS_IN_DIGIT.search(prev)))
 
 
@@ -67,7 +69,7 @@ def join_split_words(words: Sequence[Word]) -> list[Word]:
     "split-top" comes out as "split" and "-top", so chunk text read "split -top"; numbers
     likewise ("22" ".5", "45" ",000", "10" "%"). Joined to the word before it, keeping one word
     per timing (the first half's start): a word that starts with `-` and a letter or digit,
-    and, after a word ending in a digit, one that starts with `.` or `,` and a digit, or `%`.
+    one that starts with `.` and a letter ("woodcraft" ".com", "a" ".m."), and, after a word ending in a digit, one that starts with `.` or `,` and a digit, or `%`.
     A dash or comma on its own is punctuation and stays; nothing is joined across a sentence
     end.
     """

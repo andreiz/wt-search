@@ -56,7 +56,7 @@ These are decided; design with them, not around them.
 The maintainer's words: "not a fan of all the wrapping. The option cards, the title, the
 'try' stuff."
 
-1. **The controls row does not fit.** Exact | Related (beta), the sort menu ("Relevance ▾"),
+1. **The controls row does not fit.** Exact | Related (beta), the sort menu ("Best match ▾"),
    the year chip ("Any year", or "2015–2020 ×" when set) and the `?` help need about 390 px
    at the first round's sizes with "Smart"; a 390 px screen has 358. So `?` drops to a line of
    its own, and "Related (beta)" is a longer label than "Smart". The row needs a layout that
@@ -81,7 +81,7 @@ The maintainer's words: "not a fan of all the wrapping. The option cards, the ti
   summary line ("Related (beta) · top results 1–20"), and on the button that leads there from
   Exact.
 - **The compact header** (phone, scrolled) shows the search row and one summary button
-  ("Exact · Relevance · Any year ▾"); check it with "Related (beta)" and a set year.
+  ("Exact · Best match · Any year ▾"); check it with "Related (beta)" and a set year.
 - The start page's heading ("Find the moment it was said.") must stay on one line on a phone.
 
 ## 4. Deliverable

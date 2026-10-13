@@ -1150,7 +1150,9 @@ Pinned to the top (compacting on scroll on phones):
   it already drops words with no letter or digit and cuts at 200 code points
   (§4.3).
 - A row: a **Smart / Exact** segmented switch (one-line tooltips), a sort
-  menu (Relevance / Newest / Oldest), a **year range** chip, and a `?`
+  menu (Best match / Newest / Oldest; "Best match" is `sort=relevance`,
+  renamed from "Relevance" 2026-10-13, since in Exact it only ranks by how
+  often the words appear), a **year range** chip, and a `?`
   syntax popover (the table in §4.3 as examples, as in the brief §5).
 - **The switch is Exact / Related (beta), and Exact is the default**
   *(maintainer, 2026-10-12, revising "Smart / Exact" with Smart the

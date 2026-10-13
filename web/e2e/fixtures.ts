@@ -401,7 +401,7 @@ export const STATES: State[] = [
     await expect(page.getByRole("menu")).toBeVisible();
   }),
   popup("sort menu open", async (page) => {
-    await page.getByRole("button", { name: "Sort: Relevance" }).click();
+    await page.getByRole("button", { name: "Sort: Best match" }).click();
     await expect(page.getByRole("menu", { name: "Sort by" })).toBeVisible();
   }),
   popup("year range open", async (page) => {

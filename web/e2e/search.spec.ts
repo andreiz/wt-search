@@ -98,10 +98,10 @@ test.describe("phone header compaction", () => {
     // Compact: the controls are out of the way, the input and the summary button show.
     await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeHidden();
     await expect(page.getByRole("textbox", { name: "Search the transcripts" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ })).toBeVisible();
 
     // The button is a toggle: open the controls, with nothing else moving.
-    const toggle = page.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ });
+    const toggle = page.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ });
     const steady = async (expectCompact: boolean) => {
       for (let i = 0; i < 3; i++) {
         expect(await compact(page)).toBe(expectCompact);

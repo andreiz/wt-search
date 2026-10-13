@@ -126,18 +126,18 @@ describe("<SortMenu/>", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
-  it("opens with Relevance, Newest and Oldest, the current one checked", () => {
+  it("opens with Best match, Newest and Oldest, the current one checked", () => {
     render(<SortMenu sort="newest" onChange={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "Sort: Newest" }));
     const items = screen.getAllByRole("menuitemradio");
-    expect(items.map((i) => i.textContent?.replace("✓", "").trim())).toEqual(["Relevance", "Newest", "Oldest"]);
+    expect(items.map((i) => i.textContent?.replace("✓", "").trim())).toEqual(["Best match", "Newest", "Oldest"]);
     expect(items.map((i) => i.getAttribute("aria-checked"))).toEqual(["false", "true", "false"]);
   });
 
   it("choosing an option reports it, closes the menu and returns focus to the button", () => {
     const onChange = vi.fn();
     render(<SortMenu sort="relevance" onChange={onChange} />);
-    fireEvent.click(screen.getByRole("button", { name: "Sort: Relevance" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sort: Best match" }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: /Oldest/ }));
     expect(onChange).toHaveBeenCalledWith("oldest");
     expect(screen.queryByRole("menu")).toBeNull();

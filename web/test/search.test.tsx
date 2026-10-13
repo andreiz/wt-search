@@ -546,14 +546,14 @@ describe("markup rules", () => {
       go("/?q=glue&mode=related");
       stubFetch();
       render(<App />);
-      const button = screen.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ });
+      const button = screen.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ });
       fireEvent.click(button);
       return button;
     }
 
     it("the button stays after opening, says expanded, and points at the controls", () => {
       const button = open();
-      expect(screen.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ })).toBe(button);
+      expect(screen.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ })).toBe(button);
       expect(button.getAttribute("aria-expanded")).toBe("true");
       const controls = document.getElementById(button.getAttribute("aria-controls") ?? "");
       expect(controls?.contains(screen.getByRole("radio", { name: "Related (beta)" }))).toBe(true);
@@ -595,7 +595,7 @@ describe("markup rules", () => {
       go("/?q=glue&mode=related");
       stubFetch();
       render(<App />);
-      const button = screen.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ });
+      const button = screen.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ });
       fireEvent.keyDown(screen.getByRole("radio", { name: "Related (beta)" }), { key: "Escape" });
       expect(button.getAttribute("aria-expanded")).toBe("false");
     });

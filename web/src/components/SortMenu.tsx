@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import type { SortOrder } from "../lib/url";
 
 const OPTIONS: { sort: SortOrder; label: string }[] = [
-  { sort: "relevance", label: "Relevance" },
+  // "Best match", not "Relevance": in Exact it only ranks by how often the words appear.
+  { sort: "relevance", label: "Best match" },
   { sort: "newest", label: "Newest" },
   { sort: "oldest", label: "Oldest" },
 ];
 
 export function sortLabel(sort: SortOrder): string {
-  return OPTIONS.find((o) => o.sort === sort)?.label ?? "Relevance";
+  return OPTIONS.find((o) => o.sort === sort)?.label ?? "Best match";
 }
 
 export function SortMenu({ sort, onChange }: { sort: SortOrder; onChange: (sort: SortOrder) => void }) {

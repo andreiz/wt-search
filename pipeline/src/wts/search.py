@@ -176,9 +176,11 @@ def _header(response: dict) -> str:
         head = f"{_total(response)} {'match' if one else 'matches'}"
     elif reason := response.get("smart_degraded"):
         why = DEGRADED_REASONS.get(reason, reason) if isinstance(reason, str) else None
-        head = f"smart search degraded{f' ({why})' if why else ''}: keyword results only"
+        related = response.get("mode") == "related"  # nothing to fall back on: no results
+        name, left = ("related", "no results") if related else ("smart", "keyword results only")
+        head = f"{name} search degraded{f' ({why})' if why else ''}: {left}"
     else:
-        head = "smart search"
+        head = "related search" if response.get("mode") == "related" else "smart search"
     page = response.get("page", 1)
     if page > 1:
         head += f", page {page}"

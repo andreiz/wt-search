@@ -280,16 +280,23 @@ async function nearestChunks(
  * highlights of any query words they contain. A chunk that is gone (a publish in progress)
  * simply isn't returned.
  */
-async function loadRelated(db: D1Database, parsed: ParsedQuery, ids: number[]): Promise<Map<number, Row>> {
+async function loadRelated(
+  db: D1Database,
+  parsed: ParsedQuery,
+  ids: number[],
+  /** Also leave out the chunks this FTS5 expression matches (related mode: what exact mode lists). */
+  without: string | null = null,
+): Promise<Map<number, Row>> {
   const filters = filterSql(parsed);
   let rowsSql = `SELECT ${ROW_COLUMNS}, c.text AS marked
 FROM chunks c
 JOIN episodes e ON e.id = c.episode_id
 WHERE c.id IN (SELECT value FROM json_each(?))${filters.sql}`;
   const rowParams: (string | number)[] = [JSON.stringify(ids), ...filters.params];
-  if (parsed.exclude !== null) {
+  for (const expression of [parsed.exclude, without]) {
+    if (expression === null) continue;
     rowsSql += " AND c.id NOT IN (SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH ?)";
-    rowParams.push(parsed.exclude);
+    rowParams.push(expression);
   }
   const statements = [db.prepare(rowsSql).bind(...rowParams)];
   // No terms (every query word a stopword): nothing to highlight, and MATCH '' is an error.
@@ -399,5 +406,63 @@ export async function smartSearch(
       dropped: vectorIds.filter((id) => !keyword.has(id) && !related.has(id)),
     };
   }
+  return response;
+}
+
+/**
+ * Related search (spec §4.4, §5.2): the Vectorize top SMART_LIST_SIZE without the chunks exact
+ * mode lists for the same query, in Vectorize's order (or by date), collapsed, then paged.
+ * Every result is `match: "related"`.
+ *
+ * No keyword query: D1 gets one batch of two, for the rows and their highlights. If Workers
+ * AI or Vectorize fail, or `skipMeaning` is set, there is nothing to show: no results, with
+ * `smart_degraded` saying why. `debug` adds each result's Vectorize rank and score.
+ */
+export async function relatedSearch(
+  env: Pick<Env, "DB" | "AI" | "VEC">,
+  parsed: ParsedQuery,
+  sort: Sort,
+  page: number,
+  options: {
+    limit?: number;
+    onDegraded?: (stage: SmartStage, err: unknown) => void;
+    debug?: boolean;
+    skipMeaning?: Exclude<DegradedReason, "unavailable">;
+  } = {},
+): Promise<SmartAnswer> {
+  const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false, skipMeaning } = options;
+  const none: SmartAnswer = { page, limit, has_more: false, results: [] };
+  if (parsed.fts === null) return none;
+  const nearest = skipMeaning ? null : await nearestChunks(env, parsed, onDegraded);
+  if (nearest === null) return { ...none, smart_degraded: skipMeaning ?? "unavailable" };
+
+  const vectorIds = nearest.map((n) => n.id);
+  const rows = vectorIds.length > 0 ? await loadRelated(env.DB, parsed, vectorIds, parsed.fts) : new Map<number, Row>();
+  let hits = vectorIds.flatMap((id) => rows.get(id) ?? []);
+  if (sort !== "relevance") hits = sortByDate(hits, sort);
+
+  let all = hits.map((hit) => toResult(hit, "related"));
+  if (debug) {
+    const vectorRank = new Map(nearest.map((n, i) => [n.id, { rank: i + 1, score: n.score }]));
+    all = all.map((r) => ({
+      ...r,
+      debug: {
+        keyword_rank: null,
+        vector_rank: vectorRank.get(r.chunk_id)?.rank ?? null,
+        vector_score: vectorRank.get(r.chunk_id)?.score ?? null,
+        rrf_score: 0,
+      },
+    }));
+  }
+  const results = collapse(all);
+  const offset = (page - 1) * limit;
+  const response: SmartAnswer = {
+    page,
+    limit,
+    has_more: offset + limit < results.length,
+    results: results.slice(offset, offset + limit),
+  };
+  // `dropped` here also holds the hits that contain the words: exact mode's, not this one's.
+  if (debug) response.debug = { keyword_hits: 0, vector_hits: nearest.length, dropped: vectorIds.filter((id) => !rows.has(id)) };
   return response;
 }

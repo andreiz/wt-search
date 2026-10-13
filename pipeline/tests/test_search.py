@@ -374,6 +374,13 @@ def test_smart_header():
     assert header(mode="smart", page=3) == "smart search, page 3"
 
 
+def test_related_header():
+    # Related mode has no keyword results to fall back on (spec §4.4).
+    assert header(mode="related") == "related search"
+    assert header(mode="related", smart_degraded="budget") == (
+        "related search degraded (daily budget used up): no results")
+
+
 def test_degraded_smart_header():
     # The Worker says why (spec §4.4, §4.8): "unavailable", "budget" or "off".
     assert header(mode="smart", smart_degraded="unavailable") == (

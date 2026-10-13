@@ -14,6 +14,7 @@ import {
   maxExactPage,
   maxSmartPage,
   PAGE_SIZE,
+  relatedSearch,
   smartSearch,
   type ExactResponse,
   type SmartResponse,
@@ -29,7 +30,7 @@ import { titleHits } from "./titles";
 interface RequestInfo {
   /** The query as typed, cut like the parser cuts it (the log line shortens it further). */
   q?: string;
-  mode?: "smart" | "exact";
+  mode?: "smart" | "exact" | "related";
   sort?: Sort;
   page?: number;
   results?: number;
@@ -83,7 +84,7 @@ function parsePage(value: string | null, lastPage: number): number {
 }
 
 /**
- * GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=&limit=&debug= (spec
+ * GET /api/search?q=&mode=smart|exact|related&sort=relevance|newest|oldest&page=&limit=&debug= (spec
  * §4.4). Bad parameters fall back to their defaults and bad query syntax is plain words
  * (query.ts), so the only error is D1 being down.
  *
@@ -93,13 +94,16 @@ function parsePage(value: string | null, lastPage: number): number {
  */
 const search: Handler = async (request, env, info, ctx) => {
   const params = new URL(request.url).searchParams;
-  const mode = params.get("mode") === "exact" ? "exact" : "smart";
+  const modeParam = params.get("mode");
+  const mode = modeParam === "exact" || modeParam === "related" ? modeParam : "smart";
+  // Smart and related both ask Workers AI and Vectorize: the same budget, kill switch and debug.
+  const meaning = mode !== "exact";
   const sortParam = (params.get("sort") ?? "").toLowerCase();
   const sort = SORTS.find((s) => s === sortParam) ?? "relevance";
   const limit = parseLimit(params.get("limit"));
   const page = parsePage(params.get("page"), mode === "exact" ? maxExactPage(limit) : maxSmartPage(limit));
   const q = params.get("q") ?? "";
-  const debug = mode === "smart" && params.get("debug") === "1";
+  const debug = meaning && params.get("debug") === "1";
   Object.assign(info, {
     q: boundQuery(q),
     mode,
@@ -112,7 +116,7 @@ const search: Handler = async (request, env, info, ctx) => {
 
   // With the kill switch on, a smart search is keyword-only and degraded ("off"), which is never
   // stored; and an entry from before the switch must not be served, so it skips the cache.
-  const killed = mode === "smart" && searchOverride(env) === "exact";
+  const killed = meaning && searchOverride(env) === "exact";
   const ttl = debug || killed ? null : cacheTtl(env.SEARCH_CACHE_TTL_S);
   let key: Request | null = null;
   let response: ExactResponse | SmartResponse;
@@ -131,7 +135,7 @@ const search: Handler = async (request, env, info, ctx) => {
     // AI or Vectorize call. Only a search that would embed is counted: not exact mode, a cache
     // hit (returned above), the kill switch or a query with nothing to match.
     let skipMeaning: "off" | "budget" | undefined = searchOverride(env) === "exact" ? "off" : undefined;
-    if (mode === "smart" && skipMeaning === undefined && parsed.fts !== null) {
+    if (meaning && skipMeaning === undefined && parsed.fts !== null) {
       const counted = await countSmartSearch(env);
       if (counted.over) skipMeaning = "budget";
       if (counted.alert) {
@@ -143,8 +147,9 @@ const search: Handler = async (request, env, info, ctx) => {
     }
     // Title hits go with page 1 only. They are an extra: if their query fails (the title index
     // is a later migration than the Worker may be), the search still answers, with none.
+    // Related mode shows only what does not contain the words, so it has no title hits either.
     const titles =
-      page === 1
+      page === 1 && mode !== "related"
         ? titleHits(env.DB, parsed).catch((err: unknown) => {
             logError("titles_unavailable", request, err);
             return [];
@@ -153,7 +158,7 @@ const search: Handler = async (request, env, info, ctx) => {
     const [answer, episodes] = await Promise.all([
       mode === "exact"
         ? exactSearch(env.DB, parsed, sort, page, limit)
-        : smartSearch(env, parsed, sort, page, {
+        : (mode === "related" ? relatedSearch : smartSearch)(env, parsed, sort, page, {
             limit,
             // Workers AI or Vectorize failing is not an error: keyword results, smart_degraded.
             onDegraded: (stage, err) => logError(`${stage}_unavailable`, request, err),

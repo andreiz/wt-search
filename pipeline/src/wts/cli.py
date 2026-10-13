@@ -186,8 +186,10 @@ def check_embeddings_cmd(n: int) -> None:
 @main.command("search", context_settings={"ignore_unknown_options": True})
 @click.option("--env", "env", type=click.Choice(ENV_NAMES), default=None,
               help="Environment to search [default: run_env in config.toml].")
-@click.option("--mode", type=click.Choice(["smart", "exact"]), default="smart", show_default=True,
-              help="smart: keywords plus meaning; exact: keywords only.")
+@click.option("--mode", type=click.Choice(["smart", "exact", "related"]), default="smart",
+              show_default=True,
+              help="smart: keywords plus meaning in one list; exact: keywords only; related: "
+                   "meaning only, without what exact lists (the site's Related tab).")
 @click.option("--sort", type=click.Choice(["relevance", "newest", "oldest"]),
               default="relevance", show_default=True)
 @click.option("--page", type=click.IntRange(min=1), default=1, show_default=True)
@@ -195,7 +197,7 @@ def check_embeddings_cmd(n: int) -> None:
               help="Show only the first N results of the page (after collapsing).")
 @click.option("--json", "as_json", is_flag=True, help="Print the API's response as JSON.")
 @click.option("--debug", is_flag=True,
-              help="Smart mode: show each result's keyword and meaning ranks, similarity, RRF "
+              help="Smart and related modes: show each result's keyword and meaning ranks, similarity, RRF "
                    "score and folded hits, and the meaning hits that were dropped.")
 @click.argument("query", nargs=-1, required=True, type=click.UNPROCESSED)
 def search_cmd(env: str | None, mode: str, sort: str, page: int, limit: int | None,

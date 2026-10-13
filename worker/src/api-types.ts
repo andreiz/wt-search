@@ -106,7 +106,9 @@ export interface ExactResponse {
 
 /**
  * Smart mode has no count: meaning-based search matches everything a little (spec §4.4).
- * It shows the best MAX_SMART_RESULTS hits, collapsed, then paged.
+ * It shows the best MAX_SMART_RESULTS hits, collapsed, then paged. Related mode answers in
+ * the same shape: only `match: "related"` results, no `episodes`, and no results at all when
+ * `smart_degraded` is set.
  */
 export interface SmartResponse {
   page: number;
@@ -124,9 +126,9 @@ export interface SmartResponse {
 }
 
 /**
- * Why smart search answered with keyword hits only: Workers AI or Vectorize failed
- * ("unavailable"), the daily budget is used up ("budget"), or the kill switch turned it off
- * ("off").
+ * Why smart search answered with keyword hits only, or related search with none: Workers AI
+ * or Vectorize failed ("unavailable"), the daily budget is used up ("budget"), or the kill
+ * switch turned it off ("off").
  */
 export type DegradedReason = "unavailable" | "budget" | "off";
 

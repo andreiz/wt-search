@@ -141,11 +141,28 @@ global:
   kanoi: Conoid        # ep071, 41:00: Nakashima's Conoid chair
   bull blank: bowl blank
   chisel mortars: chisel mortiser's
+  kranoff: Krenov
+  wood whisperer: Wood Whisperer
+  # The guild's web address, which Whisper wrote as words (ep614, 5:10). The longer key wins
+  # over the rule above.
+  the wood whisperer guild com: thewoodwhispererguild.com
+  lumber update: Lumber Update
+  # The show's Patreon address: Whisper writes "patreon.com slash woodtalk" 40 times and these
+  # a few. The longer key keeps a `wood talk` rule from making it "slash Wood Talk".
+  slash wood talk: slash woodtalk
+  patrion com: patreon.com
+  wood talk: Wood Talk
+  moxen: Moxon
+  # The bench vise, which Whisper spells "vice" (2026-10-13: all 47 uses in the 37 episodes
+  # are the tool). "vice versa" and "vice president" are kept below.
+  vices: vises
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:
   - Craig Jackson      # ep608, 25:36: a person who ran Kreg, not the brand
   - woodcraft com      # the web address ("woodcraft" ".com" to Whisper), not "Woodcraft.com"
+  - vice versa         # not in the first 37 episodes; here so `vice: vise` can't touch them
+  - vice president
 episodes:
   2026-08-19_ep613_shove-a-kregger-in-the-hole:
     # "Craig-er" is two words to Whisper, "Craig" and "-er" (they are joined after the
@@ -157,3 +174,12 @@ episodes:
     # everywhere else are floor and glue mats.
     mat problem: Matt problem
     too many mats: too many Matts
+    journalist contributions: generous contributions
+    # 48:11–48:44, Shannon on his pole lathe. Whisper wrote the plural after "a" four times;
+    # the real plurals ("questions about your pole lathes") have no "a" and are left.
+    a pole lathes: a pole lathe
+    spends: spins        # 48:35–48:42, what the lathe does to the work
+    co pilot: Copilot
+  2026-05-20_ep607_do-those-nickers-go-all-the-way-up:
+    # 10:19, the guild's short address, written "TWWguild.com" at 7:06 and 7:12.
+    www guild com: TWWguild.com

@@ -17,6 +17,13 @@ _HYPHEN_TAIL = re.compile(r"^-\w")
 _NUMBER_TAIL = re.compile(r"^(?:[.,]\d|%)")
 # ".com", and the ".m." of "a.m.": a dot and a letter is never the start of a word.
 _DOT_TAIL = re.compile(r"^\.[^\W\d_]")
+# A clock time Whisper wrote as "four 30": the hour as a word, the minutes as two digits.
+_HOURS = {w: i for i, w in enumerate(
+    ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven",
+     "twelve"], start=1)}
+_MINUTES = re.compile(r"^([0-5]\d)([,.?!]*)$")
+_AM_PM = re.compile(r"^(?:[AaPp]\.[Mm]\.?|[AP]M)[,.?!]*$")
+_CLOCK = re.compile(r"^\d{1,2}:\d\d$")
 _ENDS_IN_DIGIT = re.compile(r"\d$")
 
 
@@ -91,6 +98,41 @@ def joined_words(words: Sequence[Word]) -> list[tuple[Word, list[Word]]]:
             out[-1] = (joined, [*out[-1][1], w])
         else:
             out.append((w, [w]))
+    return _join_clock_times(out)
+
+
+def _join_clock_times(
+    words: list[tuple[Word, list[Word]]],
+) -> list[tuple[Word, list[Word]]]:
+    """Make "four 30" one word, "4:30", where the words around it say it is a clock time.
+
+    Only then: "the DW seven 35" is a planer and "starts at four 49" a price (both real). The
+    signs are a.m./p.m. after it ("nine 30 a.m."), "from" before and "to" after ("from four 30
+    to 9 PM"), or "to" before with a clock time before that ("from five 30 to six 30").
+    """
+    out: list[tuple[Word, list[Word]]] = []
+    i = 0
+    while i < len(words):
+        w, parts = words[i]
+        hour = _HOURS.get(w.text.lower())
+        minutes = _MINUTES.match(words[i + 1][0].text) if hour and i + 1 < len(words) else None
+        if minutes:
+            before = out[-1][0].text.lower() if out else ""
+            after = words[i + 2][0].text if i + 2 < len(words) else ""
+            is_time = bool(
+                (not minutes.group(2) and _AM_PM.match(after))
+                or (before == "from" and not minutes.group(2) and after.lower() == "to")
+                or (before == "to" and len(out) > 1 and _CLOCK.match(out[-2][0].text))
+            )
+            if is_time:
+                m, m_parts = words[i + 1]
+                joined = Word(f"{hour}:{minutes.group(1)}{minutes.group(2)}", w.start_ms,
+                              max(w.end_ms, m.end_ms), min(w.prob, m.prob))
+                out.append((joined, [*parts, *m_parts]))
+                i += 2
+                continue
+        out.append((w, parts))
+        i += 1
     return out
 
 

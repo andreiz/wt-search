@@ -47,6 +47,27 @@ def test_join_split_words_dot_tails():
     assert texts(join_split_words(ws("he's ... well just .89"))) == ["he's", "...", "well", "just", ".89"]
 
 
+def test_clock_times_written_as_a_word_and_two_digits():
+    # All real: ep614 50:49, ep603 55:00, ep614 49:48.
+    assert texts(join_split_words(ws("runs from nine 30 a .m. to four 30 p .m."))) == (
+        ["runs", "from", "9:30", "a.m.", "to", "4:30", "p.m."])
+    assert texts(join_split_words(ws("April 9th from four 30 to 9 PM."))) == (
+        ["April", "9th", "from", "4:30", "to", "9", "PM."])
+    assert texts(join_split_words(ws("seminar from five 30 to six 30. Next"))) == (
+        ["seminar", "from", "5:30", "to", "6:30.", "Next"])
+    words = [Word("at", 0, 90, 0.9), Word("nine", 100, 300, 0.9), Word("30", 300, 500, 0.6),
+             Word("PM", 500, 700, 0.9)]
+    assert join_split_words(words)[1] == Word("9:30", 100, 500, 0.6)
+
+
+def test_a_word_and_two_digits_that_are_not_a_clock_time_stay():
+    # Real: a DeWalt DW735 planer (ep605) and a $449 price (ep614).
+    for text in ("the DW seven 35 with extension tables", "starts at four 49 with pre-orders",
+                 "cut four 30 inch boards", "from four 30 amp circuits", "up to four 30 amp ones",
+                 "four 30 am I right", "about four 30. To be fair"):
+        assert texts(join_split_words(ws(text))) == text.split()
+
+
 def test_join_split_numbers():
     # Whisper's word timings split numbers too: "22" ".5", "45" ",000", "10" "%" (all seen in
     # the real fixtures), so chunk text read "22 .5 degree", "45 ,000 hits", "10 % off".

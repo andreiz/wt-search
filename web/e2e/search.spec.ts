@@ -3,7 +3,7 @@
 import { expect, test } from "@playwright/test";
 import { stubInfo } from "./info";
 
-function answer(text: string, count = 1, mode: "smart" | "exact" = "smart") {
+function answer(text: string, count = 1, mode: "related" | "exact" = "related") {
   return {
     mode,
     sort: "relevance",
@@ -39,7 +39,7 @@ test("search, URL and Back, under the CSP", async ({ page }) => {
   await stubInfo(page);
   await page.route("**/api/search*", (route) => {
     const params = new URL(route.request().url()).searchParams;
-    const mode = params.get("mode") === "smart" ? "smart" : "exact";
+    const mode = params.get("mode") === "related" ? "related" : "exact";
     return route.fulfill({ json: answer(`Passage about ${params.get("q") ?? ""}`, 1, mode) });
   });
 

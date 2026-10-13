@@ -583,7 +583,6 @@
 }
 
 .result {
-  --related-border: color-mix(in oklch, var(--border) 100%, var(--muted) 25%);
   position: relative;
   /* Leave room for the pinned header when focus scrolls a card into view. */
   scroll-margin-top: calc(var(--header-h) + var(--scroll-air));
@@ -602,12 +601,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-dense);
-}
-
-.result--related .result__card {
-  background: transparent;
-  border-style: dashed;
-  border-color: var(--related-border);
 }
 
 .result__head {
@@ -650,13 +643,6 @@
 .result__count {
   font-weight: 600;
   color: var(--text);
-}
-
-.result__tag {
-  padding: 1px 7px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  font-weight: 600;
 }
 
 /* The Episodes row: episodes whose title matched, above the passages. Each entry has the look of
@@ -820,10 +806,6 @@ a.hit__time:hover {
   background: color-mix(in oklch, var(--tint) 60%, transparent);
 }
 
-.result--related .hit__excerpt {
-  color: var(--muted);
-}
-
 .more-menu__button {
   display: inline-flex;
   align-items: center;
@@ -927,10 +909,6 @@ a.hit__time:hover {
   padding: 2px 6px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-}
-
-.result--related .hit--open .hit__strip {
-  background: var(--bg);
 }
 
 .hit--open .hit__nearby {

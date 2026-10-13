@@ -1,10 +1,10 @@
 // The states and notices of <App/> (spec §5.6; brief §4.5; plan 3 Task 11): the empty state and
-// its info line, no results, truncated Exact, degraded Smart, the maintenance banner, the rate
+// its info line, no results, truncated Exact, degraded Related, the maintenance banner, the rate
 // limit with its countdown, and the error with Retry. The API is stubbed.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
-import { exactBody, infoBody, result, smartBody, stubFetch } from "./helpers";
+import { exactBody, infoBody, result, relatedBody, stubFetch } from "./helpers";
 
 function go(url: string) {
   window.history.replaceState(null, "", url);
@@ -109,8 +109,8 @@ describe("no results", () => {
     go(url);
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(url.includes("mode=related") ? smartBody([]) : exactBody([]));
-    await screen.findByText("Nothing found.");
+    calls[0]!.respond(url.includes("mode=related") ? relatedBody([]) : exactBody([]));
+    await screen.findByText(/^(Nothing found|No related passages)\.$/);
     return calls;
   }
 
@@ -128,14 +128,25 @@ describe("no results", () => {
     expect(button.parentElement?.textContent).toBe("See related passages (beta) — they match meaning, not just words");
     fireEvent.click(button);
     expect(calls).toHaveLength(2);
-    expect(calls[1]!.url.searchParams.get("mode")).toBe("smart");
+    expect(calls[1]!.url.searchParams.get("mode")).toBe("related");
     expect(window.location.search).toBe("?q=zzz&mode=related");
     expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("aria-checked")).toBe("true");
   });
 
-  it("in Related: no See related passages button", async () => {
-    await nothing("/?q=zzz&mode=related");
+  it("in Related: 'No related passages.' with a 'See exact matches' button that switches and searches", async () => {
+    const calls = await nothing("/?q=zzz&mode=related");
+    expect(screen.queryByText("Nothing found.")).toBeNull();
     expect(screen.queryByRole("button", { name: "See related passages (beta)" })).toBeNull();
+    const note = screen.getByText("No related passages.").closest("[role='status']") as HTMLElement;
+    expect(within(note).getByText("Try one of these:")).toBeTruthy();
+    expect(within(note).getByText(/Use fewer words/)).toBeTruthy();
+    const button = within(note).getByRole("button", { name: "See exact matches" });
+    expect(button.parentElement?.textContent).toBe("See exact matches — the passages that contain your words");
+    fireEvent.click(button);
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.url.searchParams.get("mode")).toBe("exact");
+    expect(window.location.search).toBe("?q=zzz");
+    expect(screen.getByRole("radio", { name: "Exact" }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("mentions looser years only when the query has a year filter", async () => {
@@ -237,7 +248,7 @@ describe("Exact, only a few matches", () => {
   });
 
   it("not in Related", async () => {
-    await exactPage("/?q=glue&mode=related", smartBody([result(1), result(2)]) as ReturnType<typeof exactBody>);
+    await exactPage("/?q=glue&mode=related", relatedBody([result(1), result(2)]) as ReturnType<typeof exactBody>);
     expect(screen.queryByText(/Only \d+ exact match/)).toBeNull();
     expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
   });
@@ -246,7 +257,7 @@ describe("Exact, only a few matches", () => {
     const calls = await exactPage("/?q=glue", exactBody([result(1), result(2)]));
     fireEvent.click(screen.getByRole("button", { name: BUTTON }));
     expect(calls).toHaveLength(2);
-    expect(calls[1]!.url.searchParams.get("mode")).toBe("smart");
+    expect(calls[1]!.url.searchParams.get("mode")).toBe("related");
     expect(window.location.search).toBe("?q=glue&mode=related");
     expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("aria-checked")).toBe("true");
   });
@@ -257,38 +268,49 @@ describe("Related, degraded", () => {
     go("/?q=glue&mode=related");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(smartBody([result(1)], { smart_degraded: reason }));
-    await screen.findByRole("list", { name: "Results" });
+    calls[0]!.respond(relatedBody([], { smart_degraded: reason }));
+    await screen.findByRole("button", { name: "See exact matches" });
+    return calls;
   }
 
   it("unavailable", async () => {
     await degraded("unavailable");
-    const note = screen.getByText("Meaning search is unavailable right now; these are keyword matches.");
+    const note = screen.getByText("Related search is unavailable right now.");
     expect(note.closest("[role='status']")).toBeTruthy();
   });
 
   for (const reason of ["budget", "off"] as const) {
     it(`${reason}: paused`, async () => {
       await degraded(reason);
-      expect(screen.getByText("Meaning search is paused; these are keyword matches.")).toBeTruthy();
+      expect(screen.getByText("Related search is paused.")).toBeTruthy();
       expect(screen.queryByText(/unavailable right now/)).toBeNull();
     });
   }
 
-  it("sits above the results", async () => {
-    await degraded("budget");
-    const note = screen.getByText(/Meaning search is paused/);
-    const list = screen.getByRole("list", { name: "Results" });
-    expect(note.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  it("shows no 'nothing found' block and no results", async () => {
+    await degraded("unavailable");
+    expect(screen.queryByText("No related passages.")).toBeNull();
+    expect(screen.queryByText("Nothing found.")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Results" })).toBeNull();
   });
 
-  it("no notice for an ordinary Smart answer", async () => {
-    go("/?q=glue");
+  it("See exact matches switches to Exact and searches", async () => {
+    const calls = await degraded("budget");
+    fireEvent.click(screen.getByRole("button", { name: "See exact matches" }));
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.url.searchParams.get("mode")).toBe("exact");
+    expect(window.location.search).toBe("?q=glue");
+    expect(screen.getByRole("radio", { name: "Exact" }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("no notice for an ordinary Related answer", async () => {
+    go("/?q=glue&mode=related");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(relatedBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
-    expect(screen.queryByText(/Meaning search/)).toBeNull();
+    expect(screen.queryByText(/Related search is/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "See exact matches" })).toBeNull();
   });
 });
 
@@ -317,7 +339,7 @@ describe("the maintenance banner", () => {
     go("/?q=glue");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(relatedBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "More transcript" }));
@@ -334,7 +356,7 @@ describe("the maintenance banner", () => {
     await screen.findByRole("alert");
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     // Still shown while the next search runs, gone once it succeeds.
-    calls[1]!.respond(smartBody([result(1)]));
+    calls[1]!.respond(relatedBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
   });

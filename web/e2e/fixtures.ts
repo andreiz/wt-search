@@ -18,6 +18,28 @@ export function fixture(name: "exact" | "exact_truncated" | "smart" | "smart_deg
   return JSON.parse(fs.readFileSync(path.join(SEARCH_DIR, `${name}.json`), "utf8"));
 }
 
+const LONG_TITLE = "Hide Glue, Titebond, Fish Glue and Every Other Thing We Ever Stuck Together in the Shop, Again";
+
+/**
+ * A Related answer (`mode=related`): the shared `smart` fixture with the shape the Worker's
+ * related mode sends. Every result is `match: "related"`, one episode has a long title, and
+ * `episodes` is empty.
+ */
+export function relatedFixture(): Answer {
+  const answer = fixture("smart");
+  answer.mode = "related";
+  answer.episodes = [];
+  // No highlights: the query is one word, and a related passage is one that does not contain it.
+  answer.results = answer.results.map((r) => ({ ...r, match: "related", ranges: [] }));
+  answer.results[0]!.episode.title = LONG_TITLE;
+  return answer;
+}
+
+/** A Related answer that could not use meaning search: no results, and why. */
+export function relatedDegradedFixture(reason: "unavailable" | "budget" | "off"): Answer {
+  return { ...fixture("smart_degraded"), mode: "related", results: [], episodes: [], smart_degraded: reason };
+}
+
 /** The viewport and colour scheme every state is checked in. */
 export const CONFIGS = [
   { name: "phone, light", viewport: { width: 390, height: 844 }, colorScheme: "light" },
@@ -173,15 +195,12 @@ const degraded = (reason: "unavailable" | "budget" | "off"): State => ({
   name: `degraded, ${reason}`,
   url: "/?q=glue&mode=related",
   arrange: async (page) => {
-    await stubSearch(page, () => ({ json: { ...fixture("smart_degraded"), smart_degraded: reason } }));
+    await stubSearch(page, () => ({ json: relatedDegradedFixture(reason) }));
   },
-  ready: (page) =>
-    text(
-      page,
-      reason === "unavailable"
-        ? "Meaning search is unavailable right now; these are keyword matches."
-        : "Meaning search is paused; these are keyword matches.",
-    ),
+  ready: async (page) => {
+    await text(page, reason === "unavailable" ? "Related search is unavailable right now." : "Related search is paused.");
+    await expect(page.getByRole("button", { name: "See exact matches" })).toBeVisible();
+  },
 });
 
 /** A results page with one of its menus or popovers opened by `open`. */
@@ -189,7 +208,7 @@ const popup = (name: string, open: (page: Page) => Promise<void>): State => ({
   name,
   url: "/?q=glue&mode=related",
   arrange: async (page) => {
-    await stubSearch(page, () => ({ json: fixture("smart") }));
+    await stubSearch(page, () => ({ json: relatedFixture() }));
   },
   ready: results,
   after: open,
@@ -203,27 +222,26 @@ export const STATES: State[] = [
     ready: (page) => text(page, "625 episodes indexed through Sep 17, 2026"),
   },
   {
-    name: "keyword and related results",
+    name: "Related results",
     url: "/?q=glue&mode=related",
     arrange: async (page) => {
-      await stubSearch(page, () => ({ json: fixture("smart") }));
+      await stubSearch(page, () => ({ json: relatedFixture() }));
     },
     ready: async (page) => {
       await results(page);
       await text(page, "Related (beta) · top results 1–3");
+      await text(page, "Passages about the same thing that don't contain your words:");
     },
   },
   {
-    name: "only related hits on page 1",
-    url: "/?q=glue&mode=related",
+    name: "no results in Related",
+    url: "/?q=zzzz&mode=related",
     arrange: async (page) => {
-      const answer = fixture("smart");
-      answer.results = answer.results.filter((r) => r.match === "related");
-      await stubSearch(page, () => ({ json: answer }));
+      await stubSearch(page, () => ({ json: { ...relatedFixture(), results: [], has_more: false } }));
     },
     ready: async (page) => {
-      await results(page);
-      await text(page, "No exact matches — passages about similar things:");
+      await expect(page.getByRole("heading", { name: "No related passages." })).toBeVisible();
+      await expect(page.getByRole("button", { name: "See exact matches" })).toBeVisible();
     },
   },
   {
@@ -336,7 +354,7 @@ export const STATES: State[] = [
     name: "expanded card",
     url: "/?q=glue&mode=related",
     arrange: async (page) => {
-      const answer = fixture("smart");
+      const answer = relatedFixture();
       await stubSearch(page, () => ({ json: answer }));
       await stubContext(page, answer);
     },
@@ -354,7 +372,7 @@ export const STATES: State[] = [
     url: "/?q=glue&mode=related",
     arrange: async (page) => {
       await stubForms(page);
-      await stubSearch(page, () => ({ json: fixture("smart") }));
+      await stubSearch(page, () => ({ json: relatedFixture() }));
     },
     ready: results,
     after: async (page) => {

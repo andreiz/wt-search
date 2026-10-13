@@ -20,15 +20,14 @@ export function ResultCard({
 }: Partial<HitActions> & {
   /** The searched query, passed on to each hit row. */
   q?: string;
-  /** A related card (`card.related`) is dashed, tagged "Related", with a muted excerpt. */
   card: Card;
   tabIndex: number;
 }) {
-  const { episode, hits, related } = card;
+  const { episode, hits } = card;
   const headingId = `card-${hits[0]!.chunk_id}`;
   return (
     <li
-      class={`result${related ? " result--related" : ""}`}
+      class="result"
       data-result
       tabIndex={tabIndex}
       aria-labelledby={headingId}
@@ -44,11 +43,6 @@ export function ResultCard({
           {displayTitle(episode.title, episode.number)}
         </h3>
         <span class="result__meta">
-          {related && (
-            <span class="result__tag" title="Matched by meaning, not by your exact words.">
-              Related
-            </span>
-          )}
           {hits.length > 1 && (
             <>
               <span class="result__count">{`${hits.length} matches`}</span>

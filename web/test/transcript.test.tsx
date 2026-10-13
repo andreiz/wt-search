@@ -129,7 +129,7 @@ describe("the three ways in", () => {
     openFromMenu();
     answer(calls[0]!);
     expect(await screen.findByRole("region", { name: "Transcript around 2:35" })).toBeTruthy();
-    expect(document.querySelector(".result--related .transcript")).not.toBeNull();
+    expect(document.querySelector(".result .transcript")).not.toBeNull();
   });
 });
 

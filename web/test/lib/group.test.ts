@@ -14,16 +14,9 @@ describe("groupNeighbours", () => {
     expect(cards.map((c) => c.hits.map((h) => h.chunk_id))).toEqual([[11, 12], [21], [13]]);
   });
 
-  it("merges neighbours of one episode and the same kind, keyword or related", () => {
-    const cards = groupNeighbours([ep(1, 11), ep(1, 12), rel(2, 21), rel(2, 22)]);
+  it("merges neighbouring related hits of one episode", () => {
+    const cards = groupNeighbours([rel(1, 11), rel(1, 12), rel(2, 21), rel(2, 22)]);
     expect(cards.map((c) => c.hits.map((h) => h.chunk_id))).toEqual([[11, 12], [21, 22]]);
-    expect(cards.map((c) => c.related)).toEqual([false, true]);
-  });
-
-  it("does not merge a keyword hit and a related hit of one episode that sit next to each other", () => {
-    const cards = groupNeighbours([ep(1, 11), rel(1, 12), ep(1, 13)]);
-    expect(cards.map((c) => c.hits.map((h) => h.chunk_id))).toEqual([[11], [12], [13]]);
-    expect(cards.map((c) => c.related)).toEqual([false, true, false]);
   });
 
   it("keeps the API's order between cards", () => {

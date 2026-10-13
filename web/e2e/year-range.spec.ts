@@ -5,7 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { stubInfo } from "./info";
 
 const answer = {
-  mode: "smart",
+  mode: "related",
   sort: "relevance",
   page: 1,
   limit: 20,

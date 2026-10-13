@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
 import { SyntaxHelp } from "../src/components/SyntaxHelp";
 import { YearRange } from "../src/components/YearRange";
-import { exactBody, result, smartBody, stubFetch } from "./helpers";
+import { exactBody, result, relatedBody, stubFetch } from "./helpers";
 
 const THIS_YEAR = new Date().getFullYear();
 
@@ -281,7 +281,7 @@ describe("in <App/>", () => {
     go("/?q=glue+after%3A2001&page=2");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(relatedBody([result(1)]));
     const before = window.history.length;
     fireEvent.click(await screen.findByRole("button", { name: /^Year range: 2002–/ }));
     fireEvent.change(screen.getByRole("combobox", { name: "From" }), { target: { value: "2012" } });
@@ -293,7 +293,7 @@ describe("in <App/>", () => {
     expect(calls[1]!.url.searchParams.get("page")).toBe("1");
     expect(window.location.search).toBe("?q=glue+year%3A2012-2014");
     expect(window.history.length).toBe(before + 1);
-    calls[1]!.respond(smartBody([result(1)]));
+    calls[1]!.respond(relatedBody([result(1)]));
     expect(await screen.findByRole("button", { name: "Year range: 2012–2014" })).toBeTruthy();
   });
 
@@ -301,7 +301,7 @@ describe("in <App/>", () => {
     const calls = stubFetch();
     render(<App />);
     typeAndSubmit("glue");
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(relatedBody([result(1)]));
     fireEvent.click(await screen.findByRole("button", { name: "Year range: Any year" }));
     fireEvent.change(screen.getByRole("combobox", { name: "From" }), { target: { value: "2015" } });
     fireEvent.change(screen.getByRole("combobox", { name: "To" }), { target: { value: "2015" } });
@@ -314,7 +314,7 @@ describe("in <App/>", () => {
     go("/?q=glue+year%3A2015-2020");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(relatedBody([result(1)]));
     fireEvent.click(await screen.findByRole("button", { name: "Clear years" }));
     await waitFor(() => expect(box().value).toBe("glue"));
     expect(calls).toHaveLength(2);
@@ -328,7 +328,7 @@ describe("in <App/>", () => {
     go("/?q=year%3A2015");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(relatedBody([result(1)]));
     fireEvent.click(await screen.findByRole("button", { name: "Clear years" }));
     await waitFor(() => expect(box().value).toBe(""));
     expect(window.location.search).toBe("");
@@ -338,7 +338,7 @@ describe("in <App/>", () => {
     const calls = stubFetch();
     render(<App />);
     typeAndSubmit("glue");
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(relatedBody([result(1)]));
     await screen.findByText(/Text of passage 1/);
     fireEvent.input(box(), { target: { value: "glue clamps" } });
     fireEvent.click(screen.getByRole("button", { name: "Year range: Any year" }));
@@ -367,7 +367,7 @@ describe("in <App/>", () => {
     const calls = stubFetch();
     render(<App />);
     typeAndSubmit("glue");
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(relatedBody([result(1)]));
     await screen.findByText(/Text of passage 1/);
     fireEvent.click(screen.getByRole("button", { name: "Year range: Any year" }));
     fireEvent.keyDown(screen.getByRole("combobox", { name: "From" }), { key: "Escape" });

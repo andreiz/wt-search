@@ -76,7 +76,7 @@ async function open(page: Page, base = 4_100) {
   });
   const radii: string[] = [];
   await page.route("**/api/search*", (route) =>
-    route.fulfill({ json: { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results: [hitResult] } }),
+    route.fulfill({ json: { mode: "related", sort: "relevance", page: 1, limit: 20, has_more: false, results: [hitResult] } }),
   );
   await page.route("**/api/context*", (route) => {
     const radius = new URL(route.request().url()).searchParams.get("radius")!;
@@ -320,7 +320,7 @@ const settle = (page: Page) =>
 async function openTall(page: Page) {
   await page.route("**/api/search*", (route) =>
     route.fulfill({
-      json: { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results: [1, 2, 3, 4, 5, 6, 7, 8].map(tallResult) },
+      json: { mode: "related", sort: "relevance", page: 1, limit: 20, has_more: false, results: [1, 2, 3, 4, 5, 6, 7, 8].map(tallResult) },
     }),
   );
   await page.route("**/api/context*", (route) => {
@@ -553,7 +553,7 @@ for (const { name, width, height } of WIDTHS) {
 
 test("Search this episode puts ep:71 in the box, replacing an old one, and searches", async ({ page }) => {
   await page.route("**/api/search*", (route) =>
-    route.fulfill({ json: { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results: [result] } }),
+    route.fulfill({ json: { mode: "related", sort: "relevance", page: 1, limit: 20, has_more: false, results: [result] } }),
   );
   await page.route("**/api/context*", (route) => route.fulfill({ json: context(3) }));
   await page.goto("/?q=sprayer+ep%3A12");

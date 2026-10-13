@@ -53,7 +53,7 @@ async function setup(page: Page, opts: { siteKey?: string | null; reportAnswers?
     return route.fulfill({ json: { ...INFO, turnstile_site_key: siteKey } });
   });
   await page.route("**/api/search*", (route) =>
-    route.fulfill({ json: { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results: [hit], episodes: [] } }),
+    route.fulfill({ json: { mode: "related", sort: "relevance", page: 1, limit: 20, has_more: false, results: [hit], episodes: [] } }),
   );
   await page.route("**/api/report", (route) => {
     seen.reports.push(route.request().postDataJSON());
@@ -206,7 +206,7 @@ for (const [name, viewport] of [
       // Enough cards to fill several screens; the report opens under the last one.
       const results = Array.from({ length: 8 }, (_, i) => ({ ...hit, chunk_id: 100 + i, episode: { ...hit.episode, id: 100 + i, number: 100 + i } }));
       await page.route("**/api/search*", (route) =>
-        route.fulfill({ json: { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results, episodes: [] } }),
+        route.fulfill({ json: { mode: "related", sort: "relevance", page: 1, limit: 20, has_more: false, results, episodes: [] } }),
       );
       await page.setViewportSize({ width: viewport.width, height: 640 });
       await page.goto("/?q=glue");

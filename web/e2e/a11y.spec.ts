@@ -6,7 +6,7 @@
 // warning or a CSP violation.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { CONFIGS, STATES, fixture, stubContext, stubForms, stubSearch, watch } from "./fixtures";
+import { CONFIGS, STATES, relatedFixture, stubContext, stubForms, stubSearch, watch } from "./fixtures";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
@@ -51,7 +51,7 @@ for (const config of CONFIGS) {
       page,
     }) => {
       const clean = await watch(page);
-      const answer = fixture("smart");
+      const answer = relatedFixture();
       await stubForms(page);
       await stubSearch(page, () => ({ json: answer }));
       await stubContext(page, answer);

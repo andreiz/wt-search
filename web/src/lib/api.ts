@@ -16,7 +16,7 @@ import type { SearchState } from "./url";
 /** A search answer. The Worker adds `mode` and `sort` to the body (index.ts), so `mode` tells the arms apart. */
 export type SearchData =
   | (ExactResponse & { mode: "exact"; sort: Sort })
-  | (SmartResponse & { mode: "smart"; sort: Sort });
+  | (SmartResponse & { mode: "related"; sort: Sort });
 
 export type { ContextResponse };
 

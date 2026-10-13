@@ -166,6 +166,18 @@ reported passage with `--report`, close the test reports on staging with `wts re
     vises), "pole lathes" at 603 0:13 / 47:57 / 50:17, and `www guild com: TWWguild.com`
     (ep607, 10:19) was added from context only.
   To apply: `uv run wts chunk`, `uv run wts embed`, then publish.
+- **Related shows only what Exact does not (the maintainer, 2026-10-13; spec §5.2, §4.4):**
+  he asked why the Related tab repeats the exact hits; with Exact the default there was no
+  reason left. The Worker has a third mode, `mode=related` (`relatedSearch` in `search.ts`):
+  the Vectorize top 50 minus what the query matches by keyword, no title hits, and no results
+  (only `smart_degraded`) when meaning search can't answer. The page's Related tab asks for
+  it: ordinary cards (pill, dashed border and muted excerpt removed), an intro line, "No
+  related passages." and a notice with "See exact matches" when it is unavailable or paused.
+  `mode=smart` is still in the API, unused by the page: "we can come back to 'smart' at some
+  point". The frontend's internal mode is now `"related"`. `wts search --mode related` asks
+  for it. The Design brief and its captures (`docs/design/round-2/`, 16 files) were redone to
+  match; brief item 4 is now "which tab am I in?". Not yet deployed to staging, so not yet
+  tried on real data: a one-word search may give Related very little.
 - **Checkpoint G step 3, the three paraphrase queries (the maintainer, 2026-10-12, staging,
   Smart):** all three gave "No exact matches — passages about similar things".
   - `aspirational builds`, meaning Shannon's bucket list in episode 71 (40:30–46:00, the

@@ -33,23 +33,36 @@ export function EmptyState({ info, onPick }: { info: InfoResponse | null; onPick
 }
 
 /**
- * An `ok` answer with no results on page 1. In Exact the first suggestion switches to Related;
- * years are mentioned only when the query has a year filter (`hasYears`).
+ * An `ok` answer with no results on page 1. In Exact the first suggestion switches to Related, in
+ * Related to Exact; years are mentioned only when the query has a year filter (`hasYears`).
  */
 export function NoResults({
   mode,
   hasYears,
   onRelated,
+  onExact,
 }: {
-  mode: "smart" | "exact";
+  mode: "related" | "exact";
   hasYears: boolean;
   onRelated: () => void;
+  onExact: () => void;
 }) {
   return (
     <section class="nothing" role="status">
-      <h2 class="nothing__title">Nothing found.</h2>
+      <h2 class="nothing__title">{mode === "related" ? "No related passages." : "Nothing found."}</h2>
       <p class="nothing__lead">Try one of these:</p>
       <ul class="nothing__list">
+        {mode === "related" && (
+          <li>
+            <span aria-hidden="true">→</span>
+            <span>
+              <button type="button" class="text-button" onClick={onExact}>
+                See exact matches
+              </button>
+              {" — the passages that contain your words"}
+            </span>
+          </li>
+        )}
         {mode === "exact" && (
           <li>
             <span aria-hidden="true">→</span>

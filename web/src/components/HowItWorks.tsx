@@ -32,14 +32,14 @@ export function HowItWorks({ onSwitchToExact }: { onSwitchToExact: () => void })
       {open && (
         <div class="popover how-works__dialog" id={dialogId} role="dialog" aria-label="How Related search works" tabIndex={-1} ref={dialog}>
           <p>
-            <strong>Related search</strong> finds passages two ways: ones that contain your words, and ones that talk about the same
-            thing in different words. Those are marked <strong>Related</strong>.
+            <strong>Related search</strong> finds passages about the same thing that don't contain your words. Exact lists the
+            passages that do.
           </p>
           <p>
             It shows the best matches first, up to 100. There is no total, because "about the same thing" has no cut-off: every
             passage is a little bit related, so a count would mean nothing.
           </p>
-          <p>It is a beta: the results are uneven.</p>
+          <p>Related search is a beta, and the results are uneven.</p>
           <p>
             Want every match and a count?{" "}
             <button

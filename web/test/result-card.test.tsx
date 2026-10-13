@@ -21,10 +21,10 @@ const smart = smartFixture.results as unknown as SearchResult[];
 // exact[2]: unnumbered, page link only. smart[0]: YouTube + Spotify, folded 1. smart[1]: related,
 // Apple and a page link. smart[2]: related, unnumbered, page only, one range.
 const [full, emoji, bare] = exact as [SearchResult, SearchResult, SearchResult];
-const [keywordHit, relatedApple, relatedBare] = smart as [SearchResult, SearchResult, SearchResult];
+const [, relatedApple, relatedBare] = smart as [SearchResult, SearchResult, SearchResult];
 
 function card(hits: SearchResult[]) {
-  return { episode: hits[0]!.episode, hits, related: hits[0]!.match === "related" };
+  return { episode: hits[0]!.episode, hits };
 }
 
 function renderCard(hits: SearchResult[], props: Partial<Parameters<typeof ResultCard>[0]> = {}) {
@@ -223,19 +223,14 @@ describe("the timestamp chip", () => {
 });
 
 describe("a related card", () => {
-  it("is dashed with a Related tag in the header, and keeps its chip", () => {
+  it("looks like any other card: no tag, no dashed marking, and it keeps its chip", () => {
     const { container } = renderCard([withLinks(relatedApple, { ...relatedApple.episode.links, youtube: "https://yt.test/r" })]);
-    expect(container.querySelector("li")!.classList.contains("result--related")).toBe(true);
-    expect(container.querySelector(".result__head .result__tag")?.textContent).toBe("Related");
+    expect(container.querySelector("li")!.className).toBe("result");
+    expect(container.querySelector(".result__tag")).toBeNull();
+    expect(screen.queryByText("Related")).toBeNull();
     expect(container.querySelector("a.hit__time")?.getAttribute("href")).toBe("https://yt.test/r");
     expect(container.querySelector(".result__card")).toBeTruthy();
     expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
-  });
-
-  it("a keyword card has neither the tag nor the dashes", () => {
-    const { container } = renderCard([keywordHit]);
-    expect(container.querySelector("li")!.classList.contains("result--related")).toBe(false);
-    expect(screen.queryByText("Related")).toBeNull();
   });
 
   // VoiceOver stops at every inline element; role="text" makes it read the excerpt in one go.

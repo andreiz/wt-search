@@ -553,7 +553,15 @@ Parser rules (`worker/src/query.ts`):
 
 ### 4.4 Endpoints
 
-- `GET /api/search?q=&mode=smart|exact&sort=relevance|newest|oldest&page=&limit=`
+- `GET /api/search?q=&mode=smart|exact|related&sort=relevance|newest|oldest&page=&limit=`
+  - `related` *(added 2026-10-13; the site's Related tab, §5.2)*: the
+    Vectorize top 50 without the chunks `exact` lists for the same query,
+    in Vectorize's order (or by date), collapsed and paged like `smart`.
+    The answer has `smart`'s shape; every result is `match: "related"`,
+    `episodes` is empty, and when Workers AI, Vectorize, the budget or the
+    kill switch stop it there are no results, only `smart_degraded`. It
+    counts against the same daily budget as `smart`. `smart` itself is
+    unchanged and no longer used by the page.
   - `limit` is the page size, 1–20 (default 20; bigger is clamped, bad is
     20), echoed in the response. The result caps stay in results, not pages:
     exact mode's 200 is 10 pages at 20, 40 at 5; the last page stops at
@@ -1175,6 +1183,22 @@ Pinned to the top (compacting on scroll on phones):
   - Exact makes no Workers AI call, so the default search costs nothing
     there and the daily budget (§4.8) is spent only by people who ask for
     Related.
+  - **Related shows only what Exact does not** *(maintainer, 2026-10-13,
+    revising "what Smart was" above)*. People reach Related after seeing
+    the exact matches, so repeating them there said nothing and made two
+    kinds of card to tell apart in one list. Related now asks the API for
+    `mode=related` (§4.4): passages about the same thing that do not
+    contain the words, best first. So its cards are ordinary cards (no
+    "Related" pill, dashed border or muted excerpt), page 1 opens with
+    "Passages about the same thing that don't contain your words:", and
+    it has no title hits. Tooltip: "Passages about the same thing that
+    don't contain your words. Still rough." With nothing to show:
+    "**No related passages.**" and a button "**See exact matches**". When
+    meaning search can't answer there is no keyword list to fall back on:
+    a notice, "Related search is unavailable right now." or "Related
+    search is paused.", with the same button. The one mixed list ("Smart")
+    is set aside, not dropped: the API still has it, and it can come back
+    as a mode of its own when the meaning results are good enough.
 - **Year range** *(settled 2026-10-08)*: a chip "Any year" opens from–to
   pickers (2007 to this year); once set it reads "2015–2020 ×". The chip
   and the query box are two views of one state: setting the chip removes

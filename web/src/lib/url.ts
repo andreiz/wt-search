@@ -2,17 +2,17 @@
 // so a shared link, a reload and Back/Forward all show the same search.
 //
 // Bad values fall back the way the Worker's own reading does (worker/src/index.ts `search`):
-//   mode  exactly "related" or "smart" (case-sensitive) is smart (shown as Related (beta)); anything
+//   mode  exactly "related" or "smart" (case-sensitive) is related (shown as Related (beta)); anything
 //         else, or none, is exact: the default, so it is left out of the address.
 //   sort  lower-cased, then one of the three; anything else is relevance.
 //   page  digits only, else 1; at least 1 and at most the last page for the mode.
 // The last page assumes the default page size of 20 (the app never sends `limit`): 10 for
-// exact (200 results) and 5 for smart (100 results). The Worker's clamp can be tighter only
+// exact (200 results) and 5 for related (100 results). The Worker's clamp can be tighter only
 // through `limit`, which the app does not use. Whether a page has results is not known here.
 //
 // Pure: no DOM, no Preact.
 
-export type Mode = "smart" | "exact";
+export type Mode = "related" | "exact";
 export type SortOrder = "relevance" | "newest" | "oldest";
 
 export interface SearchState {
@@ -24,8 +24,8 @@ export interface SearchState {
 
 const SORTS: readonly SortOrder[] = ["relevance", "newest", "oldest"];
 
-/** Last page at 20 results a page: exact shows at most 200 results, smart 100 (spec §4.4). */
-export const LAST_PAGE: Record<Mode, number> = { exact: 10, smart: 5 };
+/** Last page at 20 results a page: exact shows at most 200 results, related 100 (spec §4.4). */
+export const LAST_PAGE: Record<Mode, number> = { exact: 10, related: 5 };
 
 // What goes when a query is cleaned: pictographic emoji (a bare digit, `#` and `*` are "Emoji"
 // too, but not pictographic, so they stay), skin tones, regional-indicator flags, tag sequences
@@ -54,7 +54,7 @@ function clampPage(page: number, mode: Mode): number {
 export function parse(search: string): SearchState {
   const params = new URLSearchParams(search);
   const modeParam = params.get("mode");
-  const mode: Mode = modeParam === "related" || modeParam === "smart" ? "smart" : "exact";
+  const mode: Mode = modeParam === "related" || modeParam === "smart" ? "related" : "exact";
   const sortParam = (params.get("sort") ?? "").toLowerCase();
   const sort = SORTS.find((s) => s === sortParam) ?? "relevance";
   const pageParam = params.get("page");
@@ -70,7 +70,7 @@ export function serialize(state: SearchState): string {
   const params = new URLSearchParams();
   const q = normalizeQuery(state.q);
   if (q !== "") params.set("q", q);
-  if (state.mode === "smart") params.set("mode", "related");
+  if (state.mode === "related") params.set("mode", "related");
   if (state.sort !== "relevance") params.set("sort", state.sort);
   const page = clampPage(state.page, state.mode);
   if (page !== 1) params.set("page", String(page));

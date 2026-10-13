@@ -169,7 +169,8 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
   // An older cached answer may lack `episodes`.
   const titleHits = view.kind === "ok" && view.data.page === 1 ? (view.data.episodes ?? []) : [];
 
-  const smartEnd = view.kind === "ok" && view.data.mode === "smart" && !view.data.has_more && view.data.page > 1;
+  const relatedEnd = view.kind === "ok" && view.data.mode === "related" && !view.data.has_more && view.data.page > 1;
+  const relatedDegraded = view.kind === "ok" && view.data.mode === "related" && !!view.data.smart_degraded;
 
   // A short Exact list (1–4 matches, an exact count) offers the related passages under it.
   const fewExact =
@@ -251,7 +252,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
             {view.kind === "loading" && "Searching…"}
             {view.kind === "ok" && <Summary data={view.data} />}
           </div>
-          {view.kind === "ok" && view.data.mode === "smart" && view.data.results.length > 0 && (
+          {view.kind === "ok" && view.data.mode === "related" && view.data.results.length > 0 && (
             <HowItWorks onSwitchToExact={switchToExact} />
           )}
         </div>
@@ -262,25 +263,38 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
             </h2>
             {view.kind === "loading" && <Skeleton />}
             {titleHits.length > 0 && <TitleHits episodes={titleHits} onSearchEpisode={fillEpisode} />}
-            {view.kind === "ok" && view.data.mode === "smart" && view.data.smart_degraded && (
-              <Notice tone="info">
+            {view.kind === "ok" && view.data.mode === "related" && view.data.smart_degraded && (
+              <Notice
+                tone="info"
+                action={
+                  <button type="button" class="notice__button" onClick={() => setMode("exact")}>
+                    See exact matches
+                  </button>
+                }
+              >
                 {view.data.smart_degraded === "unavailable"
-                  ? "Meaning search is unavailable right now; these are keyword matches."
-                  : "Meaning search is paused; these are keyword matches."}
+                  ? "Related search is unavailable right now."
+                  : "Related search is paused."}
               </Notice>
             )}
-            {view.kind === "ok" && view.data.results.length === 0 && view.data.page === 1 && titleHits.length === 0 && (
-              <NoResults
-                mode={view.data.mode}
-                hasYears={range !== null}
-                onRelated={() => setMode("smart")}
-              />
-            )}
+            {view.kind === "ok" &&
+              !relatedDegraded &&
+              view.data.results.length === 0 &&
+              view.data.page === 1 &&
+              titleHits.length === 0 && (
+                <NoResults
+                  mode={view.data.mode}
+                  hasYears={range !== null}
+                  onRelated={() => setMode("related")}
+                  onExact={() => setMode("exact")}
+                />
+              )}
             {view.kind === "ok" && view.data.results.length > 0 && (
               <ResultList
                 key={view.id}
                 results={view.data.results}
                 page={view.data.page}
+                related={view.data.mode === "related"}
                 listRef={listRef}
                 q={state.q}
                 onSearchEpisode={(number) => searchFor(setEpisode(state.q, number))}
@@ -316,13 +330,13 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
             {fewExact && view.kind === "ok" && view.data.mode === "exact" && (
               <p class="end-note">
                 {`Only ${view.data.total} exact ${view.data.total === 1 ? "match" : "matches"}. `}
-                <button type="button" class="text-button" onClick={() => setMode("smart")}>
+                <button type="button" class="text-button" onClick={() => setMode("related")}>
                   See related passages (beta)
                 </button>
               </p>
             )}
             {view.kind === "ok" && <Pagination data={view.data} onPage={onPage} />}
-            {smartEnd && <p class="end-note">That's the end of the top results. Exact search lists every match.</p>}
+            {relatedEnd && <p class="end-note">That's the end of the related passages.</p>}
           </>
         ) : (
           <EmptyState info={info} onPick={searchFor} />

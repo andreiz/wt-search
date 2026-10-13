@@ -1,4 +1,4 @@
-// The summary line under the bar (Screen.dc.html; spec §5.2, §4.4). Related (the "smart" mode):
+// The summary line under the bar (Screen.dc.html; spec §5.2, §4.4). Related (the "related" mode):
 // "Related (beta) · top results 1–20" (which results this page holds; "top result 41" for one,
 // bare "Related (beta)" for none; "top" because Related shows the best matches, not all of them).
 // Exact: "**318 matches**" or "**1,000+ matches**". When the page folded hits into a nearby

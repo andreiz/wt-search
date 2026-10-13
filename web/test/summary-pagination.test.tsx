@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Pagination } from "../src/components/Pagination";
 import { Summary } from "../src/components/Summary";
-import { exactBody, result, smartBody } from "./helpers";
+import { exactBody, result, relatedBody } from "./helpers";
 
 afterEach(cleanup);
 
@@ -16,25 +16,25 @@ describe("<Summary/>", () => {
   const many = (n: number) => Array.from({ length: n }, (_, i) => result(i + 1));
 
   it("Related page 1: the range of results shown", () => {
-    expect(summaryText(smartBody(many(20)))).toBe("Related (beta) · top results 1–20");
+    expect(summaryText(relatedBody(many(20)))).toBe("Related (beta) · top results 1–20");
   });
 
   it("Related page 2: the range continues from the page size", () => {
-    expect(summaryText(smartBody(many(20), { page: 2 }))).toBe("Related (beta) · top results 21–40");
-    expect(summaryText(smartBody(many(7), { page: 3 }))).toBe("Related (beta) · top results 41–47");
+    expect(summaryText(relatedBody(many(20), { page: 2 }))).toBe("Related (beta) · top results 21–40");
+    expect(summaryText(relatedBody(many(7), { page: 3 }))).toBe("Related (beta) · top results 41–47");
   });
 
   it("Related: one result on the page reads 'top result N'", () => {
-    expect(summaryText(smartBody([result(1)], { page: 3 }))).toBe("Related (beta) · top result 41");
-    expect(summaryText(smartBody([result(1)]))).toBe("Related (beta) · top result 1");
+    expect(summaryText(relatedBody([result(1)], { page: 3 }))).toBe("Related (beta) · top result 41");
+    expect(summaryText(relatedBody([result(1)]))).toBe("Related (beta) · top result 1");
   });
 
   it("Related: no results is just 'Related (beta)'", () => {
-    expect(summaryText(smartBody([]))).toBe("Related (beta)");
+    expect(summaryText(relatedBody([]))).toBe("Related (beta)");
   });
 
   it("Related: no page number and no folding note", () => {
-    const text = summaryText(smartBody([result(1, { more_in_episode: 2, folded: [8, 9] }), result(2)], { page: 2 }));
+    const text = summaryText(relatedBody([result(1, { more_in_episode: 2, folded: [8, 9] }), result(2)], { page: 2 }));
     expect(text).toBe("Related (beta) · top results 21–22");
     expect(text).not.toContain("page");
     expect(text).not.toContain("folded");
@@ -82,33 +82,33 @@ describe("<Summary/>", () => {
   });
 
   it("is not its own live region (the page's persistent status region holds it)", () => {
-    const { container } = render(<Summary data={smartBody([result(1)])} />);    expect(container.querySelector("[aria-live]")).toBeNull();
+    const { container } = render(<Summary data={relatedBody([result(1)])} />);    expect(container.querySelector("[aria-live]")).toBeNull();
   });
 });
 
 describe("<Pagination/>", () => {
   it("Smart: Previous and Next only, from page and has_more", () => {
-    render(<Pagination data={smartBody([result(1)], { page: 2, has_more: true })} onPage={() => {}} />);
+    render(<Pagination data={relatedBody([result(1)], { page: 2, has_more: true })} onPage={() => {}} />);
     expect(screen.getByRole("button", { name: /Previous/ }).hasAttribute("disabled")).toBe(false);
     expect(screen.getByRole("button", { name: /Next/ }).hasAttribute("disabled")).toBe(false);
     expect(screen.queryByRole("button", { name: "Page 3" })).toBeNull();
   });
 
   it("disables Previous on page 1 and Next without has_more", () => {
-    const { rerender } = render(<Pagination data={smartBody([result(1)], { page: 1, has_more: true })} onPage={() => {}} />);
+    const { rerender } = render(<Pagination data={relatedBody([result(1)], { page: 1, has_more: true })} onPage={() => {}} />);
     expect(screen.getByRole("button", { name: /Previous/ }).hasAttribute("disabled")).toBe(true);
-    rerender(<Pagination data={smartBody([result(1)], { page: 2, has_more: false })} onPage={() => {}} />);
+    rerender(<Pagination data={relatedBody([result(1)], { page: 2, has_more: false })} onPage={() => {}} />);
     expect(screen.getByRole("button", { name: /Next/ }).hasAttribute("disabled")).toBe(true);
   });
 
   it("is absent when there is only one page", () => {
-    const { container } = render(<Pagination data={smartBody([result(1)])} onPage={() => {}} />);
+    const { container } = render(<Pagination data={relatedBody([result(1)])} onPage={() => {}} />);
     expect(container.querySelector("nav")).toBeNull();
   });
 
   it("asks for the neighbouring page", () => {
     const onPage = vi.fn();
-    render(<Pagination data={smartBody([result(1)], { page: 2, has_more: true })} onPage={onPage} />);
+    render(<Pagination data={relatedBody([result(1)], { page: 2, has_more: true })} onPage={onPage} />);
     fireEvent.click(screen.getByRole("button", { name: /Next/ }));
     fireEvent.click(screen.getByRole("button", { name: /Previous/ }));
     expect(onPage.mock.calls).toEqual([[3], [1]]);

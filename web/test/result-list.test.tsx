@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
 import { ResultList } from "../src/components/ResultList";
 import { handleKeydown } from "../src/lib/keys";
-import { exactBody, result, smartBody, stubFetch } from "./helpers";
+import { exactBody, result, relatedBody, stubFetch } from "./helpers";
 
 afterEach(() => {
   cleanup();
@@ -15,11 +15,11 @@ afterEach(() => {
 });
 
 const related = (n: number) => result(n, { match: "related", text: `Related passage ${n}` });
-const INTRO = "No exact matches — passages about similar things:";
+const INTRO = "Passages about the same thing that don't contain your words:";
 
-function renderList(results: ReturnType<typeof result>[], page = 1) {
+function renderList(results: ReturnType<typeof result>[], page = 1, isRelated = false) {
   const listRef = createRef<HTMLDivElement>();
-  const view = render(<ResultList results={results} page={page} listRef={listRef} />);
+  const view = render(<ResultList results={results} page={page} related={isRelated} listRef={listRef} />);
   return { ...view, listRef };
 }
 
@@ -41,88 +41,78 @@ describe("grouping", () => {
     expect(cards[2]!.textContent).toContain("later A");
   });
 
-  it("does not merge a keyword hit and a related hit of one episode", () => {
-    const k = result(1, { chunk_id: 11, text: "Keyword one" });
-    const r = result(1, { chunk_id: 12, match: "related", text: "Related one" });
-    renderList([k, r]);
-    const cards = cardsOf();
-    expect(cards).toHaveLength(2);
-    expect(cards[0]!.classList.contains("result--related")).toBe(false);
-    expect(cards[1]!.classList.contains("result--related")).toBe(true);
-  });
-
-  it("merges neighbouring related hits of one episode into one related card", () => {
+  it("merges neighbouring related hits of one episode into one card, like any other", () => {
     const r1 = result(1, { chunk_id: 12, match: "related", text: "Related one" });
     const r2 = result(1, { chunk_id: 13, match: "related", text: "Related two" });
-    renderList([result(2), r1, r2]);
+    renderList([result(2), r1, r2], 1, true);
     const cards = cardsOf();
     expect(cards).toHaveLength(2);
     expect(within(cards[1]!).getByText("2 matches")).toBeTruthy();
-    expect(cards[1]!.classList.contains("result--related")).toBe(true);
+    expect(cards[1]!.className).toBe("result");
   });
 });
 
-describe("one list, in the API's order", () => {
-  const mixed = () => [result(1), related(2), result(3), related(4)];
-
-  it("shows keyword and related cards interleaved exactly as sent, with no fold", () => {
-    renderList(mixed());
+describe("related cards", () => {
+  it("are ordinary cards: no Related tag, no dashed class, in the API's order", () => {
+    renderList([related(1), related(2), related(3)], 1, true);
     expect(screen.getAllByRole("list")).toHaveLength(1);
     const cards = cardsOf();
-    expect(cards.map((c) => c.classList.contains("result--related"))).toEqual([false, true, false, true]);
+    expect(cards.map((c) => c.className)).toEqual(["result", "result", "result"]);
+    expect(document.querySelector(".result__tag")).toBeNull();
+    expect(screen.queryByText("Related")).toBeNull();
     expect(cards.map((c) => c.querySelector(".hit__excerpt")?.textContent)).toEqual([
-      "Text of passage 1",
+      "Related passage 1",
       "Related passage 2",
-      "Text of passage 3",
-      "Related passage 4",
+      "Related passage 3",
     ]);
-    expect(screen.queryByRole("button", { name: /related passage/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /Show|Hide/ })).toBeNull();
-    expect(screen.queryByText(/Matched on meaning/)).toBeNull();
-    expect(screen.queryByRole("list", { name: "Related results" })).toBeNull();
-  });
-
-  it("tags each related card 'Related'", () => {
-    renderList(mixed());
-    expect(screen.getAllByText("Related")).toHaveLength(2);
   });
 });
 
 describe("the intro line", () => {
-  it("is shown on page 1 when no hit on the page is a keyword hit", () => {
-    renderList([related(1), related(2)]);
+  it("is shown on page 1 of the Related tab", () => {
+    renderList([related(1), related(2)], 1, true);
     expect(screen.getByText(INTRO)).toBeTruthy();
     expect(cardsOf()).toHaveLength(2);
-    expect(screen.queryByRole("button", { name: /Show|Hide/ })).toBeNull();
   });
 
-  it("is not shown on page 2, with only related hits", () => {
-    renderList([related(1), related(2)], 2);
+  it("is not shown on page 2 of the Related tab", () => {
+    renderList([related(1), related(2)], 2, true);
     expect(screen.queryByText(INTRO)).toBeNull();
     expect(cardsOf()).toHaveLength(2);
   });
 
-  it("is not shown when the page has a keyword hit", () => {
-    renderList([related(1), result(2)]);
+  it("is not shown in Exact, whatever the hits are", () => {
+    renderList([result(1), result(2)]);
+    expect(screen.queryByText(INTRO)).toBeNull();
+    cleanup();
+    renderList([related(1), related(2)]);
     expect(screen.queryByText(INTRO)).toBeNull();
   });
 
   it("is not shown when the page has no results", () => {
-    renderList([]);
+    renderList([], 1, true);
     expect(screen.queryByText(INTRO)).toBeNull();
   });
 
-  it("reaches the list from the page: page 1 shows it, page 2 does not", async () => {
-    window.history.replaceState(null, "", "/?q=glue");
+  it("reaches the list from the page: Related page 1 shows it, page 2 does not, Exact never", async () => {
+    window.history.replaceState(null, "", "/?q=glue&mode=related");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(smartBody([related(1)]));
+    calls[0]!.respond(relatedBody([related(1)]));
     expect(await screen.findByText(INTRO)).toBeTruthy();
     cleanup();
-    window.history.replaceState(null, "", "/?q=glue&page=2");
+    window.history.replaceState(null, "", "/?q=glue");
+    const calls3 = stubFetch();
+    render(<App />);
+    calls3[0]!.respond(exactBody([result(1, { text: "Exact passage 1" })]));
+    await screen.findByText("Exact passage 1");
+    expect(screen.queryByText(INTRO)).toBeNull();
+    cleanup();
+    window.history.replaceState(null, "", "/?q=glue&mode=related&page=2");
     const calls2 = stubFetch();
     render(<App />);
-    calls2[0]!.respond(smartBody([related(1)], { page: 2 }));
+    calls2[0]!.respond(relatedBody([related(1)], { page: 2 }));
     await screen.findByText("Related passage 1");
     expect(screen.queryByText(INTRO)).toBeNull();
   });

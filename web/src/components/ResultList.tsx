@@ -1,7 +1,6 @@
-// The results (spec §5.3, §5.6): one list of cards for the whole page, keyword and related hits
-// interleaved exactly as the API sent them (nothing is folded or moved). Neighbouring hits of one
-// episode and one kind share a card (lib/group.ts). Page 1 with no keyword hit on it starts with
-// "No exact matches —"; later pages never do.
+// The results (spec §5.3, §5.6): one list of cards for the whole page, in the order the API sent
+// them (nothing is folded or moved). Neighbouring hits of one episode share a card
+// (lib/group.ts). Page 1 of the Related tab starts with an intro line; later pages never do.
 //
 // A "stop" for the arrow and j/k keys (lib/keys.ts) is one card, however many hits it holds: the
 // cards (`data-result`) have a roving tabindex, so one is in the tab order and ArrowDown/ArrowUp
@@ -21,12 +20,15 @@ const noop = () => {};
 export function ResultList({
   results,
   page,
+  related = false,
   listRef,
   q = "",
   onReport = noop,
   onSearchEpisode = noop,
 }: Partial<HitActions> & {
   results: SearchResult[];
+  /** The Related tab: page 1 starts with the intro line. */
+  related?: boolean;
   /** The query these results answer; the expanded transcript marks its words. */
   q?: string;
   /** The page number, from 1; the intro line is for page 1 only. */
@@ -41,7 +43,6 @@ export function ResultList({
   const openReport = useState<number | null>(null);
 
   const cards = groupNeighbours(results);
-  const noKeyword = results.length > 0 && results.every((r) => r.match === "related");
   const current = Math.min(active, Math.max(cards.length - 1, 0));
 
   useLayoutEffect(() => {
@@ -59,7 +60,7 @@ export function ResultList({
 
   return (
     <div class="results-area" ref={listRef}>
-      {page === 1 && noKeyword && <p class="results-intro">No exact matches — passages about similar things:</p>}
+      {page === 1 && related && results.length > 0 && <p class="results-intro">Passages about the same thing that don't contain your words:</p>}
       <ol class="results" aria-label="Results">
         <OpenView.Provider value={openView}>
           <OpenReport.Provider value={openReport}>

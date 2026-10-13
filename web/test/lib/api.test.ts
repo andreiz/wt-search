@@ -25,7 +25,7 @@ function answer(status: number, body: unknown, headers: Record<string, string> =
   fetchMock.mockResolvedValueOnce(new Response(text, { status, headers }));
 }
 
-const SMART: SearchState = { q: "hide glue", mode: "smart", sort: "relevance", page: 1 };
+const SMART: SearchState = { q: "hide glue", mode: "related", sort: "relevance", page: 1 };
 const FEEDBACK: ReportBody = { note: "Great site", turnstile_token: "tok" };
 const PASSAGE: ReportBody = {
   chunk_id: 59031,
@@ -43,6 +43,12 @@ function call(): { url: URL; init: RequestInit } {
 }
 
 describe("requests", () => {
+  it("a Related search sends mode=related", async () => {
+    answer(200, emptyFixture);
+    await search(SMART, new AbortController().signal);
+    expect(call().url.searchParams.get("mode")).toBe("related");
+  });
+
   it("search calls a relative /api/search with q, mode, sort and page", async () => {
     answer(200, emptyFixture);
     await search({ q: "a & b+c", mode: "exact", sort: "newest", page: 2 }, new AbortController().signal);
@@ -115,7 +121,7 @@ type Loose<T> = T extends string
       ? { [K in keyof T]: Loose<T[K]> }
       : T;
 type ExactData = Extract<SearchData, { mode: "exact" }>;
-type SmartData = Extract<SearchData, { mode: "smart" }>;
+type SmartData = Extract<SearchData, { mode: "related" }>;
 
 describe("fixtures have the Worker's types (checked by tsc)", () => {
   it("compiles", () => {
@@ -163,26 +169,28 @@ describe("search: real response shapes", () => {
     expect(r.data.total).toBe(0);
   });
 
-  it("smart.json parses as the smart arm, with a related hit", async () => {
-    answer(200, smartFixture);
+  // The smart*.json fixtures are shared with the Python tests and still say mode "smart"; the
+  // Worker's related mode answers the same shape with mode "related", so that is put on here.
+  it("smart.json, as a related answer, parses as the related arm", async () => {
+    answer(200, { ...smartFixture, mode: "related" });
     const r = await search(SMART, signal);
-    if (r.kind !== "ok" || r.data.mode !== "smart") throw new Error("expected a smart ok");
+    if (r.kind !== "ok" || r.data.mode !== "related") throw new Error("expected a related ok");
     expect(r.data.smart_degraded).toBeUndefined();
     expect(r.data.results.map((x) => x.match)).toEqual(["keyword", "related", "related"]);
     expect("total" in r.data).toBe(false);
   });
 
   it("smart_degraded.json carries its reason", async () => {
-    answer(200, degradedFixture);
+    answer(200, { ...degradedFixture, mode: "related" });
     const r = await search(SMART, signal);
-    if (r.kind !== "ok" || r.data.mode !== "smart") throw new Error("expected a smart ok");
+    if (r.kind !== "ok" || r.data.mode !== "related") throw new Error("expected a related ok");
     expect(r.data.smart_degraded).toBe("unavailable");
   });
 
   it("smart_debug.json carries debug", async () => {
-    answer(200, debugFixture);
+    answer(200, { ...debugFixture, mode: "related" });
     const r = await search(SMART, signal);
-    if (r.kind !== "ok" || r.data.mode !== "smart") throw new Error("expected a smart ok");
+    if (r.kind !== "ok" || r.data.mode !== "related") throw new Error("expected a related ok");
     expect(r.data.debug?.keyword_hits).toBe(3);
     expect(r.data.results[0]?.debug).toBeDefined();
   });

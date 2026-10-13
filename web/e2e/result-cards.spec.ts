@@ -1,6 +1,6 @@
 // The dense result cards in the built page under the real CSP (spec §5.3): the header above a
 // two-hit card, the timestamp chip (the one play control) and the ⋯ menu at 1280 and 390 px, the
-// interleaved keyword and related cards with no fold, a page with only related hits, and the
+// Related cards in the API's order with no fold and no marking, the Related intro line, and the
 // phone layout.
 import { expect, test, type Page } from "@playwright/test";
 
@@ -62,7 +62,7 @@ const relatedCards = [
 ];
 
 function body(results: unknown[]) {
-  return { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results };
+  return { mode: "related", sort: "relevance", page: 1, limit: 20, has_more: false, results };
 }
 
 async function open(page: Page, results: unknown[]) {
@@ -196,7 +196,7 @@ for (const { name, width, height } of WIDTHS) {
 
 test.describe("on a desktop", () => {
 
-  test("keyword and related cards are all there, interleaved in the API's order, with no fold", async ({ page }) => {
+  test("the Related tab's cards are all there in the API's order, with no fold, and carry no marking", async ({ page }) => {
     const mixed = [keywordCards[0], relatedCards[0], keywordCards[2], relatedCards[1]];
     const noViolations = await open(page, mixed);
     const list = page.getByRole("list", { name: "Results" });
@@ -212,22 +212,23 @@ test.describe("on a desktop", () => {
     await expect(page.getByRole("list")).toHaveCount(1);
     // The summary names the results this page holds.
     await expect(page.getByText("Related (beta) · top results 1–4")).toBeVisible();
-    // A keyword hit is on the page, so no intro line.
-    await expect(page.getByText("No exact matches")).toHaveCount(0);
-    await expect(list.getByText("Related", { exact: true })).toHaveCount(2);
-    // Dashed border on a related card's box; the header above it has none.
-    const related = cards.nth(1);
-    expect(await related.locator(".result__card").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("dashed");
-    expect(await related.locator(".result__head").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("none");
-    expect(await cards.nth(0).locator(".result__card").evaluate((el) => getComputedStyle(el).borderTopStyle)).toBe("solid");
+    await expect(page.getByText("Passages about the same thing that don't contain your words:")).toBeVisible();
+    // No "Related" pill, and every card's box has the same solid border and the same excerpt colour.
+    await expect(list.getByText("Related", { exact: true })).toHaveCount(0);
+    await expect(list.locator(".result__tag")).toHaveCount(0);
+    const border = (i: number) => cards.nth(i).locator(".result__card").evaluate((el) => getComputedStyle(el).borderTopStyle);
+    const colour = (i: number) => cards.nth(i).locator(".hit__excerpt").first().evaluate((el) => getComputedStyle(el).color);
+    for (let i = 0; i < 4; i++) expect(await border(i)).toBe("solid");
+    expect(await colour(1)).toBe(await colour(0));
+    expect(await colour(3)).toBe(await colour(0));
     // A related card has the chip (the page, as the episode has no YouTube) and the menu.
     await expect(cards.nth(3).locator("a.hit__time")).toHaveAccessibleName("Play on Acast 1:09:51, starts at 1:09:44, may play an ad first");
     await noViolations();
   });
 
-  test("a page 1 with only related hits has the intro line", async ({ page }) => {
+  test("page 1 of Related has the intro line", async ({ page }) => {
     const noViolations = await open(page, relatedCards);
-    await expect(page.getByText("No exact matches — passages about similar things:")).toBeVisible();
+    await expect(page.getByText("Passages about the same thing that don't contain your words:")).toBeVisible();
     await expect(page.getByRole("list", { name: "Results" }).getByRole("listitem")).toHaveCount(2);
     await expect(page.getByRole("button", { name: /related passages|Hide/ })).toHaveCount(0);
     await noViolations();

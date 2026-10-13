@@ -91,7 +91,7 @@ describe("<ModeSwitch/>", () => {
     expect(exact.getAttribute("aria-checked")).toBe("true");
     expect(related.getAttribute("aria-checked")).toBe("false");
     expect(exact.getAttribute("title")).toBe("Passages that contain your words, with a count");
-    expect(related.getAttribute("title")).toBe("Passages about the same thing, also in other words. Still rough.");
+    expect(related.getAttribute("title")).toBe("Passages about the same thing that don't contain your words. Still rough.");
   });
 
   it("reports the other mode when it is clicked, and nothing for the current one", () => {
@@ -100,18 +100,18 @@ describe("<ModeSwitch/>", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Exact" }));
     expect(onChange).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
-    expect(onChange).toHaveBeenCalledWith("smart");
+    expect(onChange).toHaveBeenCalledWith("related");
   });
 
   it("moves with the arrow keys, as radio groups do", () => {
     const onChange = vi.fn();
     render(<ModeSwitch mode="exact" onChange={onChange} />);
     fireEvent.keyDown(screen.getByRole("radio", { name: "Exact" }), { key: "ArrowRight" });
-    expect(onChange).toHaveBeenCalledWith("smart");
+    expect(onChange).toHaveBeenCalledWith("related");
   });
 
   it("only the selected radio is in the tab order", () => {
-    render(<ModeSwitch mode="smart" onChange={() => {}} />);
+    render(<ModeSwitch mode="related" onChange={() => {}} />);
     expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("tabindex")).toBe("0");
     expect(screen.getByRole("radio", { name: "Exact" }).getAttribute("tabindex")).toBe("-1");
   });

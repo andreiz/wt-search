@@ -26,8 +26,8 @@ export function result(n: number, over: Partial<SearchResult> = {}): SearchResul
   };
 }
 
-export function smartBody(results: SearchResult[], over: Partial<Extract<SearchData, { mode: "smart" }>> = {}): SearchData {
-  return { mode: "smart", sort: "relevance", page: 1, limit: 20, has_more: false, results, episodes: [], ...over };
+export function relatedBody(results: SearchResult[], over: Partial<Extract<SearchData, { mode: "related" }>> = {}): SearchData {
+  return { mode: "related", sort: "relevance", page: 1, limit: 20, has_more: false, results, episodes: [], ...over };
 }
 
 /** An episode whose title matched, from the real shape (`EpisodeHit`). */

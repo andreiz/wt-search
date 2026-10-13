@@ -3,7 +3,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
-import { exactBody, result, smartBody, stubFetch } from "./helpers";
+import { exactBody, result, relatedBody, stubFetch } from "./helpers";
 
 function go(url: string) {
   window.history.replaceState(null, "", url);
@@ -73,7 +73,7 @@ describe("searching", () => {
     const calls = stubFetch();
     render(<App />);
     typeAndSubmit("glue");
-    calls[0]!.respond(smartBody([result(1), result(2), result(3)]));
+    calls[0]!.respond(relatedBody([result(1), result(2), result(3)]));
     const list = await screen.findByRole("list", { name: "Results" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByRole("heading", { level: 2, name: "Search results" })).toBeTruthy();
@@ -134,8 +134,16 @@ describe("mode and sort", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
     expect(calls).toHaveLength(2);
     expect(calls[0]!.signal.aborted).toBe(true);
-    expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({ q: "glue", mode: "smart", sort: "relevance", page: "1" });
+    expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({ q: "glue", mode: "related", sort: "relevance", page: "1" });
     expect(window.location.search).toBe("?q=glue&mode=related");
+  });
+
+  it("an old link with mode=smart opens Related and asks for mode=related", () => {
+    go("/?q=glue&mode=smart");
+    const calls = stubFetch();
+    render(<App />);
+    expect(calls[0]!.url.searchParams.get("mode")).toBe("related");
+    expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("changing back to Exact drops mode from the URL", () => {
@@ -174,7 +182,7 @@ describe("mode and sort", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
     expect(calls).toHaveLength(0);
     typeAndSubmit("glue");
-    expect(calls[0]!.url.searchParams.get("mode")).toBe("smart");
+    expect(calls[0]!.url.searchParams.get("mode")).toBe("related");
   });
 });
 
@@ -195,11 +203,11 @@ describe("one search in flight", () => {
     typeAndSubmit("second");
     // The newer search answers first, then the older one limps in.
     await act(async () => {
-      calls[1]!.respond(smartBody([result(2, { text: "SECOND answer" })]));
+      calls[1]!.respond(relatedBody([result(2, { text: "SECOND answer" })]));
     });
     expect(await screen.findByText(/SECOND answer/)).toBeTruthy();
     await act(async () => {
-      calls[0]!.respond(smartBody([result(1, { text: "FIRST answer" })]));
+      calls[0]!.respond(relatedBody([result(1, { text: "FIRST answer" })]));
       await new Promise((r) => setTimeout(r, 10));
     });
     expect(screen.queryByText(/FIRST answer/)).toBeNull();
@@ -212,13 +220,13 @@ describe("one search in flight", () => {
     typeAndSubmit("first");
     typeAndSubmit("second");
     await act(async () => {
-      calls[0]!.respond(smartBody([result(1, { text: "FIRST answer" })]));
+      calls[0]!.respond(relatedBody([result(1, { text: "FIRST answer" })]));
       await new Promise((r) => setTimeout(r, 10));
     });
     expect(screen.queryByText(/FIRST answer/)).toBeNull();
     expect(document.querySelector("[aria-busy='true']")).toBeTruthy();
     await act(async () => {
-      calls[1]!.respond(smartBody([result(2, { text: "SECOND answer" })]));
+      calls[1]!.respond(relatedBody([result(2, { text: "SECOND answer" })]));
     });
     expect(await screen.findByText(/SECOND answer/)).toBeTruthy();
   });
@@ -229,7 +237,7 @@ describe("one search in flight", () => {
     typeAndSubmit("first");
     typeAndSubmit("second");
     await act(async () => {
-      calls[1]!.respond(smartBody([result(2, { text: "SECOND answer" })]));
+      calls[1]!.respond(relatedBody([result(2, { text: "SECOND answer" })]));
     });
     await act(async () => {
       calls[0]!.fail();
@@ -245,7 +253,7 @@ describe("Back and Forward", () => {
     const calls = stubFetch();
     render(<App />);
     typeAndSubmit("glue");
-    calls[0]!.respond(smartBody([result(1, { text: "GLUE answer" })]));
+    calls[0]!.respond(relatedBody([result(1, { text: "GLUE answer" })]));
     await screen.findByText(/GLUE answer/);
     typeAndSubmit("epoxy");
     expect(calls).toHaveLength(2);
@@ -279,7 +287,7 @@ describe("Back and Forward", () => {
 });
 
 describe("paging", () => {
-  async function onPageOne(body = smartBody([result(1), result(2)], { has_more: true })) {
+  async function onPageOne(body = relatedBody([result(1), result(2)], { has_more: true })) {
     go("/?q=glue");
     const calls = stubFetch();
     render(<App />);
@@ -308,15 +316,15 @@ describe("paging", () => {
     input.focus();
     fireEvent.input(input, { target: { value: "epoxy" } });
     fireEvent.submit(screen.getByRole("search"));
-    calls[1]!.respond(smartBody([result(1)]));
+    calls[1]!.respond(relatedBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
     expect(document.activeElement).toBe(input);
   });
 
   it("Back from page 2 shows page 1's results again, with the URL back to no page", async () => {
-    const calls = await onPageOne(smartBody([result(1, { text: "PAGE ONE text" })], { has_more: true }));
+    const calls = await onPageOne(relatedBody([result(1, { text: "PAGE ONE text" })], { has_more: true }));
     fireEvent.click(screen.getByRole("button", { name: /Next/ }));
-    calls[1]!.respond(smartBody([result(2, { text: "PAGE TWO text" })], { page: 2 }));
+    calls[1]!.respond(relatedBody([result(2, { text: "PAGE TWO text" })], { page: 2 }));
     await screen.findByText(/PAGE TWO text/);
     expect(window.location.search).toBe("?q=glue&page=2");
 
@@ -326,7 +334,7 @@ describe("paging", () => {
     });
     expect(calls).toHaveLength(3);
     expect(calls[2]!.url.searchParams.get("page")).toBe("1");
-    calls[2]!.respond(smartBody([result(1, { text: "PAGE ONE text" })], { has_more: true }));
+    calls[2]!.respond(relatedBody([result(1, { text: "PAGE ONE text" })], { has_more: true }));
     expect(await screen.findByText(/PAGE ONE text/)).toBeTruthy();
     expect(screen.queryByText(/PAGE TWO text/)).toBeNull();
     expect(window.location.search).toBe("?q=glue");
@@ -372,7 +380,7 @@ describe("answers that are not results", () => {
     calls[0]!.fail();
     await screen.findByText("Something went wrong.");
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
-    calls[1]!.respond(smartBody([result(1)]));
+    calls[1]!.respond(relatedBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
     expect(screen.queryByText("Something went wrong.")).toBeNull();
   });
@@ -383,7 +391,7 @@ describe("keyboard", () => {
     go("/?q=glue");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(smartBody([result(1), result(2), result(3)]));
+    calls[0]!.respond(relatedBody([result(1), result(2), result(3)]));
     await screen.findByRole("list", { name: "Results" });
   }
 
@@ -424,13 +432,13 @@ describe("roving tabindex", () => {
     go("/?q=glue");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(smartBody([result(1), result(2), result(3)]));
+    calls[0]!.respond(relatedBody([result(1), result(2), result(3)]));
     await screen.findByRole("list", { name: "Results" });
     const before = within(screen.getByRole("list", { name: "Results" })).getAllByRole("listitem");
     before[2]!.focus();
     await waitFor(() => expect(before.map((c) => c.getAttribute("tabindex"))).toEqual(["-1", "-1", "0"]));
     typeAndSubmit("epoxy");
-    calls[1]!.respond(smartBody([result(4), result(5), result(6)]));
+    calls[1]!.respond(relatedBody([result(4), result(5), result(6)]));
     await screen.findByText(/Text of passage 4/);
     const after = within(screen.getByRole("list", { name: "Results" })).getAllByRole("listitem");
     expect(after.map((c) => c.getAttribute("tabindex"))).toEqual(["0", "-1", "-1"]);
@@ -447,7 +455,7 @@ describe("the status region", () => {
     typeAndSubmit("glue");
     expect(screen.getByRole("status")).toBe(region);
     expect(region.textContent).toBe("Searching…");
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(relatedBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
     expect(screen.getByRole("status")).toBe(region);
     expect(region.textContent).toBe("Related (beta) · top result 1");
@@ -517,7 +525,7 @@ describe("markup rules", () => {
     const calls = stubFetch();
     const { container } = render(<App />);
     expect(container.querySelectorAll("[style]").length).toBe(0);
-    calls[0]!.respond(smartBody([result(1)], { has_more: true }));
+    calls[0]!.respond(relatedBody([result(1)], { has_more: true }));
     await screen.findByRole("list", { name: "Results" });
     fireEvent.click(screen.getByRole("button", { name: /Sort/ }));
     expect(container.querySelectorAll("[style]").length).toBe(0);

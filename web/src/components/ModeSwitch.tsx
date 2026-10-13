@@ -1,12 +1,12 @@
 // The Exact / Related (beta) segmented control (SearchHeader.dc.html; spec §5.2): a radio group
-// with a one-line tooltip each. Related is the internal mode "smart". Only the selected radio is
+// with a one-line tooltip each. Related is the internal mode "related". Only the selected radio is
 // in the tab order; the arrows move the choice.
 import { useRef } from "preact/hooks";
 import type { Mode } from "../lib/url";
 
 const OPTIONS: { mode: Mode; label: string; tip: string }[] = [
   { mode: "exact", label: "Exact", tip: "Passages that contain your words, with a count" },
-  { mode: "smart", label: "Related (beta)", tip: "Passages about the same thing, also in other words. Still rough." },
+  { mode: "related", label: "Related (beta)", tip: "Passages about the same thing that don't contain your words. Still rough." },
 ];
 
 export function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => void }) {

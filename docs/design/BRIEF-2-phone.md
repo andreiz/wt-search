@@ -13,7 +13,9 @@ show the site (§1).
 | File (`phone-dark-…`, `phone-light-…`) | Shows |
 |---|---|
 | `before-any-search` | the controls row on two lines, the "Try" chips (§2 items 1–2) |
-| `keyword-and-related-results` | Related (beta): a keyword card, then two related ones (§2 items 3–4) |
+| `related-results` | Related (beta): its intro line and three cards, one with a long title (§2 items 3–4) |
+| `no-results-in-related` | "No related passages." and "See exact matches" |
+| `degraded-unavailable` | Related when meaning search is down: the notice and its button |
 | `exact-with-title-matches` | Exact: the "Episodes" row, a long title above a card (§2 item 3) |
 | `exact-with-only-a-few-matches` | "Only 3 exact matches." and its button |
 | `exact-with-a-year-range-set` | the controls row at its widest |
@@ -27,10 +29,14 @@ The maintainer's own iPhone screenshots show the same with the browser's bars an
 These are decided; design with them, not around them.
 
 - **The modes are now Exact and Related (beta), and Exact is the default.** Exact lists the
-  passages that contain the words, with a count. Related (beta) is what Smart was: keyword and
-  meaning results in one ranked list, the meaning ones marked "Related". It is opt-in because
-  the meaning results are still uneven. The switch reads **Exact | Related (beta)**, Exact
-  first.
+  passages that contain the words, with a count. Related (beta) lists passages about the same
+  thing that do **not** contain the words, best first, with no count; nothing appears in both.
+  It is opt-in because the meaning results are still uneven. The switch reads **Exact |
+  Related (beta)**, Exact first. (The first round's "Smart", one list mixing both kinds, is
+  set aside.)
+- **Related has its own empty and failed states.** Nothing to show: "No related passages." and
+  a button "See exact matches". Meaning search down or paused: a notice, "Related search is
+  unavailable right now." / "Related search is paused.", with the same button.
 - **Exact offers the way across when it finds little.** With no result: "Nothing found." and a
   button "See related passages (beta)". With fewer than 5 matches: "Only N exact matches." and
   the same button, under the list.
@@ -38,7 +44,9 @@ These are decided; design with them, not around them.
   line ("Ep. 616 · Should I Buy A Jointer?", then "3 matches · Oct 7, 2026") sits above the
   card on the page background; the card holds only hit rows; each row is a time chip that
   plays, the excerpt (3 lines, tap to open the passage), and ⋯. No row of platform pills.
-  Related cards have a dashed border, a "Related" pill by the date and a muted excerpt.
+  A card in Related looks like a card in Exact: the first round's dashed border, "Related"
+  pill and muted excerpt are gone, since a list no longer holds both kinds. Related's first
+  page opens with a line, "Passages about the same thing that don't contain your words:".
 - **The search box's placeholder** carries the real number of episodes, which is not always
   three digits ("Search 37 episodes", later "Search 1,234 episodes").
 
@@ -58,15 +66,13 @@ The maintainer's words: "not a fan of all the wrapping. The option cards, the ti
    I sharpen a card scraper") cannot share a row. Open to a list, a scrolling row, or
    something else; the examples themselves can change.
 3. **The episode line above a card wraps into two or three uneven lines** when the title is
-   long: "Ep. 606 · It's Tiny But It's Better Than Nothing" breaks, and "Related" and the
-   date land on a line of their own beside or under it. It needs one arrangement that looks
-   intended for a short title, a long title, with and without "Related", with and without
-   "3 matches".
-4. **Keyword and related results look too alike in one list.** In Related (beta) the two
-   kinds are interleaved in rank order (that is fixed: folding the related ones away was
-   tried and swallowed whole pages). A dashed border, a small pill and a slightly muted
-   excerpt are not enough to tell them apart at a glance in dark mode. Wanted: a stronger but
-   still calm difference, and nothing that reads as an error or as disabled.
+   long: "Ep. 606 · It's Tiny But It's Better Than Nothing" breaks, and the date lands on a
+   line of its own beside or under it. It needs one arrangement that looks intended for a
+   short title and a long title, with and without "3 matches".
+4. **Which tab am I in?** The two tabs now show the same kind of card, so the switch, the
+   summary line and Related's intro line are all that say whether these are exact matches or
+   related passages. Wanted: a calm way to make a Related page read as Related at a glance
+   (after scrolling too), and nothing that reads as an error or as disabled.
 
 ## 3. Also wanted
 
@@ -80,7 +86,7 @@ The maintainer's words: "not a fan of all the wrapping. The option cards, the ti
 ## 4. Deliverable
 
 The phone screens (light and dark) for: the start page; Exact results with a long and a short
-title; Related (beta) results with both kinds of card; no results in Exact; "Only 3 exact
-matches."; the header with a year set; the compact header. Desktop only where the same
+title; Related (beta) results; no results in Exact and in Related; Related unavailable; "Only
+3 exact matches."; the header with a year set; the compact header. Desktop only where the same
 component changes. Measurements in the README's style, and updated `.dc.html` files if the
 components change.

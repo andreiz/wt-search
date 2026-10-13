@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
 const YOUTUBE = "https://www.youtube.com/watch?v=abc123";
 
 const answer = (over: Record<string, unknown> = {}) => ({
-  mode: "smart",
+  mode: "related",
   sort: "relevance",
   page: 1,
   limit: 20,

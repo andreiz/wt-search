@@ -21,14 +21,14 @@ describe("serialize", () => {
   });
 
   it("writes non-default mode, sort and page in a fixed order", () => {
-    expect(serialize(state({ q: "glue", mode: "smart", sort: "newest", page: 3 }))).toBe(
+    expect(serialize(state({ q: "glue", mode: "related", sort: "newest", page: 3 }))).toBe(
       "?q=glue&mode=related&sort=newest&page=3",
     );
   });
 
-  it("leaves mode out for exact and writes mode=related (not smart) for the Related mode", () => {
+  it("leaves mode out for exact and writes mode=related for the Related mode", () => {
     expect(serialize(state({ q: "glue", mode: "exact" }))).toBe("?q=glue");
-    expect(serialize(state({ q: "glue", mode: "smart" }))).toBe("?q=glue&mode=related");
+    expect(serialize(state({ q: "glue", mode: "related" }))).toBe("?q=glue&mode=related");
   });
 
   it("trims q and leaves an all-space query out", () => {
@@ -42,8 +42,8 @@ describe("serialize", () => {
     );
   });
 
-  it("clamps page to what the Worker would serve for the mode (smart 5, exact 10)", () => {
-    expect(serialize(state({ mode: "smart", page: 9 }))).toBe("?mode=related&page=5");
+  it("clamps page to what the Worker would serve for the mode (related 5, exact 10)", () => {
+    expect(serialize(state({ mode: "related", page: 9 }))).toBe("?mode=related&page=5");
     expect(serialize(state({ page: 99 }))).toBe("?page=10");
     expect(serialize(state({ page: 0 }))).toBe("");
     expect(serialize(state({ page: -2 }))).toBe("");
@@ -83,9 +83,9 @@ describe("parse", () => {
     expect(parse("?q=glue").mode).toBe("exact");
   });
 
-  it("reads mode=related, and mode=smart from older links, as smart (case-sensitive)", () => {
-    expect(parse("?mode=related").mode).toBe("smart");
-    expect(parse("?mode=smart").mode).toBe("smart");
+  it("reads mode=related, and mode=smart from older links, as related (case-sensitive)", () => {
+    expect(parse("?mode=related").mode).toBe("related");
+    expect(parse("?mode=smart").mode).toBe("related");
     expect(parse("?mode=Related").mode).toBe("exact");
     expect(parse("?mode=SMART").mode).toBe("exact");
   });
@@ -147,15 +147,15 @@ describe("round trip", () => {
   const table: [string, SearchState][] = [
     ["default", state()],
     ["plain query", state({ q: "hide glue" })],
-    ["related mode", state({ q: "titebond", mode: "smart" })],
+    ["related mode", state({ q: "titebond", mode: "related" })],
     ["newest", state({ q: "glue", sort: "newest" })],
     ["oldest, exact, page 10", state({ q: "glue", mode: "exact", sort: "oldest", page: 10 })],
-    ["related, last page", state({ q: "glue", mode: "smart", page: 5 })],
+    ["related, last page", state({ q: "glue", mode: "related", page: 5 })],
     ["operators", state({ q: 'glue OR "hide glue" -epoxy year:2015-2020' })],
     ["plus and percent", state({ q: "c++ 100% a&b=c #1" })],
     // (An emoji here would not survive: queries are cleaned of them, see normalizeQuery.)
     ["non-ASCII", state({ q: "café 木工" })],
-    ["no query, non-default mode", state({ mode: "smart" })],
+    ["no query, non-default mode", state({ mode: "related" })],
   ];
 
   it.each(table)("%s: parse(serialize(s)) is s", (_name, s) => {

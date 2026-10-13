@@ -1144,6 +1144,37 @@ Pinned to the top (compacting on scroll on phones):
 - A row: a **Smart / Exact** segmented switch (one-line tooltips), a sort
   menu (Relevance / Newest / Oldest), a **year range** chip, and a `?`
   syntax popover (the table in §4.3 as examples, as in the brief §5).
+- **The switch is Exact / Related (beta), and Exact is the default**
+  *(maintainer, 2026-10-12, revising "Smart / Exact" with Smart the
+  default)*. Mixing keyword and meaning results in the default list pays
+  only when the meaning results can be trusted beside the exact ones, and
+  they cannot yet: of his three paraphrase searches one found its passage
+  outside the top 20, and "hollow chisel mortiser" showed one real hit
+  above passages sharing a single word. Plan 5's test search set is what
+  will say when that has changed. What this means, and what the items
+  below that still say "Smart" now read as:
+  - **Exact** is first in the switch and is the mode of a URL with no
+    `mode`. Tooltip: "Passages that contain your words, with a count".
+  - **Related (beta)** is what Smart was, unchanged in what it returns
+    (the API's `mode=smart`, §4.4: keyword and meaning results in one
+    ranked list, the meaning ones marked Related). Tooltip: "Passages
+    about the same thing, also in other words. Still rough." In the page's
+    URL it is `mode=related`; `mode=smart` is read as the same. The page
+    always sends the API an explicit `mode`, so the Worker's own default
+    does not matter.
+  - Wherever the page said "Smart" or "Smart search" it says "Related
+    (beta)": the summary ("Related (beta) · top results 1–20"), the
+    compact header's summary button, **How this works** (which opens
+    "**Related search** finds passages two ways: …", with a last line
+    "It is a beta: the results are uneven."), and the notices of §5.6.
+  - **Exact offers the way across when it finds little.** With no result
+    (§5.6 "No results") the first suggestion is a button, "**See related
+    passages (beta)**", followed by "they match meaning, not just words".
+    With fewer than 5 matches in all, on page 1, the same button sits
+    under the list after "Only N exact matches."
+  - Exact makes no Workers AI call, so the default search costs nothing
+    there and the daily budget (§4.8) is spent only by people who ask for
+    Related.
 - **Year range** *(settled 2026-10-08)*: a chip "Any year" opens from–to
   pickers (2007 to this year); once set it reads "2015–2020 ×". The chip
   and the query box are two views of one state: setting the chip removes

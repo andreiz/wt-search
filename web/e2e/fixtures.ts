@@ -171,7 +171,7 @@ const results = (page: Page) => expect(page.getByRole("list", { name: "Results" 
 
 const degraded = (reason: "unavailable" | "budget" | "off"): State => ({
   name: `degraded, ${reason}`,
-  url: "/?q=glue",
+  url: "/?q=glue&mode=related",
   arrange: async (page) => {
     await stubSearch(page, () => ({ json: { ...fixture("smart_degraded"), smart_degraded: reason } }));
   },
@@ -187,7 +187,7 @@ const degraded = (reason: "unavailable" | "budget" | "off"): State => ({
 /** A results page with one of its menus or popovers opened by `open`. */
 const popup = (name: string, open: (page: Page) => Promise<void>): State => ({
   name,
-  url: "/?q=glue",
+  url: "/?q=glue&mode=related",
   arrange: async (page) => {
     await stubSearch(page, () => ({ json: fixture("smart") }));
   },
@@ -204,18 +204,18 @@ export const STATES: State[] = [
   },
   {
     name: "keyword and related results",
-    url: "/?q=glue",
+    url: "/?q=glue&mode=related",
     arrange: async (page) => {
       await stubSearch(page, () => ({ json: fixture("smart") }));
     },
     ready: async (page) => {
       await results(page);
-      await text(page, "Smart search · top results 1–3");
+      await text(page, "Related (beta) · top results 1–3");
     },
   },
   {
     name: "only related hits on page 1",
-    url: "/?q=glue",
+    url: "/?q=glue&mode=related",
     arrange: async (page) => {
       const answer = fixture("smart");
       answer.results = answer.results.filter((r) => r.match === "related");
@@ -235,6 +235,30 @@ export const STATES: State[] = [
     ready: async (page) => {
       await results(page);
       await text(page, "57 matches");
+    },
+  },
+  {
+    name: "Exact with only a few matches",
+    url: "/?q=glue",
+    arrange: async (page) => {
+      const answer = fixture("exact");
+      await stubSearch(page, () => ({ json: { ...answer, total: answer.results.length, episodes: [] } }));
+    },
+    ready: async (page) => {
+      await results(page);
+      await text(page, /^Only \d exact match/);
+      await expect(page.getByRole("button", { name: "See related passages (beta)" })).toBeVisible();
+    },
+  },
+  {
+    name: "Exact with a year range set",
+    url: "/?q=glue+year%3A2015-2020",
+    arrange: async (page) => {
+      await stubSearch(page, () => ({ json: fixture("exact") }));
+    },
+    ready: async (page) => {
+      await results(page);
+      await expect(page.getByRole("button", { name: /^Year range: 2015–2020/ })).toBeVisible();
     },
   },
   {
@@ -310,7 +334,7 @@ export const STATES: State[] = [
   },
   {
     name: "expanded card",
-    url: "/?q=glue",
+    url: "/?q=glue&mode=related",
     arrange: async (page) => {
       const answer = fixture("smart");
       await stubSearch(page, () => ({ json: answer }));
@@ -327,7 +351,7 @@ export const STATES: State[] = [
   },
   {
     name: "report form open",
-    url: "/?q=glue",
+    url: "/?q=glue&mode=related",
     arrange: async (page) => {
       await stubForms(page);
       await stubSearch(page, () => ({ json: fixture("smart") }));
@@ -372,6 +396,6 @@ export const STATES: State[] = [
   }),
   popup("How this works open", async (page) => {
     await page.getByRole("button", { name: "How this works" }).click();
-    await expect(page.getByRole("dialog", { name: "How Smart search works" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "How Related search works" })).toBeVisible();
   }),
 ];

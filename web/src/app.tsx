@@ -6,7 +6,7 @@
 // reads the searched query and Apply and × rewrite the text in the box and search it.
 //
 // The states of spec §5.6 are here: the empty state (with /api/info, asked once while it is
-// shown), no results, the Exact truncation note, the degraded-Smart notice, the rate limit with
+// shown), no results, the Exact truncation note, the degraded-Related notice, the rate limit with
 // its countdown, the error with Retry, and the maintenance banner above the header. The banner
 // shows when a search, a context request or /api/info answers `maintenance`, and goes when a
 // later search succeeds (a report or feedback that answers `maintenance` raises it too). The
@@ -171,6 +171,15 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
 
   const smartEnd = view.kind === "ok" && view.data.mode === "smart" && !view.data.has_more && view.data.page > 1;
 
+  // A short Exact list (1–4 matches, an exact count) offers the related passages under it.
+  const fewExact =
+    view.kind === "ok" &&
+    view.data.mode === "exact" &&
+    view.data.page === 1 &&
+    view.data.results.length > 0 &&
+    view.data.total < 5 &&
+    !view.data.total_capped;
+
   // After "Switch to Exact" the popover is gone with its button: focus goes to the results heading.
   function switchToExact() {
     setMode("exact");
@@ -229,7 +238,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
           aria-controls="search-controls"
           onClick={() => setControlsOpen(!controlsOpen)}
         >
-          {`${state.mode === "exact" ? "Exact" : "Smart"} · ${sortLabel(state.sort)} · ${rangeLabel(range)}`}
+          {`${state.mode === "exact" ? "Exact" : "Related (beta)"} · ${sortLabel(state.sort)} · ${rangeLabel(range)}`}
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>
@@ -264,7 +273,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
               <NoResults
                 mode={view.data.mode}
                 hasYears={range !== null}
-                onSmart={() => setMode("smart")}
+                onRelated={() => setMode("smart")}
               />
             )}
             {view.kind === "ok" && view.data.results.length > 0 && (
@@ -303,6 +312,14 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
               <Notice tone="info">
                 {`Showing the best 200 of ${count(view.data.total, view.data.total_capped)} matches — add words, a "phrase" or a year to narrow it.`}
               </Notice>
+            )}
+            {fewExact && view.kind === "ok" && view.data.mode === "exact" && (
+              <p class="end-note">
+                {`Only ${view.data.total} exact ${view.data.total === 1 ? "match" : "matches"}. `}
+                <button type="button" class="text-button" onClick={() => setMode("smart")}>
+                  See related passages (beta)
+                </button>
+              </p>
             )}
             {view.kind === "ok" && <Pagination data={view.data} onPage={onPage} />}
             {smartEnd && <p class="end-note">That's the end of the top results. Exact search lists every match.</p>}

@@ -3,13 +3,14 @@
 import { expect, test } from "@playwright/test";
 import { stubInfo } from "./info";
 
-function answer(text: string, count = 1) {
+function answer(text: string, count = 1, mode: "smart" | "exact" = "smart") {
   return {
-    mode: "smart",
+    mode,
     sort: "relevance",
     page: 1,
     limit: 20,
     has_more: false,
+    ...(mode === "exact" ? { total: count, total_capped: false, truncated: false } : {}),
     results: Array.from({ length: count }, (_, i) => ({
       episode: { id: i + 1, number: 71 + i, title: "Welcome to the Three-Way", date: "2010-06-10", links: {} },
       chunk_id: i + 1,
@@ -37,8 +38,9 @@ test("search, URL and Back, under the CSP", async ({ page }) => {
   });
   await stubInfo(page);
   await page.route("**/api/search*", (route) => {
-    const q = new URL(route.request().url()).searchParams.get("q") ?? "";
-    return route.fulfill({ json: answer(`Passage about ${q}`) });
+    const params = new URL(route.request().url()).searchParams;
+    const mode = params.get("mode") === "smart" ? "smart" : "exact";
+    return route.fulfill({ json: answer(`Passage about ${params.get("q") ?? ""}`, 1, mode) });
   });
 
   await page.goto("/");
@@ -46,14 +48,15 @@ test("search, URL and Back, under the CSP", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.getByText("Passage about hvlp sprayer")).toBeVisible();
   await expect(page).toHaveURL(/\?q=hvlp\+sprayer$/);
-  await expect(page.getByText("Smart search")).toBeVisible();
+  await expect(page.getByText("1 match", { exact: true })).toBeVisible();
 
-  await page.getByRole("radio", { name: "Exact" }).click();
-  await expect(page).toHaveURL(/mode=exact/);
+  await page.getByRole("radio", { name: "Related (beta)" }).click();
+  await expect(page).toHaveURL(/mode=related/);
+  await expect(page.getByText("Related (beta) · top result 1")).toBeVisible();
 
   await page.goBack();
   await expect(page).toHaveURL(/\?q=hvlp\+sprayer$/);
-  await expect(page.getByRole("radio", { name: "Smart" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radio", { name: "Exact" })).toHaveAttribute("aria-checked", "true");
 
   await page.getByRole("textbox", { name: "Search the transcripts" }).blur();
   await page.keyboard.press("/");
@@ -70,7 +73,7 @@ test.describe("phone header compaction", () => {
 
   async function search(page: import("@playwright/test").Page, count: number) {
     await page.route("**/api/search*", (route) => route.fulfill({ json: answer("A passage about glue and clamps.", count) }));
-    await page.goto("/?q=glue");
+    await page.goto("/?q=glue&mode=related");
     await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
   }
 
@@ -93,12 +96,12 @@ test.describe("phone header compaction", () => {
       await page.waitForTimeout(90);
     }
     // Compact: the controls are out of the way, the input and the summary button show.
-    await expect(page.getByRole("radio", { name: "Smart" })).toBeHidden();
+    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeHidden();
     await expect(page.getByRole("textbox", { name: "Search the transcripts" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Smart · Relevance · Any year/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ })).toBeVisible();
 
     // The button is a toggle: open the controls, with nothing else moving.
-    const toggle = page.getByRole("button", { name: /Smart · Relevance · Any year/ });
+    const toggle = page.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ });
     const steady = async (expectCompact: boolean) => {
       for (let i = 0; i < 3; i++) {
         expect(await compact(page)).toBe(expectCompact);
@@ -109,26 +112,26 @@ test.describe("phone header compaction", () => {
     };
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await expect(page.getByRole("radio", { name: "Smart" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeVisible();
     await expect(toggle).toBeVisible();
     await steady(false);
     // Esc closes them and puts focus on the button.
-    await page.getByRole("radio", { name: "Smart" }).focus();
+    await page.getByRole("radio", { name: "Related (beta)" }).focus();
     await page.keyboard.press("Escape");
     await expect(toggle).toBeFocused();
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await steady(true);
     // A second press of the button closes them again.
     await toggle.click();
-    await expect(page.getByRole("radio", { name: "Smart" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeVisible();
     await toggle.click();
-    await expect(page.getByRole("radio", { name: "Smart" })).toBeHidden();
+    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeHidden();
     await expect(toggle).toBeVisible();
     await steady(true);
 
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect.poll(() => compact(page)).toBe(false);
-    await expect(page.getByRole("radio", { name: "Smart" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeVisible();
   });
 
   test("on a short results page it never compacts", async ({ page }) => {
@@ -139,6 +142,6 @@ test.describe("phone header compaction", () => {
       expect(await compact(page)).toBe(false);
       await page.waitForTimeout(100);
     }
-    await expect(page.getByRole("radio", { name: "Smart" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeVisible();
   });
 });

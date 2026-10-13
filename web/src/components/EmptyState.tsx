@@ -33,17 +33,17 @@ export function EmptyState({ info, onPick }: { info: InfoResponse | null; onPick
 }
 
 /**
- * An `ok` answer with no results on page 1. In Exact the first suggestion switches to Smart;
+ * An `ok` answer with no results on page 1. In Exact the first suggestion switches to Related;
  * years are mentioned only when the query has a year filter (`hasYears`).
  */
 export function NoResults({
   mode,
   hasYears,
-  onSmart,
+  onRelated,
 }: {
   mode: "smart" | "exact";
   hasYears: boolean;
-  onSmart: () => void;
+  onRelated: () => void;
 }) {
   return (
     <section class="nothing" role="status">
@@ -54,10 +54,10 @@ export function NoResults({
           <li>
             <span aria-hidden="true">→</span>
             <span>
-              <button type="button" class="text-button" onClick={onSmart}>
-                Switch to Smart
+              <button type="button" class="text-button" onClick={onRelated}>
+                See related passages (beta)
               </button>
-              {" — it matches meaning, not just words"}
+              {" — they match meaning, not just words"}
             </span>
           </li>
         )}

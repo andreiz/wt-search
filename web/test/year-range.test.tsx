@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
 import { SyntaxHelp } from "../src/components/SyntaxHelp";
 import { YearRange } from "../src/components/YearRange";
-import { result, smartBody, stubFetch } from "./helpers";
+import { exactBody, result, smartBody, stubFetch } from "./helpers";
 
 const THIS_YEAR = new Date().getFullYear();
 
@@ -256,9 +256,9 @@ describe("in <App/>", () => {
     render(<App />);
     expect(screen.getByRole("button", { name: "Year range: Any year" })).toBeTruthy();
     typeAndSubmit("glue after:2019");
-    calls[0]!.respond(smartBody([result(1)]));
+    calls[0]!.respond(exactBody([result(1)]));
     expect(await screen.findByRole("button", { name: `Year range: 2020–${THIS_YEAR}` })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Smart · Relevance · 2020–/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Exact · Relevance · 2020–/ })).toBeTruthy();
   });
 
   it("the chip does not change while typing, only when the search runs", () => {

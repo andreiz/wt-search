@@ -77,7 +77,7 @@ describe("searching", () => {
     const list = await screen.findByRole("list", { name: "Results" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByRole("heading", { level: 2, name: "Search results" })).toBeTruthy();
-    expect(screen.getByText("Smart search · top results 1–3")).toBeTruthy();
+    expect(screen.getByText("Related (beta) · top results 1–3")).toBeTruthy();
     expect(list.textContent).toContain("Ep. 1 · Show 1 title");
   });
 
@@ -131,22 +131,32 @@ describe("mode and sort", () => {
     go("/?q=glue&page=3");
     const calls = stubFetch();
     render(<App />);
-    fireEvent.click(screen.getByRole("radio", { name: "Exact" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
     expect(calls).toHaveLength(2);
     expect(calls[0]!.signal.aborted).toBe(true);
+    expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({ q: "glue", mode: "smart", sort: "relevance", page: "1" });
+    expect(window.location.search).toBe("?q=glue&mode=related");
+  });
+
+  it("changing back to Exact drops mode from the URL", () => {
+    go("/?q=glue&mode=related&page=3");
+    const calls = stubFetch();
+    render(<App />);
+    fireEvent.click(screen.getByRole("radio", { name: "Exact" }));
+    expect(calls).toHaveLength(2);
     expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({ q: "glue", mode: "exact", sort: "relevance", page: "1" });
-    expect(window.location.search).toBe("?q=glue&mode=exact");
+    expect(window.location.search).toBe("?q=glue");
   });
 
   it("changing the sort re-runs the current search from page 1", () => {
-    go("/?q=glue&mode=exact&page=2");
+    go("/?q=glue&page=2");
     const calls = stubFetch();
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /Sort/ }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: /Newest/ }));
     expect(calls).toHaveLength(2);
     expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({ q: "glue", mode: "exact", sort: "newest", page: "1" });
-    expect(window.location.search).toBe("?q=glue&mode=exact&sort=newest");
+    expect(window.location.search).toBe("?q=glue&sort=newest");
   });
 
   it("re-runs the searched text, not unsent text in the box", () => {
@@ -154,17 +164,17 @@ describe("mode and sort", () => {
     const calls = stubFetch();
     render(<App />);
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "something else" } });
-    fireEvent.click(screen.getByRole("radio", { name: "Exact" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
     expect(calls[1]!.url.searchParams.get("q")).toBe("glue");
   });
 
   it("with nothing searched yet, a mode change makes no request but is remembered for the next search", () => {
     const calls = stubFetch();
     render(<App />);
-    fireEvent.click(screen.getByRole("radio", { name: "Exact" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
     expect(calls).toHaveLength(0);
     typeAndSubmit("glue");
-    expect(calls[0]!.url.searchParams.get("mode")).toBe("exact");
+    expect(calls[0]!.url.searchParams.get("mode")).toBe("smart");
   });
 });
 
@@ -440,7 +450,7 @@ describe("the status region", () => {
     calls[0]!.respond(smartBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
     expect(screen.getByRole("status")).toBe(region);
-    expect(region.textContent).toBe("Smart search · top result 1");
+    expect(region.textContent).toBe("Related (beta) · top result 1");
     typeAndSubmit("epoxy");
     expect(screen.getByRole("status")).toBe(region);
     expect(region.textContent).toBe("Searching…");
@@ -514,7 +524,7 @@ describe("markup rules", () => {
   });
 
   it("the phone summary button names the current settings and toggles the controls", () => {
-    go("/?q=glue&mode=exact&sort=oldest");
+    go("/?q=glue&sort=oldest");
     stubFetch();
     render(<App />);
     const button = screen.getByRole("button", { name: /Exact · Oldest · Any year/ });
@@ -525,20 +535,20 @@ describe("markup rules", () => {
 
   describe("reopened controls (phone, scrolled)", () => {
     function open() {
-      go("/?q=glue");
+      go("/?q=glue&mode=related");
       stubFetch();
       render(<App />);
-      const button = screen.getByRole("button", { name: /Smart · Relevance · Any year/ });
+      const button = screen.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ });
       fireEvent.click(button);
       return button;
     }
 
     it("the button stays after opening, says expanded, and points at the controls", () => {
       const button = open();
-      expect(screen.getByRole("button", { name: /Smart · Relevance · Any year/ })).toBe(button);
+      expect(screen.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ })).toBe(button);
       expect(button.getAttribute("aria-expanded")).toBe("true");
       const controls = document.getElementById(button.getAttribute("aria-controls") ?? "");
-      expect(controls?.contains(screen.getByRole("radio", { name: "Smart" }))).toBe(true);
+      expect(controls?.contains(screen.getByRole("radio", { name: "Related (beta)" }))).toBe(true);
     });
 
     it("pressing it again closes the controls", () => {
@@ -549,7 +559,7 @@ describe("markup rules", () => {
 
     it("Esc inside the controls closes them and focuses the button", () => {
       const button = open();
-      fireEvent.keyDown(screen.getByRole("radio", { name: "Smart" }), { key: "Escape" });
+      fireEvent.keyDown(screen.getByRole("radio", { name: "Related (beta)" }), { key: "Escape" });
       expect(button.getAttribute("aria-expanded")).toBe("false");
       expect(document.activeElement).toBe(button);
     });
@@ -574,11 +584,11 @@ describe("markup rules", () => {
     });
 
     it("Esc does nothing when the controls are not reopened", () => {
-      go("/?q=glue");
+      go("/?q=glue&mode=related");
       stubFetch();
       render(<App />);
-      const button = screen.getByRole("button", { name: /Smart · Relevance · Any year/ });
-      fireEvent.keyDown(screen.getByRole("radio", { name: "Smart" }), { key: "Escape" });
+      const button = screen.getByRole("button", { name: /Related \(beta\) · Relevance · Any year/ });
+      fireEvent.keyDown(screen.getByRole("radio", { name: "Related (beta)" }), { key: "Escape" });
       expect(button.getAttribute("aria-expanded")).toBe("false");
     });
   });

@@ -4,7 +4,7 @@ import type { SearchData } from "./api";
 import { LAST_PAGE } from "./url";
 
 /**
- * The last page that can be shown. Exact knows its total, so it is exact (up to the cap); Smart
+ * The last page that can be shown. Exact knows its total, so it is exact (up to the cap); Related
  * has no count, so it is the page after the current one while `has_more`, else the current page.
  */
 export function lastPage(data: SearchData): number {

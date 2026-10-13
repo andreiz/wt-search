@@ -81,38 +81,39 @@ describe("<SearchBar/>", () => {
 });
 
 describe("<ModeSwitch/>", () => {
-  it("is a radio group of Smart and Exact with their tooltips", () => {
-    render(<ModeSwitch mode="smart" onChange={() => {}} />);
+  it("is a radio group of Exact and Related (beta), in that order, with their tooltips", () => {
+    render(<ModeSwitch mode="exact" onChange={() => {}} />);
     const group = screen.getByRole("radiogroup", { name: "Search mode" });
     expect(group).toBeTruthy();
-    const smart = screen.getByRole("radio", { name: "Smart" });
-    const exact = screen.getByRole("radio", { name: "Exact" });
-    expect(smart.getAttribute("aria-checked")).toBe("true");
-    expect(exact.getAttribute("aria-checked")).toBe("false");
-    expect(smart.getAttribute("title")).toBe("Matches meaning as well as words");
-    expect(exact.getAttribute("title")).toBe("Exact keywords only, with counts");
+    const radios = screen.getAllByRole("radio");
+    expect(radios.map((radio) => radio.textContent)).toEqual(["Exact", "Related (beta)"]);
+    const [exact, related] = radios as [HTMLElement, HTMLElement];
+    expect(exact.getAttribute("aria-checked")).toBe("true");
+    expect(related.getAttribute("aria-checked")).toBe("false");
+    expect(exact.getAttribute("title")).toBe("Passages that contain your words, with a count");
+    expect(related.getAttribute("title")).toBe("Passages about the same thing, also in other words. Still rough.");
   });
 
   it("reports the other mode when it is clicked, and nothing for the current one", () => {
     const onChange = vi.fn();
-    render(<ModeSwitch mode="smart" onChange={onChange} />);
-    fireEvent.click(screen.getByRole("radio", { name: "Smart" }));
-    expect(onChange).not.toHaveBeenCalled();
+    render(<ModeSwitch mode="exact" onChange={onChange} />);
     fireEvent.click(screen.getByRole("radio", { name: "Exact" }));
-    expect(onChange).toHaveBeenCalledWith("exact");
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
+    expect(onChange).toHaveBeenCalledWith("smart");
   });
 
   it("moves with the arrow keys, as radio groups do", () => {
     const onChange = vi.fn();
-    render(<ModeSwitch mode="smart" onChange={onChange} />);
-    fireEvent.keyDown(screen.getByRole("radio", { name: "Smart" }), { key: "ArrowRight" });
-    expect(onChange).toHaveBeenCalledWith("exact");
+    render(<ModeSwitch mode="exact" onChange={onChange} />);
+    fireEvent.keyDown(screen.getByRole("radio", { name: "Exact" }), { key: "ArrowRight" });
+    expect(onChange).toHaveBeenCalledWith("smart");
   });
 
   it("only the selected radio is in the tab order", () => {
-    render(<ModeSwitch mode="exact" onChange={() => {}} />);
-    expect(screen.getByRole("radio", { name: "Exact" }).getAttribute("tabindex")).toBe("0");
-    expect(screen.getByRole("radio", { name: "Smart" }).getAttribute("tabindex")).toBe("-1");
+    render(<ModeSwitch mode="smart" onChange={() => {}} />);
+    expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("tabindex")).toBe("0");
+    expect(screen.getByRole("radio", { name: "Exact" }).getAttribute("tabindex")).toBe("-1");
   });
 });
 

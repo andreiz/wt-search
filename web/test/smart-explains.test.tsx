@@ -1,4 +1,4 @@
-// Smart search explains itself (spec §5.2, last bullet): "top results" in the summary, the "How
+// Related search explains itself (spec §5.2, last bullet): "top results" in the summary, the "How
 // this works" popover, the tooltip on the Related tag, and the end-of-results line.
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,7 +16,7 @@ afterEach(() => {
   go("/");
 });
 
-async function smartPage(url = "/?q=glue", body = smartBody([result(1), result(2)])) {
+async function smartPage(url = "/?q=glue&mode=related",body = smartBody([result(1), result(2)])) {
   go(url);
   const calls = stubFetch();
   render(<App />);
@@ -28,21 +28,22 @@ async function smartPage(url = "/?q=glue", body = smartBody([result(1), result(2
 const trigger = () => screen.getByRole("button", { name: "How this works" });
 
 describe("the How this works popover", () => {
-  it("is a button beside the Smart summary, closed at first", async () => {
+  it("is a button beside the Related summary, closed at first", async () => {
     await smartPage();
     expect(trigger().getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByRole("dialog", { name: /Smart search/ })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: /Related search/ })).toBeNull();
   });
 
-  it("opens with the three paragraphs, verbatim", async () => {
+  it("opens with the four paragraphs, verbatim", async () => {
     await smartPage();
     fireEvent.click(trigger());
     expect(trigger().getAttribute("aria-expanded")).toBe("true");
-    const dialog = screen.getByRole("dialog", { name: "How Smart search works" });
+    const dialog = screen.getByRole("dialog", { name: "How Related search works" });
     const paragraphs = [...dialog.querySelectorAll("p")].map((p) => p.textContent);
     expect(paragraphs).toEqual([
-      "Smart search finds passages two ways: ones that contain your words, and ones that talk about the same thing in different words. Those are marked Related.",
+      "Related search finds passages two ways: ones that contain your words, and ones that talk about the same thing in different words. Those are marked Related.",
       'It shows the best matches first, up to 100. There is no total, because "about the same thing" has no cut-off: every passage is a little bit related, so a count would mean nothing.',
+      "It is a beta: the results are uneven.",
       "Want every match and a count? Switch to Exact.",
     ]);
     expect(within(dialog).getByRole("button", { name: "Switch to Exact" })).toBeTruthy();
@@ -75,12 +76,12 @@ describe("the How this works popover", () => {
   });
 
   it("is not there in Exact", async () => {
-    await smartPage("/?q=glue&mode=exact", exactBody([result(1)]));
+    await smartPage("/?q=glue", exactBody([result(1)]));
     expect(screen.queryByRole("button", { name: "How this works" })).toBeNull();
   });
 
   it("is not there while loading, or with no results", async () => {
-    go("/?q=glue");
+    go("/?q=glue&mode=related");
     const calls = stubFetch();
     render(<App />);
     expect(screen.queryByRole("button", { name: "How this works" })).toBeNull();
@@ -92,7 +93,7 @@ describe("the How this works popover", () => {
 
 describe("the Related tag", () => {
   it("has the tooltip, and its text is still just 'Related'", async () => {
-    await smartPage("/?q=glue", smartBody([result(1, { match: "related" })]));
+    await smartPage("/?q=glue&mode=related", smartBody([result(1, { match: "related" })]));
     const tag = screen.getByText("Related");
     expect(tag.getAttribute("title")).toBe("Matched by meaning, not by your exact words.");
     expect(tag.getAttribute("aria-label")).toBeNull();
@@ -102,23 +103,23 @@ describe("the Related tag", () => {
 describe("the end of the top results", () => {
   const END = "That's the end of the top results. Exact search lists every match.";
 
-  it("shows under the last Smart page after page 1", async () => {
-    await smartPage("/?q=glue&page=2", smartBody([result(1)], { page: 2, has_more: false }));
+  it("shows under the last Related page after page 1", async () => {
+    await smartPage("/?q=glue&mode=related&page=2", smartBody([result(1)], { page: 2, has_more: false }));
     expect(screen.getByText(END)).toBeTruthy();
   });
 
   it("not on page 1", async () => {
-    await smartPage("/?q=glue", smartBody([result(1)], { page: 1, has_more: false }));
+    await smartPage("/?q=glue&mode=related", smartBody([result(1)], { page: 1, has_more: false }));
     expect(screen.queryByText(END)).toBeNull();
   });
 
   it("not while there is a next page", async () => {
-    await smartPage("/?q=glue&page=2", smartBody([result(1)], { page: 2, has_more: true }));
+    await smartPage("/?q=glue&mode=related&page=2", smartBody([result(1)], { page: 2, has_more: true }));
     expect(screen.queryByText(END)).toBeNull();
   });
 
   it("not in Exact", async () => {
-    await smartPage("/?q=glue&mode=exact&page=2", exactBody([result(1)], { page: 2, total: 25, has_more: false }));
+    await smartPage("/?q=glue&page=2", exactBody([result(1)], { page: 2, total: 25, has_more: false }));
     expect(screen.queryByText(END)).toBeNull();
   });
 });

@@ -1,11 +1,12 @@
-// The Smart / Exact segmented control (SearchHeader.dc.html; spec §5.2): a radio group with a
-// one-line tooltip each. Only the selected radio is in the tab order; the arrows move the choice.
+// The Exact / Related (beta) segmented control (SearchHeader.dc.html; spec §5.2): a radio group
+// with a one-line tooltip each. Related is the internal mode "smart". Only the selected radio is
+// in the tab order; the arrows move the choice.
 import { useRef } from "preact/hooks";
 import type { Mode } from "../lib/url";
 
 const OPTIONS: { mode: Mode; label: string; tip: string }[] = [
-  { mode: "smart", label: "Smart", tip: "Matches meaning as well as words" },
-  { mode: "exact", label: "Exact", tip: "Exact keywords only, with counts" },
+  { mode: "exact", label: "Exact", tip: "Passages that contain your words, with a count" },
+  { mode: "smart", label: "Related (beta)", tip: "Passages about the same thing, also in other words. Still rough." },
 ];
 
 export function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => void }) {

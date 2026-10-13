@@ -120,17 +120,18 @@ for (const config of CONFIGS) {
       await clean();
     });
 
-    test("no results in Exact: suggestions, and Switch to Smart searches in Smart", async ({ page }) => {
+    test("no results in Exact: suggestions, and See related passages searches in Related", async ({ page }) => {
       const clean = await watch(page);
       const asked = await stubSearch(page, (url) => ({
         json: url.searchParams.get("mode") === "exact" ? exact([]) : smart([hit(1)]),
       }));
-      await page.goto("/?q=zzzz&mode=exact");
+      await page.goto("/?q=zzzz");
       await expect(page.getByRole("heading", { name: "Nothing found." })).toBeVisible();
       await expect(page.getByText("Use fewer words")).toBeVisible();
-      await page.getByRole("button", { name: "Switch to Smart" }).click();
+      await page.getByRole("button", { name: "See related passages (beta)" }).click();
       await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
-      await expect(page.getByRole("radio", { name: "Smart" })).toHaveAttribute("aria-checked", "true");
+      await expect(page.getByRole("radio", { name: "Related (beta)" })).toHaveAttribute("aria-checked", "true");
+      await expect(page).toHaveURL(/\?q=zzzz&mode=related$/);
       expect(asked.map((url) => url.searchParams.get("mode"))).toEqual(["exact", "smart"]);
       await clean();
     });
@@ -138,7 +139,7 @@ for (const config of CONFIGS) {
     test("the intro line is for page 1 only: a later page of related hits has none", async ({ page }) => {
       const clean = await watch(page);
       await stubSearch(page, () => ({ json: smart([hit(1, { match: "related" })], { page: 2 }) }));
-      await page.goto("/?q=glue&page=2");
+      await page.goto("/?q=glue&mode=related&page=2");
       await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
       await expect(page.getByText("No exact matches")).toHaveCount(0);
       await clean();
@@ -252,13 +253,13 @@ for (const config of CONFIGS) {
       await clean();
     });
 
-    test("pagination in Smart: Next while there is more, then the end note and no Next", async ({ page }) => {
+    test("pagination in Related: Next while there is more, then the end note and no Next", async ({ page }) => {
       const clean = await watch(page);
       await stubSearch(page, (url) => {
         const n = Number(url.searchParams.get("page") ?? 1);
         return { json: { ...fixture("smart"), page: n, has_more: n < 2, episodes: [] } };
       });
-      await page.goto("/?q=glue");
+      await page.goto("/?q=glue&mode=related");
       const pager = page.getByRole("navigation", { name: "Pages" });
       await pager.getByRole("button", { name: "Next" }).click();
       await expect(page).toHaveURL(/page=2/);
@@ -273,12 +274,12 @@ for (const config of CONFIGS) {
       const asked = await stubSearch(page, (url) => ({
         json: url.searchParams.get("mode") === "exact" ? exact([hit(1)], { total: 1 }) : smart([hit(1), hit(2)]),
       }));
-      await page.goto("/?q=glue");
-      await expect(page.getByText("Smart search · top results 1–2")).toBeVisible();
+      await page.goto("/?q=glue&mode=related");
+      await expect(page.getByText("Related (beta) · top results 1–2")).toBeVisible();
 
       const trigger = page.getByRole("button", { name: "How this works" });
       await trigger.click();
-      const dialog = page.getByRole("dialog", { name: "How Smart search works" });
+      const dialog = page.getByRole("dialog", { name: "How Related search works" });
       await expect(dialog).toBeVisible();
       await expect(dialog).toContainText("There is no total");
       const rect = (await dialog.boundingBox())!;

@@ -77,7 +77,7 @@ async function open(page: Page, results: unknown[]) {
     });
   });
   await page.route("**/api/search*", (route) => route.fulfill({ json: body(results) }));
-  await page.goto("/?q=sprayer");
+  await page.goto("/?q=sprayer&mode=related");
   await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
   return async () => {
     expect(await page.evaluate(() => (window as unknown as { __csp: string[] }).__csp)).toEqual([]);
@@ -211,7 +211,7 @@ test.describe("on a desktop", () => {
     await expect(page.getByRole("button", { name: /related passage|Show|Hide/i })).toHaveCount(0);
     await expect(page.getByRole("list")).toHaveCount(1);
     // The summary names the results this page holds.
-    await expect(page.getByText("Smart search · top results 1–4")).toBeVisible();
+    await expect(page.getByText("Related (beta) · top results 1–4")).toBeVisible();
     // A keyword hit is on the page, so no intro line.
     await expect(page.getByText("No exact matches")).toHaveCount(0);
     await expect(list.getByText("Related", { exact: true })).toHaveCount(2);

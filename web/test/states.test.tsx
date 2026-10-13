@@ -109,7 +109,7 @@ describe("no results", () => {
     go(url);
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(url.includes("mode=exact") ? exactBody([]) : smartBody([]));
+    calls[0]!.respond(url.includes("mode=related") ? smartBody([]) : exactBody([]));
     await screen.findByText("Nothing found.");
     return calls;
   }
@@ -122,24 +122,27 @@ describe("no results", () => {
     expect(note.textContent).not.toMatch(/include:ads/);
   });
 
-  it("in Exact: a 'Switch to Smart' button that switches and searches", async () => {
-    const calls = await nothing("/?q=zzz&mode=exact");
-    fireEvent.click(screen.getByRole("button", { name: "Switch to Smart" }));
+  it("in Exact: a 'See related passages (beta)' button that switches and searches", async () => {
+    const calls = await nothing("/?q=zzz");
+    const button = screen.getByRole("button", { name: "See related passages (beta)" });
+    expect(button.parentElement?.textContent).toBe("See related passages (beta) — they match meaning, not just words");
+    fireEvent.click(button);
     expect(calls).toHaveLength(2);
     expect(calls[1]!.url.searchParams.get("mode")).toBe("smart");
-    expect(screen.getByRole("radio", { name: "Smart" }).getAttribute("aria-checked")).toBe("true");
+    expect(window.location.search).toBe("?q=zzz&mode=related");
+    expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("aria-checked")).toBe("true");
   });
 
-  it("in Smart: no Switch to Smart button", async () => {
-    await nothing("/?q=zzz");
-    expect(screen.queryByRole("button", { name: "Switch to Smart" })).toBeNull();
+  it("in Related: no See related passages button", async () => {
+    await nothing("/?q=zzz&mode=related");
+    expect(screen.queryByRole("button", { name: "See related passages (beta)" })).toBeNull();
   });
 
   it("mentions looser years only when the query has a year filter", async () => {
-    await nothing("/?q=zzz&mode=exact");
+    await nothing("/?q=zzz");
     expect(screen.getByText(/Use fewer words/).textContent).not.toMatch(/year/);
     cleanup();
-    await nothing("/?q=zzz+year%3A2015&mode=exact");
+    await nothing("/?q=zzz+year%3A2015");
     expect(screen.getByText(/Use fewer words/).textContent).toMatch(/loosen the years/);
   });
 
@@ -191,9 +194,67 @@ describe("Exact, truncated", () => {
   });
 });
 
-describe("Smart, degraded", () => {
+describe("Exact, only a few matches", () => {
+  const BUTTON = "See related passages (beta)";
+
+  async function exactPage(url: string, body: ReturnType<typeof exactBody>) {
+    go(url);
+    const calls = stubFetch();
+    render(<App />);
+    calls[0]!.respond(body);
+    await screen.findByRole("list", { name: "Results" });
+    return calls;
+  }
+
+  it.each([2, 3, 4])("%i matches: 'Only N exact matches.' and the button, under the list", async (total) => {
+    await exactPage("/?q=glue", exactBody(Array.from({ length: total }, (_, i) => result(i + 1))));
+    const line = screen.getByText(`Only ${total} exact matches.`, { exact: false });
+    expect(line.textContent).toBe(`Only ${total} exact matches. ${BUTTON}`);
+    expect(within(line).getByRole("button", { name: BUTTON })).toBeTruthy();
+    const list = screen.getByRole("list", { name: "Results" });
+    expect(list.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("1 match is singular", async () => {
+    await exactPage("/?q=glue", exactBody([result(1)]));
+    expect(screen.getByText("Only 1 exact match.", { exact: false }).textContent).toBe(`Only 1 exact match. ${BUTTON}`);
+  });
+
+  it("not at 5 matches", async () => {
+    await exactPage("/?q=glue", exactBody(Array.from({ length: 5 }, (_, i) => result(i + 1))));
+    expect(screen.queryByText(/Only \d+ exact match/)).toBeNull();
+    expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
+  });
+
+  it("not on page 2", async () => {
+    await exactPage("/?q=glue&page=2", exactBody([result(1)], { page: 2, total: 3 }));
+    expect(screen.queryByText(/Only \d+ exact match/)).toBeNull();
+  });
+
+  it("not when the total is capped", async () => {
+    await exactPage("/?q=glue", exactBody([result(1)], { total: 3, total_capped: true }));
+    expect(screen.queryByText(/Only \d+ exact match/)).toBeNull();
+  });
+
+  it("not in Related", async () => {
+    await exactPage("/?q=glue&mode=related", smartBody([result(1), result(2)]) as ReturnType<typeof exactBody>);
+    expect(screen.queryByText(/Only \d+ exact match/)).toBeNull();
+    expect(screen.queryByRole("button", { name: BUTTON })).toBeNull();
+  });
+
+  it("the button switches to Related, searches, and puts mode=related in the URL", async () => {
+    const calls = await exactPage("/?q=glue", exactBody([result(1), result(2)]));
+    fireEvent.click(screen.getByRole("button", { name: BUTTON }));
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.url.searchParams.get("mode")).toBe("smart");
+    expect(window.location.search).toBe("?q=glue&mode=related");
+    expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("aria-checked")).toBe("true");
+  });
+});
+
+describe("Related, degraded", () => {
   async function degraded(reason: "unavailable" | "budget" | "off") {
-    go("/?q=glue");
+    go("/?q=glue&mode=related");
     const calls = stubFetch();
     render(<App />);
     calls[0]!.respond(smartBody([result(1)], { smart_degraded: reason }));

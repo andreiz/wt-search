@@ -1645,7 +1645,7 @@ a.passage__time:hover {
   color: var(--accent);
 }
 
-/* ---- Smart search explains itself (spec §5.2): the summary row and its popover ---- */
+/* ---- Related search explains itself (spec §5.2): the summary row and its popover ---- */
 .summary-row {
   position: relative; /* the popover hangs from the row */
   display: flex;
@@ -1787,6 +1787,11 @@ a.passage__time:hover {
 
   /* The year dialog hangs from the whole controls row (not the chip), so it fits a 390 px screen. */
   .year-range {
+    position: static;
+  }
+
+  /* So does the sort list: with the longer "Related (beta)" the button can sit past the middle. */
+  .sort-menu {
     position: static;
   }
 

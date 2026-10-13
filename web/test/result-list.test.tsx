@@ -191,10 +191,10 @@ describe("in the page", () => {
   });
 
   it("with an exact answer, renders cards the same way", async () => {
-    window.history.replaceState(null, "", "/?q=glue&mode=exact");
+    window.history.replaceState(null, "", "/?q=glue");
     const calls = stubFetch();
     render(<App />);
-    calls[0]!.respond(exactBody([result(1, { chunk_id: 1, text: "Glue up" })]));
+    calls[0]!.respond(exactBody([result(1, { chunk_id: 1, text: "Glue up" })], { total: 40 }));
     expect(await screen.findByText("Glue up")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /related/ })).toBeNull();
   });

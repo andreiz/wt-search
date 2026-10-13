@@ -2,7 +2,8 @@
 // so a shared link, a reload and Back/Forward all show the same search.
 //
 // Bad values fall back the way the Worker's own reading does (worker/src/index.ts `search`):
-//   mode  exactly "exact" is exact (case-sensitive); anything else is smart.
+//   mode  exactly "related" or "smart" (case-sensitive) is smart (shown as Related (beta)); anything
+//         else, or none, is exact: the default, so it is left out of the address.
 //   sort  lower-cased, then one of the three; anything else is relevance.
 //   page  digits only, else 1; at least 1 and at most the last page for the mode.
 // The last page assumes the default page size of 20 (the app never sends `limit`): 10 for
@@ -52,7 +53,8 @@ function clampPage(page: number, mode: Mode): number {
 /** `location.search` (with or without the leading `?`) to a state. Never throws. */
 export function parse(search: string): SearchState {
   const params = new URLSearchParams(search);
-  const mode: Mode = params.get("mode") === "exact" ? "exact" : "smart";
+  const modeParam = params.get("mode");
+  const mode: Mode = modeParam === "related" || modeParam === "smart" ? "smart" : "exact";
   const sortParam = (params.get("sort") ?? "").toLowerCase();
   const sort = SORTS.find((s) => s === sortParam) ?? "relevance";
   const pageParam = params.get("page");
@@ -68,7 +70,7 @@ export function serialize(state: SearchState): string {
   const params = new URLSearchParams();
   const q = normalizeQuery(state.q);
   if (q !== "") params.set("q", q);
-  if (state.mode !== "smart") params.set("mode", state.mode);
+  if (state.mode === "smart") params.set("mode", "related");
   if (state.sort !== "relevance") params.set("sort", state.sort);
   const page = clampPage(state.page, state.mode);
   if (page !== 1) params.set("page", String(page));

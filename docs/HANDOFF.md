@@ -79,6 +79,19 @@ Held beside the mocks' canvas (rendered from `docs/design/system/` over a local 
   narrower than the header on each side; the site lines them up.
 - A full-page capture of a scrolled state (the report form, the expanded card) shows the
   sticky header part-way down the page; that is the capture, not the page.
+**The modes are Exact and Related (beta), Exact the default** (the maintainer, 2026-10-12,
+after his paraphrase searches and a look on the phone; spec §5.2). Related (beta) is what
+Smart was (the API's `mode=smart`, unchanged; `mode=related` in the page's URL). Exact with
+no result, or fewer than 5, offers "See related passages (beta)". Web only (Sonnet subagent,
+reviewed); needs a deploy. Same day, from the phone: a search puts the keyboard away (not
+yet tried on the iPhone), and the start heading fits one line.
+**A second round with Claude Design is the maintainer's next step for the look:**
+`docs/design/BRIEF-2-phone.md` with the twelve captures in `docs/design/round-2/`. On a
+phone the controls row does not fit (the year chip and `?` drop to a second line, more so
+with "Related (beta)"), the "Try" chips and the episode line above a card wrap raggedly,
+and keyword and related cards look too alike. The brief is a draft he has not read. Task
+16's three open points (the serif's optical size, the report form's placeholders, the
+column width) can go to the same round.
 **Plan 4 (the review tool, `wts reports`, the reports digest) is built, Tasks 1–10; next
 is its Checkpoint J** (2026-10-11, done while the maintainer did Checkpoint H; he approved
 the plan and its decisions the same day):

@@ -52,11 +52,12 @@ test("an unknown path under /api/ answers the Worker's JSON 404", async ({ reque
 
 test("search shows results and says meaning search is unavailable", async ({ page }) => {
   const check = await watch(page);
-  await page.goto("/");
+  // Related is not the default, so the page is opened in it (the typed search keeps the mode).
+  await page.goto("/?mode=related");
   const answer = await (await search(page, "glue")).json();
   expect(answer.mode).toBe("smart");
   expect(answer.smart_degraded).toBe("unavailable");
-  await expect(page).toHaveURL(/\?q=glue$/);
+  await expect(page).toHaveURL(/\?q=glue&mode=related$/);
   await expect(page.getByText("Meaning search is unavailable right now; these are keyword matches.")).toBeVisible();
   // One card for each of the three episodes that say "glue".
   await expect(cards(page)).toHaveCount(3);
@@ -65,7 +66,7 @@ test("search shows results and says meaning search is unavailable", async ({ pag
 
 test("changing the sort runs the search again", async ({ page }) => {
   const check = await watch(page);
-  await page.goto("/?q=glue");
+  await page.goto("/?q=glue&mode=related");
   await expect(cards(page)).toHaveCount(3);
 
   const titles = () => cards(page).locator(".result__title").allTextContents();
@@ -84,7 +85,7 @@ test("changing the sort runs the search again", async ({ page }) => {
 
 test("More transcript opens and shows the neighbouring passages", async ({ page }) => {
   const check = await watch(page);
-  await page.goto("/?q=workbench");
+  await page.goto("/?q=workbench&mode=related");
   await expect(cards(page)).toHaveCount(1);
   const card = cards(page).first();
   await card.getByRole("button", { name: "More actions" }).click();
@@ -101,7 +102,7 @@ test("More transcript opens and shows the neighbouring passages", async ({ page 
 
 test("every play link on the page is the one /api/search returned", async ({ page }) => {
   const check = await watch(page);
-  await page.goto("/");
+  await page.goto("/?mode=related");
   const url = (await search(page, "glue")).url();
   await expect(cards(page)).toHaveCount(3);
   // Ask the API again, apart from the page, for what it says each link is.
@@ -165,7 +166,7 @@ test("a report goes through the real Turnstile test widget into D1", async ({ pa
   const info = await (await page.request.get("/api/info")).json();
   expect(info.turnstile_site_key).toBe("1x00000000000000000000AA");
 
-  await page.goto("/?q=workbench");
+  await page.goto("/?q=workbench&mode=related");
   await expect(cards(page)).toHaveCount(1);
   await page.getByRole("button", { name: "More actions" }).first().click();
   await page.getByRole("menuitem", { name: "Report transcript error" }).click();

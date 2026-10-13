@@ -156,6 +156,7 @@ global:
   # The bench vise, which Whisper spells "vice" (2026-10-13: all 47 uses in the 37 episodes
   # are the tool). "vice versa" and "vice president" are kept below.
   vices: vises
+  vice: vise
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:

@@ -172,7 +172,7 @@ for (const config of CONFIGS) {
 
     test("the intro line is on page 1 of Related, not on a later page and not in Exact", async ({ page }) => {
       const clean = await watch(page);
-      const INTRO = "Passages about the same thing that don't contain your words:";
+      const INTRO = "Passages about the same thing that don't contain all your words:";
       await stubSearch(page, (url) => ({
         json:
           url.searchParams.get("mode") === "exact"

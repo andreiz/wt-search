@@ -212,7 +212,7 @@ test.describe("on a desktop", () => {
     await expect(page.getByRole("list")).toHaveCount(1);
     // The summary names the results this page holds.
     await expect(page.getByText("Related (beta) · top results 1–4")).toBeVisible();
-    await expect(page.getByText("Passages about the same thing that don't contain your words:")).toBeVisible();
+    await expect(page.getByText("Passages about the same thing that don't contain all your words:")).toBeVisible();
     // No "Related" pill, and every card's box has the same solid border and the same excerpt colour.
     await expect(list.getByText("Related", { exact: true })).toHaveCount(0);
     await expect(list.locator(".result__tag")).toHaveCount(0);
@@ -228,7 +228,7 @@ test.describe("on a desktop", () => {
 
   test("page 1 of Related has the intro line", async ({ page }) => {
     const noViolations = await open(page, relatedCards);
-    await expect(page.getByText("Passages about the same thing that don't contain your words:")).toBeVisible();
+    await expect(page.getByText("Passages about the same thing that don't contain all your words:")).toBeVisible();
     await expect(page.getByRole("list", { name: "Results" }).getByRole("listitem")).toHaveCount(2);
     await expect(page.getByRole("button", { name: /related passages|Hide/ })).toHaveCount(0);
     await noViolations();

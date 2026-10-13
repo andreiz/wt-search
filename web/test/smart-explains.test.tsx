@@ -41,7 +41,7 @@ describe("the How this works popover", () => {
     const dialog = screen.getByRole("dialog", { name: "How Related search works" });
     const paragraphs = [...dialog.querySelectorAll("p")].map((p) => p.textContent);
     expect(paragraphs).toEqual([
-      "Related search finds passages about the same thing that don't contain your words. Exact lists the passages that do.",
+      "Related search finds passages about the same thing that don't contain all your words. Exact lists the passages that do.",
       'It shows the best matches first, up to 100. There is no total, because "about the same thing" has no cut-off: every passage is a little bit related, so a count would mean nothing.',
       "Related search is a beta, and the results are uneven.",
       "Want every match and a count? Switch to Exact.",

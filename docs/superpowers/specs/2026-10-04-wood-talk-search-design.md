@@ -1188,11 +1188,13 @@ Pinned to the top (compacting on scroll on phones):
     the exact matches, so repeating them there said nothing and made two
     kinds of card to tell apart in one list. Related now asks the API for
     `mode=related` (§4.4): passages about the same thing that do not
-    contain the words, best first. So its cards are ordinary cards (no
-    "Related" pill, dashed border or muted excerpt), page 1 opens with
-    "Passages about the same thing that don't contain your words:", and
-    it has no title hits. Tooltip: "Passages about the same thing that
-    don't contain your words. Still rough." With nothing to show:
+    contain all the words, best first (a passage with "vise" but not
+    "Moxon" is still a related one for `moxon vise`, with "vise"
+    highlighted; hence "all" in the copy). So its cards are ordinary cards
+    (no "Related" pill, dashed border or muted excerpt), page 1 opens with
+    "Passages about the same thing that don't contain all your words:",
+    and it has no title hits. Tooltip: "Passages about the same thing that
+    don't contain all your words. Still rough." With nothing to show:
     "**No related passages.**" and a button "**See exact matches**". When
     meaning search can't answer there is no keyword list to fall back on:
     a notice, "Related search is unavailable right now." or "Related

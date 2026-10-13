@@ -32,7 +32,7 @@ export function HowItWorks({ onSwitchToExact }: { onSwitchToExact: () => void })
       {open && (
         <div class="popover how-works__dialog" id={dialogId} role="dialog" aria-label="How Related search works" tabIndex={-1} ref={dialog}>
           <p>
-            <strong>Related search</strong> finds passages about the same thing that don't contain your words. Exact lists the
+            <strong>Related search</strong> finds passages about the same thing that don't contain all your words. Exact lists the
             passages that do.
           </p>
           <p>

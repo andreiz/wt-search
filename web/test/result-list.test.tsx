@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 const related = (n: number) => result(n, { match: "related", text: `Related passage ${n}` });
-const INTRO = "Passages about the same thing that don't contain your words:";
+const INTRO = "Passages about the same thing that don't contain all your words:";
 
 function renderList(results: ReturnType<typeof result>[], page = 1, isRelated = false) {
   const listRef = createRef<HTMLDivElement>();

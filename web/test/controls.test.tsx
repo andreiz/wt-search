@@ -91,7 +91,7 @@ describe("<ModeSwitch/>", () => {
     expect(exact.getAttribute("aria-checked")).toBe("true");
     expect(related.getAttribute("aria-checked")).toBe("false");
     expect(exact.getAttribute("title")).toBe("Passages that contain your words, with a count");
-    expect(related.getAttribute("title")).toBe("Passages about the same thing that don't contain your words. Still rough.");
+    expect(related.getAttribute("title")).toBe("Passages about the same thing that don't contain all your words. Still rough.");
   });
 
   it("reports the other mode when it is clicked, and nothing for the current one", () => {

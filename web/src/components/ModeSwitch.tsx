@@ -6,7 +6,7 @@ import type { Mode } from "../lib/url";
 
 const OPTIONS: { mode: Mode; label: string; tip: string }[] = [
   { mode: "exact", label: "Exact", tip: "Passages that contain your words, with a count" },
-  { mode: "related", label: "Related (beta)", tip: "Passages about the same thing that don't contain your words. Still rough." },
+  { mode: "related", label: "Related (beta)", tip: "Passages about the same thing that don't contain all your words. Still rough." },
 ];
 
 export function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => void }) {

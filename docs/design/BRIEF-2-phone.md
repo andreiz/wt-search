@@ -30,7 +30,8 @@ These are decided; design with them, not around them.
 
 - **The modes are now Exact and Related (beta), and Exact is the default.** Exact lists the
   passages that contain the words, with a count. Related (beta) lists passages about the same
-  thing that do **not** contain the words, best first, with no count; nothing appears in both.
+  thing that do **not** contain all the words (some may contain one of them), best first,
+  with no count; nothing appears in both.
   It is opt-in because the meaning results are still uneven. The switch reads **Exact |
   Related (beta)**, Exact first. (The first round's "Smart", one list mixing both kinds, is
   set aside.)
@@ -46,7 +47,7 @@ These are decided; design with them, not around them.
   plays, the excerpt (3 lines, tap to open the passage), and ⋯. No row of platform pills.
   A card in Related looks like a card in Exact: the first round's dashed border, "Related"
   pill and muted excerpt are gone, since a list no longer holds both kinds. Related's first
-  page opens with a line, "Passages about the same thing that don't contain your words:".
+  page opens with a line, "Passages about the same thing that don't contain all your words:".
 - **The search box's placeholder** carries the real number of episodes, which is not always
   three digits ("Search 37 episodes", later "Search 1,234 episodes").
 

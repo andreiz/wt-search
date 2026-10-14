@@ -19,7 +19,9 @@
 // shows above the passages when the answer has episodes whose title matched; its "Search this
 // episode" only fills the box with `ep:N`.
 import { useEffect, useRef, useState } from "preact/hooks";
+import { AcrossButton } from "./components/AcrossButton";
 import { Banner } from "./components/Banner";
+import { BetaTag } from "./components/BetaTag";
 import { EmptyState, NoResults } from "./components/EmptyState";
 import { Footer } from "./components/Footer";
 import { HowItWorks } from "./components/HowItWorks";
@@ -270,7 +272,18 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
           aria-controls="search-controls"
           onClick={() => setControlsOpen(!controlsOpen)}
         >
-          {`${state.mode === "exact" ? "Exact" : "Related (beta)"} · ${sortLabel(state.sort)} · ${rangeLabel(range)}`}
+          {state.mode === "exact" ? (
+            "Exact"
+          ) : (
+            <>
+              <span class="compact-summary__rel">
+                Related <BetaTag />
+              </span>
+              <span class="visually-hidden"> (beta)</span>
+            </>
+          )}
+          {` · ${sortLabel(state.sort)} · `}
+          <span class={range ? "compact-summary__year--set" : ""}>{rangeLabel(range)}</span>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
           </svg>
@@ -297,18 +310,14 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
             {view.kind === "loading" && <Skeleton />}
             {titleHits.length > 0 && <TitleHits episodes={titleHits} onSearchEpisode={fillEpisode} />}
             {view.kind === "ok" && view.data.mode === "related" && view.data.smart_degraded && (
-              <Notice
-                tone="info"
-                action={
-                  <button type="button" class="notice__button" onClick={() => setMode("exact")}>
-                    See exact matches
-                  </button>
-                }
-              >
-                {view.data.smart_degraded === "unavailable"
-                  ? "Related search is unavailable right now."
-                  : "Related search is paused."}
-              </Notice>
+              <>
+                <Notice tone="info">
+                  {view.data.smart_degraded === "unavailable"
+                    ? "Related search is unavailable right now."
+                    : "Related search is paused."}
+                </Notice>
+                <AcrossButton to="exact" onClick={() => setMode("exact")} />
+              </>
             )}
             {view.kind === "ok" &&
               !relatedDegraded &&
@@ -361,14 +370,15 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
               </Notice>
             )}
             {fewExact && view.kind === "ok" && view.data.mode === "exact" && (
-              <p class="end-note">
-                {`Only ${view.data.total} exact ${view.data.total === 1 ? "match" : "matches"}. `}
-                <button type="button" class="text-button" onClick={() => setMode("related")}>
-                  See related passages (beta)
-                </button>
-              </p>
+              <div class="few">
+                <p>
+                  <strong>{`Only ${view.data.total} exact ${view.data.total === 1 ? "match" : "matches"}.`}</strong>
+                  {" Related passages match the meaning, not just the words."}
+                </p>
+                <AcrossButton to="related" onClick={() => setMode("related")} />
+              </div>
             )}
-            {view.kind === "ok" && <Pagination data={view.data} onPage={onPage} />}
+            {view.kind === "ok" && !fewExact && <Pagination data={view.data} onPage={onPage} />}
             {relatedEnd && <p class="end-note">That's the end of the related passages.</p>}
           </>
         ) : (

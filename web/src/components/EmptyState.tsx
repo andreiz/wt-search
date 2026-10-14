@@ -1,8 +1,9 @@
 // The two pages with nothing to list (design README "Empty, loading and no-results"; spec §5.6):
 // the empty state before any search, with a list of example searches and the corpus line from /api/info,
-// and "Nothing found." with what to try.
+// and "Nothing found." / "No related passages." with the button across to the other mode.
 import type { InfoResponse } from "../lib/api";
 import { count, episodeDate } from "../lib/format";
+import { AcrossButton } from "./AcrossButton";
 import { SyntaxHelp } from "./SyntaxHelp";
 
 const EXAMPLES = ["hide glue", "split-top Roubo", "sharpening a card scraper"];
@@ -53,8 +54,7 @@ export function EmptyState({
 
 /**
  * An `ok` answer with no results on page 1. In Exact the first suggestion switches to Related, in
- * Related to Exact; years are mentioned only when the query has a year filter (`hasYears`).
- */
+ * Related to Exact; years are mentioned only when the query has a year filter (`hasYears`). */
 export function NoResults({
   mode,
   hasYears,
@@ -68,36 +68,22 @@ export function NoResults({
 }) {
   return (
     <section class="nothing" role="status">
-      <h2 class="nothing__title">{mode === "related" ? "No related passages." : "Nothing found."}</h2>
-      <p class="nothing__lead">Try one of these:</p>
-      <ul class="nothing__list">
-        {mode === "related" && (
-          <li>
-            <span aria-hidden="true">→</span>
-            <span>
-              <button type="button" class="text-button" onClick={onExact}>
-                See exact matches
-              </button>
-              {" — the passages that contain your words"}
-            </span>
-          </li>
-        )}
-        {mode === "exact" && (
-          <li>
-            <span aria-hidden="true">→</span>
-            <span>
-              <button type="button" class="text-button" onClick={onRelated}>
-                See related passages (beta)
-              </button>
-              {" — they match meaning, not just words"}
-            </span>
-          </li>
-        )}
-        <li>
-          <span aria-hidden="true">→</span>
-          <span>{hasYears ? "Use fewer words, or loosen the years" : "Use fewer words"}</span>
-        </li>
-      </ul>
+      {mode === "related" ? (
+        <>
+          <h2 class="nothing__title">No related passages.</h2>
+          <p class="nothing__lead">Nothing about the same thing turned up without your words.</p>
+          <AcrossButton to="exact" onClick={onExact} />
+        </>
+      ) : (
+        <>
+          <h2 class="nothing__title">Nothing found.</h2>
+          <p class="nothing__lead">No passage has those exact words.</p>
+          <AcrossButton to="related" onClick={onRelated} />
+          <p class="nothing__tip">
+            {hasYears ? "Or use fewer words, loosen the years, or check the spelling." : "Or use fewer words, or check the spelling."}
+          </p>
+        </>
+      )}
     </section>
   );
 }

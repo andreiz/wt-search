@@ -211,7 +211,7 @@ test.describe("on a desktop", () => {
     await expect(page.getByRole("button", { name: /related passage|Show|Hide/i })).toHaveCount(0);
     await expect(page.getByRole("list")).toHaveCount(1);
     // The summary names the results this page holds.
-    await expect(page.getByText("Related (beta) · top results 1–4")).toBeVisible();
+    await expect(page.getByText(/Related.*top results 1–4/)).toBeVisible();
     await expect(page.getByText("Passages about the same thing that don't contain all your words:")).toBeVisible();
     // No "Related" pill, and every card's box has the same solid border and the same excerpt colour.
     await expect(list.getByText("Related", { exact: true })).toHaveCount(0);

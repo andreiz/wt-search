@@ -118,18 +118,26 @@ describe("no results", () => {
     return calls;
   }
 
-  it("says 'Nothing found.' in a status, with fewer words as a suggestion", async () => {
+  it("Exact: 'Nothing found.', what that means, the oak button, then what to try, in a status", async () => {
     await nothing("/?q=zzz&mode=exact");
     const note = screen.getByText("Nothing found.").closest("[role='status']") as HTMLElement;
     expect(note).toBeTruthy();
-    expect(within(note).getByText(/Use fewer words/)).toBeTruthy();
-    expect(note.textContent).not.toMatch(/include:ads/);
+    expect(within(note).getByText("No passage has those exact words.")).toBeTruthy();
+    expect(within(note).getByRole("button", { name: "See related passages (beta)" }).className).toContain("across--related");
+    expect(within(note).getByText("Or use fewer words, or check the spelling.")).toBeTruthy();
+    const order = Array.from(note.children).map((el) => el.textContent);
+    expect(order).toEqual([
+      "Nothing found.",
+      "No passage has those exact words.",
+      "≈ See related passages BETA",
+      "Or use fewer words, or check the spelling.",
+    ]);
+    expect(note.textContent).not.toMatch(/include:ads|Try one of these/);
   });
 
-  it("in Exact: a 'See related passages (beta)' button that switches and searches", async () => {
+  it("Exact: the button switches to Related and searches", async () => {
     const calls = await nothing("/?q=zzz");
     const button = screen.getByRole("button", { name: "See related passages (beta)" });
-    expect(button.parentElement?.textContent).toBe("See related passages (beta) — they match meaning, not just words");
     fireEvent.click(button);
     expect(calls).toHaveLength(2);
     expect(calls[1]!.url.searchParams.get("mode")).toBe("related");
@@ -137,15 +145,18 @@ describe("no results", () => {
     expect(screen.getByRole("radio", { name: "Related, beta" }).getAttribute("aria-checked")).toBe("true");
   });
 
-  it("in Related: 'No related passages.' with a 'See exact matches' button that switches and searches", async () => {
+  it("in Related: its three parts, and the 'See exact matches' button switches and searches", async () => {
     const calls = await nothing("/?q=zzz&mode=related");
     expect(screen.queryByText("Nothing found.")).toBeNull();
     expect(screen.queryByRole("button", { name: "See related passages (beta)" })).toBeNull();
     const note = screen.getByText("No related passages.").closest("[role='status']") as HTMLElement;
-    expect(within(note).getByText("Try one of these:")).toBeTruthy();
-    expect(within(note).getByText(/Use fewer words/)).toBeTruthy();
+    expect(Array.from(note.children).map((el) => el.textContent)).toEqual([
+      "No related passages.",
+      "Nothing about the same thing turned up without your words.",
+      "See exact matches",
+    ]);
     const button = within(note).getByRole("button", { name: "See exact matches" });
-    expect(button.parentElement?.textContent).toBe("See exact matches — the passages that contain your words");
+    expect(button.className).toContain("across--exact");
     fireEvent.click(button);
     expect(calls).toHaveLength(2);
     expect(calls[1]!.url.searchParams.get("mode")).toBe("exact");
@@ -155,10 +166,10 @@ describe("no results", () => {
 
   it("mentions looser years only when the query has a year filter", async () => {
     await nothing("/?q=zzz");
-    expect(screen.getByText(/Use fewer words/).textContent).not.toMatch(/year/);
+    expect(screen.getByText(/Or use fewer words/).textContent).toBe("Or use fewer words, or check the spelling.");
     cleanup();
     await nothing("/?q=zzz+year%3A2015");
-    expect(screen.getByText(/Use fewer words/).textContent).toMatch(/loosen the years/);
+    expect(screen.getByText(/Or use fewer words/).textContent).toBe("Or use fewer words, loosen the years, or check the spelling.");
   });
 
   it("is only for page 1", async () => {
@@ -221,18 +232,23 @@ describe("Exact, only a few matches", () => {
     return calls;
   }
 
-  it.each([2, 3, 4])("%i matches: 'Only N exact matches.' and the button, under the list", async (total) => {
+  it.each([2, 3, 4])("%i matches: 'Only N exact matches.' with the meaning sentence and the oak button, under the list", async (total) => {
     await exactPage("/?q=glue", exactBody(Array.from({ length: total }, (_, i) => result(i + 1))));
-    const line = screen.getByText(`Only ${total} exact matches.`, { exact: false });
-    expect(line.textContent).toBe(`Only ${total} exact matches. ${BUTTON}`);
-    expect(within(line).getByRole("button", { name: BUTTON })).toBeTruthy();
+    const bold = screen.getByText(`Only ${total} exact matches.`);
+    expect(bold.tagName).toBe("STRONG");
+    expect(bold.parentElement?.textContent).toBe(`Only ${total} exact matches. Related passages match the meaning, not just the words.`);
+    const few = bold.closest(".few") as HTMLElement;
+    const button = within(few).getByRole("button", { name: BUTTON });
+    expect(button.className).toContain("across--related");
     const list = screen.getByRole("list", { name: "Results" });
-    expect(list.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(list.compareDocumentPosition(few) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("1 match is singular", async () => {
     await exactPage("/?q=glue", exactBody([result(1)]));
-    expect(screen.getByText("Only 1 exact match.", { exact: false }).textContent).toBe(`Only 1 exact match. ${BUTTON}`);
+    expect(screen.getByText("Only 1 exact match.").parentElement?.textContent).toBe(
+      "Only 1 exact match. Related passages match the meaning, not just the words.",
+    );
   });
 
   it("not at 5 matches", async () => {
@@ -307,6 +323,15 @@ describe("Related, degraded", () => {
     expect(screen.getByRole("radio", { name: "Exact" }).getAttribute("aria-checked")).toBe("true");
   });
 
+  it("the exact-matches button is the full-width one, under the notice", async () => {
+    await degraded("unavailable");
+    const note = screen.getByText("Related search is unavailable right now.").closest(".notice") as HTMLElement;
+    const button = screen.getByRole("button", { name: "See exact matches" });
+    expect(button.className).toContain("across--exact");
+    expect(note.contains(button)).toBe(false);
+    expect(note.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("no notice for an ordinary Related answer", async () => {
     go("/?q=glue&mode=related");
     const calls = stubFetch();
@@ -315,6 +340,30 @@ describe("Related, degraded", () => {
     await screen.findByRole("list", { name: "Results" });
     expect(screen.queryByText(/Related search is/)).toBeNull();
     expect(screen.queryByRole("button", { name: "See exact matches" })).toBeNull();
+  });
+});
+
+describe("the compact header's summary button", () => {
+  it("Related, Newest, 2015–2020: named in words, with the BETA tag and the set year marked", async () => {
+    go("/?q=glue+year%3A2015-2020&mode=related&sort=newest");
+    const calls = stubFetch();
+    render(<App />);
+    calls[0]!.respond(relatedBody([result(1)]));
+    await screen.findByRole("list", { name: "Results" });
+    const button = screen.getByRole("button", { name: "Related (beta) · Newest · 2015–2020" });
+    expect(button.querySelector(".compact-summary__rel .beta-tag")).toBeTruthy();
+    expect(button.querySelector(".compact-summary__year--set")?.textContent).toBe("2015–2020");
+  });
+
+  it("Exact with no years: plain, no tag, the year not marked", async () => {
+    go("/?q=glue");
+    const calls = stubFetch();
+    render(<App />);
+    calls[0]!.respond(exactBody([result(1), result(2), result(3), result(4), result(5)]));
+    await screen.findByRole("list", { name: "Results" });
+    const button = screen.getByRole("button", { name: "Exact · Best match · Any year" });
+    expect(button.querySelector(".beta-tag")).toBeNull();
+    expect(button.querySelector(".compact-summary__year--set")).toBeNull();
   });
 });
 

@@ -115,3 +115,10 @@ export function stubFetch(honorAbort = true): Calls {
   );
   return calls;
 }
+
+/** What a screen reader hears from `el`: its text without the `aria-hidden` parts (the BETA tag). */
+export function heard(el: Element): string {
+  const copy = el.cloneNode(true) as Element;
+  copy.querySelectorAll("[aria-hidden='true']").forEach((part) => part.remove());
+  return (copy.textContent ?? "").replace(/\s+/g, " ").trim();
+}

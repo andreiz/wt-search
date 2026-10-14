@@ -549,15 +549,23 @@
   top: 100%;
   align-items: center;
   gap: 6px;
-  height: 32px;
+  height: 40px;
   padding: 0 20px;
   border: 0;
   background: var(--bg);
   color: var(--muted);
   font: inherit;
   font-size: 14px;
-  font-weight: 550;
+  font-weight: 600;
   cursor: pointer;
+}
+
+.compact-summary__rel {
+  color: var(--rel);
+}
+
+.compact-summary__year--set {
+  color: var(--accent);
 }
 
 /* ---- Phone: the Sort & years button and sheet (ROUND-2-phone.md §1) ---- */
@@ -776,6 +784,10 @@
   margin: 0;
   font-size: 14px;
   color: var(--muted);
+}
+
+.summary__rel {
+  color: var(--rel);
 }
 
 .summary__count {
@@ -1875,7 +1887,7 @@ a.passage__time:hover {
 .nothing__title {
   margin: 0;
   font-family: var(--serif);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--text);
 }
@@ -1886,25 +1898,48 @@ a.passage__time:hover {
   color: var(--muted);
 }
 
-.nothing__list {
+.nothing__tip {
   margin: 0;
-  padding: 0;
-  list-style: none;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* "Only N exact matches." under a short Exact list, with the way across to Related. */
+.few {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  font-size: 16px;
+  gap: 12px;
+}
+
+.few p {
+  margin: 0;
+  font-size: 15px;
   line-height: 1.45;
 }
 
-.nothing__list li {
+/* The full-width button across to the other mode (ROUND-2-phone.md "Exact: few or no results"). */
+.across {
   display: flex;
-  gap: 10px;
-  align-items: baseline;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 50px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--accent);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  cursor: pointer;
 }
 
-.nothing__list li > span:first-child {
-  color: var(--accent);
+.across--related {
+  border-color: var(--rel-border);
+  background: var(--rel-bg);
+  color: var(--rel);
 }
 
 /* ---- Related search explains itself (spec §5.2): the summary row and its popover ---- */
@@ -2029,12 +2064,12 @@ a.passage__time:hover {
 /* ---- Phones (below 600 px) ---- */
 @media (max-width: 599.98px) {
   /* The compact header (nearly always the case when the page is scrolled): the search row
-     (bottom edge 64 px, measured) and the summary button hung under it (96 px); the strip pins
+     (bottom edge 64 px, measured) and the summary button hung under it (104 px, 40 px tall); the strip pins
      below them. At the very top of the page the tall header (221 px, opaque) is in front of a
      strip that would pin this high: it then shows from the header's edge as soon as the page has
      scrolled that far (about 120 px, where the header compacts). */
   :root {
-    --header-h: 98px;
+    --header-h: 106px;
     --scroll-air: 12px;
   }
 

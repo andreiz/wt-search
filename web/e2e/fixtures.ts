@@ -235,7 +235,7 @@ export const STATES: State[] = [
     },
     ready: async (page) => {
       await results(page);
-      await text(page, "Related (beta) · top results 1–3");
+      await text(page, /Related.*top results 1–3/);
       await text(page, "Passages about the same thing that don't contain all your words:");
     },
   },

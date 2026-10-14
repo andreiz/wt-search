@@ -128,7 +128,8 @@ for (const config of CONFIGS) {
       }));
       await page.goto("/?q=zzzz");
       await expect(page.getByRole("heading", { name: "Nothing found." })).toBeVisible();
-      await expect(page.getByText("Use fewer words")).toBeVisible();
+      await expect(page.getByText("No passage has those exact words.")).toBeVisible();
+      await expect(page.getByText("Or use fewer words, or check the spelling.")).toBeVisible();
       await page.getByRole("button", { name: "See related passages (beta)" }).click();
       await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
       await expect(page.getByRole("radio", { name: "Related, beta" })).toHaveAttribute("aria-checked", "true");
@@ -145,6 +146,7 @@ for (const config of CONFIGS) {
       await page.goto("/?q=zzzz&mode=related");
       await expect(page.getByRole("heading", { name: "No related passages." })).toBeVisible();
       await expect(page.getByText("Nothing found.")).toHaveCount(0);
+      await expect(page.getByText("Nothing about the same thing turned up without your words.")).toBeVisible();
       await page.getByRole("button", { name: "See exact matches" }).click();
       await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
       await expect(page.getByRole("radio", { name: "Exact" })).toHaveAttribute("aria-checked", "true");
@@ -342,7 +344,7 @@ for (const config of CONFIGS) {
         json: url.searchParams.get("mode") === "exact" ? exact([hit(1)], { total: 1 }) : related([hit(1), hit(2)]),
       }));
       await page.goto("/?q=glue&mode=related");
-      await expect(page.getByText("Related (beta) · top results 1–2")).toBeVisible();
+      await expect(page.getByText(/Related.*top results 1–2/)).toBeVisible();
 
       const trigger = page.getByRole("button", { name: "How this works" });
       await trigger.click();

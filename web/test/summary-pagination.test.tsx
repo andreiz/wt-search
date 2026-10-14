@@ -7,13 +7,29 @@ import { exactBody, result, relatedBody } from "./helpers";
 
 afterEach(cleanup);
 
+/** What a screen reader hears: the text without the `aria-hidden` parts (the BETA tag). */
 function summaryText(data: Parameters<typeof Summary>[0]["data"]): string {
   const { container } = render(<Summary data={data} />);
-  return (container.textContent ?? "").replace(/\s+/g, " ").trim();
+  const copy = container.cloneNode(true) as HTMLElement;
+  copy.querySelectorAll("[aria-hidden='true']").forEach((el) => el.remove());
+  return (copy.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
 describe("<Summary/>", () => {
   const many = (n: number) => Array.from({ length: n }, (_, i) => result(i + 1));
+
+  it("Related: a BETA tag after 'Related', hidden from screen readers, and '(beta)' said in words", () => {
+    const { container } = render(<Summary data={relatedBody(many(20))} />);
+    const rel = container.querySelector(".summary__rel");
+    expect(rel?.textContent).toBe("Related BETA");
+    expect(rel?.querySelector(".beta-tag")?.getAttribute("aria-hidden")).toBe("true");
+    expect(container.querySelector(".visually-hidden")?.textContent?.trim()).toBe("(beta)");
+  });
+
+  it("Exact has no BETA tag", () => {
+    const { container } = render(<Summary data={exactBody([result(1)], { total: 5 })} />);
+    expect(container.querySelector(".beta-tag")).toBeNull();
+  });
 
   it("Related page 1: the range of results shown", () => {
     expect(summaryText(relatedBody(many(20)))).toBe("Related (beta) · top results 1–20");

@@ -3,7 +3,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
-import { exactBody, result, relatedBody, stubFetch } from "./helpers";
+import { exactBody, heard, result, relatedBody, stubFetch } from "./helpers";
 
 function go(url: string) {
   window.history.replaceState(null, "", url);
@@ -77,7 +77,7 @@ describe("searching", () => {
     const list = await screen.findByRole("list", { name: "Results" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByRole("heading", { level: 2, name: "Search results" })).toBeTruthy();
-    expect(screen.getByText("Related (beta) · top results 1–3")).toBeTruthy();
+    expect(heard(screen.getByRole("status"))).toBe("Related (beta) · top results 1–3");
     expect(list.textContent).toContain("Ep. 1 · Jun 10, 2015 Show 1 title");
   });
 
@@ -458,7 +458,7 @@ describe("the status region", () => {
     calls[0]!.respond(relatedBody([result(1)]));
     await screen.findByRole("list", { name: "Results" });
     expect(screen.getByRole("status")).toBe(region);
-    expect(region.textContent).toBe("Related (beta) · top result 1");
+    expect(heard(region)).toBe("Related (beta) · top result 1");
     typeAndSubmit("epoxy");
     expect(screen.getByRole("status")).toBe(region);
     expect(region.textContent).toBe("Searching…");

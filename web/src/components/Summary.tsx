@@ -1,12 +1,15 @@
 // The summary line under the bar (Screen.dc.html; spec §5.2, §4.4). Related (the "related" mode):
-// "Related (beta) · top results 1–20" (which results this page holds; "top result 41" for one,
-// bare "Related (beta)" for none; "top" because Related shows the best matches, not all of them).
+// "Related BETA · top results 1–20" (which results this page holds; "top result 41" for one,
+// bare "Related BETA" for none; "top" because Related shows the best matches, not all of them).
+// The BETA tag is aria-hidden and a visually hidden "(beta)" follows it, so the live region
+// reads "Related (beta) · top results 1–20".
 // Exact: "**318 matches**" or "**1,000+ matches**". When the page folded hits into a nearby
 // result: "; 4 results (1 folded into a nearby hit)", as `wts search` words it
 // (pipeline/src/wts/search.py `_header`). Exact on a phone also shows " · page N of M".
 import type { SearchData } from "../lib/api";
 import { count } from "../lib/format";
 import { lastPage } from "../lib/paging";
+import { BetaTag } from "./BetaTag";
 
 function folded(data: SearchData): string {
   const hits = data.results.reduce((sum, r) => sum + r.more_in_episode, 0);
@@ -31,5 +34,13 @@ export function Summary({ data }: { data: SearchData }) {
   const shown = data.results.length;
   const first = (data.page - 1) * data.limit + 1;
   const range = shown === 0 ? "" : shown === 1 ? ` · top result ${first}` : ` · top results ${first}–${first + shown - 1}`;
-  return <p class="summary">{`Related (beta)${range}`}</p>;
+  return (
+    <p class="summary">
+      <span class="summary__rel">
+        Related <BetaTag />
+      </span>
+      <span class="visually-hidden"> (beta)</span>
+      {range}
+    </p>
+  );
 }

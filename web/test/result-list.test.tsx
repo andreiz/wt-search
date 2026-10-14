@@ -70,6 +70,14 @@ describe("related cards", () => {
 });
 
 describe("the intro line", () => {
+  it("marks the list as Related (oak cards) only on the Related tab", () => {
+    renderList([result(1), related(2)], 1, true);
+    expect(screen.getByRole("list", { name: "Results" }).classList.contains("result-list--related")).toBe(true);
+    cleanup();
+    renderList([result(1)], 1, false);
+    expect(screen.getByRole("list", { name: "Results" }).classList.contains("result-list--related")).toBe(false);
+  });
+
   it("is shown on page 1 of the Related tab", () => {
     renderList([related(1), related(2)], 1, true);
     expect(screen.getByText(INTRO)).toBeTruthy();

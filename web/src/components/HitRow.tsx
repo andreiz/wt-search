@@ -1,7 +1,7 @@
 // One hit of a result card (spec §5.3; docs/design/card-separation-options.html, option A): the
 // timestamp chip (the hit's one play control), the excerpt, ⋯, and "+N nearby" under the excerpt.
-// Desktop is a three-column grid (chip, excerpt, ⋯); below 600 px the chip takes its own first row
-// (CSS only, the DOM is the same). The excerpt opens More transcript on a click, unless text is
+// Desktop is a three-column grid (chip, excerpt, ⋯); below 600 px the chip and ⋯ share the first
+// line, the excerpt spans the full width under them, then "+N nearby" (CSS only, the DOM is the same). The excerpt opens More transcript on a click, unless text is
 // selected. Keyboard order follows the visual order: chip, ⋯, "+N nearby", then the expanded view.
 //
 // The expanded view (spec §5.4) opens in this row, inside the card: radius 3 from the excerpt

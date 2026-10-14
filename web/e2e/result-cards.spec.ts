@@ -253,19 +253,56 @@ test.describe("on a desktop", () => {
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 390, height: 800 } });
 
-  test("the chip is a 44 px touch target on its own row above the excerpt, ⋯ beside the excerpt", async ({ page }) => {
+  test("the chip and ⋯ share a line; the excerpt is full width under them, then +N nearby", async ({ page }) => {
     await open(page, keywordCards);
     const row = page.getByRole("list", { name: "Results" }).getByRole("listitem").first().locator(".hit").first();
     const chip = (await row.locator("a.hit__time").boundingBox())!;
-    expect(chip.height).toBeGreaterThanOrEqual(44);
-    const excerpt = (await row.locator(".hit__excerpt").boundingBox())!;
-    expect(excerpt.y).toBeGreaterThanOrEqual(chip.y + chip.height);
     const more = (await row.getByRole("button", { name: "More actions" }).boundingBox())!;
+    expect(Math.abs(chip.y - more.y)).toBeLessThanOrEqual(8);
+    expect(Math.abs(chip.y + chip.height / 2 - (more.y + more.height / 2))).toBeLessThanOrEqual(2);
     expect(more.height).toBeGreaterThanOrEqual(44);
-    expect(more.x).toBeGreaterThanOrEqual(excerpt.x + excerpt.width);
-    const nearby = (await row.getByRole("button", { name: "+2 nearby" }).boundingBox())!;
-    expect(nearby.y).toBeGreaterThanOrEqual(excerpt.y + excerpt.height);
+    expect(more.width).toBeGreaterThanOrEqual(44);
+    // The chip is drawn 36 px tall, with a 44 px hit area (a pseudo-element, outside the box).
+    expect(chip.height).toBe(36);
+    expect(await row.locator("a.hit__time").evaluate((el) => getComputedStyle(el, "::before").height)).toBe("44px");
     // The chip is no wider than its text and icon need, not a full row.
     expect(chip.width).toBeLessThan(120);
+    const excerpt = (await row.locator(".hit__excerpt").boundingBox())!;
+    expect(excerpt.x).toBeCloseTo(chip.x, 0);
+    expect(excerpt.y).toBeGreaterThanOrEqual(chip.y + chip.height);
+    expect(excerpt.y).toBeGreaterThanOrEqual(more.y + more.height - 1);
+    const nearby = (await row.getByRole("button", { name: "+2 nearby" }).boundingBox())!;
+    expect(nearby.y).toBeGreaterThanOrEqual(excerpt.y + excerpt.height);
+    expect(nearby.height).toBe(36);
+    expect(await row.getByRole("button", { name: "+2 nearby" }).evaluate((el) => getComputedStyle(el, "::after").height)).toBe("44px");
+  });
+});
+
+// Related cards are oak (Round 2); the class follows the answer's mode.
+test.describe("the Related cards in oak", () => {
+  test("a Related card is oak; Exact cards are not; switching back drops it at once, also while loading", async ({ page }) => {
+    await page.route("**/api/search*", async (route) => {
+      const mode = new URL(route.request().url()).searchParams.get("mode");
+      if (mode === "exact") {
+        // Held until the test has looked at the page.
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await route.fulfill({ json: { ...body(keywordCards), mode: "exact" } });
+      } else {
+        await route.fulfill({ json: body(relatedCards) });
+      }
+    });
+    await page.goto("/?q=sprayer&mode=related");
+    const list = page.getByRole("list", { name: "Results" });
+    const card = list.getByRole("listitem").first().locator(".result__card");
+    await expect(card).toBeVisible();
+    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(239, 236, 230)");
+    await page.getByRole("radio", { name: "Exact" }).click();
+    // While the Exact answer is held: no oak list, the skeleton is not inside one.
+    await expect(page.locator(".skeleton")).toBeVisible();
+    await expect(page.locator(".result-list--related")).toHaveCount(0);
+    await expect(page.locator(".skeleton").locator("xpath=ancestor::*[contains(@class,'result-list--related')]")).toHaveCount(0);
+    await expect(list.getByRole("listitem").first()).toBeVisible();
+    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe("rgb(239, 236, 230)");
+    await expect(page.locator(".result-list--related")).toHaveCount(0);
   });
 });

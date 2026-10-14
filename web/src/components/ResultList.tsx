@@ -61,7 +61,7 @@ export function ResultList({
   return (
     <div class="results-area" ref={listRef}>
       {page === 1 && related && results.length > 0 && <p class="results-intro">Passages about the same thing that don't contain all your words:</p>}
-      <ol class="results" aria-label="Results">
+      <ol class={`results${related ? " result-list--related" : ""}`} aria-label="Results">
         <OpenView.Provider value={openView}>
           <OpenReport.Provider value={openReport}>
             {cards.map((card, index) => (

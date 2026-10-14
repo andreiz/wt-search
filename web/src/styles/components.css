@@ -832,7 +832,27 @@
   gap: 10px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-dense);
+  border-radius: 14px;
+}
+
+/* Related answers (Round 2): oak. The excerpt keeps --text. */
+.result-list--related .result__card {
+  background: var(--rel-bg);
+  border-color: var(--rel-border);
+  box-shadow: none;
+}
+
+.result-list--related .hit--ruled {
+  border-top-color: var(--rel-border);
+}
+
+.result-list--related .hit__time {
+  background: var(--rel-tint);
+  color: var(--rel);
+}
+
+.result-list--related .hit__nearby {
+  color: var(--rel);
 }
 
 /* The episode line: the meta line, then the title (both inside the heading). */
@@ -2067,31 +2087,65 @@ a.passage__time:hover {
     display: none;
   }
 
-  /* The same DOM as a desktop. The chip takes its own first row at its natural width, then the
-     excerpt with ⋯ beside it, then "+N nearby". */
-  .hit {
-    grid-template-columns: minmax(0, 1fr) 44px;
-    gap: 4px 8px;
+  .result__card {
+    padding: 12px 14px 14px;
   }
 
+  /* The same DOM as a desktop. Row 1: the chip and ⋯ (at the card's right edge); row 2: the
+     excerpt, full width; row 3: "+N nearby". */
+  .hit {
+    grid-template-columns: auto minmax(0, 1fr) 44px;
+    gap: 8px;
+  }
+
+  /* Drawn 36 px tall; the hit area (::before, 44 px) reaches past the box, over the row's gap. */
   .hit__time {
-    grid-column: 1 / -1;
-    justify-self: start;
-    min-height: 44px;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    position: relative;
+    height: 36px;
     margin-top: 0;
-    padding: 0 14px;
+    padding: 0 12px;
+    border-radius: 8px;
     font-size: 15px;
+    font-weight: 700;
+  }
+
+  .hit__time::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
   }
 
   .hit__excerpt {
-    grid-column: 1;
+    grid-column: 1 / -1;
     grid-row: 2;
+    font-size: 17px;
+    line-height: 1.55;
   }
 
+  /* 36 px drawn, a 44 px hit area (::after). */
   .hit__nearby {
-    grid-column: 1;
+    grid-column: 1 / -1;
     grid-row: 3;
-    min-height: 44px;
+    position: relative;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .hit__nearby::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
   }
 
   .hit__report {
@@ -2099,13 +2153,18 @@ a.passage__time:hover {
   }
 
   .more-menu {
-    grid-column: 2;
-    grid-row: 2;
+    grid-column: 3;
+    grid-row: 1;
     margin-top: 0;
+    margin-right: -10px;
   }
 
   .hit--open .hit__strip {
     grid-template-columns: minmax(0, 1fr) auto 44px;
+  }
+
+  .hit--open .more-menu {
+    margin-right: 0;
   }
 
   .hit__less {

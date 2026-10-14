@@ -120,6 +120,11 @@ def calls(monkeypatch):
         made.append(("notify", sorted(results)))
         return True
 
+    def fake_smoke(cfg, env, client, notifier):
+        made.append(("smoke", env))
+        return Counter(ok=5)
+
+    monkeypatch.setattr(steps, "smoke", fake_smoke)
     monkeypatch.setattr(steps, "run_publish", fake_publish)
     monkeypatch.setattr(steps, "backup", fake_backup)
     monkeypatch.setattr(steps, "notify_run", fake_notify_run)
@@ -135,18 +140,20 @@ def quick_run(conn, paths, cfg, **kwargs):
 def test_run_all_with_env_publishes_then_backs_up_then_notifies(conn, paths, cfg, calls):
     upsert_from_fixture_and_scope(conn, "recent:2")
     results = quick_run(conn, paths, cfg, env="staging")
-    assert [c[0] for c in calls] == ["publish", "backup", "notify"]
+    assert [c[0] for c in calls] == ["publish", "smoke", "backup", "notify"]
     assert calls[0] == ("publish", "staging", sorted(scoped(conn)))
-    # The summary sees both steps' counts.
-    assert calls[2] == ("notify", ["backup", "chunk", "download", "embed", "publish",
-                                   "transcribe"])
+    assert calls[1] == ("smoke", "staging")
+    # The summary sees every step's counts.
+    assert calls[3] == ("notify", ["backup", "chunk", "download", "embed", "publish",
+                                   "smoke", "transcribe"])
     assert results["publish"]["ok"] == 2 and results["backup"]["ok"] == 1
+    assert results["smoke"]["ok"] == 5
 
 
 def test_run_all_without_env_skips_publish_with_a_warning(conn, paths, cfg, calls, wts_messages):
     results = quick_run(conn, paths, cfg)
     assert [c[0] for c in calls] == ["backup", "notify"]
-    assert "publish" not in results
+    assert "publish" not in results and "smoke" not in results
     assert any("not publishing" in m and "run_env" in m for m in wts_messages)
 
 

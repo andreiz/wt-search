@@ -29,7 +29,7 @@ Top-level keys go before any `[env.*]` table, or TOML puts them inside it.
 ```sh
 uv run wts feed                    # add/update episodes from the feed
 uv run wts scope add seed          # M1: 20 most recent + 15 across the years
-uv run wts run --env staging       # feed → download → transcribe → chunk → embed → publish → backup
+uv run wts run --env staging       # feed → download → transcribe → chunk → embed → publish → smoke → backup
 uv run wts status                  # counts per status, errors, recent runs
 uv run wts status --flagged        # the episodes the guards flagged, and which are reviewed
 uv run wts logs --since 1d --level warning  # log lines (--run ID, --episode ep312, --json)

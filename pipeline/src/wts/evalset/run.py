@@ -3,16 +3,23 @@ client as `wts search`. Requests are paced to the Worker's per-IP limit (60 a mi
 run of ~300 requests takes about five minutes."""
 
 import json
+import logging
 import time
+from collections import Counter
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
+import click
 import httpx
 
-from wts.evalset.cases import Case
+from wts.config import Config
+from wts.evalset.cases import Case, CaseError, load_cases
 from wts.evalset.score import CaseScore, clock, score_case, summarize, targets
+from wts.notify import Notifier
 from wts.search import SearchError, search
+
+log = logging.getLogger("wts")
 
 PACE_S = 1.0
 METRICS = ("recall@10", "mrr", "ndcg@10", "time_hit_rate", "negative_pass_rate",
@@ -130,3 +137,46 @@ def format_report(report: dict, *, regressed: list[str], missed: list[str],
     if missed:
         lines += ["Worse than in the baseline: " + ", ".join(missed)]
     return "\n".join(lines)
+
+
+def smoke(cfg: Config, env: str, client: httpx.Client, notifier: Notifier, *,
+          directory: Path | None = None,
+          sleep: Callable[[float], None] = time.sleep) -> Counter:
+    """The `smoke: true` cases after a run that publishes (spec §8.1): each must find its
+    expected episodes in the top 10. A failure is logged and notified; the run goes on."""
+    counts: Counter = Counter()
+    extra = {"step": "smoke"}
+    try:
+        api_url = cfg.api_url(env)
+    except click.UsageError as exc:
+        log.warning(f"no smoke search: {exc.message}", extra=extra)
+        counts["skipped"] += 1
+        return counts
+    try:
+        cases = [c for c in load_cases(directory) if c.smoke]
+    except CaseError as exc:
+        log.error(f"no smoke search: {exc}", extra=extra)
+        counts["error"] += 1
+        return counts
+    if not cases:
+        log.warning("no smoke search: no case is marked smoke: true", extra=extra)
+        counts["skipped"] += 1
+        return counts
+    failures = []
+    for case in cases:
+        try:
+            score = score_case(case, ask(client, api_url, case, sleep=sleep))
+        except EvalError as exc:
+            failures.append(str(exc).removeprefix("case "))
+            continue
+        if score.recall == 1.0:
+            counts["ok"] += 1
+        else:
+            missed = [f for f in score.failures if "not in the top" in f]
+            failures.append(f"{case.id}: {'; '.join(missed)}")
+    counts["failed"] = len(failures)
+    if failures:
+        log.error(f"smoke search failed: {len(failures)} of {len(cases)}", extra=extra)
+        notifier.send("wts: smoke search failed", "\n".join(f"- {f}" for f in failures),
+                      priority="high", tags=("warning",))
+    return counts

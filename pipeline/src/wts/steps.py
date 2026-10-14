@@ -29,6 +29,7 @@ from wts.download import (
     probe_duration_s,
 )
 from wts.embed import Embedder, embed_episode, get_embedder
+from wts.evalset.run import smoke
 from wts.feed import parse_feed, upsert_episodes
 from wts.log import clock, plural, run_record
 from wts.net import describe_http_error, new_client
@@ -368,7 +369,7 @@ def run_all(
     probe: Callable[[Path], float] = probe_duration_s,
     notifier: Notifier | None = None,
 ) -> dict[str, Counter]:
-    """feed → download → transcribe → chunk → embed → publish → backup, then one notification
+    """feed → download → transcribe → chunk → embed → publish → smoke → backup, then one notification
     (spec §3.2, §6, §8.2).
 
     Publishes to `env`; with none (the CLI has already fallen back to `run_env`), publish is
@@ -412,6 +413,10 @@ def run_all(
             with run_record(conn, name) as run:
                 run.counts.update(step())
             results[name] = run.counts
+        if env:  # the publish step ran: check the environment answers (spec §8.1)
+            with run_record(conn, "smoke") as run:
+                run.counts.update(smoke(cfg, env, client_, notifier))
+            results["smoke"] = run.counts
     except MachineProblem as exc:  # its message names folders or tools, never secrets
         notifier.send("wts: run stopped", str(exc), priority="high", tags=("rotating_light",))
         raise

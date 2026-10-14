@@ -211,7 +211,7 @@ test.describe("on a desktop", () => {
     await expect(page.getByRole("button", { name: /related passage|Show|Hide/i })).toHaveCount(0);
     await expect(page.getByRole("list")).toHaveCount(1);
     // The summary names the results this page holds.
-    await expect(page.getByText(/Related.*top results 1–4/)).toBeVisible();
+    await expect(page.getByText("Top results 1–4")).toBeVisible();
     await expect(page.getByText("Passages about the same thing that don't contain all your words:")).toBeVisible();
     // No "Related" pill, and every card's box has the same solid border and the same excerpt colour.
     await expect(list.getByText("Related", { exact: true })).toHaveCount(0);
@@ -278,9 +278,9 @@ test.describe("on a phone", () => {
   });
 });
 
-// Related cards are oak (Round 2); the class follows the answer's mode.
-test.describe("the Related cards in oak", () => {
-  test("a Related card is oak; Exact cards are not; switching back drops it at once, also while loading", async ({ page }) => {
+// Related cards are in the Related colours (Round 2); the class follows the answer's mode.
+test.describe("the Related cards in their colours", () => {
+  test("a Related card is in the Related colours; Exact cards are not; switching back drops it at once, also while loading", async ({ page }) => {
     await page.route("**/api/search*", async (route) => {
       const mode = new URL(route.request().url()).searchParams.get("mode");
       if (mode === "exact") {
@@ -295,14 +295,14 @@ test.describe("the Related cards in oak", () => {
     const list = page.getByRole("list", { name: "Results" });
     const card = list.getByRole("listitem").first().locator(".result__card");
     await expect(card).toBeVisible();
-    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(239, 236, 230)");
+    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(233, 234, 237)");
     await page.getByRole("radio", { name: "Exact" }).click();
-    // While the Exact answer is held: no oak list, the skeleton is not inside one.
+    // While the Exact answer is held: no Related list, the skeleton is not inside one.
     await expect(page.locator(".skeleton")).toBeVisible();
     await expect(page.locator(".result-list--related")).toHaveCount(0);
     await expect(page.locator(".skeleton").locator("xpath=ancestor::*[contains(@class,'result-list--related')]")).toHaveCount(0);
     await expect(list.getByRole("listitem").first()).toBeVisible();
-    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe("rgb(239, 236, 230)");
+    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe("rgb(233, 234, 237)");
     await expect(page.locator(".result-list--related")).toHaveCount(0);
   });
 });

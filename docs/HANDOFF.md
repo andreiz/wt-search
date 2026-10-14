@@ -13,10 +13,11 @@ the controls in place; 44 px hit areas; Tips also on the start page). Tasks 1–
 subagents, reviewed and committed in the main session; web 776 unit, 327 browser, axe clean in
 both themes. **Next: Checkpoint L** (end of the plan) on an iPhone after
 `cd worker && npm run deploy:staging`. Open from the captures (`npm run e2e:shots`):
-- In dark the oak Related cards (`--rel-bg` #1D1B18, border #3E3A34) are hard to tell from
-  Exact's (#211B17): Design's colours, so a question for Design or the maintainer, not changed.
-- The Related summary needs two lines at 390 px beside "How this works" and "Tips"; it now
-  breaks before "· top results 1–3" (kept whole) rather than leaving "1–3" alone.
+- 2026-10-14, after the maintainer's first look on the iPhone: oak was barely visible in light
+  and dark, so `--rel*` is now Design's "Ebonized" set (6e–6f); the Related summary is only
+  "Top results 1–20" (the switch names the tab), which fits one line.
+- Open from that look: the button's label ("Any year" though it also sorts) and the compact
+  header's tap (reopens the controls, the maintainer expected the sheet).
 - The switch is ~222 px and the Sort & years button ~126 px with a year set (Design: 234/116).
 - No capture of the compact header (no fixture state scrolls); the e2e "phone header
   compaction" test covers its behaviour.

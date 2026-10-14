@@ -18,12 +18,13 @@ function summaryText(data: Parameters<typeof Summary>[0]["data"]): string {
 describe("<Summary/>", () => {
   const many = (n: number) => Array.from({ length: n }, (_, i) => result(i + 1));
 
-  it("Related: a BETA tag after 'Related', hidden from screen readers, and '(beta)' said in words", () => {
+  it("Related shows only 'Top results 1–20' (the switch names the tab); screen readers also hear 'Related (beta)'", () => {
     const { container } = render(<Summary data={relatedBody(many(20))} />);
-    const rel = container.querySelector(".summary__rel");
-    expect(rel?.textContent).toBe("Related BETA");
-    expect(rel?.querySelector(".beta-tag")?.getAttribute("aria-hidden")).toBe("true");
-    expect(container.querySelector(".visually-hidden")?.textContent?.trim()).toBe("(beta)");
+    const seen = container.cloneNode(true) as HTMLElement;
+    seen.querySelectorAll(".visually-hidden").forEach((el) => el.remove());
+    expect(seen.textContent?.trim()).toBe("Top results 1–20");
+    expect(container.querySelector(".beta-tag")).toBeNull();
+    expect(container.querySelector(".visually-hidden")?.textContent).toBe("Related (beta) · ");
   });
 
   it("Exact has no BETA tag", () => {
@@ -32,17 +33,17 @@ describe("<Summary/>", () => {
   });
 
   it("Related page 1: the range of results shown", () => {
-    expect(summaryText(relatedBody(many(20)))).toBe("Related (beta) · top results 1–20");
+    expect(summaryText(relatedBody(many(20)))).toBe("Related (beta) · Top results 1–20");
   });
 
   it("Related page 2: the range continues from the page size", () => {
-    expect(summaryText(relatedBody(many(20), { page: 2 }))).toBe("Related (beta) · top results 21–40");
-    expect(summaryText(relatedBody(many(7), { page: 3 }))).toBe("Related (beta) · top results 41–47");
+    expect(summaryText(relatedBody(many(20), { page: 2 }))).toBe("Related (beta) · Top results 21–40");
+    expect(summaryText(relatedBody(many(7), { page: 3 }))).toBe("Related (beta) · Top results 41–47");
   });
 
-  it("Related: one result on the page reads 'top result N'", () => {
-    expect(summaryText(relatedBody([result(1)], { page: 3 }))).toBe("Related (beta) · top result 41");
-    expect(summaryText(relatedBody([result(1)]))).toBe("Related (beta) · top result 1");
+  it("Related: one result on the page reads 'Top result N'", () => {
+    expect(summaryText(relatedBody([result(1)], { page: 3 }))).toBe("Related (beta) · Top result 41");
+    expect(summaryText(relatedBody([result(1)]))).toBe("Related (beta) · Top result 1");
   });
 
   it("Related: no results is just 'Related (beta)'", () => {
@@ -51,7 +52,7 @@ describe("<Summary/>", () => {
 
   it("Related: no page number and no folding note", () => {
     const text = summaryText(relatedBody([result(1, { more_in_episode: 2, folded: [8, 9] }), result(2)], { page: 2 }));
-    expect(text).toBe("Related (beta) · top results 21–22");
+    expect(text).toBe("Related (beta) · Top results 21–22");
     expect(text).not.toContain("page");
     expect(text).not.toContain("folded");
   });

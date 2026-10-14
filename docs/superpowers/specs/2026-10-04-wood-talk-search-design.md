@@ -1147,16 +1147,22 @@ block wins. The plan is `docs/superpowers/plans/2026-10-13-phone-layout.md`.)*
   list of examples, the episode line (meta line, then the title clamped to
   2 lines; "Bonus" for an episode without a number), the hit row (time chip
   and ⋯ on one line, the excerpt at full width), the BETA tag, and the four
-  `--rel*` "weathered oak" tokens (light and dark), added to
-  `web/src/styles/tokens.css`.
+  `--rel*` tokens (light and dark), added to `web/src/styles/tokens.css`.
+  The `--rel*` values are Design's **"Ebonized"** set (frames 6e–6f, a
+  blue-black cast), not its recommended "weathered oak": on the iPhone
+  (2026-10-14) oak was barely distinguishable from Exact's cards, in light
+  and in dark.
 - **Related reads as Related at a glance:** in Related every card uses the
-  oak fill and border, no shadow, oak time chips; the excerpt stays
-  `--text`. Exact's cards are unchanged. At every width.
+  `--rel*` fill and border, no shadow, `--rel-tint` time chips; the excerpt
+  stays `--text`. Exact's cards are unchanged. At every width.
 - **"Related" + BETA** replaces "Related (beta)" wherever the label shows:
-  the switch, the summary line ("Related BETA · top results 1–20"), the
-  compact header's button, the "≈ See related passages BETA" button. The
-  tag is hidden from screen readers; the accessible names say "beta"
-  ("Related, beta"; the summary reads "Related (beta) · top results 1–20").
+  the switch, the compact header's button, the "≈ See related passages
+  BETA" button. The tag is hidden from screen readers; the accessible names
+  say "beta" ("Related, beta").
+- **The Related summary line is only "Top results 1–20"** (maintainer,
+  2026-10-14: the switch above already names the tab). Screen readers still
+  hear "Related (beta) · Top results 1–20" from the live region; with no
+  results the line shows nothing.
 - **`?` becomes "Tips ?"** at the right of the summary line, at every width,
   after "How this works" in Related. Before any search, where there is no
   summary line, it sits at the right of the start page's TRY label. It
@@ -1177,14 +1183,14 @@ block wins. The plan is `docs/superpowers/plans/2026-10-13-phone-layout.md`.)*
     and "Nothing about the same thing turned up without your words." (16 px
     muted), then a full-width **See exact matches** button (50 px, radius 12,
     `--surface` fill, `--border` border, `--accent` text 16 px/650: the
-    warm counterpart of the oak button). The degraded notice keeps its words
+    warm counterpart of the `--rel*` button). The degraded notice keeps its words
     and gets the same button under it.
   - **Exact with no result:** "Nothing found." / "No passage has those
-    exact words." / the oak button / "Or use fewer words, or check the
+    exact words." / the `--rel*` button / "Or use fewer words, or check the
     spelling." ("Or use fewer words, loosen the years, or check the
     spelling." with a year filter). **Fewer than 5:** "**Only 3 exact
     matches.** Related passages match the meaning, not just the words."
-    then the oak button.
+    then the `--rel*` button.
   - **The compact header keeps its behaviour:** its button opens the
     controls in place (the design has it scroll back to the top); only its
     label changes ("Exact · Best match · Any year ▾", "Related BETA ·

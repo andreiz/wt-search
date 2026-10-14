@@ -178,7 +178,7 @@
   color: var(--text);
 }
 
-/* The oak BETA tag (ROUND-2-phone.md "BETA treatment"). */
+/* The BETA tag, in the Related colours (ROUND-2-phone.md "BETA treatment"). */
 .beta-tag {
   padding: 2px 4px 1px;
   border: 1px solid var(--rel-border);
@@ -786,14 +786,6 @@
   color: var(--muted);
 }
 
-.summary__rel {
-  color: var(--rel);
-}
-
-.summary__range {
-  white-space: nowrap;
-}
-
 .summary__count {
   color: var(--text);
   font-weight: 700;
@@ -851,7 +843,7 @@
   border-radius: 14px;
 }
 
-/* Related answers (Round 2): oak. The excerpt keeps --text. */
+/* Related answers (Round 2): the ebonized --rel* colours. The excerpt keeps --text. */
 .result-list--related .result__card {
   background: var(--rel-bg);
   border-color: var(--rel-border);

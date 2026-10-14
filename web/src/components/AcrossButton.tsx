@@ -1,5 +1,5 @@
 // The full-width button that goes across to the other mode (ROUND-2-phone.md "Exact: few or no
-// results"): oak "See related passages (beta)" from Exact, plain "See exact matches" from Related.
+// results"): "See related passages (beta)" in the Related colours from Exact, plain "See exact matches" from Related.
 import { BetaTag } from "./BetaTag";
 
 export function AcrossButton({ to, onClick }: { to: "related" | "exact"; onClick: () => void }) {

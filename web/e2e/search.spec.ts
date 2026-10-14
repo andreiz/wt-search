@@ -52,7 +52,7 @@ test("search, URL and Back, under the CSP", async ({ page }) => {
 
   await page.getByRole("radio", { name: "Related, beta" }).click();
   await expect(page).toHaveURL(/mode=related/);
-  await expect(page.getByText(/Related.*top result 1/)).toBeVisible();
+  await expect(page.getByText("Top result 1")).toBeVisible();
 
   await page.goBack();
   await expect(page).toHaveURL(/\?q=hvlp\+sprayer$/);

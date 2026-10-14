@@ -344,7 +344,7 @@ for (const config of CONFIGS) {
         json: url.searchParams.get("mode") === "exact" ? exact([hit(1)], { total: 1 }) : related([hit(1), hit(2)]),
       }));
       await page.goto("/?q=glue&mode=related");
-      await expect(page.getByText(/Related.*top results 1–2/)).toBeVisible();
+      await expect(page.getByText("Top results 1–2")).toBeVisible();
 
       const trigger = page.getByRole("button", { name: "How this works" });
       await trigger.click();

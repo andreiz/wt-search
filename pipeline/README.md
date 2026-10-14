@@ -75,6 +75,17 @@ at most one notification a day about new reports.
 `[env.staging]` (or `[env.production]`) in `config.toml`; the environment defaults to `run_env`.
 `wts publish` doesn't need it.
 
+## Test search set
+
+```sh
+uv run wts eval run                # score staging against eval/*.yaml; exit 1 on a drop > 0.02
+uv run wts eval run --only paraphrase   # one tag or case id (no baseline comparison)
+uv run wts eval run --update       # also make this report eval/baseline.json
+```
+
+The cases are in `../eval/` (see its README). A run sends about one request a second; reports go
+to `eval/reports/` (not committed).
+
 Each step also runs on its own (`download`, `transcribe`, `chunk`, `embed`) and takes
 `--select` (`scope`, `all`, `seed`, `recent:N`, `ep:N`, `year:YYYY`, `stem:S`; comma = union).
 Everything is safe to re-run and to stop with Ctrl-C.

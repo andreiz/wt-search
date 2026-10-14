@@ -234,6 +234,73 @@ def search_cmd(env: str | None, mode: str, sort: str, page: int, limit: int | No
     click.echo(format_results(response, color=color, limit=limit), color=color)
 
 
+@main.group("eval")
+def eval_group() -> None:
+    """The test search set (spec §7.2): eval/queries.yaml and eval/synthetic.yaml."""
+
+
+@eval_group.command("run")
+@click.option("--env", "env", type=click.Choice(ENV_NAMES), default=None,
+              help="Environment to score [default: run_env in config.toml].")
+@click.option("--update", is_flag=True, help="Also make this report eval/baseline.json.")
+@click.option("--only", default=None, metavar="TAG-OR-ID",
+              help="Only the cases with this tag or id (not compared with the baseline).")
+def eval_run_cmd(env: str | None, update: bool, only: str | None) -> None:
+    """Send every case to the API and score the answers; exit 1 on a drop below the baseline.
+
+    About one request a second (the Worker's limit is 60 a minute per IP); related requests
+    count against the daily meaning budget. The report goes to eval/reports/.
+    """
+    from datetime import UTC, datetime
+
+    from wts.evalset.cases import CaseError, eval_dir, load_cases
+    from wts.evalset.run import (
+        EvalError,
+        build_report,
+        format_report,
+        load_baseline,
+        run_cases,
+        write_report,
+    )
+    from wts.evalset.score import newly_missed, regressions
+    from wts.net import new_client
+
+    if only and update:
+        raise click.UsageError("--update records a full run; leave out --only")
+    ctx = _ctx()
+    name = env or ctx.cfg.run_env
+    if not name:
+        raise click.UsageError(f"no environment: use --env or run_env in {ctx.paths.config_file}")
+    api_url = ctx.cfg.api_url(name)
+    directory = eval_dir()
+    try:
+        cases = load_cases(directory)
+    except CaseError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if only:
+        cases = [c for c in cases if only in (c.id, c.tag)]
+        if not cases:
+            raise click.ClickException(f"no case has the tag or id {only!r}")
+    if not cases:
+        raise click.ClickException(f"no cases in {directory}")
+    try:
+        with new_client() as client:
+            scored = run_cases(client, api_url, cases,
+                               progress=lambda c: click.echo(f"  {c.id}", err=True))
+    except EvalError as exc:
+        raise click.ClickException(str(exc)) from exc
+    report = build_report(name, api_url, scored, now=datetime.now(UTC))
+    baseline = None if only else load_baseline(directory)
+    regressed = regressions(report["summary"], baseline["summary"]) if baseline else []
+    missed = newly_missed([s for _, _, s in scored], baseline["cases"]) if baseline else []
+    path = write_report(report, directory, update=update)
+    click.echo(format_report(report, regressed=regressed, missed=missed,
+                             baseline=baseline is not None or bool(only)))
+    click.echo(f"\nReport: {path}" + (" (and eval/baseline.json)" if update else ""))
+    if regressed and not update:
+        raise SystemExit(1)
+
+
 @main.command("links")
 @click.argument("episode")
 @click.option("--at", "at", default=None,

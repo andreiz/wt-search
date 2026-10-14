@@ -1136,6 +1136,64 @@ decisions and the deviations from it are in §5.3 and §5.7.
 
 ### 5.2 Search bar
 
+**Round 2, the phone layout** *(2026-10-13; Claude Design's answer to
+`docs/design/BRIEF-2-phone.md` is `docs/design/system/ROUND-2-phone.md`,
+with the screens in `PhoneScreen2.dc.html` and section 5 of
+`Wood Talk Search.dc.html`; the maintainer took it as given, with the
+calls below. Where the older items of §5.2, §5.3 and §5.6 disagree, this
+block wins. The plan is `docs/superpowers/plans/2026-10-13-phone-layout.md`.)*
+- **Measurements and colours are the design's** (`ROUND-2-phone.md`): the
+  one-line controls row, the Sort & years bottom sheet, the start page's
+  list of examples, the episode line (meta line, then the title clamped to
+  2 lines; "Bonus" for an episode without a number), the hit row (time chip
+  and ⋯ on one line, the excerpt at full width), the BETA tag, and the four
+  `--rel*` "weathered oak" tokens (light and dark), added to
+  `web/src/styles/tokens.css`.
+- **Related reads as Related at a glance:** in Related every card uses the
+  oak fill and border, no shadow, oak time chips; the excerpt stays
+  `--text`. Exact's cards are unchanged. At every width.
+- **"Related" + BETA** replaces "Related (beta)" wherever the label shows:
+  the switch, the summary line ("Related BETA · top results 1–20"), the
+  compact header's button, the "≈ See related passages BETA" button. The
+  tag is hidden from screen readers; the accessible names say "beta"
+  ("Related, beta"; the summary reads "Related (beta) · top results 1–20").
+- **`?` becomes "Tips ?"** at the right of the summary line, at every width,
+  after "How this works" in Related. Before any search, where there is no
+  summary line, it sits at the right of the start page's TRY label. It
+  opens the same syntax popover.
+- **Phone (below 600 px): one button for sort and years.** It shows the
+  sliders icon and the year label, a dot when the sort is not Best match,
+  and the accent style when a year is set; it opens the **Sort & years**
+  sheet. In the sheet the choices are staged: **Show results** and **Done**
+  apply both at once (one search, one history entry); Esc and a tap on the
+  scrim close it without changes. "Any year" clears the staged years. The
+  sheet traps focus and returns it to the button. Desktop keeps the sort
+  menu and the year chip, with the switch 280 px wide.
+- **The maintainer's calls on the design:**
+  - **"Best match", not "Relevance"** (decided the same day, above), in the
+    sheet, the button's name and the compact header.
+  - **Related with nothing to show, and Related unavailable or paused**, which
+    the design left out, use its parts: "No related passages." (28 px serif)
+    and "Nothing about the same thing turned up without your words." (16 px
+    muted), then a full-width **See exact matches** button (50 px, radius 12,
+    `--surface` fill, `--border` border, `--accent` text 16 px/650: the
+    warm counterpart of the oak button). The degraded notice keeps its words
+    and gets the same button under it.
+  - **Exact with no result:** "Nothing found." / "No passage has those
+    exact words." / the oak button / "Or use fewer words, or check the
+    spelling." ("Or use fewer words, loosen the years, or check the
+    spelling." with a year filter). **Fewer than 5:** "**Only 3 exact
+    matches.** Related passages match the meaning, not just the words."
+    then the oak button.
+  - **The compact header keeps its behaviour:** its button opens the
+    controls in place (the design has it scroll back to the top); only its
+    label changes ("Exact · Best match · Any year ▾", "Related BETA ·
+    Newest · 2015–2020 ▾", a set year in `--accent`).
+  - **Touch targets stay 44 px:** the time chip and "+N nearby" are drawn
+    36 px tall as designed, with a 44 px hit area.
+  - The examples are "hide glue", "split-top Roubo", "sharpening a card
+    scraper". Related's first page keeps its intro line.
+
 Pinned to the top (compacting on scroll on phones):
 - A large input with a clear button, and a **Search** button (Enter also
   searches). Searching happens only on Enter or the button, not while

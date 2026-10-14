@@ -1,5 +1,9 @@
 # Design brief 2 — the phone layout, and Exact / Related (beta)
 
+*Answered 2026-10-13 by `system/ROUND-2-phone.md` (round 2) and built in plan 6
+(`docs/superpowers/plans/2026-10-13-phone-layout.md`); the captures in `round-2/` are the
+before.*
+
 For Claude Design: a second, small round on the design in `docs/design/system/`. The first
 brief (`BRIEF.md`) and the system's `README.md` still hold except where this one says
 otherwise; the engineering spec (`docs/superpowers/specs/2026-10-04-wood-talk-search-design.md`

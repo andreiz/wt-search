@@ -40,7 +40,13 @@ export function Summary({ data }: { data: SearchData }) {
         Related <BetaTag />
       </span>
       <span class="visually-hidden"> (beta)</span>
-      {range}
+      {/* "top results 1–20" moves to a second line whole, never leaving "1–20" alone there. */}
+      {range && (
+        <>
+          {" "}
+          <span class="summary__range">{range.trimStart()}</span>
+        </>
+      )}
     </p>
   );
 }

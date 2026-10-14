@@ -790,6 +790,10 @@
   color: var(--rel);
 }
 
+.summary__range {
+  white-space: nowrap;
+}
+
 .summary__count {
   color: var(--text);
   font-weight: 700;

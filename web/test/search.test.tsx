@@ -531,81 +531,81 @@ describe("markup rules", () => {
     expect(container.querySelectorAll("[style]").length).toBe(0);
   });
 
-  it("the phone summary button names the current settings and toggles the controls", () => {
-    go("/?q=glue&sort=oldest");
-    stubFetch();
-    render(<App />);
-    const button = screen.getByRole("button", { name: /Exact · Oldest · Any year/ });
-    expect(button.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(button);
-    expect(button.getAttribute("aria-expanded")).toBe("true");
-  });
+  // The compact header's button (phone, scrolled) opens the sheet with the mode in it too.
+  describe("the compact header's button", () => {
+    const compactButton = (name: RegExp) => screen.getByRole("button", { name });
 
-  describe("reopened controls (phone, scrolled)", () => {
-    function open() {
-      go("/?q=glue&mode=related");
+    it("names the current settings and opens 'Search options' with the mode checked", () => {
+      go("/?q=glue&mode=related&sort=oldest");
       stubFetch();
       render(<App />);
-      const button = screen.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ });
+      const button = compactButton(/^Related \(beta\) · Oldest · Any year/);
+      expect(button.getAttribute("aria-haspopup")).toBe("dialog");
+      expect(button.getAttribute("aria-expanded")).toBe("false");
       fireEvent.click(button);
-      return button;
-    }
-
-    it("the button stays after opening, says expanded, and points at the controls", () => {
-      const button = open();
-      expect(screen.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ })).toBe(button);
       expect(button.getAttribute("aria-expanded")).toBe("true");
-      const controls = document.getElementById(button.getAttribute("aria-controls") ?? "");
-      expect(controls?.contains(screen.getByRole("radio", { name: "Related, beta" }))).toBe(true);
+      const dialog = screen.getByRole("dialog", { name: "Search options" });
+      const modes = within(dialog).getByRole("radiogroup", { name: "Search mode" });
+      expect(within(modes).getByRole("radio", { name: "Related, beta" }).getAttribute("aria-checked")).toBe("true");
+      expect(within(dialog).getByRole("radio", { name: "Oldest" }).getAttribute("aria-checked")).toBe("true");
     });
 
-    it("pressing it again closes the controls", () => {
-      const button = open();
-      fireEvent.click(button);
-      expect(button.getAttribute("aria-expanded")).toBe("false");
-    });
-
-    it("Esc inside the controls closes them and focuses the button", () => {
-      const button = open();
-      fireEvent.keyDown(screen.getByRole("radio", { name: "Related, beta" }), { key: "Escape" });
-      expect(button.getAttribute("aria-expanded")).toBe("false");
-      expect(document.activeElement).toBe(button);
-    });
-
-    it("Esc on the button closes them too", () => {
-      const button = open();
-      button.focus();
-      fireEvent.keyDown(button, { key: "Escape" });
-      expect(button.getAttribute("aria-expanded")).toBe("false");
-      expect(document.activeElement).toBe(button);
-    });
-
-    it("with the sort menu open, the first Esc closes the menu only, the second the controls", () => {
-      const button = open();
-      fireEvent.click(screen.getByRole("button", { name: /^Sort:/ }));
-      fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
-      expect(screen.queryByRole("menu")).toBeNull();
-      expect(button.getAttribute("aria-expanded")).toBe("true");
-      fireEvent.keyDown(screen.getByRole("button", { name: /^Sort:/ }), { key: "Escape" });
-      expect(button.getAttribute("aria-expanded")).toBe("false");
-      expect(document.activeElement).toBe(button);
-    });
-
-    it("Esc does nothing when the controls are not reopened", () => {
+    it("mode, sort and years apply in one search and one history entry; focus returns to the button", async () => {
       go("/?q=glue&mode=related");
-      stubFetch();
+      const calls = stubFetch();
       render(<App />);
-      const button = screen.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ });
-      fireEvent.keyDown(screen.getByRole("radio", { name: "Related, beta" }), { key: "Escape" });
-      expect(button.getAttribute("aria-expanded")).toBe("false");
+      calls[0]!.respond(relatedBody([result(1)]));
+      await screen.findByText(/Text of passage 1/);
+      const push = vi.spyOn(window.history, "pushState");
+      try {
+        fireEvent.click(compactButton(/^Related \(beta\) · Best match · Any year/));
+        const dialog = screen.getByRole("dialog", { name: "Search options" });
+        fireEvent.click(within(dialog).getByRole("radio", { name: "Exact" }));
+        fireEvent.click(within(dialog).getByRole("radio", { name: "Newest" }));
+        fireEvent.change(within(dialog).getByRole("combobox", { name: "From" }), { target: { value: "2015" } });
+        fireEvent.change(within(dialog).getByRole("combobox", { name: "To" }), { target: { value: "2020" } });
+        expect(calls).toHaveLength(1);
+        fireEvent.click(within(dialog).getByRole("button", { name: "Show results" }));
+        expect(push).toHaveBeenCalledTimes(1);
+        expect(calls).toHaveLength(2);
+        expect(calls[1]!.url.searchParams.get("mode")).toBe("exact");
+        expect(calls[1]!.url.searchParams.get("sort")).toBe("newest");
+        expect(calls[1]!.url.searchParams.get("q")).toBe("glue year:2015-2020");
+        expect(screen.queryByRole("dialog")).toBeNull();
+        expect(document.activeElement).toBe(compactButton(/^Exact · Newest · 2015–2020/));
+      } finally {
+        push.mockRestore();
+      }
     });
 
-    it("Esc on a select inside the Sort & years sheet closes only the sheet, not the controls", () => {
-      const toggle = open();
-      fireEvent.click(screen.getByRole("button", { name: /^Sort and years:/ }));
-      fireEvent.keyDown(screen.getByRole("combobox", { name: "From" }), { key: "Escape" });
-      expect(screen.queryByRole("dialog", { name: "Sort & years" })).toBeNull();
-      expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    it("only the mode changed: one search in the other mode", async () => {
+      go("/?q=glue");
+      const calls = stubFetch();
+      render(<App />);
+      calls[0]!.respond(exactBody([result(1)]));
+      await screen.findByText(/Text of passage 1/);
+      fireEvent.click(compactButton(/^Exact · Best match · Any year/));
+      const dialog = screen.getByRole("dialog", { name: "Search options" });
+      fireEvent.click(within(dialog).getByRole("radio", { name: "Related, beta" }));
+      fireEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+      expect(calls).toHaveLength(2);
+      expect(calls[1]!.url.searchParams.get("mode")).toBe("related");
+      expect(window.location.search).toContain("mode=related");
+    });
+
+    it("Esc closes it without changes, and focus returns to the button", () => {
+      go("/?q=glue");
+      const calls = stubFetch();
+      render(<App />);
+      const button = compactButton(/^Exact · Best match · Any year/);
+      fireEvent.click(button);
+      const dialog = screen.getByRole("dialog", { name: "Search options" });
+      fireEvent.click(within(dialog).getByRole("radio", { name: "Related, beta" }));
+      fireEvent.keyDown(within(dialog).getByRole("combobox", { name: "From" }), { key: "Escape" });
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(calls).toHaveLength(1);
+      expect(button.getAttribute("aria-expanded")).toBe("false");
+      expect(document.activeElement).toBe(button);
     });
   });
 });
@@ -613,10 +613,10 @@ describe("markup rules", () => {
 describe("the Sort & years sheet (phone)", () => {
   const phoneButton = () => screen.getByRole("button", { name: /^Sort and years:/ });
 
-  it("reads 'Any year' and has the name 'Sort and years: Best match, Any year'", () => {
+  it("reads 'Sort & years' and has the name 'Sort and years: Best match, Any year'", () => {
     stubFetch();
     render(<App />);
-    expect(phoneButton().textContent).toBe("Any year");
+    expect(phoneButton().textContent).toBe("Sort & years");
     expect(screen.getByRole("button", { name: "Sort and years: Best match, Any year" })).toBe(phoneButton());
   });
 

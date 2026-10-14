@@ -1148,10 +1148,12 @@ block wins. The plan is `docs/superpowers/plans/2026-10-13-phone-layout.md`.)*
   2 lines; "Bonus" for an episode without a number), the hit row (time chip
   and ⋯ on one line, the excerpt at full width), the BETA tag, and the four
   `--rel*` tokens (light and dark), added to `web/src/styles/tokens.css`.
-  The `--rel*` values are Design's **"Ebonized"** set (frames 6e–6f, a
-  blue-black cast), not its recommended "weathered oak": on the iPhone
-  (2026-10-14) oak was barely distinguishable from Exact's cards, in light
-  and in dark.
+  The `--rel*` values are a **slate blue** (light `--rel` #2F4560, fill
+  #E3EAF2, border #B9C7D8, chip #D1DCE8; dark #A9BDD6, #121925, #2A3749,
+  #1B2637), not Design's recommended "weathered oak": on the iPhone
+  (2026-10-14) oak was barely distinguishable from Exact's cards, and
+  Design's "Ebonized" read as too grey. The maintainer picked slate blue
+  from four candidates.
 - **Related reads as Related at a glance:** in Related every card uses the
   `--rel*` fill and border, no shadow, `--rel-tint` time chips; the excerpt
   stays `--text`. Exact's cards are unchanged. At every width.
@@ -1168,9 +1170,11 @@ block wins. The plan is `docs/superpowers/plans/2026-10-13-phone-layout.md`.)*
   summary line, it sits at the right of the start page's TRY label. It
   opens the same syntax popover.
 - **Phone (below 600 px): one button for sort and years.** It shows the
-  sliders icon and the year label, a dot when the sort is not Best match,
-  and the accent style when a year is set; it opens the **Sort & years**
-  sheet. In the sheet the choices are staged: **Show results** and **Done**
+  sliders icon and **"Sort & years"** (maintainer, 2026-10-14: "Any year"
+  hid that it also sorts; the years show in the box as `year:`), with the
+  accent style and a dot when the sort is not Best match or a year is set;
+  its name says both ("Sort and years: Newest, 2015–2020"). It opens the
+  **Sort & years** sheet. In the sheet the choices are staged: **Show results** and **Done**
   apply both at once (one search, one history entry); Esc and a tap on the
   scrim close it without changes. "Any year" clears the staged years. The
   sheet traps focus and returns it to the button. Desktop keeps the sort
@@ -1191,10 +1195,14 @@ block wins. The plan is `docs/superpowers/plans/2026-10-13-phone-layout.md`.)*
     spelling." with a year filter). **Fewer than 5:** "**Only 3 exact
     matches.** Related passages match the meaning, not just the words."
     then the `--rel*` button.
-  - **The compact header keeps its behaviour:** its button opens the
-    controls in place (the design has it scroll back to the top); only its
-    label changes ("Exact · Best match · Any year ▾", "Related BETA ·
-    Newest · 2015–2020 ▾", a set year in `--accent`).
+  - **The compact header's button opens the sheet** (maintainer,
+    2026-10-14; the design has it scroll back to the top, and before this
+    it reopened the controls in place). Opened from there the sheet is
+    titled **"Search options"** and starts with the mode (Exact | Related
+    BETA, a radio group named "Search mode"), staged and applied with sort
+    and years in one search; focus starts on the checked mode and returns
+    to the compact button. Its label: "Exact · Best match · Any year ▾",
+    "Related BETA · Newest · 2015–2020 ▾", a set year in `--accent`.
   - **Touch targets stay 44 px:** the time chip and "+N nearby" are drawn
     36 px tall as designed, with a 44 px hit area.
   - The examples are "hide glue", "split-top Roubo", "sharpening a card

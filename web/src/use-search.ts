@@ -14,14 +14,21 @@ export type View =
   | { kind: "ok"; data: SearchData; id: number }
   | Failure;
 
+/** A sort or mode that changes with the same search (the Sort & years sheet). */
+export interface SearchChange {
+  sort?: SortOrder;
+  mode?: Mode;
+}
+
 export interface SearchApi {
   state: SearchState;
   view: View;
   /**
    * Search for this text: page 1, a new history entry; empty text goes back to the bare path. With
-   * `sort`, the same commit carries it (the Sort & years sheet: one entry, one request).
+   * `change`, the same commit carries a new sort or mode (the Sort & years sheet: one entry, one
+   * request).
    */
-  submit(q: string, sort?: SortOrder): void;
+  submit(q: string, change?: SearchChange): void;
   setMode(mode: Mode): void;
   setSort(sort: SortOrder): void;
   goPage(page: number): void;
@@ -99,7 +106,18 @@ export function useSearch(): SearchApi {
   return {
     state,
     view,
-    submit: (q, sort) => commit({ ...stateRef.current, ...(sort ? { sort } : {}), q: normalizeQuery(q), page: 1 }, "push", true),
+    submit: (q, change = {}) =>
+      commit(
+        {
+          ...stateRef.current,
+          ...(change.sort ? { sort: change.sort } : {}),
+          ...(change.mode ? { mode: change.mode } : {}),
+          q: normalizeQuery(q),
+          page: 1,
+        },
+        "push",
+        true,
+      ),
     // With nothing searched yet there is nothing to re-run: remember the choice for the next search.
     setMode: (mode) => {
       const next = { ...stateRef.current, mode, page: 1 };

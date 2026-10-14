@@ -42,12 +42,12 @@ import { nextCompact } from "./lib/compact";
 import { setEpisode } from "./lib/episode";
 import { count } from "./lib/format";
 import { handleKeydown } from "./lib/keys";
-import { normalizeQuery, type SortOrder } from "./lib/url";
+import { type Mode, normalizeQuery, type SortOrder } from "./lib/url";
 import { clearRange, effectiveRange, rangeLabel, setRange, type YearRange as Range } from "./lib/years";
 import { useCountdown } from "./use-countdown";
 import { FormSiteContext, type FormSite } from "./use-forms";
 import { useInfo } from "./use-info";
-import { useSearch } from "./use-search";
+import { type SearchChange, useSearch } from "./use-search";
 import { ReportMaintenance } from "./use-transcript";
 
 function useCompact(): boolean {
@@ -85,9 +85,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
   // Rate limited: Search is off until the countdown ends, and nothing retries by itself.
   const waiting = useCountdown(view.kind === "rate_limited" ? view.retryAfterS : null, view);
   const [text, setText] = useState(state.q);
-  const [controlsOpen, setControlsOpen] = useState(false);
   const scrolled = useCompact();
-  const compact = scrolled && !controlsOpen;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -97,22 +95,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
   // The box shows the search the URL holds (after Back and Forward too).
   useEffect(() => setText(state.q), [state.q]);
 
-  useEffect(() => {
-    if (!scrolled) setControlsOpen(false);
-  }, [scrolled]);
-
   const summaryRef = useRef<HTMLButtonElement>(null);
-
-  // Esc in the reopened controls (or on their button) closes them and returns to the button. The
-  // sort menu stops its own Esc, so with it open the first Esc closes only the menu.
-  function onHeaderKeyDown(event: KeyboardEvent) {
-    if (event.key !== "Escape" || !controlsOpen || event.defaultPrevented) return;
-    const target = event.target as Element;
-    if (!target.closest("#search-controls") && target !== summaryRef.current) return;
-    event.preventDefault();
-    setControlsOpen(false);
-    summaryRef.current?.focus();
-  }
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -144,13 +127,13 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
     ask: () => setFormOpened(true),
   };
 
-  // The box shows what is searched: no emoji, no stray spaces. With `sort`, the same search
-  // changes it (the Sort & years sheet).
-  function searchFor(raw: string, sort?: SortOrder) {
+  // The box shows what is searched: no emoji, no stray spaces. With `change`, the same search
+  // changes the sort or the mode (the Sort & years sheet).
+  function searchFor(raw: string, change?: SearchChange) {
     if (waiting > 0) return;
     const q = normalizeQuery(raw);
     setText(q);
-    submit(q, sort);
+    submit(q, change);
   }
 
   // "Tips ?": an example goes in the box, which takes the focus; nothing is searched.
@@ -177,21 +160,29 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
   const thisYear = new Date().getFullYear();
   const range = effectiveRange(state.q, thisYear);
 
-  // The phone's Sort & years sheet. It applies sort and years in one search, and only when
-  // something changed; closing returns focus to its button.
-  const [sheetOpen, setSheetOpen] = useState(false);
+  // The phone's Sort & years sheet, from its button ("button") or from the compact header
+  // ("compact", which adds the mode). It applies everything in one search, and only when something
+  // changed; closing returns focus to the button that opened it.
+  const [sheetFrom, setSheetFrom] = useState<"button" | "compact" | null>(null);
   const sheetButtonRef = useRef<HTMLButtonElement>(null);
   function closeSheet() {
-    setSheetOpen(false);
-    sheetButtonRef.current?.focus();
+    const opener = sheetFrom === "compact" ? summaryRef : sheetButtonRef;
+    setSheetFrom(null);
+    opener.current?.focus();
   }
-  function applySheet(sort: SortOrder, next: Range | null) {
+  function applySheet(sort: SortOrder, next: Range | null, mode: Mode = state.mode) {
     const same = next === null ? range === null : range !== null && range.from === next.from && range.to === next.to;
-    if (sort === state.sort && same) return;
+    if (sort === state.sort && mode === state.mode && same) return;
     const q = next ? setRange(text, next.from, next.to) : clearRange(text);
-    // With nothing to search, a new sort is only remembered for the next search.
-    if (q === "" && state.q === "") setSort(sort);
-    else searchFor(q, sort !== state.sort ? sort : undefined);
+    const change: SearchChange = {
+      ...(sort !== state.sort ? { sort } : {}),
+      ...(mode !== state.mode ? { mode } : {}),
+    };
+    // With nothing to search, a new sort or mode is only remembered for the next search.
+    if (q === "" && state.q === "") {
+      if (change.sort) setSort(change.sort);
+      if (change.mode) setMode(change.mode);
+    } else searchFor(q, change);
   }
 
   // An older cached answer may lack `episodes`.
@@ -220,8 +211,7 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
     <div class="page">
       {maintenance !== null && <Banner message={maintenance} />}
       <header
-        class={`site-header${scrolled ? " site-header--scrolled" : ""}${compact ? " site-header--compact" : ""}`}
-        onKeyDown={onHeaderKeyDown}
+        class={`site-header${scrolled ? " site-header--scrolled site-header--compact" : ""}`}
       >
         <div class="column site-header__inner">
           <div class="site-header__brand-row">
@@ -256,21 +246,21 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
               <SortYearsButton
                 sort={state.sort}
                 range={range}
-                open={sheetOpen}
-                onOpen={() => setSheetOpen(true)}
+                open={sheetFrom === "button"}
+                onOpen={() => setSheetFrom("button")}
                 buttonRef={sheetButtonRef}
               />
             </div>
           </div>
         </div>
-        {/* A toggle for the controls, on a scrolled phone page, in both states. It hangs below the header and adds no height. */}
+        {/* On a scrolled phone page: what is set, and a tap opens the sheet with the mode in it. It hangs below the header and adds no height. */}
         <button
           type="button"
           class="compact-summary"
           ref={summaryRef}
-          aria-expanded={controlsOpen ? "true" : "false"}
-          aria-controls="search-controls"
-          onClick={() => setControlsOpen(!controlsOpen)}
+          aria-haspopup="dialog"
+          aria-expanded={sheetFrom === "compact" ? "true" : "false"}
+          onClick={() => setSheetFrom("compact")}
         >
           {state.mode === "exact" ? (
             "Exact"
@@ -386,7 +376,16 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
         )}
       </main>
       <Footer feedback />
-      {sheetOpen && <SortYearsSheet sort={state.sort} range={range} thisYear={thisYear} onApply={applySheet} onClose={closeSheet} />}
+      {sheetFrom !== null && (
+        <SortYearsSheet
+          sort={state.sort}
+          range={range}
+          mode={sheetFrom === "compact" ? state.mode : undefined}
+          thisYear={thisYear}
+          onApply={applySheet}
+          onClose={closeSheet}
+        />
+      )}
     </div>
     </FormSiteContext.Provider>
   );

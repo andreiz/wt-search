@@ -1,6 +1,7 @@
 // The phone's one button for sort and years (ROUND-2-phone.md §1 "Sort & years button"; spec §5.2):
-// a sliders icon and the year label, a dot when the sort is not Best match, the accent style when
-// a year is set. It opens the Sort & years sheet; desktop keeps the sort menu and the year chip.
+// a sliders icon and "Sort & years"; the accent style and a dot when the sort is not Best match or
+// a year is set (the years themselves show in the box as `year:`). Its name says both. It opens
+// the Sort & years sheet; desktop keeps the sort menu and the year chip.
 import type { RefObject } from "preact";
 import type { SortOrder } from "../lib/url";
 import { rangeLabel, type YearRange } from "../lib/years";
@@ -15,10 +16,11 @@ export interface SortYearsButtonProps {
 }
 
 export function SortYearsButton({ sort, range, open, onOpen, buttonRef }: SortYearsButtonProps) {
+  const set = range !== null || sort !== "relevance";
   return (
     <button
       type="button"
-      class={`sort-years-button${range ? " sort-years-button--set" : ""}`}
+      class={`sort-years-button${set ? " sort-years-button--set" : ""}`}
       ref={buttonRef}
       aria-haspopup="dialog"
       aria-expanded={open ? "true" : "false"}
@@ -33,8 +35,8 @@ export function SortYearsButton({ sort, range, open, onOpen, buttonRef }: SortYe
           <circle cx="6.5" cy="12" r="1.6" />
         </g>
       </svg>
-      {rangeLabel(range)}
-      {sort !== "relevance" && <span class="sort-years-button__dot" aria-hidden="true" />}
+      Sort &amp; years
+      {set && <span class="sort-years-button__dot" aria-hidden="true" />}
     </button>
   );
 }

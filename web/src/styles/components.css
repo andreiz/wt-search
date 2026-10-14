@@ -843,7 +843,7 @@
   border-radius: 14px;
 }
 
-/* Related answers (Round 2): the ebonized --rel* colours. The excerpt keeps --text. */
+/* Related answers (Round 2): the slate-blue --rel* colours. The excerpt keeps --text. */
 .result-list--related .result__card {
   background: var(--rel-bg);
   border-color: var(--rel-border);

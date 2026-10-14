@@ -295,14 +295,14 @@ test.describe("the Related cards in their colours", () => {
     const list = page.getByRole("list", { name: "Results" });
     const card = list.getByRole("listitem").first().locator(".result__card");
     await expect(card).toBeVisible();
-    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(233, 234, 237)");
+    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(227, 234, 242)");
     await page.getByRole("radio", { name: "Exact" }).click();
     // While the Exact answer is held: no Related list, the skeleton is not inside one.
     await expect(page.locator(".skeleton")).toBeVisible();
     await expect(page.locator(".result-list--related")).toHaveCount(0);
     await expect(page.locator(".skeleton").locator("xpath=ancestor::*[contains(@class,'result-list--related')]")).toHaveCount(0);
     await expect(list.getByRole("listitem").first()).toBeVisible();
-    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe("rgb(233, 234, 237)");
+    expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe("rgb(227, 234, 242)");
     await expect(page.locator(".result-list--related")).toHaveCount(0);
   });
 });

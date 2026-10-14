@@ -117,10 +117,10 @@ describe("<SortYearsSheet/>", () => {
 describe("<SortYearsButton/>", () => {
   const props = { open: false, onOpen: () => {}, buttonRef: { current: null } };
 
-  it("reads 'Any year', with the name 'Sort and years: Best match, Any year', no dot", () => {
+  it("reads 'Sort & years', with the name 'Sort and years: Best match, Any year', no dot", () => {
     render(<SortYearsButton sort="relevance" range={null} {...props} />);
     const button = screen.getByRole("button", { name: "Sort and years: Best match, Any year" });
-    expect(button.textContent).toBe("Any year");
+    expect(button.textContent).toBe("Sort & years");
     expect(button.getAttribute("aria-haspopup")).toBe("dialog");
     expect(button.getAttribute("aria-expanded")).toBe("false");
     expect(button.classList.contains("sort-years-button--set")).toBe(false);
@@ -132,5 +132,38 @@ describe("<SortYearsButton/>", () => {
     const button = screen.getByRole("button", { name: "Sort and years: Newest, 2015–2020" });
     expect(button.classList.contains("sort-years-button--set")).toBe(true);
     expect(button.querySelector(".sort-years-button__dot")?.getAttribute("aria-hidden")).toBe("true");
+    expect(button.textContent).toBe("Sort & years");
+  });
+
+  it.each([
+    ["only the sort", "newest", null],
+    ["only the years", "relevance", { from: 2015, to: 2020 }],
+  ] as const)("%s set: accent style and the dot", (_, sort, range) => {
+    render(<SortYearsButton sort={sort} range={range} {...props} />);
+    const button = screen.getByRole("button", { name: /^Sort and years:/ });
+    expect(button.classList.contains("sort-years-button--set")).toBe(true);
+    expect(button.querySelector(".sort-years-button__dot")).toBeTruthy();
+  });
+});
+
+describe("<SortYearsSheet/> with the mode (from the compact header)", () => {
+  it("is 'Search options', the mode first; applying reports the mode too", () => {
+    const { onApply } = sheet({ mode: "exact" });
+    expect(screen.getByRole("dialog", { name: "Search options" })).toBeTruthy();
+    const modes = screen.getByRole("radiogroup", { name: "Search mode" });
+    const radios = [...modes.querySelectorAll("[role='radio']")];
+    expect(radios.map((r) => r.getAttribute("aria-label"))).toEqual(["Exact", "Related, beta"]);
+    expect(document.activeElement).toBe(screen.getByRole("radio", { name: "Exact" }));
+    fireEvent.keyDown(screen.getByRole("radio", { name: "Exact" }), { key: "ArrowRight" });
+    expect(screen.getByRole("radio", { name: "Related, beta" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Show results" }));
+    expect(onApply).toHaveBeenCalledWith("relevance", null, "related");
+  });
+
+  it("without the mode it stays 'Sort & years' and reports only sort and years", () => {
+    const { onApply } = sheet();
+    expect(screen.queryByRole("radiogroup", { name: "Search mode" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(onApply.mock.calls[0]).toEqual(["relevance", null]);
   });
 });

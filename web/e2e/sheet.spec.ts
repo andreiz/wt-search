@@ -60,7 +60,7 @@ test.describe("phone", () => {
 
     // The switch and the button share a line.
     const button = page.getByRole("button", { name: "Sort and years: Best match, 2015–2020" });
-    await expect(button).toHaveText("2015–2020");
+    await expect(button).toHaveText("Sort & years");
     const modeBox = await page.getByRole("radiogroup", { name: "Search mode" }).boundingBox();
     const buttonBox = await button.boundingBox();
     expect(Math.abs(modeBox!.y - buttonBox!.y)).toBeLessThanOrEqual(1);

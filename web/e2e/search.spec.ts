@@ -100,34 +100,28 @@ test.describe("phone header compaction", () => {
     await expect(page.getByRole("textbox", { name: "Search the transcripts" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ })).toBeVisible();
 
-    // The button is a toggle: open the controls, with nothing else moving.
-    const toggle = page.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ });
-    const steady = async (expectCompact: boolean) => {
+    // The button opens "Search options" (mode, sort, years) with nothing behind it moving.
+    const opener = page.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ });
+    const steady = async () => {
       for (let i = 0; i < 3; i++) {
-        expect(await compact(page)).toBe(expectCompact);
+        expect(await compact(page)).toBe(true);
         expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(130);
         expect(await height()).toBe(before);
         await page.waitForTimeout(100);
       }
     };
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeVisible();
-    await expect(toggle).toBeVisible();
-    await steady(false);
-    // Esc closes them and puts focus on the button.
-    await page.getByRole("radio", { name: "Related, beta" }).focus();
+    await opener.click();
+    const dialog = page.getByRole("dialog", { name: "Search options" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("radio", { name: "Related, beta" })).toBeFocused();
+    await expect(opener).toHaveAttribute("aria-expanded", "true");
+    await steady();
+    // Esc closes it and puts focus back on the button.
     await page.keyboard.press("Escape");
-    await expect(toggle).toBeFocused();
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await steady(true);
-    // A second press of the button closes them again.
-    await toggle.click();
-    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeVisible();
-    await toggle.click();
-    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeHidden();
-    await expect(toggle).toBeVisible();
-    await steady(true);
+    await expect(dialog).toBeHidden();
+    await expect(opener).toBeFocused();
+    await expect(opener).toHaveAttribute("aria-expanded", "false");
+    await steady();
 
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect.poll(() => compact(page)).toBe(false);

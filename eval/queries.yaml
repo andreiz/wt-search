@@ -1,0 +1,64 @@
+# The test search set, written by hand (spec §7.2). `wts eval run` scores staging against it;
+# the five `smoke: true` cases also run after every `wts run` that publishes (§8.1).
+# Times: "m:ss" or "h:mm:ss" (quote them) or seconds. A result matches within ±45 s.
+
+# --- smoke: one distinctive word each, checked on staging 2026-10-13 ---
+- id: conoid
+  query: Conoid
+  tag: jargon
+  mode: exact
+  expect: [{episode: 71, at: "41:01"}]
+  smoke: true
+- id: underbevel
+  query: underbevel
+  tag: jargon
+  mode: exact
+  expect: [{episode: 602, at: "10:21"}]
+  smoke: true
+- id: buttress-flare
+  query: buttress flare
+  tag: exact
+  mode: exact
+  expect: [{episode: 604, at: "14:27"}]
+  smoke: true
+- id: moxon
+  query: Moxon
+  tag: jargon
+  mode: exact
+  expect: [{episode: 603, at: "51:46"}]
+  smoke: true
+- id: snodgrass
+  query: Snodgrass
+  tag: jargon
+  mode: exact
+  expect: [{episode: 609}]
+  smoke: true
+
+# --- judgements from testing (docs/HANDOFF.md) ---
+- id: aspirational-builds
+  # Shannon's bucket list, 40:30-46:00; the Nakashima Conoid chair at 40:54.
+  query: aspirational builds
+  tag: paraphrase
+  expect: [{episode: 71, at: "40:54"}]
+- id: projects-i-dream-of-building
+  query: projects I dream of building someday
+  tag: paraphrase
+  expect: [{episode: 71, at: "45:38"}]
+- id: flattening-a-bench-top
+  # #127 at 44:28 planes a cupped board ON the bench: not about flattening the top.
+  query: flattening a bench top
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 127, at: "44:28"}]
+- id: how-do-i-flatten-a-workbench-top
+  # #171's listener answer on strengthening miters came back as a related hit.
+  query: how do I flatten a workbench top
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 171}]
+- id: hvlp-sprayer-2020
+  # No 2020 episode talks about HVLP: the honest answer is nothing.
+  query: hvlp sprayer year:2020
+  tag: filter
+  mode: related
+  expect_absent: [{episode: 466}]

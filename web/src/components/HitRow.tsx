@@ -52,18 +52,17 @@ interface Pending {
 
 /**
  * The bottom edge of what the site header covers now. On a phone, once compact, the header's
- * box stays as tall as before but only the search row and the summary button under it show (see
- * components.css), so the lower of those two is the edge.
+ * box stays as tall as before but only the search row and the controls, lifted, show (see
+ * components.css), so the controls' bottom is the edge.
  */
 function headerBottom(): number {
   const header = document.querySelector(".site-header");
   if (!header) return 0;
   const compactPhone =
     header.classList.contains("site-header--compact") && !!window.matchMedia?.("(max-width: 599.98px)").matches;
-  const search = compactPhone ? header.querySelector(".search-sticky") : null;
-  if (!search) return header.getBoundingClientRect().bottom;
-  const summary = header.querySelector(".compact-summary");
-  return Math.max(search.getBoundingClientRect().bottom, summary ? summary.getBoundingClientRect().bottom : 0);
+  const controls = compactPhone ? header.querySelector(".controls") : null;
+  if (!controls) return header.getBoundingClientRect().bottom;
+  return controls.getBoundingClientRect().bottom;
 }
 
 /**

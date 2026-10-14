@@ -411,17 +411,14 @@ for (const { name, width, height } of WIDTHS) {
       expect(Math.abs((await hit.boundingBox())!.y - (before - 60))).toBeLessThanOrEqual(2);
     });
 
-    /** The bottom edge of what the site header covers now (a phone's compact header shows only its search row). */
+    /** The bottom edge of what the site header covers now (a phone's compact header shows its search row and controls). */
     const headerEdge = (page: Page) =>
       page.evaluate(() => {
         const header = document.querySelector(".site-header")!;
         const compactPhone = header.classList.contains("site-header--compact") && matchMedia("(max-width: 599.98px)").matches;
         if (!compactPhone) return header.getBoundingClientRect().bottom;
-        // Compact: the search row and the summary button hung under it.
-        return Math.max(
-          header.querySelector(".search-sticky")!.getBoundingClientRect().bottom,
-          header.querySelector(".compact-summary")!.getBoundingClientRect().bottom,
-        );
+        // Compact: the controls, lifted under the search row.
+        return header.querySelector(".controls")!.getBoundingClientRect().bottom;
       });
 
     test("an excerpt tapped at the bottom of the screen: the matched text comes up, with what follows it in view", async ({ page }) => {

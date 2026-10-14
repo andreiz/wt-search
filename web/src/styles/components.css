@@ -183,6 +183,7 @@
   padding: 2px 4px 1px;
   border: 1px solid var(--rel-border);
   border-radius: 4px;
+  background: var(--rel-tint);
   color: var(--rel);
   font-size: 10px;
   font-weight: 750;
@@ -537,35 +538,6 @@
 
 .syntax-help__example:hover {
   background: var(--skel);
-}
-
-/* The phone summary button; it only shows on phones, once the page has scrolled. It floats
-   under the header (absolute, relative to the sticky header), so it adds nothing to its height. */
-.compact-summary {
-  display: none;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  align-items: center;
-  gap: 6px;
-  height: 40px;
-  padding: 0 20px;
-  border: 0;
-  background: var(--bg);
-  color: var(--muted);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.compact-summary__rel {
-  color: var(--rel);
-}
-
-.compact-summary__year--set {
-  color: var(--accent);
 }
 
 /* ---- Phone: the Sort & years button and sheet (ROUND-2-phone.md §1) ---- */
@@ -2059,13 +2031,13 @@ a.passage__time:hover {
 
 /* ---- Phones (below 600 px) ---- */
 @media (max-width: 599.98px) {
-  /* The compact header (nearly always the case when the page is scrolled): the search row
-     (bottom edge 64 px, measured) and the summary button hung under it (104 px, 40 px tall); the strip pins
-     below them. At the very top of the page the tall header (221 px, opaque) is in front of a
-     strip that would pin this high: it then shows from the header's edge as soon as the page has
-     scrolled that far (about 120 px, where the header compacts). */
+  /* The compact header (nearly always the case when the page is scrolled): the search row and
+     the controls lifted under it (bottom edge 124 px, measured); the strip pins below them. At
+     the very top of the page the tall header (opaque) is in front of a strip that would pin this
+     high: it then shows from the header's edge as soon as the page has scrolled that far (about
+     120 px, where the header compacts). */
   :root {
-    --header-h: 106px;
+    --header-h: 124px;
     --scroll-air: 12px;
   }
 
@@ -2241,10 +2213,10 @@ a.passage__time:hover {
     min-height: 44px;
   }
 
-  /* Compact (scrolled): the header keeps the input and a summary button that reopens the
-     controls. The header's box does not change, so compacting can never move the scroll
-     position (no flicker loop): the brand row and controls stay in the layout, hidden, and the
-     search row is lifted into the top of the box by a transform. The now-empty rest of the box
+  /* Compact (scrolled): the header drops its brand row and keeps the input and the controls.
+     The header's box does not change, so compacting can never move the scroll position (no
+     flicker loop): the brand row stays in the layout, hidden, and the search row and the
+     controls are lifted into the top of the box by one transform. The now-empty rest of the box
      is transparent and lets clicks through to the results underneath. */
   .site-header {
     --pad-top: 14px;
@@ -2271,27 +2243,26 @@ a.passage__time:hover {
     overflow-anchor: none;
   }
 
-  .site-header--compact .site-header__brand-row,
-  .site-header--compact .controls {
+  .site-header--compact .site-header__brand-row {
     visibility: hidden;
   }
 
-  .site-header--compact .search-sticky {
+  .site-header--compact .search-sticky,
+  .site-header--compact .controls {
     pointer-events: auto;
     background: var(--bg);
     transform: translateY(calc(-1 * (var(--pad-top) + var(--brand-h) + var(--gap) - var(--lift-pad))));
   }
 
-  /* The toggle shows whenever the page is scrolled. Controls open: it hangs under the header's
-     bottom edge. Compact: under the lifted search row (its backdrop is the input plus the
-     padding above and below it). */
-  .site-header--scrolled .compact-summary {
-    display: inline-flex;
-    box-shadow: 0 4px 16px rgba(30, 15, 5, 0.1);
-  }
-
-  .site-header--compact .compact-summary {
-    top: calc(var(--lift-pad) + var(--field-h) + 6px);
-    pointer-events: auto;
+  /* The controls' backdrop, without taking room: it meets the search row's (6 px below the
+     input) across the gap, reaches the column edges' 16 px, and ends 10 px below the row with
+     the header's line (a shadow: a border would make the box 1 px taller) and shadow. */
+  .site-header--compact .controls {
+    margin: calc(var(--gap) / -2) -16px -10px;
+    padding: calc(var(--gap) / 2) 16px 10px;
+    /* The soft shadow's negative spread keeps it off the search row above. */
+    box-shadow:
+      0 1px 0 var(--border),
+      0 10px 14px -8px rgba(30, 15, 5, 0.18);
   }
 }

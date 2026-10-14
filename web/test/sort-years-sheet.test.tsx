@@ -145,25 +145,3 @@ describe("<SortYearsButton/>", () => {
     expect(button.querySelector(".sort-years-button__dot")).toBeTruthy();
   });
 });
-
-describe("<SortYearsSheet/> with the mode (from the compact header)", () => {
-  it("is 'Search options', the mode first; applying reports the mode too", () => {
-    const { onApply } = sheet({ mode: "exact" });
-    expect(screen.getByRole("dialog", { name: "Search options" })).toBeTruthy();
-    const modes = screen.getByRole("radiogroup", { name: "Search mode" });
-    const radios = [...modes.querySelectorAll("[role='radio']")];
-    expect(radios.map((r) => r.getAttribute("aria-label"))).toEqual(["Exact", "Related, beta"]);
-    expect(document.activeElement).toBe(screen.getByRole("radio", { name: "Exact" }));
-    fireEvent.keyDown(screen.getByRole("radio", { name: "Exact" }), { key: "ArrowRight" });
-    expect(screen.getByRole("radio", { name: "Related, beta" }).getAttribute("aria-checked")).toBe("true");
-    fireEvent.click(screen.getByRole("button", { name: "Show results" }));
-    expect(onApply).toHaveBeenCalledWith("relevance", null, "related");
-  });
-
-  it("without the mode it stays 'Sort & years' and reports only sort and years", () => {
-    const { onApply } = sheet();
-    expect(screen.queryByRole("radiogroup", { name: "Search mode" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
-    expect(onApply.mock.calls[0]).toEqual(["relevance", null]);
-  });
-});

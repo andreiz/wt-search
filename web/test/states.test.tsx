@@ -343,30 +343,6 @@ describe("Related, degraded", () => {
   });
 });
 
-describe("the compact header's summary button", () => {
-  it("Related, Newest, 2015–2020: named in words, with the BETA tag and the set year marked", async () => {
-    go("/?q=glue+year%3A2015-2020&mode=related&sort=newest");
-    const calls = stubFetch();
-    render(<App />);
-    calls[0]!.respond(relatedBody([result(1)]));
-    await screen.findByRole("list", { name: "Results" });
-    const button = screen.getByRole("button", { name: "Related (beta) · Newest · 2015–2020" });
-    expect(button.querySelector(".compact-summary__rel .beta-tag")).toBeTruthy();
-    expect(button.querySelector(".compact-summary__year--set")?.textContent).toBe("2015–2020");
-  });
-
-  it("Exact with no years: plain, no tag, the year not marked", async () => {
-    go("/?q=glue");
-    const calls = stubFetch();
-    render(<App />);
-    calls[0]!.respond(exactBody([result(1), result(2), result(3), result(4), result(5)]));
-    await screen.findByRole("list", { name: "Results" });
-    const button = screen.getByRole("button", { name: "Exact · Best match · Any year" });
-    expect(button.querySelector(".beta-tag")).toBeNull();
-    expect(button.querySelector(".compact-summary__year--set")).toBeNull();
-  });
-});
-
 describe("the maintenance banner", () => {
   it("shows the API's message in an alert when the search answers maintenance", async () => {
     go("/?q=glue");

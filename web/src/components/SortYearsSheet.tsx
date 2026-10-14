@@ -3,53 +3,26 @@
 // history entry); Esc and a tap on the scrim close without changes. The sheet is rendered only
 // while open, so each opening starts from the props. Focus starts on the checked sort, stays
 // inside (Tab wraps), and the caller returns it to the button on close.
-// Opened from the compact header it is "Search options" and has the mode first (Exact | Related
-// BETA), staged and applied with the rest; focus then starts on the checked mode.
-import type { ComponentChildren } from "preact";
 import { useId, useLayoutEffect, useRef, useState } from "preact/hooks";
-import type { Mode, SortOrder } from "../lib/url";
+import type { SortOrder } from "../lib/url";
 import { START_YEAR, type YearRange } from "../lib/years";
-import { BetaTag } from "./BetaTag";
 import { sortLabel } from "./SortMenu";
 import { YearSelect } from "./YearRange";
 
 const SORTS: SortOrder[] = ["relevance", "newest", "oldest"];
-const MODES: { mode: Mode; label: ComponentChildren; name: string }[] = [
-  { mode: "exact", label: "Exact", name: "Exact" },
-  {
-    mode: "related",
-    label: (
-      <>
-        Related <BetaTag />
-      </>
-    ),
-    name: "Related, beta",
-  },
-];
 const FOCUSABLE = "button:not([tabindex='-1']), select";
 
 export interface SortYearsSheetProps {
   sort: SortOrder;
   range: YearRange | null;
-  /** Given (from the compact header): the sheet offers the mode too and reports it. */
-  mode?: Mode;
   /** The last year of the pickers. */
   thisYear: number;
-  onApply: (sort: SortOrder, range: YearRange | null, mode?: Mode) => void;
+  onApply: (sort: SortOrder, range: YearRange | null) => void;
   onClose: () => void;
 }
 
-/** Arrow keys move a radio group's choice: -1, +1, or 0 for any other key. */
-function arrowStep(event: KeyboardEvent): number {
-  if (event.key === "ArrowRight" || event.key === "ArrowDown") return 1;
-  if (event.key === "ArrowLeft" || event.key === "ArrowUp") return -1;
-  return 0;
-}
-
-export function SortYearsSheet({ sort, range, mode, thisYear, onApply, onClose }: SortYearsSheetProps) {
+export function SortYearsSheet({ sort, range, thisYear, onApply, onClose }: SortYearsSheetProps) {
   const clamp = (year: number) => Math.min(Math.max(year, START_YEAR), thisYear);
-  const [stagedMode, setStagedMode] = useState(mode);
-  const modeGroup = useRef<HTMLDivElement>(null);
   const [staged, setStaged] = useState(sort);
   const [any, setAny] = useState(range === null);
   const [from, setFrom] = useState(clamp(range?.from ?? START_YEAR));
@@ -63,25 +36,12 @@ export function SortYearsSheet({ sort, range, mode, thisYear, onApply, onClose }
 
   // A layout effect, so a quick Esc cannot land before the focus is inside.
   useLayoutEffect(() => {
-    (modeGroup.current ?? group.current)?.querySelector<HTMLElement>("[aria-checked='true']")?.focus();
+    group.current?.querySelector<HTMLElement>("[aria-checked='true']")?.focus();
   }, []);
 
   function apply() {
-    const years = any ? null : { from, to };
-    if (stagedMode === undefined) onApply(staged, years);
-    else onApply(staged, years, stagedMode);
+    onApply(staged, any ? null : { from, to });
     onClose();
-  }
-
-  function onModeKeyDown(event: KeyboardEvent, index: number) {
-    const step = arrowStep(event);
-    if (step === 0) return;
-    event.preventDefault();
-    const at = (index + step + MODES.length) % MODES.length;
-    const next = MODES[at];
-    if (!next) return;
-    setStagedMode(next.mode);
-    modeGroup.current?.querySelectorAll<HTMLElement>("[role='radio']")[at]?.focus();
   }
 
   function onKeyDown(event: KeyboardEvent) {
@@ -107,7 +67,7 @@ export function SortYearsSheet({ sort, range, mode, thisYear, onApply, onClose }
   }
 
   function onSortKeyDown(event: KeyboardEvent, index: number) {
-    const step = arrowStep(event);
+    const step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 0;
     if (step === 0) return;
     event.preventDefault();
     const at = (index + step + SORTS.length) % SORTS.length;
@@ -125,38 +85,12 @@ export function SortYearsSheet({ sort, range, mode, thisYear, onApply, onClose }
         <div class="sheet__grabber" aria-hidden="true" />
         <div class="sheet__title-row">
           <h2 class="sheet__title" id={titleId}>
-            {mode === undefined ? "Sort & years" : "Search options"}
+            Sort &amp; years
           </h2>
           <button type="button" class="sheet__done" onClick={apply}>
             Done
           </button>
         </div>
-        {mode !== undefined && (
-          <div class="sheet__section">
-            <span class="sheet__label">Search</span>
-            {/* The sort's radio style; the same names as the header's switch. */}
-            <div class="sheet__sort" role="radiogroup" aria-label="Search mode" ref={modeGroup}>
-              {MODES.map((option, index) => {
-                const selected = option.mode === stagedMode;
-                return (
-                  <button
-                    key={option.mode}
-                    type="button"
-                    role="radio"
-                    class="sheet__sort-option"
-                    aria-label={option.name}
-                    aria-checked={selected ? "true" : "false"}
-                    tabIndex={selected ? 0 : -1}
-                    onClick={() => setStagedMode(option.mode)}
-                    onKeyDown={(event) => onModeKeyDown(event, index)}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
         <div class="sheet__section">
           <span class="sheet__label">Sort</span>
           <div class="sheet__sort" role="radiogroup" aria-label="Sort" ref={group}>

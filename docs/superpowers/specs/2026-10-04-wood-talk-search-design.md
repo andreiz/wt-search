@@ -1158,9 +1158,10 @@ block wins. The plan is `docs/superpowers/plans/2026-10-13-phone-layout.md`.)*
   `--rel*` fill and border, no shadow, `--rel-tint` time chips; the excerpt
   stays `--text`. Exact's cards are unchanged. At every width.
 - **"Related" + BETA** replaces "Related (beta)" wherever the label shows:
-  the switch, the compact header's button, the "≈ See related passages
-  BETA" button. The tag is hidden from screen readers; the accessible names
-  say "beta" ("Related, beta").
+  the switch and the "≈ See related passages BETA" button. The tag has
+  the `--rel-tint` fill (maintainer, 2026-10-14: outlined, it read as
+  grey). It is hidden from screen readers; the accessible names say "beta"
+  ("Related, beta").
 - **The Related summary line is only "Top results 1–20"** (maintainer,
   2026-10-14: the switch above already names the tab). Screen readers still
   hear "Related (beta) · Top results 1–20" from the live region; with no
@@ -1195,14 +1196,13 @@ block wins. The plan is `docs/superpowers/plans/2026-10-13-phone-layout.md`.)*
     spelling." with a year filter). **Fewer than 5:** "**Only 3 exact
     matches.** Related passages match the meaning, not just the words."
     then the `--rel*` button.
-  - **The compact header's button opens the sheet** (maintainer,
-    2026-10-14; the design has it scroll back to the top, and before this
-    it reopened the controls in place). Opened from there the sheet is
-    titled **"Search options"** and starts with the mode (Exact | Related
-    BETA, a radio group named "Search mode"), staged and applied with sort
-    and years in one search; focus starts on the checked mode and returns
-    to the compact button. Its label: "Exact · Best match · Any year ▾",
-    "Related BETA · Newest · 2015–2020 ▾", a set year in `--accent`.
+  - **The compact header keeps the controls** (maintainer, 2026-10-14;
+    this replaces the design's summary button "Exact · Best match · Any
+    year ▾" and its scroll back to the top). Scrolled on a phone, only the
+    brand row goes: the search row and the controls row (the switch and
+    Sort & years) stay pinned, lifted to the top, about 124 px in all
+    against 104 px with the summary button. One header, the same controls
+    everywhere, nothing to reopen.
   - **Touch targets stay 44 px:** the time chip and "+N nearby" are drawn
     36 px tall as designed, with a 44 px hit area.
   - The examples are "hide glue", "split-top Roubo", "sharpening a card

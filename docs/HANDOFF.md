@@ -8,18 +8,19 @@ then [README.md](../README.md), then the spec sections it points to.
 **Plan 6, the phone layout from Design's round 2, is built (2026-10-13)**, not yet deployed:
 [`docs/superpowers/plans/2026-10-13-phone-layout.md`](superpowers/plans/2026-10-13-phone-layout.md);
 spec §5.2 "Round 2, the phone layout" has the maintainer's calls (Best match, not Relevance;
-Related's empty and degraded states built from Design's parts; the compact header still opens
-the controls in place; 44 px hit areas; Tips also on the start page). Tasks 1–5 by Sonnet
-subagents, reviewed and committed in the main session; web 776 unit, 327 browser, axe clean in
-both themes. **Next: Checkpoint L** (end of the plan) on an iPhone after
+Related's empty and degraded states built from Design's parts; the compact header keeps the
+controls; 44 px hit areas; Tips also on the start page). Tasks 1–5 by Sonnet subagents,
+reviewed and committed in the main session; web 768 unit, 327 browser, axe clean in both
+themes. **Next: Checkpoint L** (end of the plan) on an iPhone after
 `cd worker && npm run deploy:staging`. Open from the captures (`npm run e2e:shots`):
 - 2026-10-14, after the maintainer's first look on the iPhone: `--rel*` is a slate blue (oak
   was barely visible, Design's Ebonized too grey); the Related summary is only "Top results
-  1–20"; the phone button reads "Sort & years"; the compact header's button opens the sheet as
-  "Search options", with the mode in it (spec §5.2 round 2).
+  1–20"; the phone button reads "Sort & years"; BETA has a blue fill; scrolled, the phone header
+  drops only its brand row and keeps the controls (the summary button is gone) (spec §5.2
+  round 2).
 - The switch is ~222 px and the Sort & years button ~126 px with a year set (Design: 234/116).
-- No capture of the compact header (no fixture state scrolls); the e2e "phone header
-  compaction" test covers its behaviour.
+- No `e2e:shots` capture of the compact header (no fixture state scrolls); the e2e "phone
+  header compaction" test covers its behaviour and layout.
 
 **Plan 5, the test search set, is built (2026-10-13)**:
 [`docs/superpowers/plans/2026-10-13-test-search-set.md`](superpowers/plans/2026-10-13-test-search-set.md),

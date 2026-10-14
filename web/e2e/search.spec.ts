@@ -95,33 +95,35 @@ test.describe("phone header compaction", () => {
       expect(await height()).toBe(before);
       await page.waitForTimeout(90);
     }
-    // Compact: the controls are out of the way, the input and the summary button show.
-    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeHidden();
-    await expect(page.getByRole("textbox", { name: "Search the transcripts" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ })).toBeVisible();
+    // Compact: the brand row is gone; the input and the controls stay, the controls right under
+    // the input, in reach of a tap.
+    await expect(page.getByRole("link", { name: "Wood Talk Search" })).toBeHidden();
+    const input = page.getByRole("textbox", { name: "Search the transcripts" });
+    const related = page.getByRole("radio", { name: "Related, beta" });
+    await expect(input).toBeVisible();
+    await expect(related).toBeVisible();
+    const inputBox = (await input.boundingBox())!;
+    const switchBox = (await related.boundingBox())!;
+    expect(inputBox.y).toBeLessThan(12);
+    expect(switchBox.y - (inputBox.y + inputBox.height)).toBeLessThan(20);
+    // No result shows through between the input and the controls.
+    const between = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x!, y!)?.closest("header") !== null,
+      [inputBox.x + 20, inputBox.y + inputBox.height + 6],
+    );
+    expect(between).toBe(true);
 
-    // The button opens "Search options" (mode, sort, years) with nothing behind it moving.
-    const opener = page.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ });
-    const steady = async () => {
-      for (let i = 0; i < 3; i++) {
-        expect(await compact(page)).toBe(true);
-        expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(130);
-        expect(await height()).toBe(before);
-        await page.waitForTimeout(100);
-      }
-    };
-    await opener.click();
-    const dialog = page.getByRole("dialog", { name: "Search options" });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole("radio", { name: "Related, beta" })).toBeFocused();
-    await expect(opener).toHaveAttribute("aria-expanded", "true");
-    await steady();
-    // Esc closes it and puts focus back on the button.
+    // The sheet opens from the compact header too, with nothing behind it moving.
+    await page.getByRole("button", { name: /^Sort and years:/ }).click();
+    await expect(page.getByRole("dialog", { name: "Sort & years" })).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
-    await expect(opener).toBeFocused();
-    await expect(opener).toHaveAttribute("aria-expanded", "false");
-    await steady();
+    await expect(page.getByRole("dialog", { name: "Sort & years" })).toBeHidden();
+    for (let i = 0; i < 3; i++) {
+      expect(await compact(page)).toBe(true);
+      expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(130);
+      expect(await height()).toBe(before);
+      await page.waitForTimeout(100);
+    }
 
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect.poll(() => compact(page)).toBe(false);

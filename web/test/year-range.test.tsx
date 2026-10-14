@@ -251,14 +251,13 @@ describe("in <App/>", () => {
   }
   const box = () => screen.getByRole("textbox") as HTMLInputElement;
 
-  it("the chip shows the range of the searched query, and the compact summary says it too", async () => {
+  it("the chip shows the range of the searched query", async () => {
     const calls = stubFetch();
     render(<App />);
     expect(screen.getByRole("button", { name: "Year range: Any year" })).toBeTruthy();
     typeAndSubmit("glue after:2019");
     calls[0]!.respond(exactBody([result(1)]));
     expect(await screen.findByRole("button", { name: `Year range: 2020–${THIS_YEAR}` })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Exact · Best match · 2020–/ })).toBeTruthy();
   });
 
   it("the chip does not change while typing, only when the search runs", () => {

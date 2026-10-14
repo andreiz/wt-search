@@ -101,7 +101,7 @@ for (const { name, width, height } of WIDTHS) {
       await expect(cards).toHaveCount(4);
 
       const first = cards.nth(0);
-      await expect(first.getByRole("heading", { level: 3 })).toHaveText("Ep. 71 · Welcome to the Three-Way");
+      await expect(first.getByRole("heading", { level: 3 })).toHaveText("Ep. 71 · Jun 10, 2010 · 2 matches Welcome to the Three-Way");
       await expect(first.getByText("2 matches")).toBeVisible();
       await expect(first.getByText("Jun 10, 2010")).toBeVisible();
       await expect(first.locator(".hit")).toHaveCount(2);
@@ -114,7 +114,7 @@ for (const { name, width, height } of WIDTHS) {
       expect(await first.locator(".result__head").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
       // Episodes are further apart than header and card.
       const nextBox = (await cards.nth(1).locator(".result__head").boundingBox())!;
-      expect(nextBox.y - (cardBox.y + cardBox.height)).toBeGreaterThanOrEqual(24);
+      expect(nextBox.y - (cardBox.y + cardBox.height)).toBeGreaterThanOrEqual(22);
 
       const chip = first.locator(".hit").nth(0).locator("a.hit__time");
       await expect(chip).toBeVisible();

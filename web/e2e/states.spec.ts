@@ -80,11 +80,11 @@ for (const config of CONFIGS) {
       await expect(page.getByRole("button", { name: "hide glue" })).toBeVisible();
       await expect(page.getByRole("button", { name: "split-top Roubo" })).toBeVisible();
 
-      await page.getByRole("button", { name: "how do I sharpen a card scraper" }).click();
-      await expect(box(page)).toHaveValue("how do I sharpen a card scraper");
+      await page.getByRole("button", { name: "sharpening a card scraper" }).click();
+      await expect(box(page)).toHaveValue("sharpening a card scraper");
       await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
-      await expect(page).toHaveURL(/\?q=how\+do\+I\+sharpen\+a\+card\+scraper$/);
-      expect(asked.map((url) => url.searchParams.get("q"))).toEqual(["how do I sharpen a card scraper"]);
+      await expect(page).toHaveURL(/\?q=sharpening\+a\+card\+scraper$/);
+      expect(asked.map((url) => url.searchParams.get("q"))).toEqual(["sharpening a card scraper"]);
       await clean();
     });
 

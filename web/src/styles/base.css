@@ -74,7 +74,7 @@ body {
   gap: 14px;
 }
 
-/* Empty state (its chips and lines are in components.css). */
+/* Empty state (its example list and lines are in components.css). */
 .empty {
   padding: 40px 0 16px;
   display: flex;
@@ -90,7 +90,7 @@ body {
   line-height: 1.15;
   letter-spacing: -0.01em;
   color: var(--text);
-  text-wrap: balance;
+  white-space: nowrap;
 }
 
 .site-footer {
@@ -159,10 +159,9 @@ body {
     padding: 20px 4px 8px;
   }
 
-  /* One line on any phone: at 28 px the heading is 385 px wide and broke in two on a 390 px
-     screen. */
+  /* 24 px, nowrap: one line on any phone (the vw cap keeps it in at 360 px). */
   .empty__title {
-    font-size: min(28px, 6.6vw);
+    font-size: min(24px, 6.6vw);
   }
 
   .site-footer__inner {

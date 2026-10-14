@@ -1,5 +1,6 @@
-// A dense result card (spec §5.3; docs/design/card-separation-options.html, option A): the header
-// "Ep. 71 · Title" with the match count and the date, on the page background, then the card's box
+// A dense result card (spec §5.3; docs/design/card-separation-options.html, option A): the
+// two-line episode line on the page background (a meta line "Ep. 71 · date · 2 matches", or "Bonus"
+// for an unnumbered episode, above the title; spec §5.2 round 2), then the card's box
 // (`.result__card`) holding one hit row per hit. The list item is one stop for the arrow and j/k
 // keys (lib/keys.ts) and is labelled by the header; it is focusable (roving tabindex, set by
 // ResultList).
@@ -34,23 +35,23 @@ export function ResultCard({
     >
       <div class="result__head">
         <h3 class="result__title" id={headingId}>
-          {episode.number !== null && (
-            <>
+          <span class="result__meta">
+            {episode.number !== null ? (
               <span class="result__ep">{`Ep. ${episode.number}`}</span>
-              <span class="result__sep"> · </span>
-            </>
-          )}
-          {displayTitle(episode.title, episode.number)}
+            ) : (
+              <span class="result__bonus">Bonus</span>
+            )}
+            <span aria-hidden="true"> · </span>
+            <time dateTime={episode.date}>{episodeDate(episode.date)}</time>
+            {hits.length > 1 && (
+              <>
+                <span aria-hidden="true"> · </span>
+                <span class="result__count">{`${hits.length} matches`}</span>
+              </>
+            )}
+          </span>{" "}
+          <span class="result__name">{displayTitle(episode.title, episode.number)}</span>
         </h3>
-        <span class="result__meta">
-          {hits.length > 1 && (
-            <>
-              <span class="result__count">{`${hits.length} matches`}</span>
-              <span aria-hidden="true"> · </span>
-            </>
-          )}
-          <time dateTime={episode.date}>{episodeDate(episode.date)}</time>
-        </span>
       </div>
       <div class="result__card">
         {hits.map((hit: SearchResult, index) => (

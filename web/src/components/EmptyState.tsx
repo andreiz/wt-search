@@ -1,11 +1,11 @@
 // The two pages with nothing to list (design README "Empty, loading and no-results"; spec §5.6):
-// the empty state before any search, with example searches and the corpus line from /api/info,
+// the empty state before any search, with a list of example searches and the corpus line from /api/info,
 // and "Nothing found." with what to try.
 import type { InfoResponse } from "../lib/api";
 import { count, episodeDate } from "../lib/format";
 import { SyntaxHelp } from "./SyntaxHelp";
 
-const EXAMPLES = ["hide glue", "split-top Roubo", "how do I sharpen a card scraper"];
+const EXAMPLES = ["hide glue", "split-top Roubo", "sharpening a card scraper"];
 
 /** "625 episodes indexed through Sep 17, 2026" (just the count for an empty corpus). */
 function indexed(info: InfoResponse): string {
@@ -28,18 +28,23 @@ export function EmptyState({
     <section class="empty">
       <h1 class="empty__title">Find the moment it was said.</h1>
       <div class="empty__try">
-        {/* No summary line yet, so "Tips ?" sits at the right of the label (Task 3 restyles the rest). */}
+        {/* No summary line yet, so "Tips ?" sits at the right of the label. */}
         <div class="empty__try-head">
           <span class="empty__label">Try</span>
           <SyntaxHelp onPick={onTip} />
         </div>
-        <div class="empty__chips">
+        <ul class="try-list">
           {EXAMPLES.map((example) => (
-            <button key={example} type="button" class="chip" onClick={() => onPick(example)}>
-              {example}
-            </button>
+            <li key={example}>
+              <button type="button" class="try-list__item" onClick={() => onPick(example)}>
+                {example}
+                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
       {info && <p class="empty__info">{indexed(info)}</p>}
     </section>

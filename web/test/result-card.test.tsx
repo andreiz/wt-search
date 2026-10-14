@@ -40,23 +40,30 @@ function withLinks(hit: SearchResult, links: DeepLinks): SearchResult {
 }
 
 describe("the header", () => {
-  it("is 'Ep. 612 · Title' with the date on the right and no match count for one hit", () => {
-    renderCard([full]);
+  it("is two lines: 'Ep. 612 · date' above the title, no match count for one hit", () => {
+    const { container } = renderCard([full]);
     const heading = screen.getByRole("heading", { level: 3 });
-    expect(heading.textContent).toBe("Ep. 612 · Dovetails, Glue and Bandsaw Tuning");
-    expect(screen.getByText("Mar 12, 2024")).toBeTruthy();
+    expect(container.querySelector(".result__meta")?.textContent).toBe("Ep. 612 · Mar 12, 2024");
+    expect(container.querySelector(".result__name")?.textContent).toBe("Dovetails, Glue and Bandsaw Tuning");
+    expect(heading.textContent).toBe("Ep. 612 · Mar 12, 2024 Dovetails, Glue and Bandsaw Tuning");
     expect(screen.queryByText(/matches/)).toBeNull();
   });
 
-  it("shows the title alone for an unnumbered episode", () => {
-    renderCard([bare]);
-    expect(screen.getByRole("heading", { level: 3 }).textContent).toBe("Bonus: Shop Tour");
+  it("puts 'Bonus' in the meta line of an unnumbered episode, with the date and match count", () => {
+    const { container } = renderCard([bare, { ...bare, chunk_id: 99, hit_ms: 5000 }]);
+    const meta = container.querySelector(".result__meta")!;
+    expect(meta.querySelector(".result__bonus")?.textContent).toBe("Bonus");
+    expect(meta.querySelector(".result__ep")).toBeNull();
+    expect(meta.textContent).toMatch(/^Bonus · .+ · 2 matches$/);
+    expect(meta.querySelector("time")).toBeTruthy();
+    const item = screen.getByRole("listitem", { name: /Bonus: Shop Tour/ });
+    expect(item.getAttribute("aria-labelledby")).toBe(container.querySelector("h3")!.id);
   });
 
   it("strips the episode's own number from the title", () => {
     const hit = result(552, { episode: { ...full.episode, number: 552, title: "552 - Embarrassed By All The Shiplap" } });
-    renderCard([hit]);
-    expect(screen.getByRole("heading", { level: 3 }).textContent).toBe("Ep. 552 · Embarrassed By All The Shiplap");
+    const { container } = renderCard([hit]);
+    expect(container.querySelector(".result__name")?.textContent).toBe("Embarrassed By All The Shiplap");
   });
 
   it("names the card by its heading and is one stop for the keyboard", () => {
@@ -79,11 +86,11 @@ describe("the header", () => {
     expect(item.getAttribute("aria-labelledby")).toBe(heading.id);
   });
 
-  it("a two-hit card says '2 matches' before the date and rules off the second row", () => {
+  it("a two-hit card says '2 matches' after the date and rules off the second row", () => {
     const second = { ...full, chunk_id: 61299, hit_ms: 1_300_000, text: "Another dovetail line.", ranges: [[8, 16]] as [number, number][] };
     const { container } = renderCard([full, second]);
     expect(screen.getByText("2 matches")).toBeTruthy();
-    expect(container.querySelector(".result__meta")?.textContent).toBe("2 matches · Mar 12, 2024");
+    expect(container.querySelector(".result__meta")?.textContent).toBe("Ep. 612 · Mar 12, 2024 · 2 matches");
     const rows = container.querySelectorAll(".hit");
     expect(rows).toHaveLength(2);
     expect(rows[0]!.classList.contains("hit--ruled")).toBe(false);

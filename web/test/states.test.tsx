@@ -24,13 +24,17 @@ function typeAndSubmit(text: string) {
 }
 
 describe("the empty state", () => {
-  it("has the heading, the TRY chips and, once /api/info answers, the info line", async () => {
+  it("has the heading, the TRY list and, once /api/info answers, the info line", async () => {
     const calls = stubFetch();
     render(<App />);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Find the moment it was said.");
     expect(screen.getByText("Try")).toBeTruthy();
-    for (const chip of ["hide glue", "split-top Roubo", "how do I sharpen a card scraper"]) {
-      expect(screen.getByRole("button", { name: chip })).toBeTruthy();
+    const items = screen.getAllByRole("listitem");
+    expect(items.map((li) => li.textContent)).toEqual(["hide glue", "split-top Roubo", "sharpening a card scraper"]);
+    for (const li of items) {
+      expect(li.closest("ul")?.classList.contains("try-list")).toBe(true);
+      expect(within(li).getByRole("button").classList.contains("try-list__item")).toBe(true);
+      expect(li.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     }
     // Absent while loading.
     expect(screen.queryByText(/episodes indexed/)).toBeNull();
@@ -92,15 +96,15 @@ describe("the empty state", () => {
     expect(await screen.findByText("1,234 episodes indexed")).toBeTruthy();
   });
 
-  it("a chip fills the box and searches", () => {
+  it("an example fills the box and searches", () => {
     const calls = stubFetch();
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "split-top Roubo" }));
-    expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("split-top Roubo");
+    fireEvent.click(screen.getByRole("button", { name: "sharpening a card scraper" }));
+    expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("sharpening a card scraper");
     expect(calls).toHaveLength(1);
     expect(calls[0]!.url.pathname).toBe("/api/search");
-    expect(calls[0]!.url.searchParams.get("q")).toBe("split-top Roubo");
-    expect(window.location.search).toContain("q=split-top");
+    expect(calls[0]!.url.searchParams.get("q")).toBe("sharpening a card scraper");
+    expect(window.location.search).toContain("q=sharpening");
   });
 });
 

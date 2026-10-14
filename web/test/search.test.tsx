@@ -78,7 +78,7 @@ describe("searching", () => {
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(screen.getByRole("heading", { level: 2, name: "Search results" })).toBeTruthy();
     expect(screen.getByText("Related (beta) · top results 1–3")).toBeTruthy();
-    expect(list.textContent).toContain("Ep. 1 · Show 1 title");
+    expect(list.textContent).toContain("Ep. 1 · Jun 10, 2015 Show 1 title");
   });
 
   it("pushes a history entry per search and writes the state to the URL", () => {

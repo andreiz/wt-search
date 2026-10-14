@@ -52,6 +52,13 @@ describe("the Episodes row", () => {
     expect(items[1]!.textContent).toContain("May 2, 2026");
   });
 
+  it("puts 'Ep. 613 · date' in a meta line above the title", async () => {
+    await answered(exactBody([result(1)], { episodes: [episodeHit(613)] }));
+    const item = within(row()).getByRole("listitem");
+    expect(item.querySelector(".title-hit__meta")?.textContent).toBe("Ep. 613 · Aug 19, 2026");
+    expect(item.querySelector(".title-hit__name")?.textContent).toBe("Shove a Kregger in the Hole");
+  });
+
   it("links the title to YouTube from the start, with a name that holds the title", async () => {
     await answered(exactBody([result(1)], { episodes: [episodeHit(613)] }));
     const link = within(row()).getByRole("link", { name: /play episode 613 from the start on YouTube/ });
@@ -86,7 +93,8 @@ describe("the Episodes row", () => {
     const url = window.location.search;
     const box = screen.getByRole("textbox") as HTMLInputElement;
     const button = within(row()).getByRole("button", { name: "Search this episode: Ep. 613" });
-    expect(button.textContent).toBe("Search this episode");
+    expect(button.textContent).toBe("");
+    expect(button.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     fireEvent.click(button);
     expect(box.value).toBe("ep:613");
     expect(document.activeElement).toBe(box);

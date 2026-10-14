@@ -223,7 +223,7 @@ system.
 | `wts reports [--env E] [--all] [--json]`, `wts reports resolve\|reject\|reopen <id>…` | Lists listener transcript-error reports and feedback (§4.4), open ones unless `--all`, read from D1 with its own chunks and episodes; the subcommands set a report's status. *(Built 2026-10-11, plan 4.)* Planned: also lists the maintainer's marks (§4.9), apart from the reports. |
 | `wts logs` | Filters the pipeline logs (§8.4). |
 | `wts analytics pull` | Copies Worker search analytics to a local file (§8.4). |
-| `wts eval` | See §7.2. |
+| `wts eval run`, `wts eval generate` | The test search set: score a deployed environment, and write the synthetic cases. See §7.2. |
 | `wts review` | Local transcript review tool (§3.7). |
 | `wts paths` | Prints the resolved file locations (§3.0). |
 
@@ -1537,9 +1537,36 @@ As in the brief §4.5; the wording there is the copy, and the design's
 
 ### 7.2 Test search set (`eval/`)
 
-- **`eval/queries.yaml`:** each case has an `id`, `query`, `mode`, optional
-  filters and sort, and either `expect: [{episode, at_s}]` (time tolerance
-  ±45 s) or `expect_absent: [episode]`. Each case is tagged with one of:
+*(Revised 2026-10-13, before plan 5: modes are `exact`, `related` and `both`
+since the Exact / Related split; filters live in the query; `wts eval run
+--env`; the show-notes source moves to M2. The plan is
+`docs/superpowers/plans/2026-10-13-test-search-set.md`.)*
+
+- **Files:** `eval/queries.yaml` (cases written by hand), `eval/synthetic.yaml`
+  (generated, below), `eval/baseline.json` (committed), `eval/reports/`
+  (gitignored).
+- **A case:**
+  ```yaml
+  - id: aspirational-builds            # unique across both files
+    query: aspirational builds         # filters go in the query: year:2015 ep:71 include:ads
+    tag: paraphrase
+    mode: both                         # exact | related | both; default both
+    sort: relevance                    # optional; default relevance
+    expect:                            # the right answers
+      - {episode: 71, at: "40:54"}     # `at` optional: m:ss, h:mm:ss or seconds
+    expect_absent:                     # must not be in the top 10
+      - {episode: 127, at: "44:28"}    # without `at`: nowhere in the episode
+    smoke: true                        # one of the 5 smoke searches (§8.1)
+  ```
+  A case has `expect`, `expect_absent` or both. A result matches an item when
+  its episode number is the item's and, if the item has `at`, its `hit_ms` is
+  within ±45 s of it. `collapse` items may also carry `more_in_episode: N` and
+  `cards: N` (results for that episode on page 1).
+- **`both`** is how the site is used: Exact first, Related for what Exact
+  doesn't list. A `both` case asks both modes; an item counts as found if it is
+  in either tab's top 10, and its rank is the better tab's. The report also
+  counts which tab found it.
+- Each case is tagged with one of:
   - `exact`: phrase lookups.
   - `jargon`: brand names and woodworking terms (also tests Whisper's
     spelling).
@@ -1557,23 +1584,43 @@ As in the brief §4.5; the wording there is the copy, and the design's
     per 120 s of distance from the kept hit); a run across a page boundary
     in exact mode (appears on both pages, by design); hits in different
     episodes on the same date (never folded); collapsing under each sort
-    and in smart mode, where related hits fold too.
+    and in related mode, where related hits fold too.
 - **Where the cases come from:**
-  1. About 30 written by the maintainer from memory.
-  2. About 100 synthetic ones: a local LLM on the Mac paraphrases a question
-     answered by a randomly sampled chunk, so the right answer is that chunk.
-  3. Topics from the show notes, mapped to their episodes.
+  1. About 30 written by the maintainer from memory, plus the judgements
+     collected in testing (`docs/HANDOFF.md`: `aspirational builds`,
+     `flattening a bench top` → not #127 at 44:28, `how do I flatten a
+     workbench top` → not #171's miter answer, `hvlp sprayer year:2020`).
+  2. About 100 synthetic ones, `wts eval generate`: a local model through
+     Ollama (`--model`, or `eval_model` in `config.toml`) writes the question a
+     listener would type for a randomly sampled non-boilerplate chunk of a
+     published episode, so the right answer is that chunk (`at` = its start).
+     Tag `paraphrase`, mode `both`. Seeded, so a rerun gives the same sample.
+     The file is regenerated whole and reviewed as a diff before committing.
+  3. *(M2)* Topics from the show notes, mapped to their episodes. The feed's
+     descriptions are not stored yet.
   - In M1 every case points at a seed-set episode. More cases are added as
     M2 grows the archive.
-- **`wts eval --target staging|production`** sends every case to the API and
-  reports, overall and per tag:
-  - Recall@10 (did the right episode appear in the top 10?).
-  - MRR (how high did the first right answer rank?).
-  - nDCG@10 (overall quality of the top 10 ordering).
-  - Time hit rate (did the cue land within ±45 s?).
+- **`wts eval run [--env staging|production] [--update] [--only TAG-OR-ID]`**
+  (env defaults to `run_env`) sends every case to the API, at most one
+  request a second (the per-IP limit is 60 a minute, §4.8), and reports,
+  overall and per tag:
+  - Recall@10 (share of expected episodes in the top 10).
+  - MRR (1 / rank of the first right answer).
+  - nDCG@10 (binary relevance; one gain per expected item).
+  - Time hit rate (share of items with `at` that a top-10 result of that
+    episode lands within ±45 s of).
+  - Negative pass rate (`expect_absent`) and collapse pass rate (`collapse`).
+  - Against the success criteria (§1): met or not, which doesn't change the
+    exit code.
+- Related requests use `debug=1`, so the report keeps each hit's meaning rank
+  and similarity (for tuning a floor or topK) and the edge cache is skipped.
+  They count against the daily meaning budget (§4.8): a full run is about 300
+  requests. A degraded answer (`smart_degraded`) stops the run with an error:
+  the scores would be meaningless.
 - The report is written to `eval/reports/<timestamp>.json`. With `--update`
   it also becomes `eval/baseline.json`. The command exits with an error if any
-  score drops more than 0.02 below the baseline.
+  score (overall or per tag) drops more than 0.02 below the baseline, and
+  lists the cases that went from found to missed.
 - Ranking, chunking and model changes are published to `staging` and
   evaluated there before being promoted to `production`.
 - **Optional transcription check:** 3 five-minute clips corrected by hand
@@ -1590,9 +1637,11 @@ As in the brief §4.5; the wording there is the copy, and the design's
   form.
 - **Run history:** a `runs` table in `state.db` records start, end, machine,
   per-step counts and errors. `wts status` shows it.
-- **Smoke search:** after each `wts run`, 5 fixed queries from `eval/` are
-  sent to the target environment. Each must return its expected episode in
-  the top 10.
+- **Smoke search:** after each `wts run` that publishes, the 5 cases marked
+  `smoke: true` in `eval/queries.yaml` are sent to the target environment.
+  Each must return its expected episode in the top 10. A failure is logged and
+  notified (§8.2) and recorded as the run's `smoke` step; it doesn't stop the
+  run or the backup. *(Revised 2026-10-13, plan 5.)*
 
 ### 8.2 Notifications (ntfy)
 

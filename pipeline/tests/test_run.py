@@ -150,6 +150,21 @@ def test_run_all_with_env_publishes_then_backs_up_then_notifies(conn, paths, cfg
     assert results["smoke"]["ok"] == 5
 
 
+def test_an_unexpected_smoke_error_still_backs_up_and_notifies(conn, paths, cfg, calls,
+                                                               monkeypatch, wts_messages):
+    def broken_smoke(cfg, env, client, notifier):
+        raise TypeError("zymurgy in a malformed answer")
+
+    monkeypatch.setattr(steps, "smoke", broken_smoke)
+    notifier = FakeNotifier()
+    results = quick_run(conn, paths, cfg, env="staging", notifier=notifier)
+    assert [c[0] for c in calls] == ["publish", "backup", "notify"]
+    assert results["smoke"]["error"] == 1
+    [sent] = [s for s in notifier.sent if s["title"] == "wts: smoke search failed"]
+    assert "TypeError" in sent["body"] and "zymurgy" not in sent["body"]
+    assert any("smoke search failed" in m and "zymurgy" not in m for m in wts_messages)
+
+
 def test_run_all_without_env_skips_publish_with_a_warning(conn, paths, cfg, calls, wts_messages):
     results = quick_run(conn, paths, cfg)
     assert [c[0] for c in calls] == ["backup", "notify"]

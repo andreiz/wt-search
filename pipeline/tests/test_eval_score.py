@@ -50,6 +50,13 @@ def test_beyond_the_top_ten_is_missed():
     assert s.failures == ["ep 71 not in the top 10"]
 
 
+def test_a_missed_episode_with_a_time_counts_against_the_time_hit_rate():
+    s = score_case(case(expect=(Item(71, 100), Item(80, 50))),
+                   {"exact": answer(hit(71, 100))})
+    assert (s.time_hits, s.time_items) == (1, 2)
+    assert s.failures == ["ep 80 not in the top 10"]
+
+
 def test_an_episode_twice_counts_once_unless_two_items_want_it():
     one = score_case(case(expect=(Item(71),)), {"exact": answer(hit(71, 10), hit(71, 900))})
     assert one.ndcg == 1.0

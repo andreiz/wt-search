@@ -104,12 +104,13 @@ def _score_expect(case: Case, tops: dict[str, list[dict]], score: CaseScore) -> 
     score.rr = 1 / min(best.values()) if best else 0.0
     score.ndcg = max(ndcgs)
     for i, item in enumerate(case.expect):
+        if item.at_s is not None:  # a missed episode is a missed cue too (spec §7.2)
+            score.time_items += 1
         if i not in best:
             score.failures.append(f"ep {item.episode} not in the top {TOP}")
             continue
         if item.at_s is None:
             continue
-        score.time_items += 1
         if any(_matches(r, item) for top in tops.values() for r in top):
             score.time_hits += 1
         else:

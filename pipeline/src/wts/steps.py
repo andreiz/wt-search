@@ -415,7 +415,15 @@ def run_all(
             results[name] = run.counts
         if env:  # the publish step ran: check the environment answers (spec §8.1)
             with run_record(conn, "smoke") as run:
-                run.counts.update(smoke(cfg, env, client_, notifier))
+                try:
+                    run.counts.update(smoke(cfg, env, client_, notifier))
+                except Exception as exc:  # noqa: BLE001 — a smoke failure never stops the backup
+                    run.counts["error"] += 1
+                    # The class only: a message could hold a query or an answer's text.
+                    what = f"unexpected {type(exc).__name__}"
+                    log.error(f"smoke search failed: {what}", extra={"step": "smoke"})
+                    notifier.send("wts: smoke search failed", f"- {what}", priority="high",
+                                  tags=("warning",))
             results["smoke"] = run.counts
     except MachineProblem as exc:  # its message names folders or tools, never secrets
         notifier.send("wts: run stopped", str(exc), priority="high", tags=("rotating_light",))

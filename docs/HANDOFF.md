@@ -1,9 +1,30 @@
-# Handoff — 2026-10-11 (eighth session, continued; plan 3 at Checkpoint H, plan 4 built and at Checkpoint J)
+# Handoff — 2026-10-13 (plan 3 at Checkpoint H, plan 4 at Checkpoint J, plan 5 built and at Checkpoint K)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
+
+**Plan 5, the test search set, is built (2026-10-13)**:
+[`docs/superpowers/plans/2026-10-13-test-search-set.md`](superpowers/plans/2026-10-13-test-search-set.md),
+spec §7.2 and §8.1 revised first (modes `exact | related | both`, `both` = found in either
+tab's top 10; filters in the query; show-notes topics moved to M2). `wts eval run` scores
+staging from `eval/queries.yaml` (+ `eval/synthetic.yaml`), paced to 1 request/s; `wts eval
+generate --model M` writes synthetic cases through Ollama; `wts run` now runs the five
+`smoke: true` cases after publish. First run on staging (10 cases, no baseline recorded yet):
+all smoke cases found; `aspirational-builds` finds ep 71 but not the bucket-list passage;
+`flattening-a-bench-top` (#127 at 44:28) and `hvlp-sprayer-2020` (#466) still come back first
+in Related. Recall@10 is episode-level (spec), so read it with the time hit rate.
+- **Next: Checkpoint K** (end of the plan): the maintainer's ~30 cases, `wts eval generate`,
+  then `wts eval run --update` and commit `eval/`.
+- **Then measure, one at a time, against the baseline:** bge's query instruction; a
+  reranker over Related's top 50 (`@cf/baai/bge-reranker-base` on Workers AI; no training,
+  one extra AI call per Related search); a similarity floor or topK 20–30; and a learned
+  linear adapter on query/passage vectors (a 768×768 matrix applied in the Worker over stock
+  Workers AI bge, trained on the Mac from (query, passage) pairs; train and score on
+  different synthetic cases). A fully fine-tuned model can't run in Workers AI, so it is out
+  unless all of these fall short (maintainer agreed 2026-10-13). Also: Newest vs Best match
+  as Exact's default, porter stemming of glue/glued/gluing, an `episode_id` metadata index.
 
 **Branch:** work on `main` (CLAUDE.md), even when a cloud session is given another branch.
 The seventh session worked on `claude/plan-3-handoff-etfwwc` at the maintainer's request and

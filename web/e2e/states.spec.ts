@@ -131,7 +131,7 @@ for (const config of CONFIGS) {
       await expect(page.getByText("Use fewer words")).toBeVisible();
       await page.getByRole("button", { name: "See related passages (beta)" }).click();
       await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
-      await expect(page.getByRole("radio", { name: "Related (beta)" })).toHaveAttribute("aria-checked", "true");
+      await expect(page.getByRole("radio", { name: "Related, beta" })).toHaveAttribute("aria-checked", "true");
       await expect(page).toHaveURL(/\?q=zzzz&mode=related$/);
       expect(asked.map((url) => url.searchParams.get("mode"))).toEqual(["exact", "related"]);
       await clean();
@@ -195,7 +195,7 @@ for (const config of CONFIGS) {
       const asked = await stubSearch(page, () => ({ json: related([hit(1)]) }));
       await page.goto("/?q=glue&mode=smart");
       await expect(page.getByRole("list", { name: "Results" })).toBeVisible();
-      await expect(page.getByRole("radio", { name: "Related (beta)" })).toHaveAttribute("aria-checked", "true");
+      await expect(page.getByRole("radio", { name: "Related, beta" })).toHaveAttribute("aria-checked", "true");
       expect(asked.map((url) => url.searchParams.get("mode"))).toEqual(["related"]);
       await clean();
     });

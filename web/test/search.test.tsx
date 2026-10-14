@@ -131,7 +131,7 @@ describe("mode and sort", () => {
     go("/?q=glue&page=3");
     const calls = stubFetch();
     render(<App />);
-    fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Related, beta" }));
     expect(calls).toHaveLength(2);
     expect(calls[0]!.signal.aborted).toBe(true);
     expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({ q: "glue", mode: "related", sort: "relevance", page: "1" });
@@ -143,7 +143,7 @@ describe("mode and sort", () => {
     const calls = stubFetch();
     render(<App />);
     expect(calls[0]!.url.searchParams.get("mode")).toBe("related");
-    expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: "Related, beta" }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("changing back to Exact drops mode from the URL", () => {
@@ -172,14 +172,14 @@ describe("mode and sort", () => {
     const calls = stubFetch();
     render(<App />);
     fireEvent.input(screen.getByRole("textbox"), { target: { value: "something else" } });
-    fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Related, beta" }));
     expect(calls[1]!.url.searchParams.get("q")).toBe("glue");
   });
 
   it("with nothing searched yet, a mode change makes no request but is remembered for the next search", () => {
     const calls = stubFetch();
     render(<App />);
-    fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Related, beta" }));
     expect(calls).toHaveLength(0);
     typeAndSubmit("glue");
     expect(calls[0]!.url.searchParams.get("mode")).toBe("related");
@@ -556,7 +556,7 @@ describe("markup rules", () => {
       expect(screen.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ })).toBe(button);
       expect(button.getAttribute("aria-expanded")).toBe("true");
       const controls = document.getElementById(button.getAttribute("aria-controls") ?? "");
-      expect(controls?.contains(screen.getByRole("radio", { name: "Related (beta)" }))).toBe(true);
+      expect(controls?.contains(screen.getByRole("radio", { name: "Related, beta" }))).toBe(true);
     });
 
     it("pressing it again closes the controls", () => {
@@ -567,7 +567,7 @@ describe("markup rules", () => {
 
     it("Esc inside the controls closes them and focuses the button", () => {
       const button = open();
-      fireEvent.keyDown(screen.getByRole("radio", { name: "Related (beta)" }), { key: "Escape" });
+      fireEvent.keyDown(screen.getByRole("radio", { name: "Related, beta" }), { key: "Escape" });
       expect(button.getAttribute("aria-expanded")).toBe("false");
       expect(document.activeElement).toBe(button);
     });
@@ -596,7 +596,7 @@ describe("markup rules", () => {
       stubFetch();
       render(<App />);
       const button = screen.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ });
-      fireEvent.keyDown(screen.getByRole("radio", { name: "Related (beta)" }), { key: "Escape" });
+      fireEvent.keyDown(screen.getByRole("radio", { name: "Related, beta" }), { key: "Escape" });
       expect(button.getAttribute("aria-expanded")).toBe("false");
     });
   });

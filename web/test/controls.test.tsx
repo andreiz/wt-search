@@ -81,12 +81,13 @@ describe("<SearchBar/>", () => {
 });
 
 describe("<ModeSwitch/>", () => {
-  it("is a radio group of Exact and Related (beta), in that order, with their tooltips", () => {
+  it("is a radio group of Exact and Related + BETA, in that order, with their tooltips", () => {
     render(<ModeSwitch mode="exact" onChange={() => {}} />);
     const group = screen.getByRole("radiogroup", { name: "Search mode" });
     expect(group).toBeTruthy();
     const radios = screen.getAllByRole("radio");
-    expect(radios.map((radio) => radio.textContent)).toEqual(["Exact", "Related (beta)"]);
+    expect(radios.map((radio) => radio.getAttribute("aria-label"))).toEqual(["Exact", "Related, beta"]);
+    expect(radios.map((radio) => radio.textContent)).toEqual(["Exact", "Related BETA"]);
     const [exact, related] = radios as [HTMLElement, HTMLElement];
     expect(exact.getAttribute("aria-checked")).toBe("true");
     expect(related.getAttribute("aria-checked")).toBe("false");
@@ -94,12 +95,19 @@ describe("<ModeSwitch/>", () => {
     expect(related.getAttribute("title")).toBe("Passages about the same thing that don't contain all your words. Still rough.");
   });
 
+  it("draws BETA as a visual tag hidden from assistive tech", () => {
+    render(<ModeSwitch mode="exact" onChange={() => {}} />);
+    const tag = screen.getByText("BETA");
+    expect(tag.getAttribute("aria-hidden")).toBe("true");
+    expect(tag.className).toBe("beta-tag");
+  });
+
   it("reports the other mode when it is clicked, and nothing for the current one", () => {
     const onChange = vi.fn();
     render(<ModeSwitch mode="exact" onChange={onChange} />);
     fireEvent.click(screen.getByRole("radio", { name: "Exact" }));
     expect(onChange).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("radio", { name: "Related (beta)" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Related, beta" }));
     expect(onChange).toHaveBeenCalledWith("related");
   });
 
@@ -112,7 +120,7 @@ describe("<ModeSwitch/>", () => {
 
   it("only the selected radio is in the tab order", () => {
     render(<ModeSwitch mode="related" onChange={() => {}} />);
-    expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("tabindex")).toBe("0");
+    expect(screen.getByRole("radio", { name: "Related, beta" }).getAttribute("tabindex")).toBe("0");
     expect(screen.getByRole("radio", { name: "Exact" }).getAttribute("tabindex")).toBe("-1");
   });
 });

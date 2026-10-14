@@ -143,28 +143,45 @@
   display: flex;
   padding: 3px;
   gap: 2px;
-  border-radius: var(--r-control);
+  width: 280px;
+  border-radius: 12px;
   background: var(--skel);
 }
 
+/* Track 44 px on phones (3 px padding + 38 px segments), 38 px on desktop. */
 .mode-switch__option {
+  flex: 1;
   height: var(--seg-h);
-  padding: 0 14px;
+  padding: 0 8px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 9px;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 650;
+  white-space: nowrap;
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease);
 }
 
 .mode-switch__option[aria-checked="true"] {
-  background: var(--raised);
-  box-shadow: 0 1px 2px rgba(40, 20, 5, 0.15);
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgba(40, 20, 5, 0.18);
   color: var(--text);
+}
+
+/* The oak BETA tag (ROUND-2-phone.md "BETA treatment"). */
+.beta-tag {
+  padding: 2px 4px 1px;
+  border: 1px solid var(--rel-border);
+  border-radius: 4px;
+  color: var(--rel);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .sort-menu {
@@ -1757,6 +1774,11 @@ a.passage__time:hover {
 
   .search-row__button {
     padding: 0 16px;
+  }
+
+  .mode-switch {
+    flex: 1;
+    width: auto;
   }
 
   .search-field__hint {

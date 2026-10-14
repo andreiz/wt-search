@@ -130,7 +130,7 @@ describe("no results", () => {
     expect(calls).toHaveLength(2);
     expect(calls[1]!.url.searchParams.get("mode")).toBe("related");
     expect(window.location.search).toBe("?q=zzz&mode=related");
-    expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: "Related, beta" }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("in Related: 'No related passages.' with a 'See exact matches' button that switches and searches", async () => {
@@ -259,7 +259,7 @@ describe("Exact, only a few matches", () => {
     expect(calls).toHaveLength(2);
     expect(calls[1]!.url.searchParams.get("mode")).toBe("related");
     expect(window.location.search).toBe("?q=glue&mode=related");
-    expect(screen.getByRole("radio", { name: "Related (beta)" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: "Related, beta" }).getAttribute("aria-checked")).toBe("true");
   });
 });
 

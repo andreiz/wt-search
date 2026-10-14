@@ -50,7 +50,7 @@ test("search, URL and Back, under the CSP", async ({ page }) => {
   await expect(page).toHaveURL(/\?q=hvlp\+sprayer$/);
   await expect(page.getByText("1 match", { exact: true })).toBeVisible();
 
-  await page.getByRole("radio", { name: "Related (beta)" }).click();
+  await page.getByRole("radio", { name: "Related, beta" }).click();
   await expect(page).toHaveURL(/mode=related/);
   await expect(page.getByText("Related (beta) · top result 1")).toBeVisible();
 
@@ -96,7 +96,7 @@ test.describe("phone header compaction", () => {
       await page.waitForTimeout(90);
     }
     // Compact: the controls are out of the way, the input and the summary button show.
-    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeHidden();
+    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeHidden();
     await expect(page.getByRole("textbox", { name: "Search the transcripts" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Related \(beta\) · Best match · Any year/ })).toBeVisible();
 
@@ -112,26 +112,26 @@ test.describe("phone header compaction", () => {
     };
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeVisible();
     await expect(toggle).toBeVisible();
     await steady(false);
     // Esc closes them and puts focus on the button.
-    await page.getByRole("radio", { name: "Related (beta)" }).focus();
+    await page.getByRole("radio", { name: "Related, beta" }).focus();
     await page.keyboard.press("Escape");
     await expect(toggle).toBeFocused();
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await steady(true);
     // A second press of the button closes them again.
     await toggle.click();
-    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeVisible();
     await toggle.click();
-    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeHidden();
+    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeHidden();
     await expect(toggle).toBeVisible();
     await steady(true);
 
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect.poll(() => compact(page)).toBe(false);
-    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeVisible();
   });
 
   test("on a short results page it never compacts", async ({ page }) => {
@@ -142,6 +142,6 @@ test.describe("phone header compaction", () => {
       expect(await compact(page)).toBe(false);
       await page.waitForTimeout(100);
     }
-    await expect(page.getByRole("radio", { name: "Related (beta)" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Related, beta" })).toBeVisible();
   });
 });

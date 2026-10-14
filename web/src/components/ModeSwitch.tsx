@@ -1,12 +1,23 @@
 // The Exact / Related (beta) segmented control (SearchHeader.dc.html; spec §5.2): a radio group
 // with a one-line tooltip each. Related is the internal mode "related". Only the selected radio is
 // in the tab order; the arrows move the choice.
+import type { ComponentChildren } from "preact";
 import { useRef } from "preact/hooks";
 import type { Mode } from "../lib/url";
+import { BetaTag } from "./BetaTag";
 
-const OPTIONS: { mode: Mode; label: string; tip: string }[] = [
-  { mode: "exact", label: "Exact", tip: "Passages that contain your words, with a count" },
-  { mode: "related", label: "Related (beta)", tip: "Passages about the same thing that don't contain all your words. Still rough." },
+const OPTIONS: { mode: Mode; label: ComponentChildren; name: string; tip: string }[] = [
+  { mode: "exact", label: "Exact", name: "Exact", tip: "Passages that contain your words, with a count" },
+  {
+    mode: "related",
+    label: (
+      <>
+        Related <BetaTag />
+      </>
+    ),
+    name: "Related, beta",
+    tip: "Passages about the same thing that don't contain all your words. Still rough.",
+  },
 ];
 
 export function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => void }) {
@@ -32,6 +43,7 @@ export function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mo
             type="button"
             role="radio"
             class="mode-switch__option"
+            aria-label={option.name}
             aria-checked={selected ? "true" : "false"}
             tabIndex={selected ? 0 : -1}
             title={option.tip}

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position:relative;background:var(--bg);color:var(--text);font-family:var(--sans);min-height:{{ minH }};max-height:{{ maxH }};overflow:hidden;display:flex;flex-direction:column">
+  <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}">
+    <header style="background:var(--bg);border-bottom:1px solid var(--border)">
+      <div style="max-width:760px;margin:0 auto;padding:{{ hPad }};display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+          <a href="#" style="font-size:{{ brandSize }};font-weight:750;line-height:1.2;color:var(--text);text-decoration:none;letter-spacing:-0.015em">Wood Talk Search</a>
+          <span style="font-size:13px;color:var(--muted)">Unofficial · fan-made</span>
+        </div>
+        <div role="search" style="display:flex;gap:8px">
+          <div style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:50px;box-sizing:border-box;padding:0 4px 0 14px;background:var(--raised);border:1.5px solid var(--border);border-radius:12px">
+            <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" style="flex:none;color:var(--muted)"><circle cx="8.5" cy="8.5" r="6" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M13 13l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+            <sc-if value="{{ hasQ }}" hint-placeholder-val="{{ true }}">
+              <span style="flex:1;min-width:0;font-size:17px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q }}</span>
+              <button aria-label="Clear search" style="flex:none;width:40px;height:40px;border-radius:8px;border:0;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></button>
+            </sc-if>
+            <sc-if value="{{ noQ }}"><span style="flex:1;min-width:0;font-size:17px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Search 37 episodes</span></sc-if>
+          </div>
+          <button style="flex:none;height:50px;padding:0 16px;border-radius:12px;border:0;background:var(--accent);color:var(--on-accent);font:650 16px/1 var(--sans)">Search</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div role="radiogroup" aria-label="Search mode" style="flex:{{ segFlex }};width:{{ segW }};min-width:0;display:flex;padding:3px;gap:2px;height:44px;box-sizing:border-box;border-radius:12px;background:var(--skel)">
+            <button role="radio" aria-checked="{{ exactStr }}" style="flex:1;border:0;border-radius:9px;background:{{ exBg }};box-shadow:{{ exSh }};color:{{ exFg }};font:650 15px/1 var(--sans);padding:0 10px">Exact</button>
+            <button role="radio" aria-checked="{{ relStr }}" aria-label="Related, beta" style="flex:1;border:0;border-radius:9px;background:{{ reBg }};box-shadow:{{ reSh }};color:{{ reFg }};font:650 15px/1 var(--sans);padding:0 8px;display:flex;align-items:center;justify-content:center;gap:6px"><span>Related</span><span aria-hidden="true" style="padding:2px 4px 1px;border-radius:4px;border:1px solid var(--rel-border);color:var(--rel);font:750 10px/1 var(--sans);letter-spacing:0.06em">BETA</span></button>
+          </div>
+          <sc-if value="{{ phone }}" hint-placeholder-val="{{ true }}">
+            <button aria-haspopup="dialog" aria-label="Sort and years: {{ sort }}, {{ yearLabel }}" style="flex:none;display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 12px;border-radius:12px;border:1px solid {{ fBd }};background:{{ fBg }};color:{{ fFg }};font:600 14px/1 var(--sans);white-space:nowrap"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".55"></path><circle cx="5" cy="4" r="1.9" fill="var(--raised)" stroke="currentColor" stroke-width="1.5"></circle><circle cx="11" cy="8" r="1.9" fill="var(--raised)" stroke="currentColor" stroke-width="1.5"></circle><circle cx="7" cy="12" r="1.9" fill="var(--raised)" stroke="currentColor" stroke-width="1.5"></circle></svg>{{ yearLabel }}<sc-if value="{{ sortDot }}"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:currentColor"></span></sc-if></button>
+          </sc-if>
+          <sc-if value="{{ desktop }}">
+            <button aria-haspopup="menu" style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 10px 0 12px;border-radius:10px;border:1px solid var(--border);background:var(--raised);color:var(--text);font:550 14px/1 var(--sans)">{{ sort }}<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" style="color:var(--muted)"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+            <button aria-haspopup="dialog" style="height:38px;padding:0 12px;border-radius:999px;border:1px solid {{ fBd }};background:{{ fBg }};color:{{ fFg }};font:600 14px/1 var(--sans)">{{ yearLabel }}</button>
+          </sc-if>
+        </div>
+      </div>
+    </header>
+  </sc-if>
+  <sc-if value="{{ compact }}">
+    <header style="background:var(--bg);border-bottom:1px solid var(--border);box-shadow:0 4px 16px rgba(30,15,5,.12)">
+      <div style="padding:8px 16px 4px;display:flex;flex-direction:column;gap:2px">
+        <div role="search" style="display:flex;gap:8px">
+          <div style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:46px;box-sizing:border-box;padding:0 4px 0 14px;background:var(--raised);border:1.5px solid var(--border);border-radius:12px">
+            <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" style="flex:none;color:var(--muted)"><circle cx="8.5" cy="8.5" r="6" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M13 13l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+            <span style="flex:1;min-width:0;font-size:17px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q }}</span>
+            <button aria-label="Clear search" style="flex:none;width:40px;height:40px;border-radius:8px;border:0;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></button>
+          </div>
+          <button style="flex:none;height:46px;padding:0 16px;border-radius:12px;border:0;background:var(--accent);color:var(--on-accent);font:650 16px/1 var(--sans)">Search</button>
+        </div>
+        <button aria-label="Search options" style="align-self:flex-start;display:flex;align-items:center;gap:6px;height:40px;padding:0 4px;border:0;background:none;color:var(--muted);font:600 14px/1 var(--sans);white-space:nowrap">
+          <sc-if value="{{ relMode }}"><span style="color:var(--rel)">Related</span><span style="padding:2px 4px 1px;border-radius:4px;border:1px solid var(--rel-border);color:var(--rel);font:750 10px/1 var(--sans);letter-spacing:0.06em">BETA</span></sc-if>
+          <sc-if value="{{ exactMode }}"><span>Exact</span></sc-if>
+          <span aria-hidden="true">·</span><span>{{ sort }}</span><span aria-hidden="true">·</span><span style="color:{{ yearColor }}">{{ yearLabel }}</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>
+        </button>
+      </div>
+    </header>
+  </sc-if>
+  <main style="flex:1;width:100%;max-width:760px;box-sizing:border-box;margin:0 auto;padding:{{ mainPad }};display:flex;flex-direction:column;gap:16px">
+    <sc-if value="{{ hasSummary }}">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 12px">
+        <p aria-live="polite" style="margin:0;font-size:14px;line-height:1.4;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:5px">
+          <sc-if value="{{ relMode }}"><span style="color:var(--rel);font-weight:650">Related</span><span style="padding:2px 4px 1px;border-radius:4px;border:1px solid var(--rel-border);color:var(--rel);font:750 10px/1 var(--sans);letter-spacing:0.06em">BETA</span><span aria-hidden="true">·</span></sc-if>
+          <sc-if value="{{ sumStrong }}"><strong style="color:var(--text);font-weight:700">{{ sumStrong }}</strong></sc-if>
+          <span>{{ sumRest }}</span>
+        </p>
+        <div style="display:flex;gap:14px">
+          <sc-if value="{{ relMode }}"><a href="#" style="padding:12px 0;font-size:14px;font-weight:600;color:var(--rel);text-underline-offset:3px">How this works</a></sc-if>
+          <a href="#" aria-label="Search tips" style="display:inline-flex;align-items:center;gap:6px;padding:12px 0;font-size:14px;font-weight:600;color:var(--accent);text-underline-offset:3px">Tips<span aria-hidden="true" style="width:18px;height:18px;border-radius:999px;border:1.5px solid currentColor;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;text-decoration:none;box-sizing:border-box">?</span></a>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ start }}">
+      <section style="padding:{{ startPad }};display:flex;flex-direction:column;gap:24px">
+        <h1 style="margin:0;font-family:var(--serif);font-size:{{ h1 }};font-weight:600;line-height:1.15;letter-spacing:-0.01em;color:var(--text);white-space:nowrap">Find the moment it was said.</h1>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;font-weight:650;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted)">Try</span>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;border-bottom:1px solid var(--border)">
+            <sc-for list="{{ examples }}" as="ex" hint-placeholder-count="3">
+              <li style="border-top:1px solid var(--border)"><a href="#" style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0 2px;color:var(--text);font-size:17px;text-decoration:none"><span>{{ ex }}</span><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;color:var(--accent)"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></a></li>
+            </sc-for>
+          </ul>
+        </div>
+        <p style="margin:0;font-size:14px;color:var(--muted)">37 episodes indexed through Oct 7, 2026</p>
+      </section>
+    </sc-if>
+    <sc-if value="{{ none }}">
+      <section style="padding:12px 0 0;display:flex;flex-direction:column;gap:14px">
+        <h2 style="margin:0;font-family:var(--serif);font-size:28px;font-weight:600;color:var(--text)">Nothing found.</h2>
+        <p style="margin:0;font-size:16px;line-height:1.45;color:var(--muted)">No passage has those exact words.</p>
+        <a href="#" style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 16px;border-radius:12px;background:var(--rel-bg);border:1px solid var(--rel-border);color:var(--rel);font-size:16px;font-weight:650;text-decoration:none"><span aria-hidden="true" style="font-size:18px">≈</span>See related passages<span style="padding:2px 4px 1px;border-radius:4px;border:1px solid var(--rel-border);font:750 10px/1 var(--sans);letter-spacing:0.06em">BETA</span></a>
+        <p style="margin:0;font-size:15px;line-height:1.45;color:var(--muted)">Or use fewer words, or check the spelling.</p>
+      </section>
+    </sc-if>
+    <sc-if value="{{ hasTitles }}">
+      <section aria-label="Episodes" style="display:flex;flex-direction:column">
+        <span style="padding-bottom:6px;font-size:13px;font-weight:650;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted)">Episodes</span>
+        <sc-for list="{{ titles }}" as="t" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--border)">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums"><span style="color:var(--accent);font-weight:700">{{ t.label }}</span><span aria-hidden="true">·</span><span>{{ t.date }}</span></div>
+              <a href="#" style="font-size:16px;font-weight:650;line-height:1.3;color:var(--text);text-decoration:none;text-wrap:pretty"><sc-for list="{{ t.segs }}" as="s"><sc-if value="{{ s.m }}"><mark style="background:var(--mark-bg);color:var(--mark-text);border-radius:3px;padding:0 2px">{{ s.t }}</mark></sc-if><sc-if value="{{ s.u }}">{{ s.t }}</sc-if></sc-for></a>
+            </div>
+            <a href="#" aria-label="Search this episode" title="Search this episode" style="flex:none;width:44px;height:44px;border-radius:10px;border:1px solid var(--border);background:var(--raised);color:var(--accent);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M13 13l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></a>
+          </div>
+        </sc-for>
+      </section>
+    </sc-if>
+    <sc-if value="{{ hasGroups }}">
+      <ol aria-label="Results" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:22px">
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+          <li style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:3px;padding:0 2px">
+              <div style="display:flex;align-items:center;gap:6px;min-height:22px;font-size:13px;line-height:1.3;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap">
+                <span style="color:var(--accent);font-weight:700">{{ g.label }}</span>
+                <span aria-hidden="true">·</span><span>{{ g.date }}</span>
+                <sc-if value="{{ g.multi }}"><span aria-hidden="true">·</span><span>{{ g.count }} matches</span></sc-if>
+              </div>
+              <h3 style="margin:0;font-size:17px;font-weight:650;line-height:1.3;color:var(--text);text-wrap:pretty;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden">{{ g.title }}</h3>
+            </div>
+            <div style="background:{{ g.cardBg }};border:1px solid {{ g.cardBd }};border-radius:14px;box-shadow:{{ g.shadow }};display:flex;flex-direction:column">
+              <sc-for list="{{ g.hits }}" as="h" hint-placeholder-count="1">
+                <div style="padding:{{ h.pad }};border-top:{{ h.rule }};display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <a href="#" aria-label="Play at {{ h.ts }}" style="display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;border-radius:8px;background:{{ g.chipBg }};color:{{ g.chipFg }};font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;text-decoration:none"><svg width="10" height="10" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9.5-5.5z" fill="currentColor"></path></svg>{{ h.ts }}</a>
+                    <button aria-label="More actions" aria-haspopup="menu" style="width:44px;height:44px;margin-right:-10px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:20px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center">⋯</button>
+                  </div>
+                  <p title="Show full passage" style="margin:0;font-family:var(--serif);font-size:17px;line-height:1.55;color:var(--text);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;text-wrap:pretty;cursor:pointer"><sc-for list="{{ h.segs }}" as="s"><sc-if value="{{ s.m }}"><mark style="background:var(--mark-bg);color:var(--mark-text);border-radius:3px;padding:0 2px">{{ s.t }}</mark></sc-if><sc-if value="{{ s.u }}">{{ s.t }}</sc-if></sc-for></p>
+                  <sc-if value="{{ h.nearby }}"><button aria-expanded="false" style="align-self:flex-start;min-height:36px;padding:0;border:0;background:none;color:{{ g.chipFg }};font:600 14px/1 var(--sans);text-decoration:underline;text-underline-offset:3px">+{{ h.nearby }} nearby</button></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </li>
+        </sc-for>
+      </ol>
+    </sc-if>
+    <sc-if value="{{ few }}">
+      <div style="display:flex;flex-direction:column;gap:10px;padding-top:4px">
+        <p style="margin:0;font-size:15px;line-height:1.45;color:var(--text)"><strong style="font-weight:700">Only 3 exact matches.</strong> <span style="color:var(--muted)">Related passages match the meaning, not just the words.</span></p>
+        <a href="#" style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 16px;border-radius:12px;background:var(--rel-bg);border:1px solid var(--rel-border);color:var(--rel);font-size:16px;font-weight:650;text-decoration:none"><span aria-hidden="true" style="font-size:18px">≈</span>See related passages<span style="padding:2px 4px 1px;border-radius:4px;border:1px solid var(--rel-border);font:750 10px/1 var(--sans);letter-spacing:0.06em">BETA</span></a>
+      </div>
+    </sc-if>
+    <sc-if value="{{ pager }}">
+      <nav aria-label="Pages" style="display:flex;justify-content:center;gap:8px;padding:4px 0">
+        <button disabled="{{ true }}" style="min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--skel);background:var(--skel);color:var(--muted);font:600 15px/1 var(--sans)">← Previous</button>
+        <button style="min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--border);background:var(--raised);color:var(--text);font:600 15px/1 var(--sans)">Next →</button>
+      </nav>
+    </sc-if>
+  </main>
+  <footer style="border-top:1px solid var(--border);margin-top:24px">
+    <div style="max-width:760px;box-sizing:border-box;margin:0 auto;padding:18px 16px 28px;display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.5;color:var(--muted)">
+      <p style="margin:0"><strong style="color:var(--text);font-weight:650">Unofficial</strong> · made with the hosts' blessing</p>
+      <nav style="display:flex;flex-wrap:wrap;gap:0 16px">
+        <a href="#" style="color:var(--accent);padding:6px 0">Wood Talk on YouTube</a>
+        <a href="#" style="color:var(--accent);padding:6px 0">Podcast</a>
+        <a href="#" style="color:var(--accent);padding:6px 0">Website</a>
+        <a href="#" style="color:var(--accent);padding:6px 0">Send feedback</a>
+      </nav>
+      <p style="margin:0">Searches are logged anonymously to improve results.</p>
+    </div>
+  </footer>
+  <sc-if value="{{ sheet }}">
+    <div style="position:absolute;inset:0;background:rgba(15,8,3,.5);display:flex;flex-direction:column;justify-content:flex-end">
+      <div role="dialog" aria-label="Sort and years" style="background:var(--raised);border-radius:20px 20px 0 0;padding:8px 16px 28px;display:flex;flex-direction:column;gap:18px;box-shadow:0 -8px 30px rgba(0,0,0,.25)">
+        <span aria-hidden="true" style="align-self:center;width:36px;height:5px;border-radius:999px;background:var(--border)"></span>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--text)">Sort &amp; years</h2>
+          <button style="min-height:44px;padding:0 4px;border:0;background:none;color:var(--accent);font:650 16px/1 var(--sans)">Done</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;font-weight:650;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted)">Sort</span>
+          <div role="radiogroup" aria-label="Sort" style="display:flex;padding:3px;gap:2px;height:44px;box-sizing:border-box;border-radius:12px;background:var(--skel)">
+            <button role="radio" aria-checked="true" style="flex:1;border:0;border-radius:9px;background:var(--bg);box-shadow:0 1px 2px rgba(40,20,5,.18);color:var(--text);font:650 15px/1 var(--sans)">Relevance</button>
+            <button role="radio" aria-checked="false" style="flex:1;border:0;border-radius:9px;background:transparent;color:var(--muted);font:650 15px/1 var(--sans)">Newest</button>
+            <button role="radio" aria-checked="false" style="flex:1;border:0;border-radius:9px;background:transparent;color:var(--muted);font:650 15px/1 var(--sans)">Oldest</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:650;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted)">Years</span><button style="padding:4px 0;border:0;background:none;color:var(--accent);font:600 14px/1 var(--sans);text-decoration:underline;text-underline-offset:3px">Any year</button></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="flex:1;display:flex;justify-content:space-between;align-items:center;height:48px;padding:0 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);font-size:17px;font-weight:550;color:var(--text)">2015<span style="font-size:11px;color:var(--muted)">▾</span></span>
+            <span style="color:var(--muted)">–</span>
+            <span style="flex:1;display:flex;justify-content:space-between;align-items:center;height:48px;padding:0 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);font-size:17px;font-weight:550;color:var(--text)">2020<span style="font-size:11px;color:var(--muted)">▾</span></span>
+          </div>
+        </div>
+        <button style="height:50px;border-radius:12px;border:0;background:var(--accent);color:var(--on-accent);font:650 16px/1 var(--sans)">Show results</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;s&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;start&quot;,&quot;exact&quot;,&quot;related&quot;,&quot;none&quot;,&quot;few&quot;,&quot;years&quot;,&quot;sheet&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;related&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;desktop&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const seg = (a) => (a || []).map(s => typeof s === 'string' ? { t: s, u: true } : { t: s.m, m: true });
+const G = (label, title, date, hits, related) => ({ label, title, date, hits, related: !!related });
+const h = (ts, segs, nearby) => ({ ts, segs, nearby: nearby || 0 });
+const E606 = G('Ep. 606', 'It\'s Tiny But It\'s Better Than Nothing', 'May 6, 2026', [
+  h('51:30', ['… he\'d take his hollow chisel mortiser, cut the pocket, and then ', { m: 'glue' }, ' the male of that cutout under it so it couldn\'t rack…'], 2),
+  h('1:04:12', ['Squeeze-out is your friend there. If you don\'t see ', { m: 'glue' }, ' along the whole line, you didn\'t put enough on.'])
+]);
+const E612 = G('Ep. 612', 'Dovetails, Glue and Bandsaw Tuning', 'Mar 12, 2024', [h('20:28', ['Honestly, a hand-cut dovetail is overrated if you\'re going to fill the gaps with ', { m: 'glue' }, ' and sawdust anyway.'], 2)]);
+const E598 = G('Ep. 598', 'Road Trip Special', 'Aug 2, 2023', [h('1:02:05', ['… the jig broke halfway there, so we cut the joints by hand and let the ', { m: 'glue' }, ' do the rest.'])]);
+const B_TOUR = G('Bonus', 'Shop Tour', 'Nov 5, 2022', [h('0:07', ['Over here is the ', { m: 'glue' }, ' station — three kinds of yellow and one pot of hide that nobody\'s allowed to touch.'])]);
+const E590 = G('Ep. 590', 'Hide Glue, Again', 'May 30, 2023', [h('35:10', [{ m: 'Hide' }, ' ', { m: 'glue' }, ' gives you more open time if you keep the pot warm, but Titebond is easier.'], 1)]);
+const R404 = G('Ep. 404', 'Restoring a Chair', 'Feb 12, 2020', [h('25:00', ['Warm the pot to about 140 degrees and it stays workable for twenty minutes, plenty for a chair.'])], true);
+const R379 = G('Ep. 379', 'Pooping in the Slop Sink', 'May 1, 2017', [h('34:22', ['… I\'m trying to get the joint to stay put while it sets, three-eighths tenons in three-quarter stock…'])], true);
+const RBON = G('Bonus', 'Listener Questions Extra', 'Sep 21, 2016', [h('1:01', ['Fish ', { m: 'glue' }, ' never gels, so you can use it straight from the bottle on the bench.'])], true);
+const E614 = G('Ep. 614', 'It\'s Too Long and Bendy', 'Sep 1, 2026', [h('46:58', ['… like, you have to use heat and a putty knife to take this stuff apart, it\'s not coming loose otherwise.'], 1)], true);
+
+class Component extends DCLogic {
+  renderVals() {
+    const S = this.props.s || 'related';
+    const desktop = !!this.props.desktop;
+    const phone = !desktop;
+    let c = { q: 'glue', mode: 'exact', sort: 'Relevance', years: '', body: 'results', sum: ['57 matches', ' · page 1 of 3'], groups: [], titles: [], pager: true };
+    switch (S) {
+      case 'start': c = { q: '', mode: 'exact', sort: 'Relevance', years: '', body: 'start' }; break;
+      case 'exact':
+        c.titles = [{ label: 'Bonus', date: 'Mar 3, 2021', segs: [{ m: 'Glue' }, ' Questions'] }, { label: 'Ep. 590', date: 'May 30, 2023', segs: ['Hide ', { m: 'Glue' }, ', Again'] }];
+        c.groups = [E606, E598, E612, B_TOUR]; break;
+      case 'related': c = Object.assign(c, { mode: 'related', sum: ['', 'top results 1–20'], groups: [R404, RBON, R379, E614] }); break;
+      case 'none': c = Object.assign(c, { q: 'kregger jig', sum: ['0 matches', ''], body: 'none', pager: false }); break;
+      case 'few': c = Object.assign(c, { q: 'fish glue', sum: ['3 matches', ''], groups: [E612, E598, B_TOUR], few: true, pager: false }); break;
+      case 'sheet': c = Object.assign(c, { q: 'glue year:2015-2020', years: '2015–2020', sum: ['21 matches', ' · page 1 of 2'], groups: [E598, B_TOUR], sheet: true }); break;
+      case 'years': c = Object.assign(c, { q: 'glue year:2015-2020', years: '2015–2020', sort: 'Newest', sum: ['21 matches', ' · newest first'], groups: [E598, B_TOUR] }); break;
+      case 'compact': c = Object.assign(c, { q: 'glue year:2015-2020', mode: 'related', years: '2015–2020', sort: 'Newest', compact: true, sum: null, groups: [E614, R404, RBON] }); break;
+    }
+    const rel = c.mode === 'related';
+    const on = (a) => ({ bg: a ? 'var(--bg)' : 'transparent', sh: a ? '0 1px 2px rgba(40,20,5,.18)' : 'none', fg: a ? 'var(--text)' : 'var(--muted)' });
+    const ex = on(!rel), re = on(rel);
+    const ySet = !!c.years;
+    const groups = (c.groups || []).map(g => Object.assign({}, g, { related: rel })).map(g => ({
+      label: g.label, title: g.title, date: g.date, related: g.related,
+      multi: g.hits.length > 1, count: g.hits.length,
+      cardBg: g.related ? 'var(--rel-bg)' : 'var(--surface)',
+      cardBd: g.related ? 'var(--rel-border)' : 'var(--border)',
+      shadow: g.related ? 'none' : 'var(--shadow)',
+      chipBg: g.related ? 'var(--rel-tint)' : 'var(--tint)',
+      chipFg: g.related ? 'var(--rel)' : 'var(--accent)',
+      hits: g.hits.map((x, i) => ({ ts: x.ts, segs: seg(x.segs), nearby: x.nearby, pad: i ? '12px 14px 14px' : '12px 14px 14px', rule: i ? '1px solid ' + (g.related ? 'var(--rel-border)' : 'var(--border)') : '0' }))
+    }));
+    return {
+      minH: desktop ? '760px' : '844px', maxH: c.sheet ? '844px' : 'none',
+      full: !c.compact, compact: !!c.compact, phone, desktop,
+      hPad: desktop ? '20px 24px 16px' : '14px 16px 12px', brandSize: desktop ? '19px' : '17px',
+      mainPad: desktop ? '8px 24px 8px' : '6px 16px 8px',
+      q: c.q, hasQ: !!c.q, noQ: !c.q,
+      segFlex: phone ? '1' : 'none', segW: phone ? 'auto' : '280px',
+      exactStr: String(!rel), relStr: String(rel),
+      exBg: ex.bg, exSh: ex.sh, exFg: ex.fg, reBg: re.bg, reSh: re.sh, reFg: re.fg,
+      sort: c.sort, yearLabel: c.years || 'Any year', sortDot: c.sort !== 'Relevance',
+      fBg: ySet ? 'var(--tint)' : 'var(--raised)', fBd: ySet ? 'color-mix(in oklch, var(--accent) 45%, transparent)' : 'var(--border)', fFg: ySet ? 'var(--accent)' : 'var(--text)',
+      yearColor: ySet ? 'var(--accent)' : 'var(--muted)',
+      relMode: rel, exactMode: !rel,
+      hasSummary: !!c.sum && c.body !== 'start', sumStrong: c.sum ? c.sum[0] : '', sumRest: c.sum ? c.sum[1] : '',
+      start: c.body === 'start', none: c.body === 'none',
+      startPad: desktop ? '40px 0 8px' : '22px 0 4px', h1: desktop ? '36px' : '24px',
+      examples: ['hide glue', 'split-top Roubo', 'sharpening a card scraper'],
+      hasTitles: !!(c.titles && c.titles.length), titles: (c.titles || []).map(t => Object.assign({}, t, { segs: seg(t.segs) })),
+      hasGroups: groups.length > 0, groups,
+      few: !!c.few, pager: !!c.pager && c.body === 'results', sheet: !!c.sheet
+    };
+  }
+}
+</script>
+</body>
+</html>

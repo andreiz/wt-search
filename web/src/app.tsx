@@ -31,6 +31,8 @@ import { SearchBar } from "./components/SearchBar";
 import { Skeleton } from "./components/Skeleton";
 import { SortMenu, sortLabel } from "./components/SortMenu";
 import { Summary } from "./components/Summary";
+import { SortYearsButton } from "./components/SortYearsButton";
+import { SortYearsSheet } from "./components/SortYearsSheet";
 import { SyntaxHelp } from "./components/SyntaxHelp";
 import { TitleHits } from "./components/TitleHits";
 import { YearRange } from "./components/YearRange";
@@ -38,8 +40,8 @@ import { nextCompact } from "./lib/compact";
 import { setEpisode } from "./lib/episode";
 import { count } from "./lib/format";
 import { handleKeydown } from "./lib/keys";
-import { normalizeQuery } from "./lib/url";
-import { clearRange, effectiveRange, rangeLabel, setRange } from "./lib/years";
+import { normalizeQuery, type SortOrder } from "./lib/url";
+import { clearRange, effectiveRange, rangeLabel, setRange, type YearRange as Range } from "./lib/years";
 import { useCountdown } from "./use-countdown";
 import { FormSiteContext, type FormSite } from "./use-forms";
 import { useInfo } from "./use-info";
@@ -140,12 +142,19 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
     ask: () => setFormOpened(true),
   };
 
-  // The box shows what is searched: no emoji, no stray spaces.
-  function searchFor(raw: string) {
+  // The box shows what is searched: no emoji, no stray spaces. With `sort`, the same search
+  // changes it (the Sort & years sheet).
+  function searchFor(raw: string, sort?: SortOrder) {
     if (waiting > 0) return;
     const q = normalizeQuery(raw);
     setText(q);
-    submit(q);
+    submit(q, sort);
+  }
+
+  // "Tips ?": an example goes in the box, which takes the focus; nothing is searched.
+  function pickTip(example: string) {
+    setText(example);
+    inputRef.current?.focus();
   }
 
   // "Search this episode" in the Episodes row: `ep:N` alone in the box, the cursor at its end.
@@ -165,6 +174,23 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
 
   const thisYear = new Date().getFullYear();
   const range = effectiveRange(state.q, thisYear);
+
+  // The phone's Sort & years sheet. It applies sort and years in one search, and only when
+  // something changed; closing returns focus to its button.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const sheetButtonRef = useRef<HTMLButtonElement>(null);
+  function closeSheet() {
+    setSheetOpen(false);
+    sheetButtonRef.current?.focus();
+  }
+  function applySheet(sort: SortOrder, next: Range | null) {
+    const same = next === null ? range === null : range !== null && range.from === next.from && range.to === next.to;
+    if (sort === state.sort && same) return;
+    const q = next ? setRange(text, next.from, next.to) : clearRange(text);
+    // With nothing to search, a new sort is only remembered for the next search.
+    if (q === "" && state.q === "") setSort(sort);
+    else searchFor(q, sort !== state.sort ? sort : undefined);
+  }
 
   // An older cached answer may lack `episodes`.
   const titleHits = view.kind === "ok" && view.data.page === 1 ? (view.data.episodes ?? []) : [];
@@ -214,20 +240,25 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
           </div>
           <div class="controls" id="search-controls">
             <ModeSwitch mode={state.mode} onChange={setMode} />
-            <SortMenu sort={state.sort} onChange={setSort} />
-            <YearRange
-              range={range}
-              thisYear={thisYear}
-              onApply={(from, to) => searchFor(setRange(text, from, to))}
-              onClear={() => searchFor(clearRange(text))}
-            />
-            <span class="controls__spacer" />
-            <SyntaxHelp
-              onPick={(example) => {
-                setText(example);
-                inputRef.current?.focus();
-              }}
-            />
+            {/* Both sets are in the DOM; CSS shows the desktop pair, or the phone's one button. */}
+            <div class="controls__desktop">
+              <SortMenu sort={state.sort} onChange={setSort} />
+              <YearRange
+                range={range}
+                thisYear={thisYear}
+                onApply={(from, to) => searchFor(setRange(text, from, to))}
+                onClear={() => searchFor(clearRange(text))}
+              />
+            </div>
+            <div class="controls__phone">
+              <SortYearsButton
+                sort={state.sort}
+                range={range}
+                open={sheetOpen}
+                onOpen={() => setSheetOpen(true)}
+                buttonRef={sheetButtonRef}
+              />
+            </div>
           </div>
         </div>
         {/* A toggle for the controls, on a scrolled phone page, in both states. It hangs below the header and adds no height. */}
@@ -255,6 +286,8 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
           {view.kind === "ok" && view.data.mode === "related" && view.data.results.length > 0 && (
             <HowItWorks onSwitchToExact={switchToExact} />
           )}
+          {/* Before any search the start page's TRY label carries it instead. */}
+          {searching && <SyntaxHelp onPick={pickTip} />}
         </div>
         {searching ? (
           <>
@@ -339,10 +372,11 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
             {relatedEnd && <p class="end-note">That's the end of the related passages.</p>}
           </>
         ) : (
-          <EmptyState info={info} onPick={searchFor} />
+          <EmptyState info={info} onPick={searchFor} onTip={pickTip} />
         )}
       </main>
       <Footer feedback />
+      {sheetOpen && <SortYearsSheet sort={state.sort} range={range} thisYear={thisYear} onApply={applySheet} onClose={closeSheet} />}
     </div>
     </FormSiteContext.Provider>
   );

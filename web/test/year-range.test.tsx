@@ -175,7 +175,7 @@ describe("<YearRange/>", () => {
 describe("<SyntaxHelp/>", () => {
   it("a '?' button that opens the syntax table, with the year range row and no include:ads", () => {
     render(<SyntaxHelp onPick={() => {}} />);
-    const button = screen.getByRole("button", { name: "Search syntax help" });
+    const button = screen.getByRole("button", { name: "Search tips" });
     expect(button.getAttribute("aria-expanded")).toBe("false");
     expect(button.getAttribute("aria-haspopup")).toBe("dialog");
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -206,7 +206,7 @@ describe("<SyntaxHelp/>", () => {
 
   it("the '?' points at its dialog with aria-controls", () => {
     render(<SyntaxHelp onPick={() => {}} />);
-    const button = screen.getByRole("button", { name: "Search syntax help" });
+    const button = screen.getByRole("button", { name: "Search tips" });
     fireEvent.click(button);
     const id = button.getAttribute("aria-controls");
     expect(id).toBeTruthy();
@@ -216,7 +216,7 @@ describe("<SyntaxHelp/>", () => {
   it("an example goes to the box: reported, and the dialog closes", () => {
     const onPick = vi.fn();
     render(<SyntaxHelp onPick={onPick} />);
-    fireEvent.click(screen.getByRole("button", { name: "Search syntax help" }));
+    fireEvent.click(screen.getByRole("button", { name: "Search tips" }));
     fireEvent.click(screen.getByRole("button", { name: "year:2015-2020" }));
     expect(onPick).toHaveBeenCalledWith("year:2015-2020");
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -224,7 +224,7 @@ describe("<SyntaxHelp/>", () => {
 
   it("Esc closes it and returns focus to the '?'; so does a press outside", () => {
     render(<SyntaxHelp onPick={() => {}} />);
-    const button = screen.getByRole("button", { name: "Search syntax help" });
+    const button = screen.getByRole("button", { name: "Search tips" });
     fireEvent.click(button);
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -236,7 +236,7 @@ describe("<SyntaxHelp/>", () => {
 
   it("the '?' toggles it, and focus moves into the dialog on opening", () => {
     render(<SyntaxHelp onPick={() => {}} />);
-    const button = screen.getByRole("button", { name: "Search syntax help" });
+    const button = screen.getByRole("button", { name: "Search tips" });
     fireEvent.click(button);
     expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
     fireEvent.click(button);
@@ -350,7 +350,7 @@ describe("in <App/>", () => {
   it("a syntax example lands in the box and the box has focus, with no search", async () => {
     const calls = stubFetch();
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Search syntax help" }));
+    fireEvent.click(screen.getByRole("button", { name: "Search tips" }));
     fireEvent.click(screen.getByRole("button", { name: "year:2015-2020" }));
     await waitFor(() => expect(box().value).toBe("year:2015-2020"));
     expect(document.activeElement).toBe(box());

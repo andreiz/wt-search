@@ -3,6 +3,7 @@
 // and "Nothing found." with what to try.
 import type { InfoResponse } from "../lib/api";
 import { count, episodeDate } from "../lib/format";
+import { SyntaxHelp } from "./SyntaxHelp";
 
 const EXAMPLES = ["hide glue", "split-top Roubo", "how do I sharpen a card scraper"];
 
@@ -13,12 +14,25 @@ function indexed(info: InfoResponse): string {
 }
 
 /** `info` is null while /api/info is loading and when it failed: the line is then left out. */
-export function EmptyState({ info, onPick }: { info: InfoResponse | null; onPick: (example: string) => void }) {
+export function EmptyState({
+  info,
+  onPick,
+  onTip,
+}: {
+  info: InfoResponse | null;
+  onPick: (example: string) => void;
+  /** A syntax example picked from "Tips ?": it goes in the box. */
+  onTip: (example: string) => void;
+}) {
   return (
     <section class="empty">
       <h1 class="empty__title">Find the moment it was said.</h1>
       <div class="empty__try">
-        <span class="empty__label">Try</span>
+        {/* No summary line yet, so "Tips ?" sits at the right of the label (Task 3 restyles the rest). */}
+        <div class="empty__try-head">
+          <span class="empty__label">Try</span>
+          <SyntaxHelp onPick={onTip} />
+        </div>
         <div class="empty__chips">
           {EXAMPLES.map((example) => (
             <button key={example} type="button" class="chip" onClick={() => onPick(example)}>

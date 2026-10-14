@@ -1,5 +1,7 @@
-// The `?` button and the syntax table it opens (SearchHeader.dc.html; spec §5.2; brief §5). Each
-// example is a button that puts the example in the search box; nothing is searched until Enter.
+// The "Tips ?" button and the syntax table it opens (ROUND-2-phone.md "Summary line"; spec §5.2;
+// brief §5). It sits in the summary row, or beside the start page's TRY label; the dialog hangs
+// from that row. Each example is a button that puts the example in the search box; nothing is
+// searched until Enter.
 import { useId, useLayoutEffect, useRef } from "preact/hooks";
 import { usePopover } from "../lib/use-popover";
 
@@ -30,15 +32,18 @@ export function SyntaxHelp({ onPick }: { onPick: (example: string) => void }) {
     <div class="syntax-help" ref={root} onKeyDown={onKeyDown}>
       <button
         type="button"
-        class={`syntax-help__button${open ? " syntax-help__button--open" : ""}`}
+        class={`tips-button${open ? " tips-button--open" : ""}`}
         ref={button}
-        aria-label="Search syntax help"
+        aria-label="Search tips"
         aria-haspopup="dialog"
         aria-controls={dialogId}
         aria-expanded={open ? "true" : "false"}
         onClick={() => setOpen(!open)}
       >
-        ?
+        Tips
+        <span class="tips__circle" aria-hidden="true">
+          ?
+        </span>
       </button>
       {open && (
         <div class="popover syntax-help__dialog" id={dialogId} role="dialog" aria-label="Search syntax" tabIndex={-1} ref={dialog}>

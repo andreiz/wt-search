@@ -17,8 +17,11 @@ export type View =
 export interface SearchApi {
   state: SearchState;
   view: View;
-  /** Search for this text: page 1, a new history entry; empty text goes back to the bare path. */
-  submit(q: string): void;
+  /**
+   * Search for this text: page 1, a new history entry; empty text goes back to the bare path. With
+   * `sort`, the same commit carries it (the Sort & years sheet: one entry, one request).
+   */
+  submit(q: string, sort?: SortOrder): void;
   setMode(mode: Mode): void;
   setSort(sort: SortOrder): void;
   goPage(page: number): void;
@@ -96,7 +99,7 @@ export function useSearch(): SearchApi {
   return {
     state,
     view,
-    submit: (q) => commit({ ...stateRef.current, q: normalizeQuery(q), page: 1 }, "push", true),
+    submit: (q, sort) => commit({ ...stateRef.current, ...(sort ? { sort } : {}), q: normalizeQuery(q), page: 1 }, "push", true),
     // With nothing searched yet there is nothing to re-run: remember the choice for the next search.
     setMode: (mode) => {
       const next = { ...stateRef.current, mode, page: 1 };

@@ -160,7 +160,7 @@ describe("mode and sort", () => {
     go("/?q=glue&page=2");
     const calls = stubFetch();
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /Sort/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Sort:/ }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: /Newest/ }));
     expect(calls).toHaveLength(2);
     expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({ q: "glue", mode: "exact", sort: "newest", page: "1" });
@@ -527,7 +527,7 @@ describe("markup rules", () => {
     expect(container.querySelectorAll("[style]").length).toBe(0);
     calls[0]!.respond(relatedBody([result(1)], { has_more: true }));
     await screen.findByRole("list", { name: "Results" });
-    fireEvent.click(screen.getByRole("button", { name: /Sort/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Sort:/ }));
     expect(container.querySelectorAll("[style]").length).toBe(0);
   });
 
@@ -582,11 +582,11 @@ describe("markup rules", () => {
 
     it("with the sort menu open, the first Esc closes the menu only, the second the controls", () => {
       const button = open();
-      fireEvent.click(screen.getByRole("button", { name: /Sort/ }));
+      fireEvent.click(screen.getByRole("button", { name: /^Sort:/ }));
       fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
       expect(screen.queryByRole("menu")).toBeNull();
       expect(button.getAttribute("aria-expanded")).toBe("true");
-      fireEvent.keyDown(screen.getByRole("button", { name: /Sort/ }), { key: "Escape" });
+      fireEvent.keyDown(screen.getByRole("button", { name: /^Sort:/ }), { key: "Escape" });
       expect(button.getAttribute("aria-expanded")).toBe("false");
       expect(document.activeElement).toBe(button);
     });
@@ -599,5 +599,112 @@ describe("markup rules", () => {
       fireEvent.keyDown(screen.getByRole("radio", { name: "Related, beta" }), { key: "Escape" });
       expect(button.getAttribute("aria-expanded")).toBe("false");
     });
+
+    it("Esc on a select inside the Sort & years sheet closes only the sheet, not the controls", () => {
+      const toggle = open();
+      fireEvent.click(screen.getByRole("button", { name: /^Sort and years:/ }));
+      fireEvent.keyDown(screen.getByRole("combobox", { name: "From" }), { key: "Escape" });
+      expect(screen.queryByRole("dialog", { name: "Sort & years" })).toBeNull();
+      expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    });
+  });
+});
+
+describe("the Sort & years sheet (phone)", () => {
+  const phoneButton = () => screen.getByRole("button", { name: /^Sort and years:/ });
+
+  it("reads 'Any year' and has the name 'Sort and years: Best match, Any year'", () => {
+    stubFetch();
+    render(<App />);
+    expect(phoneButton().textContent).toBe("Any year");
+    expect(screen.getByRole("button", { name: "Sort and years: Best match, Any year" })).toBe(phoneButton());
+  });
+
+  it("sort and years apply in one search, one history entry, and focus returns to the button", async () => {
+    go("/?q=glue");
+    const calls = stubFetch();
+    render(<App />);
+    calls[0]!.respond(exactBody([result(1)]));
+    await screen.findByText(/Text of passage 1/);
+    const push = vi.spyOn(window.history, "pushState");
+    try {
+      fireEvent.click(phoneButton());
+      expect(phoneButton().getAttribute("aria-expanded")).toBe("true");
+      fireEvent.click(screen.getByRole("radio", { name: "Newest" }));
+      fireEvent.change(screen.getByRole("combobox", { name: "From" }), { target: { value: "2015" } });
+      fireEvent.change(screen.getByRole("combobox", { name: "To" }), { target: { value: "2020" } });
+      fireEvent.click(screen.getByRole("button", { name: "Show results" }));
+      expect(push).toHaveBeenCalledTimes(1);
+      expect(calls).toHaveLength(2);
+      expect(calls[1]!.url.searchParams.get("sort")).toBe("newest");
+      expect(calls[1]!.url.searchParams.get("q")).toBe("glue year:2015-2020");
+      expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("glue year:2015-2020");
+      expect(screen.queryByRole("dialog", { name: "Sort & years" })).toBeNull();
+      const button = screen.getByRole("button", { name: "Sort and years: Newest, 2015–2020" });
+      expect(button.classList.contains("sort-years-button--set")).toBe(true);
+      expect(button.querySelector(".sort-years-button__dot")).toBeTruthy();
+      expect(document.activeElement).toBe(button);
+      // Back returns to the state before both.
+      window.history.back();
+      await waitFor(() => expect(window.location.search).toBe("?q=glue"));
+    } finally {
+      push.mockRestore();
+    }
+  });
+
+  it("changing nothing and pressing Show results searches nothing", async () => {
+    go("/?q=glue");
+    const calls = stubFetch();
+    render(<App />);
+    calls[0]!.respond(exactBody([result(1)]));
+    await screen.findByText(/Text of passage 1/);
+    fireEvent.click(phoneButton());
+    fireEvent.click(screen.getByRole("button", { name: "Show results" }));
+    expect(calls).toHaveLength(1);
+  });
+
+  it("Esc closes the sheet without applying, and focus returns to the button", async () => {
+    go("/?q=glue");
+    const calls = stubFetch();
+    render(<App />);
+    fireEvent.click(phoneButton());
+    fireEvent.click(screen.getByRole("radio", { name: "Oldest" }));
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "Sort & years" }), { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Sort & years" })).toBeNull();
+    expect(calls).toHaveLength(1);
+    expect(document.activeElement).toBe(phoneButton());
+  });
+});
+
+describe("Tips", () => {
+  it("before any search it sits with the examples on the start page; an example fills the box and focuses it", async () => {
+    const calls = stubFetch();
+    render(<App />);
+    expect(document.querySelector(".summary-row .tips-button")).toBeNull();
+    const tips = screen.getByRole("button", { name: "Search tips" });
+    expect(tips.textContent).toBe("Tips?");
+    expect(document.querySelector(".empty")?.contains(tips)).toBe(true);
+    fireEvent.click(tips);
+    fireEvent.click(screen.getByRole("button", { name: "year:2015-2020" }));
+    await waitFor(() => expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("year:2015-2020"));
+    expect(document.activeElement).toBe(screen.getByRole("textbox"));
+    expect(calls).toHaveLength(0);
+  });
+
+  it("after a search it sits in the summary row, after 'How this works' in Related", async () => {
+    go("/?q=glue&mode=related");
+    const calls = stubFetch();
+    render(<App />);
+    calls[0]!.respond(relatedBody([result(1)]));
+    await screen.findByText(/Text of passage 1/);
+    const row = document.querySelector(".summary-row")!;
+    const tips = screen.getByRole("button", { name: "Search tips" });
+    expect(row.contains(tips)).toBe(true);
+    const how = screen.getByRole("button", { name: "How this works" });
+    expect(how.compareDocumentPosition(tips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(tips);
+    fireEvent.click(screen.getByRole("button", { name: "hide glue" }));
+    expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("hide glue");
+    expect(document.activeElement).toBe(screen.getByRole("textbox"));
   });
 });

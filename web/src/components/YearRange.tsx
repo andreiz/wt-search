@@ -16,7 +16,7 @@ export interface YearRangeProps {
 }
 
 /** A `<select>` of years. The value is set after the options exist: set before them it is lost. */
-function YearSelect({ id, years, value, onChange }: { id: string; years: number[]; value: number; onChange: (year: number) => void }) {
+export function YearSelect({ id, years, value, onChange }: { id: string; years: number[]; value: number; onChange: (year: number) => void }) {
   const select = useRef<HTMLSelectElement>(null);
   useLayoutEffect(() => {
     if (select.current) select.current.value = String(value);

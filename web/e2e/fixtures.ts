@@ -203,6 +203,12 @@ const degraded = (reason: "unavailable" | "budget" | "off"): State => ({
   },
 });
 
+const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 600;
+async function openSheet(page: Page) {
+  await page.getByRole("button", { name: /^Sort and years:/ }).click();
+  await expect(page.getByRole("dialog", { name: "Sort & years" })).toBeVisible();
+}
+
 /** A results page with one of its menus or popovers opened by `open`. */
 const popup = (name: string, open: (page: Page) => Promise<void>): State => ({
   name,
@@ -276,7 +282,10 @@ export const STATES: State[] = [
     },
     ready: async (page) => {
       await results(page);
-      await expect(page.getByRole("button", { name: /^Year range: 2015–2020/ })).toBeVisible();
+      // A phone shows the one Sort & years button, a desktop the year chip.
+      await expect(
+        page.getByRole("button", { name: /^(Year range: |Sort and years: .*, )2015–2020/ }).locator("visible=true"),
+      ).toBeVisible();
     },
   },
   {
@@ -400,16 +409,19 @@ export const STATES: State[] = [
     await page.getByRole("button", { name: "More actions" }).first().click();
     await expect(page.getByRole("menu")).toBeVisible();
   }),
+  // Below 600 px the sort menu and the year chip give way to the Sort & years sheet.
   popup("sort menu open", async (page) => {
+    if (isPhone(page)) return openSheet(page);
     await page.getByRole("button", { name: "Sort: Best match" }).click();
     await expect(page.getByRole("menu", { name: "Sort by" })).toBeVisible();
   }),
   popup("year range open", async (page) => {
+    if (isPhone(page)) return openSheet(page);
     await page.getByRole("button", { name: "Year range: Any year" }).click();
     await expect(page.getByRole("dialog", { name: "Year range" })).toBeVisible();
   }),
   popup("search syntax help open", async (page) => {
-    await page.getByRole("button", { name: "Search syntax help" }).click();
+    await page.getByRole("button", { name: "Search tips" }).click();
     await expect(page.getByRole("dialog", { name: "Search syntax" })).toBeVisible();
   }),
   popup("How this works open", async (page) => {

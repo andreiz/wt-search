@@ -92,7 +92,7 @@ test("the year chip writes year:A-B into the box and the URL, and × takes it ou
 test("a syntax example lands in the box without a search", async ({ page }) => {
   const { queries, problems } = await setUp(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "Search syntax help" }).click();
+  await page.getByRole("button", { name: "Search tips" }).click();
   const dialog = page.getByRole("dialog", { name: "Search syntax" });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "year:2015-2020" }).click();
@@ -109,10 +109,10 @@ test("a syntax example lands in the box without a search", async ({ page }) => {
   expect(queries).toEqual(["year:2015-2020"]);
 
   // Esc closes the help and returns to the "?".
-  await page.getByRole("button", { name: "Search syntax help" }).click();
+  await page.getByRole("button", { name: "Search tips" }).click();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole("button", { name: "Search syntax help" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Search tips" })).toBeFocused();
 
   expect(await csp(page)).toEqual([]);
   expect(problems).toEqual([]);
@@ -121,7 +121,7 @@ test("a syntax example lands in the box without a search", async ({ page }) => {
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 390, height: 800 } });
 
-  test("both dialogs stay inside the screen", async ({ page }) => {
+  test("the Sort & years sheet and the Tips dialog stay inside the screen", async ({ page }) => {
     await setUp(page);
     await page.goto("/?q=glue");
     await expect(page.getByText("A passage about glue.")).toBeVisible();
@@ -132,11 +132,11 @@ test.describe("on a phone", () => {
       expect(box!.x + box!.width).toBeLessThanOrEqual(390);
     };
 
-    await page.getByRole("button", { name: "Year range: Any year" }).click();
-    await inside("Year range");
+    await page.getByRole("button", { name: "Sort and years: Best match, Any year" }).click();
+    await inside("Sort & years");
     await page.keyboard.press("Escape");
 
-    await page.getByRole("button", { name: "Search syntax help" }).click();
+    await page.getByRole("button", { name: "Search tips" }).click();
     await inside("Search syntax");
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });

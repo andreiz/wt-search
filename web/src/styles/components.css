@@ -135,8 +135,15 @@
   gap: 8px;
 }
 
-.controls__spacer {
-  flex: 1;
+/* Desktop: the sort menu and the year chip. Phones: the one Sort & years button (below 600 px). */
+.controls__desktop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controls__phone {
+  display: none;
 }
 
 .mode-switch {
@@ -436,27 +443,41 @@
   position: static; /* its dialog hangs from the controls row, at the right edge */
 }
 
-.syntax-help__button {
-  width: var(--ctl-h);
-  height: var(--ctl-h);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  background: var(--raised);
-  color: var(--text);
+/* "Tips ?": a 14px/600 link and an 18px outlined circle, 44px tall to tap (ROUND-2-phone.md "Summary line"). */
+.tips-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
   font: inherit;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: border-color var(--dur-fast) var(--ease);
 }
 
-.syntax-help__button:hover {
-  border-color: var(--muted);
+.tips-button:hover {
+  color: var(--accent-hover);
 }
 
-.syntax-help__button--open {
+.tips__circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tips-button--open .tips__circle {
   background: var(--tint);
-  border-color: var(--accent);
 }
 
 .syntax-help__dialog {
@@ -537,6 +558,200 @@
   font-size: 14px;
   font-weight: 550;
   cursor: pointer;
+}
+
+/* ---- Phone: the Sort & years button and sheet (ROUND-2-phone.md §1) ---- */
+.sort-years-button {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 7px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sort-years-button--set {
+  background: var(--tint);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent);
+}
+
+.sort-years-button circle {
+  fill: var(--surface);
+}
+
+.sort-years-button--set circle {
+  fill: var(--tint);
+}
+
+.sort-years-button__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Above the pinned header (z-index 5). */
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(15, 8, 3, 0.5);
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 8px 16px calc(28px + env(safe-area-inset-bottom, 0px));
+  border-radius: 20px 20px 0 0;
+  background: var(--raised);
+  animation: sheet-up var(--dur-med) var(--ease);
+}
+
+.sheet:focus {
+  outline: none; /* focus lands on the sheet only to keep Esc and Tab inside it */
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.sheet__grabber {
+  align-self: center;
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.sheet__title-row,
+.sheet__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sheet__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sheet__done,
+.sheet__any {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sheet__any {
+  min-height: 32px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sheet__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheet__label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Styled like the mode switch: a track of 44 px with 38 px segments. */
+.sheet__sort {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--skel);
+}
+
+.sheet__sort-option {
+  flex: 1;
+  height: 38px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sheet__sort-option[aria-checked="true"] {
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgba(40, 20, 5, 0.18);
+  color: var(--text);
+}
+
+.sheet__years {
+  display: flex;
+  gap: 10px;
+}
+
+.sheet .year-field__select {
+  height: 48px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 17px;
+}
+
+.sheet__apply {
+  height: 50px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sheet__apply:hover {
+  background: var(--accent-hover);
 }
 
 /* ---- Main: summary, results, skeleton, message, pager ---- */
@@ -1556,6 +1771,13 @@ a.passage__time:hover {
   gap: 10px;
 }
 
+.empty__try-head {
+  position: relative; /* the Tips dialog hangs from the label row */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .empty__label {
   font-size: 13px;
   font-weight: 650;
@@ -1646,7 +1868,12 @@ a.passage__time:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 12px;
+  gap: 4px 14px;
+}
+
+/* The summary takes the room, so "How this works" and "Tips ?" sit at the right. */
+.summary-row > .status {
+  flex: 1;
 }
 
 /* Nothing to say yet: the row takes no room (the page's gap is taken back). */
@@ -1776,23 +2003,27 @@ a.passage__time:hover {
     padding: 0 16px;
   }
 
+  /* One line: the switch takes what the Sort & years button leaves (≈ 234 / 116 px at 358). */
+  .controls {
+    flex-wrap: nowrap;
+  }
+
+  .controls__desktop {
+    display: none;
+  }
+
+  .controls__phone {
+    display: contents;
+  }
+
   .mode-switch {
     flex: 1;
+    min-width: 0;
     width: auto;
   }
 
   .search-field__hint {
     display: none;
-  }
-
-  /* The year dialog hangs from the whole controls row (not the chip), so it fits a 390 px screen. */
-  .year-range {
-    position: static;
-  }
-
-  /* So does the sort list: with the longer "Related (beta)" the button can sit past the middle. */
-  .sort-menu {
-    position: static;
   }
 
   .syntax-help__esc {

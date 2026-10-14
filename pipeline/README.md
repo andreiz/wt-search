@@ -81,7 +81,10 @@ at most one notification a day about new reports.
 uv run wts eval run                # score staging against eval/*.yaml; exit 1 on a drop > 0.02
 uv run wts eval run --only paraphrase   # one tag or case id (no baseline comparison)
 uv run wts eval run --update       # also make this report eval/baseline.json
+uv run wts eval generate --model qwen2.5:7b   # ~100 synthetic cases (Ollama app running)
 ```
+
+`wts eval generate` takes the model from `--model` or `eval_model` in `config.toml`.
 
 The cases are in `../eval/` (see its README). A run sends about one request a second; reports go
 to `eval/reports/` (not committed).

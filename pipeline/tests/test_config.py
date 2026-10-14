@@ -80,6 +80,13 @@ def test_ntfy_url_for_a_self_hosted_server(tmp_path):
     assert load_config(f).ntfy_url == "https://ntfy.example.net/"
 
 
+def test_eval_model_for_wts_eval_generate(tmp_path):
+    assert Config().eval_model is None
+    f = tmp_path / "config.toml"
+    f.write_text('eval_model = "qwen2.5:7b"\n')
+    assert load_config(f).eval_model == "qwen2.5:7b"
+
+
 def test_missing_env_names_what_to_add(tmp_path):
     f = tmp_path / "config.toml"
     f.write_text(FULL)

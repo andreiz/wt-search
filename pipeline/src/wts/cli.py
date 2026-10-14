@@ -301,6 +301,41 @@ def eval_run_cmd(env: str | None, update: bool, only: str | None) -> None:
         raise SystemExit(1)
 
 
+@eval_group.command("generate")
+@click.option("--model", default=None, help="Ollama model [default: eval_model in config.toml].")
+@click.option("--count", type=click.IntRange(min=1), default=100, show_default=True)
+@click.option("--seed", type=int, default=1, show_default=True)
+def eval_generate_cmd(model: str | None, count: int, seed: int) -> None:
+    """Write eval/synthetic.yaml: a local model's query for each of COUNT sampled passages.
+
+    Needs the Ollama app (or `ollama serve`) running. The file is rewritten whole; check the
+    diff before committing, and drop a case by regenerating with another seed rather than by
+    hand.
+    """
+    from datetime import UTC, datetime
+
+    from wts.evalset.cases import eval_dir
+    from wts.evalset.generate import GenerateError, generate, write_synthetic
+    from wts.net import new_client
+
+    ctx = _ctx()
+    model = model or ctx.cfg.eval_model
+    if not model:
+        raise click.UsageError(f"no model: use --model or eval_model in {ctx.paths.config_file}")
+    try:
+        with new_client() as client:
+            cases, skipped = generate(ctx.conn(), client, model, count=count, seed=seed)
+    except GenerateError as exc:
+        raise click.ClickException(str(exc)) from exc
+    path = eval_dir() / "synthetic.yaml"
+    header = (f"# Written by `wts eval generate --model {model} --count {count} --seed {seed}`"
+              f" on {datetime.now(UTC).date().isoformat()}.\n"
+              "# Don't edit by hand: regenerate and review the diff.")
+    write_synthetic(cases, path, header=header)
+    click.echo(f"{len(cases)} cases written to {path}"
+               + (f"; {skipped} replies weren't usable as a query" if skipped else ""))
+
+
 @main.command("links")
 @click.argument("episode")
 @click.option("--at", "at", default=None,

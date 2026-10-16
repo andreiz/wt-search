@@ -17,7 +17,8 @@ themes. **Next: Checkpoint L** (end of the plan) on an iPhone after
   was barely visible, Design's Ebonized too grey); the Related summary is only "Top results
   1–20"; the phone button reads "Sort & years"; BETA has a blue fill; scrolled, the phone header
   drops only its brand row and keeps the controls (the summary button is gone) (spec §5.2
-  round 2).
+  round 2). The maintainer accepted this on 2026-10-16; the Related colours may
+  still be tweaked later.
 - The switch is ~222 px and the Sort & years button ~126 px with a year set (Design: 234/116).
 - No `e2e:shots` capture of the compact header (no fixture state scrolls); the e2e "phone
   header compaction" test covers its behaviour and layout.

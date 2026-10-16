@@ -15,6 +15,7 @@
     <ul id="flags" class="flags" aria-label="Quality flags" hidden></ul>
     <span class="spacer"></span>
     <button id="edit-selection" type="button" hidden>Edit selection</button>
+    <button id="add-test" type="button" title="Add a test search for this passage (t)" hidden>Add test search</button>
     <button id="reviewed" type="button" aria-pressed="false" hidden>Mark reviewed</button>
   </div>
   <div class="player">
@@ -83,6 +84,48 @@
       <button id="edit-preview-btn" type="submit">Preview</button>
       <button id="edit-save" type="button" disabled>Save</button>
       <button id="edit-cancel" type="button">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="test-dialog" aria-labelledby="test-heading">
+  <form id="test-form">
+    <h2 id="test-heading">Add a test search</h2>
+    <p id="test-where" class="where"></p>
+    <blockquote id="test-passage"></blockquote>
+    <label for="test-query">What you'd search for</label>
+    <input id="test-query" type="text"autocomplete="off" spellcheck="false">
+    <fieldset>
+      <legend>The search should</legend>
+      <label class="radio"><input type="radio" name="test-want" id="test-want-find" value="find" checked> Find this passage</label>
+      <label class="radio"><input type="radio" name="test-want" id="test-want-absent" value="absent"> Not return it</label>
+      <label class="radio"><input type="checkbox" id="test-any-time"> Anywhere in this episode</label>
+    </fieldset>
+    <div class="selects">
+      <label>Kind
+        <select id="test-tag">
+          <option value="exact">exact: words in the transcript</option>
+          <option value="jargon">jargon: a term or a name</option>
+          <option value="paraphrase">paraphrase: in other words</option>
+          <option value="filter">filter: year: and the like</option>
+          <option value="negative">negative: shouldn't come back</option>
+          <option value="collapse">collapse: grouping</option>
+        </select>
+      </label>
+      <label>Tabs
+        <select id="test-mode">
+          <option value="both">Exact, then Related</option>
+          <option value="exact">Exact only</option>
+          <option value="related">Related only</option>
+        </select>
+      </label>
+    </div>
+    <div id="test-result" aria-live="polite"></div>
+    <p id="test-error" role="alert" hidden></p>
+    <div class="buttons">
+      <button id="test-check" type="submit">Check</button>
+      <button id="test-save" type="button">Save</button>
+      <button id="test-cancel" type="button">Cancel</button>
     </div>
   </form>
 </dialog>

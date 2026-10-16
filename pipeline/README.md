@@ -61,12 +61,17 @@ with words Whisper was unsure of underlined.
 | `[` / `]` | previous or next chunk |
 | `n` | next unsure word |
 | `e` | make a correction from the selected words |
+| `t` | add a test search for the selected words (or the current passage) to `eval/queries.yaml` |
 
 A correction is a rule in `corrections.yaml`, for every episode or only this one. The page
 first lists every sentence the rule would change, in all transcripts on this Mac; it can only
 be saved after that preview. Saving edits the file (comments and order are kept) and re-chunks
 the open episode; it does not commit. Review `git diff`, commit, and run `uv run wts chunk` for
 the other episodes.
+
+A test search (`t`) takes what you'd type to find the passage, and whether search should find it
+or not return it. **Check** runs it against `run_env` and shows where the passage lands in
+Exact and Related. **Save** appends the case to `eval/queries.yaml`. Commit it like a correction.
 
 `wts reports` reads D1 through the Cloudflare API, for `--env` or `run_env`. `wts run` sends
 at most one notification a day about new reports.

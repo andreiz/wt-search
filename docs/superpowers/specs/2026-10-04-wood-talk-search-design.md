@@ -1634,6 +1634,23 @@ since the Exact / Related split; filters live in the query; `wts eval run
   its episode number is the item's and, if the item has `at`, its `hit_ms` is
   within ±45 s of it. `collapse` items may also carry `more_in_episode: N` and
   `cards: N` (results for that episode on page 1).
+- **Adding a case from `wts review`** *(added 2026-10-16)*: on the review
+  page (§3.7), `t` (or the "Add test search" button) opens a dialog for the
+  selected words, or the current word and the sentence around it. It fills in
+  the episode and the time of the first word. The maintainer types the query
+  and chooses between "find this passage" (`expect`) and "not return it"
+  (`expect_absent`), and can tick "anywhere in this episode" (no `at`). The
+  page guesses the tag: `negative` for "not return it", `filter` when the
+  query has `year:` and the like, `exact` when every query word is said within
+  a minute of the passage, otherwise `paraphrase`. `jargon` and `collapse` are
+  picked by hand. The mode defaults to `both` (`related` for "not return it").
+  **Check** asks `run_env` (as `wts eval run` does) in both modes and shows
+  where the passage lands, so a passing case and a miss are told apart before
+  saving. **Save** appends the case as text to the end of
+  `eval/queries.yaml`: the comments are kept, the `id` is a slug of the query
+  (made unique), and the text must load again as the old cases plus the new
+  one. The same query with the same passage (within ±45 s) is refused. As with
+  corrections, the page does not commit.
 - **`both`** is how the site is used: Exact first, Related for what Exact
   doesn't list. A `both` case asks both modes; an item counts as found if it is
   in either tab's top 10, and its rank is the better tab's. The report also

@@ -336,6 +336,65 @@ test("Esc closes the edit dialog and leaves the transcript unchanged", async ({ 
 
 // From here on the tests write. They come last, and each copes with the other having run.
 
+const testDialog = (page: Page) => page.getByRole("dialog", { name: "Add a test search" });
+const QUERIES = path.join(HOME, "queries.yaml");
+
+test("t adds a test search for the selected passage to queries.yaml", async ({ page }) => {
+  const done = await watch(page);
+  fs.rmSync(QUERIES, { force: true });
+  await open(page);
+  const tight = await indexOf(page, "tight");
+  await selectWords(page, tight, tight + 1);
+  await page.keyboard.press("t");
+  await expect(testDialog(page)).toBeVisible();
+  await expect(page.locator("#test-where")).toHaveText("Episode 1 at 0:39");
+  await expect(page.locator("#test-passage")).toHaveText("tight bond");
+  await expect(page.getByLabel("What you'd search for")).toBeFocused();
+
+  // The kind is guessed from the words: said nearby is exact, otherwise paraphrase; "not return
+  // it" is a negative, asked of Related.
+  const query = page.getByLabel("What you'd search for");
+  await query.fill("glue sets");
+  await expect(page.getByLabel("Kind")).toHaveValue("exact");
+  await query.fill("strong joint");
+  await expect(page.getByLabel("Kind")).toHaveValue("paraphrase");
+  await page.getByLabel("Not return it").check();
+  await expect(page.getByLabel("Kind")).toHaveValue("negative");
+  await expect(page.getByLabel("Tabs")).toHaveValue("related");
+  await page.getByLabel("Find this passage").check();
+  await expect(page.getByLabel("Tabs")).toHaveValue("both");
+
+  // This home has no run_env, so Check says so; saving still works.
+  await page.getByRole("button", { name: "Check" }).click();
+  await expect(page.locator("#test-error")).toContainText("Checking needs run_env");
+
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(testDialog(page)).toBeHidden();
+  await expect(page.locator("#status")).toContainText("Added the test search strong-joint");
+  expect(fs.readFileSync(QUERIES, "utf8")).toBe(
+    '- id: strong-joint\n  query: strong joint\n  tag: paraphrase\n  expect: [{episode: 1, at: "0:39"}]\n',
+  );
+  // Closed, the page's keys work again.
+  await page.keyboard.press("n");
+  await expect(page.locator("#transcript .now")).toHaveCount(1);
+  await done();
+});
+
+test("t with nothing selected takes the current word; Esc closes without saving", async ({ page }) => {
+  const done = await watch(page);
+  fs.rmSync(QUERIES, { force: true });
+  await open(page, "&at=80000");
+  await page.keyboard.press("t");
+  await expect(testDialog(page)).toBeVisible();
+  await expect(page.locator("#test-where")).toHaveText("Episode 1 at 1:20");
+  await expect(page.locator("#test-passage")).toContainText("Then I let it cure overnight");
+  await page.getByLabel("What you'd search for").fill("cure overnight");
+  await page.keyboard.press("Escape");
+  await expect(testDialog(page)).toBeHidden();
+  expect(fs.existsSync(QUERIES)).toBe(false);
+  await done();
+});
+
 test("the Reviewed button toggles and survives a reload", async ({ page }) => {
   const done = await watch(page);
   await open(page);

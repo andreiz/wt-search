@@ -40,9 +40,13 @@ from wts.corrections import (
 )
 from wts.corrections_check import Change, WordKeys, added_rule_changes, changes_digest
 from wts.corrections_edit import EditFailed, RuleExists, add_rule
+from wts.evalset.add import CaseExists, append_case, locate
+from wts.evalset.cases import CaseError, eval_dir
+from wts.evalset.score import TOP
 from wts.paths import Paths
 from wts.reports import STATUSES, get_report, set_status
 from wts.review.data import episode_payload
+from wts.search import SearchError
 
 log = logging.getLogger("wts")
 
@@ -59,6 +63,7 @@ AUDIO_TYPES = {".mp3": "audio/mpeg", ".m4a": "audio/mp4"}
 _RANGE = re.compile(r"bytes=(\d*)-(\d*)")
 
 PostHandler = Callable[[dict, sqlite3.Connection], tuple[int, dict]]
+Searcher = Callable[[str, str], dict]  # (query, mode) -> the API's answer; raises SearchError
 
 
 class ReviewApp:
@@ -69,8 +74,15 @@ class ReviewApp:
         corrections_file: Path = CORRECTIONS_FILE,
         token: str | None = None,
         d1: D1 | None = None,
+        eval_file: Path | None = None,
+        searcher: Searcher | None = None,
     ) -> None:
         self.d1 = d1  # listener reports live in D1; without it /api/report answers 503
+        # Test searches: the hand-written case file, and a search of the run environment
+        # (without one, /api/eval/check answers 503).
+        self.eval_file = eval_file or eval_dir() / "queries.yaml"
+        self.searcher = searcher
+        self.eval_lock = threading.Lock()
         self.conn_factory = conn_factory
         self.paths = paths
         self.corrections_file = corrections_file
@@ -81,6 +93,7 @@ class ReviewApp:
         # What a correction preview searches (corrections_check.WordKeys); `serve` fills it.
         self.word_keys = WordKeys()
         register_corrections(self)
+        register_eval(self)
 
     def url(
         self, port: int, episode_id: int, at_ms: int | None = None, report_id: int | None = None
@@ -560,3 +573,65 @@ def register_corrections(app: ReviewApp) -> None:
     app.post_routes["/api/corrections/preview"] = preview
     app.post_routes["/api/corrections"] = save
     app.post_routes["/api/reviewed"] = reviewed
+
+
+def _parse_passage(body: dict, conn: sqlite3.Connection) -> tuple[str, int, int | None]:
+    """`(query, episode number, seconds or None)` from a request body, or a `_Bad`."""
+    query, at_ms = body.get("query"), body.get("at_ms", ...)
+    if not isinstance(query, str) or not query.strip() or len(query) > MAX_RULE_TEXT:
+        raise _Bad(400, "bad_request")
+    if at_ms is ... or (at_ms is not None and not (_is_int(at_ms) and at_ms >= 0)):
+        raise _Bad(400, "bad_request")
+    number = _episode_row(conn, body.get("episode_id"))["number"]
+    return query.strip(), number, None if at_ms is None else at_ms // 1000
+
+
+def register_eval(app: ReviewApp) -> None:
+    """Add the test-search endpoints (spec §7.2) to `app.post_routes`."""
+
+    def check(body: dict, conn: sqlite3.Connection) -> tuple[int, dict]:
+        try:
+            query, number, at_s = _parse_passage(body, conn)
+        except _Bad as bad:
+            return bad.status, {"error": bad.error}
+        if app.searcher is None:
+            return 503, {"error": "no_environment"}
+        found: dict = {"top": TOP}
+        for mode in ("exact", "related"):
+            try:
+                answer = app.searcher(query, mode)
+            except SearchError as exc:  # never holds the query
+                log.warning("test search check failed: %s", exc)
+                return 502, {"error": "search_failed"}
+            if answer.get("smart_degraded"):
+                return 502, {"error": "degraded"}
+            found[mode] = locate(answer.get("results") or [], number, at_s)
+        return 200, found
+
+    def save(body: dict, conn: sqlite3.Connection) -> tuple[int, dict]:
+        try:
+            query, number, at_s = _parse_passage(body, conn)
+        except _Bad as bad:
+            return bad.status, {"error": bad.error}
+        absent = body.get("absent")
+        if not isinstance(absent, bool):
+            return 400, {"error": "bad_request"}
+        with app.eval_lock:
+            path = app.eval_file
+            try:
+                text, case_id = append_case(
+                    path.read_text(encoding="utf-8") if path.exists() else "",
+                    query=query, tag=body.get("tag"), mode=body.get("mode"),
+                    episode=number, at_s=at_s, absent=absent)
+            except CaseError:  # before ValueError, which it is
+                log.exception("eval/queries.yaml edit failed")
+                return 500, {"error": "edit_failed"}
+            except ValueError:
+                return 400, {"error": "bad_request"}
+            except CaseExists:
+                return 409, {"error": "exists"}
+            _write_replacing(path, text)
+        return 200, {"id": case_id}
+
+    app.post_routes["/api/eval/check"] = check
+    app.post_routes["/api/eval"] = save

@@ -34,7 +34,10 @@ all smoke cases found; `aspirational-builds` finds ep 71 but not the bucket-list
 `flattening-a-bench-top` (#127 at 44:28) and `hvlp-sprayer-2020` (#466) still come back first
 in Related. Recall@10 is episode-level (spec), so read it with the time hit rate.
 - **Next: Checkpoint K** (end of the plan): the maintainer's ~30 cases, `wts eval generate`,
-  then `wts eval run --update` and commit `eval/`.
+  then `wts eval run --update` and commit `eval/`. Cases (2026-10-16) can be added from
+  `wts review` with `t`: the episode and time are filled in, the tag is guessed, Check runs it
+  on `run_env`, Save appends to `eval/queries.yaml` (spec §7.2). Mix searches that work now
+  with misses.
 - **Then measure, one at a time, against the baseline:** bge's query instruction; a
   reranker over Related's top 50 (`@cf/baai/bge-reranker-base` on Workers AI; no training,
   one extra AI call per Related search); a similarity floor or topK 20–30; and a learned

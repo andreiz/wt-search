@@ -284,6 +284,24 @@ ins { background: var(--ins-bg); color: inherit; text-decoration: underline; }
 
 #edit-error { color: var(--error); margin: 0.6rem 0 0; }
 
+/* The test-search dialog */
+
+#test-where { color: var(--muted); font-size: 0.85rem; margin: 0; }
+#test-passage {
+  margin: 0.3rem 0 0;
+  padding: 0.4rem 0.6rem;
+  border-left: 3px solid var(--line);
+  max-height: 7.5rem;
+  overflow: auto;
+  font-size: 0.95rem;
+}
+#test-dialog .selects { display: flex; flex-wrap: wrap; gap: 0 1rem; }
+#test-result { margin-top: 0.75rem; }
+#test-result p { margin: 0.15rem 0; }
+#test-result .verdict { font-weight: 600; }
+#test-error { color: var(--error); margin: 0.6rem 0 0; }
+#test-save { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+
 @media (max-width: 40rem) {
   .para { grid-template-columns: 3.5rem minmax(0, 1fr); }
   #transcript { font-size: 1.1rem; }

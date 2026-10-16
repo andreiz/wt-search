@@ -3,15 +3,16 @@
 // It reads the token, episode, time and report from its own URL, fetches the
 // episode payload, and shows the transcript beside an <audio> element: the
 // current word is highlighted and scrolled to, clicking a word seeks, keys
-// control playback, a native <dialog> previews and saves a correction, and,
-// when the URL has `report`, a panel shows a listener's report.
+// control playback, a native <dialog> previews and saves a correction, another
+// adds a test search for a passage to eval/queries.yaml, and, when the URL has
+// `report`, a panel shows a listener's report.
 //
 // Everything that comes from the server is inserted with textContent or
 // createElement, never innerHTML. No inline script or style (the page's CSP
 // forbids both).
 //
 // Sections: helpers, API, rendering, following playback, keyboard and
-// selection, the edit dialog, the report panel, startup.
+// selection, the edit dialog, the test-search dialog, the report panel, startup.
 
 const SCROLL_PAUSE_MS = 5000;
 const SEEK_STEP_S = 5;
@@ -28,6 +29,7 @@ const $ = (id) => document.getElementById(id);
 const audio = $("player");
 const transcriptEl = $("transcript");
 const editDialog = $("edit-dialog");
+const testDialog = $("test-dialog");
 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -154,6 +156,7 @@ function renderHeader() {
   flags.hidden = !(ep.flags && ep.flags.length);
 
   renderReviewedButton();
+  $("add-test").hidden = false;
 
   const url = `/audio/${ep.id}?t=${encodeURIComponent(token)}`;
   audio.hidden = !ep.has_audio;
@@ -524,7 +527,7 @@ function rangeText({ lo, hi }) {
 }
 
 function onSelectionChange() {
-  const r = editDialog.open ? null : selectedWordRange();
+  const r = editDialog.open || testDialog.open ? null : selectedWordRange();
   S.lastSelection = r;
   $("edit-selection").hidden = !r;
 }
@@ -585,7 +588,7 @@ function onKeyDown(e) {
     return;
   }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  if (editDialog.open || typingTarget(e.target, e.key)) return;
+  if (editDialog.open || testDialog.open || typingTarget(e.target, e.key)) return;
   if (!S.ep) return;
   switch (e.key) {
     case " ":
@@ -615,6 +618,10 @@ function onKeyDown(e) {
     case "e":
       e.preventDefault();
       editSelection();
+      break;
+    case "t":
+      e.preventDefault();
+      openTest();
       break;
     default:
   }
@@ -798,6 +805,160 @@ async function saveEdit() {
   setStatus("Saved to corrections.yaml. Other episodes change on the next `wts chunk`.");
 }
 
+// ---------------------------------------------------- the test-search dialog
+
+// The passage a test search is about: {lo, hi} words, its time, and whether the kind and tabs
+// were chosen by hand (then a changed query or "should" no longer re-guesses them).
+const test = { lo: 0, hi: 0, atMs: 0, tagTouched: false, modeTouched: false };
+const GUESS_WINDOW_MS = 60_000;
+const FILTER_RE = /\b(year|ep|before|after):/i;
+
+// With nothing selected, `t` takes the current word and the sentence or so around it.
+function openTest() {
+  const sel = selectedWordRange() || S.lastSelection;
+  if (!sel && S.cur < 0) {
+    setStatus("Play or click to a passage first.");
+    return;
+  }
+  const lo = sel ? sel.lo : Math.max(0, S.cur - 12);
+  const hi = sel ? sel.hi : Math.min(S.words.length - 1, S.cur + 30);
+  test.lo = lo;
+  test.hi = hi;
+  test.atMs = S.words[sel ? lo : S.cur][1];
+  test.tagTouched = false;
+  test.modeTouched = false;
+  $("test-where").textContent = `Episode ${S.ep.number} at ${fmtTime(test.atMs)}`;
+  $("test-passage").textContent = S.words.slice(lo, hi + 1).map((w) => String(w[0]).trim()).join(" ");
+  $("test-query").value = "";
+  $("test-want-find").checked = true;
+  $("test-any-time").checked = false;
+  $("test-mode").value = "both";
+  $("test-result").replaceChildren();
+  setTestError("");
+  guessTest();
+  $("edit-selection").hidden = true;
+  testDialog.showModal();
+  $("test-query").focus();
+}
+
+function testInputs() {
+  return {
+    query: $("test-query").value.trim(),
+    absent: $("test-want-absent").checked,
+    at_ms: $("test-any-time").checked ? null : test.atMs,
+    tag: $("test-tag").value,
+    mode: $("test-mode").value,
+  };
+}
+
+// A filter if the query has one, negative for "not return it", exact if every word is said
+// within a minute of the passage, otherwise paraphrase. Jargon is left to the maintainer.
+function guessTag(query, absent) {
+  if (absent) return "negative";
+  if (FILTER_RE.test(query)) return "filter";
+  const words = query.split(/\s+/).map(normWord).filter(Boolean);
+  if (!words.length) return "paraphrase";
+  const near = new Set();
+  for (const w of S.words) {
+    if (Math.abs(w[1] - test.atMs) <= GUESS_WINDOW_MS) near.add(normWord(String(w[0])));
+  }
+  return words.every((w) => near.has(w)) ? "exact" : "paraphrase";
+}
+
+function guessTest() {
+  const cur = testInputs();
+  if (!test.tagTouched) $("test-tag").value = guessTag(cur.query, cur.absent);
+  // A passage that shouldn't come back is usually a Related mistake: Exact only returns the words.
+  if (!test.modeTouched) $("test-mode").value = cur.absent ? "related" : "both";
+}
+
+function setTestError(text) {
+  const e = $("test-error");
+  e.textContent = text || "";
+  e.hidden = !text;
+}
+
+function testErrorSentence(r, action) {
+  if (r.status === 0) return SERVER_GONE;
+  const slug = r.data && r.data.error;
+  if (slug === "no_environment") return "Checking needs run_env, and its api_url, in config.toml. You can still save.";
+  if (slug === "search_failed") return "The search didn't answer (offline, or too many searches in a minute). Try again.";
+  if (slug === "degraded") return "Related search is degraded right now (its budget, or Workers AI). Try later.";
+  if (slug === "exists") return "That test search is already in eval/queries.yaml.";
+  if (slug === "edit_failed") return "eval/queries.yaml doesn't load, so nothing was added. Fix the file first.";
+  if (r.status === 400) return "Enter what you'd search for first.";
+  return action === "check" ? "Couldn't check." : "Couldn't save. Nothing was changed.";
+}
+
+function rankText(found, top) {
+  if (found.rank !== null && found.rank !== undefined) {
+    return found.rank <= top ? `#${found.rank}` : `#${found.rank}, outside the top ${top}`;
+  }
+  if (found.episode_rank !== null && found.episode_rank !== undefined) {
+    return `not this passage (the episode is #${found.episode_rank})`;
+  }
+  return "not in the results";
+}
+
+function renderTestResult(data, cur) {
+  const box = $("test-result");
+  box.replaceChildren();
+  const modes = cur.mode === "both" ? ["exact", "related"] : [cur.mode];
+  const top = data.top;
+  const inTop = modes.some((m) => data[m].rank !== null && data[m].rank <= top);
+  let verdict;
+  if (cur.absent) {
+    verdict = inTop ? "Fails now: the search returns it. Shows whether a change fixes that." : "Passes now: it stays out.";
+  } else {
+    verdict = inTop ? "Passes now: guards against a change that breaks it." : `A miss now: not in the top ${top}. Shows whether a change helps.`;
+  }
+  box.append(el("p", "verdict", verdict));
+  for (const m of ["exact", "related"]) {
+    const name = m === "exact" ? "Exact" : "Related";
+    const note = modes.includes(m) ? "" : " (not tested)";
+    box.append(el("p", "", `${name}: ${rankText(data[m], top)}${note}`));
+  }
+}
+
+async function checkTest() {
+  const cur = testInputs();
+  setTestError("");
+  if (!cur.query) {
+    setTestError("Enter what you'd search for first.");
+    return;
+  }
+  const btn = $("test-check");
+  btn.disabled = true;
+  $("test-result").replaceChildren(el("p", "hint", "Searching…"));
+  const r = await api("/api/eval/check", { query: cur.query, episode_id: S.ep.id, at_ms: cur.at_ms });
+  btn.disabled = false;
+  if (r.status !== 200 || !r.data || !r.data.exact) {
+    $("test-result").replaceChildren();
+    setTestError(testErrorSentence(r, "check"));
+    return;
+  }
+  renderTestResult(r.data, cur);
+}
+
+async function saveTest() {
+  const cur = testInputs();
+  setTestError("");
+  if (!cur.query) {
+    setTestError("Enter what you'd search for first.");
+    return;
+  }
+  const btn = $("test-save");
+  btn.disabled = true;
+  const r = await api("/api/eval", { ...cur, episode_id: S.ep.id });
+  btn.disabled = false;
+  if (r.status !== 200 || !r.data || !r.data.id) {
+    setTestError(testErrorSentence(r, "save"));
+    return;
+  }
+  testDialog.close();
+  setStatus(`Added the test search ${r.data.id} to eval/queries.yaml. Commit it with the rest.`);
+}
+
 // -------------------------------------------------------- the report panel
 
 // Mark the report's quoted words in the transcript, if they are found as a
@@ -969,6 +1130,32 @@ function wire() {
     });
   }
   editDialog.addEventListener("close", onSelectionChange);
+
+  const testBtn = $("add-test");
+  testBtn.addEventListener("mousedown", (e) => e.preventDefault()); // keep the selection
+  testBtn.addEventListener("click", openTest);
+  $("test-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    checkTest();
+  });
+  $("test-save").addEventListener("click", saveTest);
+  $("test-cancel").addEventListener("click", () => testDialog.close());
+  $("test-query").addEventListener("input", () => {
+    $("test-result").replaceChildren(); // the result was for other words
+    guessTest();
+  });
+  for (const id of ["test-want-find", "test-want-absent", "test-any-time"]) {
+    $(id).addEventListener("change", () => {
+      $("test-result").replaceChildren();
+      guessTest();
+    });
+  }
+  $("test-tag").addEventListener("change", () => (test.tagTouched = true));
+  $("test-mode").addEventListener("change", () => {
+    test.modeTouched = true;
+    $("test-result").replaceChildren();
+  });
+  testDialog.addEventListener("close", onSelectionChange);
 
   $("report-resolve").addEventListener("click", () => setReportStatus("resolved"));
   $("report-reject").addEventListener("click", () => setReportStatus("rejected"));

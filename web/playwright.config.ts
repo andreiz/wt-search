@@ -61,6 +61,7 @@ export default defineConfig({
         env: {
           WTS_HOME: REVIEW_HOME,
           WTS_CORRECTIONS_FILE: path.join(REVIEW_HOME, "corrections.yaml"),
+          WTS_EVAL_FILE: path.join(REVIEW_HOME, "queries.yaml"),
           WTS_REVIEW_TOKEN: "e2e-review-token",
         },
         url: REVIEW_URL,

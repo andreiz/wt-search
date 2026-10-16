@@ -2,7 +2,9 @@
 
 Searches with known right answers, scored against a deployed environment (spec §7.2).
 
-- `queries.yaml`: written by hand. Add a case for every "it should have found X" moment.
+- `queries.yaml`: written by hand. Add a case for every "it should have found X" moment, and
+  for searches that work now (they catch a change that breaks them). The quickest way is `t` in
+  `wts review`, which fills in the episode and time, and can check the search first.
 - `synthetic.yaml`: written by `wts eval generate` (don't edit by hand; regenerate and review
   the diff).
 - `baseline.json`: the scores a run is compared with; `wts eval run --update` replaces it.

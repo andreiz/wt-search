@@ -403,8 +403,12 @@ def review_cmd(
     of EPISODE, --next-flagged and --report. The server listens on 127.0.0.1 only, prints a URL
     that holds this run's secret token, and stops on Ctrl-C.
 
-    For tests: WTS_REVIEW_TOKEN sets the token and WTS_CORRECTIONS_FILE the corrections file
-    to edit (default pipeline/corrections.yaml).
+    Press `t` on the page to add a test search for the passage to eval/queries.yaml; its
+    "Check" searches run_env.
+
+    For tests: WTS_REVIEW_TOKEN sets the token, WTS_CORRECTIONS_FILE the corrections file
+    to edit (default pipeline/corrections.yaml) and WTS_EVAL_FILE the case file (default
+    eval/queries.yaml).
     """
     import os
     import webbrowser
@@ -486,13 +490,33 @@ def review_cmd(
 
         from wts.db import connect
 
+        # The test-search panel checks a search against run_env, as `wts eval run` does.
+        searcher = None
+        try:
+            api_url = ctx.cfg.api_url(ctx.cfg.run_env) if ctx.cfg.run_env else None
+        except click.UsageError:
+            api_url = None
+        if api_url:
+            from wts.net import new_client
+            from wts.search import search
+
+            if client is None:
+                client = new_client()
+            search_client = client
+
+            def searcher(q: str, mode: str) -> dict:
+                return search(search_client, api_url, q, mode=mode, debug=mode == "related")
+
         corrections_file = os.environ.get("WTS_CORRECTIONS_FILE")
+        eval_file = os.environ.get("WTS_EVAL_FILE")
         app = ReviewApp(
             lambda: connect(ctx.paths.state_db),
             ctx.paths,
             corrections_file=Path(corrections_file) if corrections_file else CORRECTIONS_FILE,
             token=os.environ.get("WTS_REVIEW_TOKEN") or None,
             d1=d1,
+            eval_file=Path(eval_file) if eval_file else None,
+            searcher=searcher,
         )
         server = serve(app, port)
         try:

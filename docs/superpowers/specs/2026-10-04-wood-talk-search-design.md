@@ -569,6 +569,36 @@ Parser rules (`worker/src/query.ts`):
     kill switch stop it there are no results, only `smart_degraded`. It
     counts against the same daily budget as `smart`. `smart` itself is
     unchanged and no longer used by the page.
+    - **A similarity floor** *(maintainer, 2026-10-24, from the first
+      test-set baseline, §7.2)*: Vectorize hits below `RELATED_FLOOR` =
+      0.62 are dropped before anything else, so a query nothing in the
+      archive is about shows Related's "nothing to show" state instead of
+      its ten nearest passages. Chosen by replaying the baseline's saved
+      Related lists at floors 0.60–0.74: up to 0.64 no paraphrase case is
+      lost and `hvlp sprayer year:2020` (best hit 0.59) comes back empty;
+      from 0.65 good hits go (they start at 0.649, most 0.68–0.80), and
+      the other wrong hits (0.66–0.73) can't be separated from them by
+      similarity alone. `smart` keeps no floor.
+    - **A reranker** *(same date; measured before it is turned on)*: with
+      `RELATED_RERANK` = `on` (a var), the hits left after the floor and
+      the exact-mode exclusion, at most 50, are scored against the query
+      by `@cf/baai/bge-reranker-base` (one Workers AI call, query and
+      passage read together rather than compared as two embeddings) and
+      ordered by that score; sort by date and collapsing come after, as
+      before. If the reranker fails, Vectorize's order stands and the
+      Worker logs `rerank_unavailable`; the answer is not degraded. The
+      cache key carries whether reranking was on. It stays off unless a
+      staging run of the test set (§7.2) shows the negatives improving
+      without paraphrase recall falling more than the 0.02 regression
+      margin; a cut-off on the reranker's own score is a later step,
+      picked by replay as the floor was.
+    - **Measuring them** (`debug=1` only, so never cached): `floor=<0–1>`
+      overrides `RELATED_FLOOR` and `rerank=0|1` overrides
+      `RELATED_RERANK` for that request, so one deploy compares settings.
+      Each result's `debug` gains `rerank_rank` and `rerank_score` (null
+      when not reranked) beside `vector_rank` and `vector_score`.
+      `wts eval run --param floor=0.66 --param rerank=1` sends them with
+      every Related request and records them in the report.
   - `limit` is the page size, 1–20 (default 20; bigger is clamped, bad is
     20), echoed in the response. The result caps stay in results, not pages:
     exact mode's 200 is 10 pages at 20, 40 at 5; the last page stops at
@@ -650,8 +680,9 @@ Parser rules (`worker/src/query.ts`):
     shows once.
   - Bad parameters fall back to defaults (`sort` → relevance, `page` → 1);
     the only error is D1 being down (503).
-  - `debug=1` (smart mode only; added 2026-10-07, maintainer): each result
-    gets `debug: {keyword_rank, vector_rank, vector_score, rrf_score}`
+  - `debug=1` (smart and related modes; added 2026-10-07, maintainer): each result
+    gets `debug: {keyword_rank, vector_rank, vector_score, rrf_score}` (related
+    also `rerank_rank, rerank_score`, 2026-10-24)
     (ranks from 1 or null; `folded` moved out to every result, 2026-10-08)
     and the response `debug: {keyword_hits, vector_hits, dropped}`
     (`vector_hits` null when degraded; `dropped` the meaning hits excluded,

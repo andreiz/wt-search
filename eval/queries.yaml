@@ -62,3 +62,74 @@
   tag: filter
   mode: related
   expect_absent: [{episode: 466}]
+
+- id: board-foot-calculation
+  query: board foot calculation
+  tag: exact
+  expect: [{episode: 71}]
+
+- id: maloof-chair
+  query: maloof chair
+  tag: jargon
+  expect: [{episode: 602}]
+
+- id: glue-cold-temperatures
+  query: glue cold temperatures
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 599, at: "44:12"}]
+
+- id: cornhole-boards
+  query: cornhole boards
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 605, at: "49:33"}]
+
+- id: shannon-nurse-joke
+  query: shannon nurse joke
+  tag: exact
+  expect: [{episode: 600, at: "26:36"}]
+
+- id: thin-plywood-that-looks-like-one-board
+  query: thin plywood that looks like one board
+  tag: paraphrase
+  mode: related
+  expect: [{episode: 171, at: "20:09"}]
+
+- id: dust-collector-noise
+  query: dust collector noise
+  tag: exact
+  expect: [{episode: 171, at: "55:57"}]
+
+- id: french-moulding-plane
+  query: french moulding plane
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 71, at: "16:04"}]
+
+- id: sketchup-year-2014
+  query: sketchup year:2014
+  tag: filter
+  expect: [{episode: 171, at: "52:57"}]
+
+- id: sketchup-year-2014-2
+  # Episode 71 (2010) talks about SketchUp at length: nothing from it may pass a year:2014 filter.
+  query: sketchup year:2014
+  tag: filter
+  expect_absent: [{episode: 71}]
+
+- id: plywood-from-eastern-europe
+  query: plywood from eastern europe
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 214, at: "47:26"}]
+
+- id: blue-tape-technique
+  query: blue tape technique
+  tag: paraphrase
+  expect: [{episode: 1, at: "8:14"}]
+
+- id: extending-glue-time
+  query: extending glue time
+  tag: paraphrase
+  expect: [{episode: 616, at: "31:43"}]

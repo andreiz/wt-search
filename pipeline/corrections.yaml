@@ -160,6 +160,9 @@ global:
   # ep600, 48:51: clamping cauls in a bench-top glue-up. A bare `calls` would change every
   # phone call; this key matches only that sentence (2026-10-24, 37 episodes).
   series of calls: series of cauls
+  shannon hits nurses: Shannon Hates Nurses
+  # ep214, 47:42 and 48:28: a listener's Danish modern credenza (2026-10-24, the only two uses).
+  curdenza: credenza
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:

@@ -59,7 +59,11 @@ in Related. Recall@10 is episode-level (spec), so read it with the time hit rate
   score replayed and not adopted (numbers in spec §4.4). The maintainer turned the reranker on
   in both environments (`wrangler.jsonc`). **Next:** `npm run deploy:staging`, then
   `uv run wts eval run --update` to record the new baseline. Watch for episode intros
-  (0:03–0:04) rising under the reranker (`syn-214-1656`).
+  (0:03–0:04) rising under the reranker (`syn-214-1656`). **Measure the reranker's latency**
+  (maintainer, 2026-10-25): uncached Related with `debug=1&rerank=0` vs `rerank=1` on staging,
+  or the Worker's wall time in Workers Logs; not measured yet (guess 100–300 ms). Its money
+  cost is small: ~8k tokens a call ≈ 2.3 neurons, free to ~4,300 Related searches a day,
+  ~$25 per million after, capped by the daily budget.
 - **Then measure, one at a time, against the baseline:** bge's query instruction; topK
   20–30 (the floor and reranker are done, above); and a learned
   linear adapter on query/passage vectors (a 768×768 matrix applied in the Worker over stock

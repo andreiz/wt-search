@@ -1451,6 +1451,16 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    key. Rows go to `reports` (new `source` and `link` columns, migration 0004); review is
    plan 4's `wts reports`. Three things are unverified and listed in §4.9: the Overcast
    action and its link format, matching the link's page to an episode, and the ad offset.
+14. **The weekly search digest, by email** (spec §8.2/§8.4; was in plan 5's scope in the M1
+   plan, not built; maintainer, 2026-10-25: he wants it as an **email, not a phone
+   notification**; needs spec revision and a plan). Today the Worker records one Analytics
+   Engine point per search (query ≤ 200 chars, mode, results, latency, cache) kept ~3 months,
+   but there is no `wts analytics pull` and no digest. Shape: `wts analytics pull` (weekly from
+   `wts run`) copies the points into `analytics.db`; the digest mails the week's top searches
+   and zero-result searches, the raw material for new test cases (`t` in `wts review`) and
+   corrections. Open: how mail is sent (SMTP from the Mac with the credential in the
+   Keychain, a mail API, or Cloudflare Email Workers' `send_email` to a verified address).
+   Before launch or right after. The latency field also answers Related's real latency.
 8. ~~Full transcripts in public history~~ — removed by rewriting `main` (second session).
    Left: ask GitHub Support to purge cached views of `a44eec9`. Clones from before the rewrite
    must `git fetch && git reset --hard origin/main` before committing.

@@ -76,8 +76,9 @@
 				"TURNSTILE_SITE_KEY": "0x4AAAAAAFT2oiAKScBLCCqy",
 				// Extra origins allowed to send reports (spec §4.8 item 6), besides the Worker's
 				// own: Vite's dev server. curl tests add -H 'origin: http://localhost:5173'.
-				"REPORT_ORIGINS": "http://localhost:5173"
-				// "RELATED_RERANK": "on" reranks Related (spec §4.4); off until measured.
+				"REPORT_ORIGINS": "http://localhost:5173",
+				// Reranks Related with bge-reranker-base (spec §4.4); on since the 2026-10-25 runs.
+				"RELATED_RERANK": "on"
 				// TURNSTILE_SECRET is a secret, never put it here:
 				//   wrangler secret put TURNSTILE_SECRET --env staging
 				// SEARCH_OVERRIDE is set in the dashboard only (see keep_vars above), and so is
@@ -110,9 +111,9 @@
 			"vars": {
 				"WTS_ENV": "production",
 				"SEARCH_CACHE_TTL_S": "3600",
-				"TURNSTILE_SITE_KEY": "production-turnstile-site-key-placeholder"
+				"TURNSTILE_SITE_KEY": "production-turnstile-site-key-placeholder",
 				// No REPORT_ORIGINS: only reports from the Worker's own origin are accepted.
-				// "RELATED_RERANK": "on" reranks Related (spec §4.4); off until measured.
+				"RELATED_RERANK": "on"
 				// TURNSTILE_SECRET is a secret:
 				//   wrangler secret put TURNSTILE_SECRET --env production
 			}

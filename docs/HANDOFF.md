@@ -51,14 +51,17 @@ in Related. Recall@10 is episode-level (spec), so read it with the time hit rate
 - **Related floor and reranker built (2026-10-24)**:
   [`docs/superpowers/plans/2026-10-24-related-floor-and-reranker.md`](superpowers/plans/2026-10-24-related-floor-and-reranker.md),
   spec §4.4. Related drops Vectorize hits under 0.62 (picked by replaying the baseline: free
-  up to 0.64, then good hits go); `RELATED_RERANK=on` reranks with bge-reranker-base (off in
-  both environments); `debug=1` takes `floor=` and `rerank=0|1`, and `wts eval run --param`
-  sends them. **Next: Checkpoint M**: deploy staging, `wts eval run` (floor alone; expect
-  `hvlp-sprayer-2020` to pass and no regression), `wts eval run --param rerank=1`, optionally
-  `--param floor=0.60/0.66`; decide on the reranker, then `--update` the baseline.
-- **Then measure, one at a time, against the baseline:** bge's query instruction; a
-  reranker over Related's top 50 (`@cf/baai/bge-reranker-base` on Workers AI; no training,
-  one extra AI call per Related search); a similarity floor or topK 20–30; and a learned
+  up to 0.64, then good hits go); `RELATED_RERANK=on` reranks with bge-reranker-base;
+  `debug=1` takes `floor=` and `rerank=0|1`, and `wts eval run --param` sends them (the report
+  keeps `rerank_rank`/`rerank_score`). **Checkpoint M, 2026-10-25:** the floor alone matched
+  the baseline and fixed `hvlp-sprayer-2020`; with the reranker paraphrase recall 0.889,
+  overall 0.922, negatives 3/6; floor 0.60 identical, 0.66 worse; a cut-off on the reranker's
+  score replayed and not adopted (numbers in spec §4.4). The maintainer turned the reranker on
+  in both environments (`wrangler.jsonc`). **Next:** `npm run deploy:staging`, then
+  `uv run wts eval run --update` to record the new baseline. Watch for episode intros
+  (0:03–0:04) rising under the reranker (`syn-214-1656`).
+- **Then measure, one at a time, against the baseline:** bge's query instruction; topK
+  20–30 (the floor and reranker are done, above); and a learned
   linear adapter on query/passage vectors (a 768×768 matrix applied in the Worker over stock
   Workers AI bge, trained on the Mac from (query, passage) pairs; train and score on
   different synthetic cases). A fully fine-tuned model can't run in Workers AI, so it is out

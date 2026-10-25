@@ -579,7 +579,8 @@ Parser rules (`worker/src/query.ts`):
       from 0.65 good hits go (they start at 0.649, most 0.68–0.80), and
       the other wrong hits (0.66–0.73) can't be separated from them by
       similarity alone. `smart` keeps no floor.
-    - **A reranker** *(same date; measured before it is turned on)*: with
+    - **A reranker** *(same date; on in both environments since
+      2026-10-25, maintainer)*: with
       `RELATED_RERANK` = `on` (a var), the hits left after the floor and
       the exact-mode exclusion, at most 50, are scored against the query
       by `@cf/baai/bge-reranker-base` (one Workers AI call, query and
@@ -587,11 +588,21 @@ Parser rules (`worker/src/query.ts`):
       ordered by that score; sort by date and collapsing come after, as
       before. If the reranker fails, Vectorize's order stands and the
       Worker logs `rerank_unavailable`; the answer is not degraded. The
-      cache key carries whether reranking was on. It stays off unless a
-      staging run of the test set (§7.2) shows the negatives improving
-      without paraphrase recall falling more than the 0.02 regression
-      margin; a cut-off on the reranker's own score is a later step,
-      picked by replay as the floor was.
+      cache key carries whether reranking was on. The bar for turning it
+      on was a staging run of the test set (§7.2) with the negatives
+      improving and paraphrase recall not falling more than the 0.02
+      regression margin. The 2026-10-25 runs (123 cases) cleared it: at
+      floor 0.62, paraphrase recall 0.827 → 0.889, overall 0.878 → 0.922,
+      negatives 1/6 → 3/6; floor 0.60 gave identical results, and 0.66
+      with the reranker was worse (0.864, 1/6: fewer candidates for it to
+      reorder), so the floor stays 0.62. Two cases got worse: one where
+      episode intros (0:03–0:04) rose to the top, one where the right
+      episode dropped out. A cut-off on the reranker's own score (0–1,
+      half of all scored hits under 0.015, many right paraphrase hits
+      near 0) was replayed and not adopted: 0.001 costs 0.012 paraphrase
+      recall for one more negative, 0.02 costs 0.049 for two. The three
+      negatives still failing have wrong hits the reranker scores high
+      (up to 0.92); they need another kind of fix, if any.
     - **Measuring them** (`debug=1` only, so never cached): `floor=<0–1>`
       overrides `RELATED_FLOOR` and `rerank=0|1` overrides
       `RELATED_RERANK` for that request, so one deploy compares settings.

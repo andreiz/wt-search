@@ -1754,7 +1754,9 @@ since the Exact / Related split; filters live in the query; `wts eval run
   - Against the success criteria (§1): met or not, which doesn't change the
     exit code.
 - Related requests use `debug=1`, so the report keeps each hit's meaning rank
-  and similarity (for tuning a floor or topK) and the edge cache is skipped.
+  and similarity (for tuning a floor or topK), plus its rerank rank and score
+  when the reranker scored it (for a cut-off on the reranker's score, §4.4),
+  and the edge cache is skipped.
   They count against the daily meaning budget (§4.8): a full run is about 300
   requests. A degraded answer (`smart_degraded`) stops the run with an error:
   the scores would be meaningless.

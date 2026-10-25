@@ -36,7 +36,8 @@ def ask(client: httpx.Client, api_url: str, case: Case, *,
         sleep: Callable[[float], None] = time.sleep,
         params: dict[str, str] | None = None) -> dict[str, dict]:
     """The case's answer in each of its modes. Related asks with `debug=1`: the report keeps
-    each hit's meaning rank and similarity, and the edge cache is skipped. `params` (debug
+    each hit's meaning rank and similarity (and rerank rank and score when reranked), and the
+    edge cache is skipped. `params` (debug
     overrides) go with the related request only: the others ignore them."""
     answers = {}
     for mode in case.modes:
@@ -76,6 +77,9 @@ def _top_entry(result: dict) -> dict:
     if isinstance(debug, dict) and debug.get("vector_rank") is not None:
         entry["meaning_rank"] = debug["vector_rank"]
         entry["similarity"] = debug.get("vector_score")
+        if debug.get("rerank_rank") is not None:  # only when the reranker scored it
+            entry["rerank_rank"] = debug["rerank_rank"]
+            entry["rerank_score"] = debug.get("rerank_score")
     return entry
 
 

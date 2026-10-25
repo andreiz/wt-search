@@ -90,6 +90,20 @@ def test_build_and_write_a_report(api, tmp_path):
     assert json.loads((tmp_path / "baseline.json").read_text()) == report
 
 
+def test_a_reranked_hit_keeps_its_rerank_rank_and_score(api):
+    answer = body((71, 61), (44, 5), mode="related", debug=True)
+    answer["results"][0]["debug"] |= {"rerank_rank": 1, "rerank_score": 0.91}
+    answer["results"][1]["debug"] |= {"rerank_rank": None, "rerank_score": None}
+    api.mock(return_value=httpx.Response(200, json=answer))
+    case = Case("a", "chair", "paraphrase", mode="related", expect=(Item(71),))
+    with new_client() as client:
+        scored = run_cases(client, API, [case], sleep=lambda s: None)
+    report = build_report("staging", API, scored, now=datetime(2026, 10, 25, tzinfo=UTC))
+    reranked, unscored = report["cases"][0]["top"]["related"]
+    assert reranked["rerank_rank"] == 1 and reranked["rerank_score"] == 0.91
+    assert "rerank_rank" not in unscored and "rerank_score" not in unscored
+
+
 def test_params_go_with_related_requests_only_and_into_the_report(api):
     api.side_effect = lambda request: httpx.Response(200, json=body(
         (71, 41), mode=request.url.params["mode"], debug=True))

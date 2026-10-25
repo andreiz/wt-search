@@ -1464,6 +1464,17 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    and generating costs ~nothing anywhere (2026-10-25). Open: how mail is sent (SMTP from the Mac with the credential in the
    Keychain, a mail API, or Cloudflare Email Workers' `send_email` to a verified address).
    Before launch or right after. The latency field also answers Related's real latency.
+15. **The Mini as a model server only** (maintainer, 2026-10-25; changes spec §1 "Heavy
+   compute", M2 and §3; needs brainstorm → spec → plan, before M2). The Mac Mini is meant to
+   be an LLM server, not a general one, so the pipeline does **not** move to it: the M1 Max
+   keeps `state.db`, transcripts, the schedule (launchd) and watchdog, analytics, the email
+   digest (item 14), review and eval ("M1 Max for now"; the NAS in a container was the other
+   option). The Mini serves transcription over HTTP (the same MLX Whisper model and settings,
+   reading audio from the NAS share), keeping word timings, word probabilities,
+   `no_speech_prob` and log probabilities, which `word_times`, the low-confidence tint and the
+   guards need. Embedding: the Mini too, or Workers AI's own `bge-base-en-v1.5` (~$0.90 for the
+   full archive's ~13.5M tokens, then pennies a week; query and passage vectors then match by
+   construction) — revisiting the earlier local-embedding choice deliberately.
 8. ~~Full transcripts in public history~~ — removed by rewriting `main` (second session).
    Left: ask GitHub Support to purge cached views of `a44eec9`. Clones from before the rewrite
    must `git fetch && git reset --hard origin/main` before committing.

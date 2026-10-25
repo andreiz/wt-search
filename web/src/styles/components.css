@@ -1652,6 +1652,11 @@ a.passage__time:hover {
   font-family: var(--serif);
 }
 
+.field__input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
 .field__input:focus {
   outline: none;
   border-color: var(--focus);

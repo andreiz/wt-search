@@ -436,6 +436,14 @@ describe("markup", () => {
     expect(within(form).getByRole("button", { name: "Cancel" }).classList.contains("form__cancel")).toBe(true);
     expect(container.querySelectorAll("[style]").length).toBe(0);
   });
+
+  it("gives the optional fields the mock's placeholders, and the quote none", async () => {
+    renderList();
+    await openReport();
+    expect(field("Suggested correction").placeholder).toBe("What it should say");
+    expect(field("Note").placeholder).toBe("Anything else we should know");
+    expect(field("Quoted text").hasAttribute("placeholder")).toBe(false);
+  });
 });
 
 describe("the feedback form", () => {

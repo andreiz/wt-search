@@ -83,6 +83,7 @@ export function ReportForm({
         optional
         value={suggested}
         limit={SUGGESTED_MAX}
+        placeholder="What it should say"
         multiline={false}
         serif
         readOnly={sending}
@@ -94,6 +95,7 @@ export function ReportForm({
         optional
         value={note}
         limit={NOTE_MAX}
+        placeholder="Anything else we should know"
         multiline={false}
         readOnly={sending}
         onInput={setNote}

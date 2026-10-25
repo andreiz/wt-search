@@ -24,6 +24,7 @@ export function Field({
   value,
   limit,
   hint,
+  placeholder,
   rows,
   multiline = true,
   readOnly,
@@ -37,6 +38,8 @@ export function Field({
   value: string;
   limit: number;
   hint?: string;
+  /** An example of what goes in an optional field, shown while it is empty. */
+  placeholder?: string;
   rows?: number;
   multiline?: boolean;
   readOnly: boolean;
@@ -51,6 +54,7 @@ export function Field({
     id,
     class: `field__input${serif ? " field__input--serif" : ""}`,
     value,
+    placeholder,
     readOnly,
     "aria-describedby": describedBy,
     "aria-invalid": over ? ("true" as const) : undefined,

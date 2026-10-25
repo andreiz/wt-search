@@ -23,10 +23,13 @@ without). Left, all the maintainer's:
   nearby"; the rate-limit notice in the page (console: `for (let i = 0; i < 70; i++)
   fetch("/api/health")`, then search within the minute); VoiceOver on a result card (soft
   yes on the Mac, 2026-10-11).
-- **Task 16 step 3 / Checkpoint I (design):** three open choices: the variable Source Serif 4
-  (optical size, matches the mocks, bigger download) or the two fixed files; placeholders in
-  the report form; the results column ~22 px narrower than the header as in the mocks, or
-  aligned. Checkpoint L's phone pass covered the rest of the design review.
+- **Task 16 step 3 / Checkpoint I (design):** the report form's placeholders are in
+  (2026-10-25, maintainer: "What it should say", "Anything else we should know"). Two choices
+  open: the variable Source Serif 4 (optical size, matches the mocks, bigger download) or the
+  two fixed files, for "Find the moment it was said." and "Nothing found." (neither wraps on
+  a phone any more; they are only ~10% wider and heavier than the mocks'); the results column
+  ~22 px narrower than the header as in the mocks, or aligned. Checkpoint L's phone pass
+  covered the rest of the design review.
 - **Checkpoint J (plan 4):** the review page in Safari.
 - **Task 17:** the domain, when the name is chosen.
 

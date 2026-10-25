@@ -1150,7 +1150,7 @@ a.hit__time:hover {
   top: var(--header-h);
   z-index: 4;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 30px;
+  grid-template-columns: minmax(0, 1fr) auto auto 30px;
   align-items: center;
   gap: 0 12px;
   margin: 0 -6px;
@@ -1159,18 +1159,30 @@ a.hit__time:hover {
   border-bottom: 1px solid var(--border);
 }
 
-.hit--open .hit__nearby {
+/* The episode, at the left: what a long view has scrolled out of sight. It gives way first. */
+.hit__episode {
   grid-column: 1;
   grid-row: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  color: var(--muted);
 }
 
-.hit--open .hit__less {
+.hit--open .hit__nearby {
   grid-column: 2;
   grid-row: 1;
 }
 
-.hit--open .more-menu {
+.hit--open .hit__less {
   grid-column: 3;
+  grid-row: 1;
+}
+
+.hit--open .more-menu {
+  grid-column: 4;
   grid-row: 1;
   margin-top: 0;
 }
@@ -2163,7 +2175,7 @@ a.passage__time:hover {
   }
 
   .hit--open .hit__strip {
-    grid-template-columns: minmax(0, 1fr) auto 44px;
+    grid-template-columns: minmax(0, 1fr) auto auto 44px;
   }
 
   .hit--open .more-menu {

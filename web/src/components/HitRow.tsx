@@ -16,6 +16,7 @@ import { anchorDelta, openTop } from "../lib/anchor";
 import { excerpt } from "../lib/excerpt";
 import { ONE_TEXT } from "../lib/one-text";
 import { chipName, hitTime, menuPlays, notesLink, primaryPlay } from "../lib/platforms";
+import { displayTitle } from "../lib/title";
 import { OpenReport } from "../use-forms";
 import { useTranscript } from "../use-transcript";
 import { MoreMenu } from "./MoreMenu";
@@ -262,9 +263,16 @@ export function HitRow({
         </p>
       )}
       {/* Closed, the strip is transparent to the row's grid (display: contents). Open, it is the
-          sticky bar of "+N nearby", Show less and ⋯ above the view; one element in both states, so
-          ⋯ keeps its state when the view opens. */}
+          sticky bar of the episode, "+N nearby", Show less and ⋯ above the view; one element in both
+          states, so ⋯ keeps its state when the view opens. */}
       <div class="hit__strip" ref={strip}>
+      {/* A long view scrolls the card's head away; the strip keeps the episode in sight. The
+          heading names it for a screen reader already. */}
+      {open && (
+        <span class="hit__episode" aria-hidden="true">
+          {`${hit.episode.number !== null ? `Ep. ${hit.episode.number}` : "Bonus"} · ${displayTitle(hit.episode.title, hit.episode.number)}`}
+        </span>
+      )}
       <MoreMenu
         plays={menuPlays(hit)}
         notes={notesLink(hit)}

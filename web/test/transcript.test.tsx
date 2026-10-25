@@ -700,6 +700,32 @@ describe("the Show less in the strip above the view", () => {
   });
 });
 
+describe("the episode in the strip above the view", () => {
+  const label = (container: Element) => container.querySelector(".hit__episode");
+
+  it("names the episode while the view is open, so it stays in sight when the card head scrolls away", async () => {
+    const calls = stubFetch();
+    const { container } = renderList();
+    expect(label(container)).toBeNull();
+    openFromMenu();
+    expect(label(container)?.textContent).toBe("Ep. 301 · Links and Ads");
+    answer(calls[0]!);
+    await loaded();
+    expect(label(container)?.textContent).toBe("Ep. 301 · Links and Ads");
+    // The card's heading already names it for a screen reader.
+    expect(label(container)?.getAttribute("aria-hidden")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Show less transcript" }));
+    expect(label(container)).toBeNull();
+  });
+
+  it("says Bonus for an unnumbered episode", () => {
+    stubFetch();
+    const { container } = renderList([{ ...HIT, episode: { ...HIT.episode, number: null, title: "A bonus" } }]);
+    openFromMenu();
+    expect(label(container)?.textContent).toBe("Bonus · A bonus");
+  });
+});
+
 describe("keeping the reader's place", () => {
   let excerptTop: number;
   let passageTop: number;

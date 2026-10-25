@@ -1465,6 +1465,12 @@ states. Behaviour from the design, with the maintainer's calls:)*
   passage is on screen too. A view that is already open (switching to the
   wider one) keeps its paragraph where the reader has it, and collapsing
   puts the excerpt where the paragraph was.
+- **The strip above an open view names the episode** *(maintainer,
+  2026-10-24)*: the bar pinned under the header while a view is open
+  ("+n nearby", Show less, ⋯) starts with "Ep. 71 · Welcome to the
+  Three-Way" ("Bonus · …" unnumbered), in small muted type, cut with "…"
+  when space is short, since a long view scrolls the card's heading away.
+  It is hidden from screen readers, which have the heading already.
 - The brief's 400 ms hover preview is dropped *(maintainer, 2026-10-08)*:
   More transcript does the same, and hovering gets in the way of selecting
   text to report.

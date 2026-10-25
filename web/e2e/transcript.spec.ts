@@ -469,6 +469,11 @@ for (const { name, width, height } of WIDTHS) {
       // The matched paragraph is not under it.
       expect(opened).toBeGreaterThanOrEqual(stripBox.y + stripBox.height - 1);
       await expect(less).toBeInViewport({ ratio: 1 });
+      // The card's heading has scrolled away under the header; the strip still names the episode.
+      const head = (await card.locator(".result__head").boundingBox())!;
+      expect(head.y + head.height).toBeLessThanOrEqual(edge + 1);
+      await expect(card.locator(".hit__episode")).toBeInViewport({ ratio: 1 });
+      await expect(card.locator(".hit__episode")).toHaveText(/^Ep\. \d+ · /);
 
       // ⋯ opens from the stuck strip, and its menu is whole and on screen.
       await card.getByRole("button", { name: "More actions" }).click();
@@ -532,11 +537,16 @@ for (const { name, width, height } of WIDTHS) {
       await expect(excerpt).toHaveCount(0);
     });
 
-    test("the strip above the view has '+1 nearby' at the left, then Show less, then ⋯, with no overflow", async ({ page }) => {
+    test("the strip above the view has the episode at the left, then '+1 nearby', Show less and ⋯, on one line, with no overflow", async ({ page }) => {
       await openTall(page);
       const card = page.getByRole("list", { name: "Results" }).getByRole("listitem").first();
       await card.getByRole("button", { name: "+1 nearby" }).click();
       await expect(card.locator(".passage--hit")).toBeVisible();
+      const episode = (await card.locator(".hit__episode").boundingBox())!;
+      const nearbyBox = (await card.getByRole("button", { name: "+1 nearby" }).boundingBox())!;
+      expect(episode.x + episode.width).toBeLessThanOrEqual(nearbyBox.x + 0.5);
+      expect(episode.width).toBeGreaterThan(40); // a phone still shows "Ep. N · " and some title
+      expect(episode.height).toBeLessThanOrEqual(20); // one line: a long title is cut with "…"
       const nearby = (await card.getByRole("button", { name: "+1 nearby" }).boundingBox())!;
       const less = (await card.getByRole("button", { name: "Show less transcript" }).boundingBox())!;
       const more = (await card.getByRole("button", { name: "More actions" }).boundingBox())!;

@@ -63,6 +63,8 @@ def test_the_same_seed_gives_the_same_sample(corpus):
     ("a b c d e f g h i j k l m n o p", None),  # more than 12 words
     ("year:2020 sprayer", None),  # query syntax
     ("-glue clamps", None),
+    # A thinking model that ignores `think: false` puts its reasoning first, in tags.
+    ("<think>\nThe passage is about cauls.\n</think>\n\nkeeping a glue-up flat", "keeping a glue-up flat"),
 ])
 def test_clean_query(raw, clean):
     assert clean_query(raw) == clean
@@ -76,7 +78,32 @@ def test_ask_model_posts_to_ollama(respx_mock):
     sent = json.loads(route.calls[0].request.content)
     assert sent["model"] == "qwen2.5:7b" and sent["stream"] is False
     assert sent["options"] == {"temperature": 0, "seed": 4}
+    # A thinking model (qwen3) answers at once, without its reasoning in the reply.
+    assert sent["think"] is False
     assert LONG.strip() in sent["prompt"]
+
+
+def test_ask_model_at_another_ollama(respx_mock):
+    route = respx_mock.post("https://ollama.example.org/api/generate").mock(
+        return_value=httpx.Response(200, json={"response": "a b c"}))
+    with new_client() as client:
+        ask_model(client, "m", LONG, seed=1, url="https://ollama.example.org/")
+    assert route.called
+
+
+def test_another_ollama_not_reachable_names_it(respx_mock):
+    respx_mock.post("https://ollama.example.org/api/generate").mock(
+        side_effect=httpx.ConnectError("refused"))
+    with new_client() as client, pytest.raises(GenerateError, match="ollama.example.org"):
+        ask_model(client, "m", LONG, seed=1, url="https://ollama.example.org")
+
+
+def test_generate_uses_the_url(corpus, respx_mock):
+    route = respx_mock.post("https://ollama.example.org/api/generate").mock(
+        return_value=httpx.Response(200, json={"response": "flattening a workbench top"}))
+    with new_client() as client:
+        cases, _ = generate(corpus, client, "m", count=1, seed=1, url="https://ollama.example.org")
+    assert route.called and len(cases) == 1
 
 
 def test_ollama_not_running_says_start_it(respx_mock):

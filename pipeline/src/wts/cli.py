@@ -305,10 +305,12 @@ def eval_run_cmd(env: str | None, update: bool, only: str | None) -> None:
 @click.option("--model", default=None, help="Ollama model [default: eval_model in config.toml].")
 @click.option("--count", type=click.IntRange(min=1), default=100, show_default=True)
 @click.option("--seed", type=int, default=1, show_default=True)
-def eval_generate_cmd(model: str | None, count: int, seed: int) -> None:
+@click.option("--ollama-url", default=None,
+              help="Ollama server [default: ollama_url in config.toml, else localhost:11434].")
+def eval_generate_cmd(model: str | None, count: int, seed: int, ollama_url: str | None) -> None:
     """Write eval/synthetic.yaml: a local model's query for each of COUNT sampled passages.
 
-    Needs the Ollama app (or `ollama serve`) running. The file is rewritten whole; check the
+    Needs an Ollama server: the app (or `ollama serve`) on this Mac, or `ollama_url`. The file is rewritten whole; check the
     diff before committing, and drop a case by regenerating with another seed rather than by
     hand.
     """
@@ -324,7 +326,8 @@ def eval_generate_cmd(model: str | None, count: int, seed: int) -> None:
         raise click.UsageError(f"no model: use --model or eval_model in {ctx.paths.config_file}")
     try:
         with new_client() as client:
-            cases, skipped = generate(ctx.conn(), client, model, count=count, seed=seed)
+            cases, skipped = generate(ctx.conn(), client, model, count=count, seed=seed,
+                                      url=ollama_url or ctx.cfg.ollama_url)
     except GenerateError as exc:
         raise click.ClickException(str(exc)) from exc
     path = eval_dir() / "synthetic.yaml"

@@ -90,7 +90,8 @@ uv run wts eval run --update       # also make this report eval/baseline.json
 uv run wts eval generate --model qwen2.5:7b   # ~100 synthetic cases (Ollama app running)
 ```
 
-`wts eval generate` takes the model from `--model` or `eval_model` in `config.toml`.
+`wts eval generate` takes the model from `--model` or `eval_model` in `config.toml`, and the
+Ollama server from `--ollama-url` or `ollama_url` (default `http://localhost:11434`).
 
 The cases are in `../eval/` (see its README). A run sends about one request a second; reports go
 to `eval/reports/` (not committed).

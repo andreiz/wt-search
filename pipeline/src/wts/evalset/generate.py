@@ -24,6 +24,7 @@ A listener remembers this part of the show and wants to find it again. Write the
 query they would type, 3 to 10 words. Describe what was discussed in your own words; don't \
 copy distinctive phrases from the passage. Reply with the query only."""
 _SYNTAX = re.compile(r"(^|\s)-|\w:\S")  # an exclusion or a filter like year:2020
+_THINK = re.compile(r"<think>.*?</think>", re.DOTALL)  # a thinking model's reasoning
 
 
 class GenerateError(Exception):
@@ -41,6 +42,7 @@ def sample_chunks(conn: sqlite3.Connection, count: int, seed: int) -> list[sqlit
 
 def clean_query(text: str) -> str | None:
     """The model's reply as a query, or None when it isn't usable as one."""
+    text = _THINK.sub("", text)
     line = next((ln for ln in text.strip().splitlines() if ln.strip()), "")
     line = re.sub(r"^(search )?query:\s*", "", line.strip(), flags=re.IGNORECASE)
     line = line.strip().strip("\"'“”").rstrip(".").strip()
@@ -52,13 +54,15 @@ def clean_query(text: str) -> str | None:
 
 def ask_model(client: httpx.Client, model: str, text: str, *, seed: int,
               url: str = OLLAMA_URL) -> str:
+    url = url.rstrip("/")
     try:
+        # `think: false`: a thinking model (qwen3) answers at once; other models ignore it.
         resp = client.post(f"{url}/api/generate", timeout=TIMEOUT_S, json={
             "model": model, "prompt": PROMPT.format(text=text.strip()), "stream": False,
-            "options": {"temperature": 0, "seed": seed}})
+            "think": False, "options": {"temperature": 0, "seed": seed}})
     except httpx.TransportError as exc:
         raise GenerateError(f"can't reach Ollama at {url} ({type(exc).__name__}): start the "
-                            "Ollama app, or run `ollama serve`") from exc
+                            "Ollama app, or run `ollama serve`, or set ollama_url") from exc
     if resp.status_code == 404:
         raise GenerateError(f"model {model} is not installed: `ollama pull {model}`")
     if resp.status_code >= 400:
@@ -67,10 +71,10 @@ def ask_model(client: httpx.Client, model: str, text: str, *, seed: int,
 
 
 def generate(conn: sqlite3.Connection, client: httpx.Client, model: str, *, count: int,
-             seed: int) -> tuple[list[dict], int]:
+             seed: int, url: str = OLLAMA_URL) -> tuple[list[dict], int]:
     cases, skipped = [], 0
     for i, row in enumerate(sample_chunks(conn, count, seed)):
-        query = clean_query(ask_model(client, model, row["text"], seed=seed + i))
+        query = clean_query(ask_model(client, model, row["text"], seed=seed + i, url=url))
         if query is None:
             skipped += 1
             continue

@@ -1695,7 +1695,10 @@ since the Exact / Related split; filters live in the query; `wts eval run
      `flattening a bench top` → not #127 at 44:28, `how do I flatten a
      workbench top` → not #171's miter answer, `hvlp sprayer year:2020`).
   2. About 100 synthetic ones, `wts eval generate`: a local model through
-     Ollama (`--model`, or `eval_model` in `config.toml`) writes the question a
+     Ollama (`--model`, or `eval_model` in `config.toml`; the server is
+     `--ollama-url` or `ollama_url`, default the Mac's own `localhost:11434`;
+     sent with `think: false`, so a thinking model answers directly
+     *(2026-10-24)*) writes the question a
      listener would type for a randomly sampled non-boilerplate chunk of a
      published episode, so the right answer is that chunk (`at` = its start).
      Tag `paraphrase`, mode `both`. Seeded, so a rerun gives the same sample.

@@ -31,6 +31,7 @@ class Config:
     youtube_handle: str = "@WoodTalk"
     ntfy_url: str = "https://ntfy.sh"  # or a self-hosted server; its token is a secret
     eval_model: str | None = None  # wts eval generate: an Ollama model
+    ollama_url: str = "http://localhost:11434"  # ... and the Ollama server that runs it
 
     @property
     def envs(self) -> dict[str, CloudflareEnv]:
@@ -99,4 +100,5 @@ def load_config(path: Path) -> Config:
         youtube_handle=data.get("youtube_handle", defaults.youtube_handle),
         ntfy_url=data.get("ntfy_url", defaults.ntfy_url),
         eval_model=data.get("eval_model"),
+        ollama_url=data.get("ollama_url", defaults.ollama_url),
     )

@@ -15,5 +15,6 @@ cd pipeline
 uv run wts eval run                  # staging (run_env); exits 1 on a drop > 0.02
 uv run wts eval run --only paraphrase
 uv run wts eval run --update         # accept the new scores as the baseline
-uv run wts eval generate --model qwen2.5:7b   # needs the Ollama app running
+uv run wts eval generate --model qwen2.5:7b   # needs the Ollama app running, or:
+uv run wts eval generate --model qwen3.6:35b --ollama-url https://ollama.example.org
 ```

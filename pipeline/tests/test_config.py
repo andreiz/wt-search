@@ -87,6 +87,13 @@ def test_eval_model_for_wts_eval_generate(tmp_path):
     assert load_config(f).eval_model == "qwen2.5:7b"
 
 
+def test_ollama_url_for_wts_eval_generate(tmp_path):
+    assert Config().ollama_url == "http://localhost:11434"
+    f = tmp_path / "config.toml"
+    f.write_text('ollama_url = "https://ollama.example.org"\n')
+    assert load_config(f).ollama_url == "https://ollama.example.org"
+
+
 def test_missing_env_names_what_to_add(tmp_path):
     f = tmp_path / "config.toml"
     f.write_text(FULL)

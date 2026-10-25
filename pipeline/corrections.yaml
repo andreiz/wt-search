@@ -157,6 +157,9 @@ global:
   # are the tool). "vice versa" and "vice president" are kept below.
   vices: vises
   vice: vise
+  # ep600, 48:51: clamping cauls in a bench-top glue-up. A bare `calls` would change every
+  # phone call; this key matches only that sentence (2026-10-24, 37 episodes).
+  series of calls: series of cauls
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:

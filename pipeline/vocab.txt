@@ -54,6 +54,7 @@ marking gauge
 crosscut sled
 track saw
 riving knife
+cauls
 # Finishes
 shellac
 lacquer

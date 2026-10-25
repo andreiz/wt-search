@@ -163,6 +163,7 @@ global:
   shannon hits nurses: Shannon Hates Nurses
   # ep214, 47:42 and 48:28: a listener's Danish modern credenza (2026-10-24, the only two uses).
   curdenza: credenza
+  plow play: plow plane   # ep44, 11:01 (2026-10-24, the only use)
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:

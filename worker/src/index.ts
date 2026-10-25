@@ -175,8 +175,6 @@ const search: Handler = async (request, env, info, ctx) => {
             ...(skipMeaning ? { skipMeaning } : {}),
             // A floor override is a debug-only knob of related mode (spec §4.4).
             ...(debug && mode === "related" && floor !== undefined ? { floor } : {}),
-            // So is bge's query instruction (qi=1), on trial (spec §4.4).
-            ...(debug && mode === "related" && params.get("qi") === "1" ? { queryInstruction: true } : {}),
             // A reranker that fails keeps Vectorize's order; it is logged, not degraded.
             ...(mode === "related" ? { rerank, onRerankFailed: () => logError("rerank_unavailable", request, null) } : {}),
           }),

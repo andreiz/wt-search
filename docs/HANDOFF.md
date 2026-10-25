@@ -69,10 +69,10 @@ in Related. Recall@10 is episode-level (spec), so read it with the time hit rate
   (`rerank_n`) and measure 30/40 with `--param`. Its money
   cost is small: ~8k tokens a call ≈ 2.3 neurons, free to ~4,300 Related searches a day,
   ~$25 per million after, capped by the daily budget.
-- **bge's query instruction, built for trial (2026-10-25)**: `debug=1&qi=1` on Related (spec
-  §4.4). **Next (maintainer):** `npm run deploy:staging`, then from `pipeline/`
-  `uv run wts eval run --param qi=1`, and, since it shifts similarities, the same with
-  `--param floor=0.60` / `0.66` / `0.70`; compare with the baseline (reranker on, 0.62).
+- **bge's query instruction, tried and dropped (2026-10-25)**: a `debug=1&qi=1` switch, run
+  at floors 0–0.70 with the reranker on; even with no floor it fell short of the baseline
+  (paraphrase 0.877 vs 0.889); numbers in spec §4.4. The switch is removed; staging still runs
+  it until the next deploy (harmless: debug only).
 - **Then measure, one at a time, against the baseline:** topK
   20–30 (the floor and reranker are done, above); and a learned
   linear adapter on query/passage vectors (a 768×768 matrix applied in the Worker over stock

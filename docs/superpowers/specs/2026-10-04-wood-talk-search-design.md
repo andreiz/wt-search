@@ -610,15 +610,18 @@ Parser rules (`worker/src/query.ts`):
       when not reranked) beside `vector_rank` and `vector_score`.
       `wts eval run --param floor=0.66 --param rerank=1` sends them with
       every Related request and records them in the report.
-    - **bge's query instruction, on trial** *(maintainer, 2026-10-25)*:
-      `debug=1&qi=1` embeds a Related query as "Represent this sentence for
-      searching relevant passages: " + the query, the prefix bge was
-      trained with for short queries against longer passages; passages
-      stay as embedded, and the reranker still gets the query alone. It
-      changes similarities, so the floor is measured with it
-      (`--param qi=1 --param floor=…`). Adopted only on the same bar as
-      the reranker (§7.2's runs against the baseline); then it becomes a
-      var and part of the cache key.
+    - **bge's query instruction, tried and not adopted** *(2026-10-25)*:
+      a debug switch embedded a Related query as "Represent this sentence
+      for searching relevant passages: " + the query (bge's prefix for
+      short queries against passages; passages unchanged, the reranker
+      given the query alone). It lowered similarities (median of Related's
+      top 10 0.672 → 0.649 at the 0.62 floor, 0.568 with none), so it was
+      run at floors 0, 0.60, 0.62, 0.66 and 0.70 with the reranker on.
+      None beat the baseline: with no floor at all, its best case,
+      paraphrase recall 0.877 vs 0.889 and overall 0.913 vs 0.922 (time
+      hit rate 0.765 vs 0.741), and `hvlp sprayer year:2020` failed again;
+      at 0.62, 35 of 118 Related lists came back empty. The switch was
+      removed.
   - `limit` is the page size, 1–20 (default 20; bigger is clamped, bad is
     20), echoed in the response. The result caps stay in results, not pages:
     exact mode's 200 is 10 pages at 20, 40 at 5; the last page stops at

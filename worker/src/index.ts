@@ -16,6 +16,7 @@ import {
   PAGE_SIZE,
   parseFloor,
   relatedSearch,
+  rerankFlag,
   smartSearch,
   type ExactResponse,
   type SmartResponse,
@@ -106,6 +107,7 @@ const search: Handler = async (request, env, info, ctx) => {
   const q = params.get("q") ?? "";
   const debug = meaning && params.get("debug") === "1";
   const floor = parseFloor(params.get("floor"));
+  const rerank = mode === "related" && rerankFlag(env, params.get("rerank"), debug);
   Object.assign(info, {
     q: boundQuery(q),
     mode,
@@ -124,7 +126,12 @@ const search: Handler = async (request, env, info, ctx) => {
   let response: ExactResponse | SmartResponse;
   try {
     if (ttl !== null) {
-      key = cacheKey(request.url, { q, mode, sort, page, limit }, await corpusVersion(env.DB));
+      const searchKey = { q, mode, sort, page, limit };
+      key = cacheKey(
+        request.url,
+        mode === "related" ? { ...searchKey, rerank } : searchKey,
+        await corpusVersion(env.DB),
+      );
       const hit = await cached(key);
       if (hit) {
         info.cache = "hit";
@@ -168,6 +175,8 @@ const search: Handler = async (request, env, info, ctx) => {
             ...(skipMeaning ? { skipMeaning } : {}),
             // A floor override is a debug-only knob of related mode (spec §4.4).
             ...(debug && mode === "related" && floor !== undefined ? { floor } : {}),
+            // A reranker that fails keeps Vectorize's order; it is logged, not degraded.
+            ...(mode === "related" ? { rerank, onRerankFailed: () => logError("rerank_unavailable", request, null) } : {}),
           }),
       titles,
     ]);

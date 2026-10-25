@@ -62,6 +62,11 @@ export interface Env {
    * "production" also opens robots.txt to crawlers.
    */
   WTS_ENV?: string;
+  /**
+   * "on" reranks Related with bge-reranker-base (spec §4.4); anything else, or unset, is off.
+   * A var in wrangler.jsonc, off until measured.
+   */
+  RELATED_RERANK?: string;
   /** ntfy topic and optional access token: `wrangler secret put NTFY_TOPIC --env <env>`. */
   NTFY_TOPIC?: string;
   NTFY_TOKEN?: string;

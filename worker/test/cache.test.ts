@@ -211,6 +211,19 @@ describe("search cache", () => {
     expect(Number.isInteger(API_VERSION) && API_VERSION >= 2).toBe(true);
   });
 
+  // Related answers stored with reranking off must not be served with it on, and back.
+  it("keys related mode on rerank, and exact mode not at all", () => {
+    const url = "https://example.com/api/search?q=glue";
+    const related = { q: "glue", mode: "related", sort: "relevance", page: 1, limit: 20 } as const;
+    const on = cacheKey(url, { ...related, rerank: true }, "7").url;
+    const off = cacheKey(url, { ...related, rerank: false }, "7").url;
+    expect(new URL(on).searchParams.get("rerank")).toBe("on");
+    expect(new URL(off).searchParams.get("rerank")).toBe("off");
+    expect(on).not.toBe(off);
+    const exact = { ...related, mode: "exact" } as const;
+    expect(cacheKey(url, { ...exact, rerank: true }, "7").url).toBe(cacheKey(url, exact, "7").url);
+  });
+
   it("misses after corpus_version changes", async () => {
     await get("q=tangent", bindings().env);
     await env.DB.prepare("UPDATE meta SET value = 'v-next' WHERE key = 'corpus_version'").run();

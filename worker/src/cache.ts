@@ -42,6 +42,8 @@ export interface SearchKey {
   sort: string;
   page: number;
   limit: number;
+  /** Related mode only: whether the answer was reranked (RELATED_RERANK, spec §4.4). */
+  rerank?: boolean;
 }
 
 /**
@@ -57,6 +59,7 @@ export function cacheKey(requestUrl: string, key: SearchKey, version: string): R
   url.searchParams.set("sort", key.sort);
   url.searchParams.set("page", String(key.page));
   url.searchParams.set("limit", String(key.limit));
+  if (key.mode === "related" && key.rerank !== undefined) url.searchParams.set("rerank", key.rerank ? "on" : "off");
   return versioned(url, version);
 }
 

@@ -183,6 +183,96 @@ describe("the similarity floor (spec §4.4)", () => {
   });
 });
 
+function fakeAiRerank(scores: Record<string, number> | Error | unknown) {
+  return {
+    run: vi.fn(async (model: string, inputs: { contexts?: { text?: string }[] }) => {
+      if (model !== "@cf/baai/bge-reranker-base") return { shape: [1, VECTOR.length], data: [VECTOR], pooling: "cls" };
+      if (scores instanceof Error) throw scores;
+      // A raw answer (`{ response: ... }`) or a non-object goes back as given.
+      if (typeof scores !== "object" || scores === null || "response" in scores) return scores;
+      // Score each context by a word it contains, so tests read clearly.
+      return {
+        response: (inputs.contexts ?? []).map((c, id) => ({
+          id,
+          score: Object.entries(scores as Record<string, number>).find(([w]) => c.text?.includes(w))?.[1] ?? 0,
+        })),
+      };
+    }),
+  };
+}
+
+describe("the reranker (spec §4.4)", () => {
+  // Three episodes, so collapse folds nothing: 3102 "router jig", 3002 "hand cut", 3202 "biscuit".
+  const vec = () => fakeVecScored([[3102, 0.8], [3002, 0.75], [3202, 0.7]]);
+  const scores = { biscuit: 0.9, "hand cut": 0.5, router: 0.1 };
+
+  it("is off by default: Vectorize's order, no rerank call", async () => {
+    const ai = fakeAiRerank(scores);
+    const body = await related({ q: "dovetail" }, [], { VEC: vec(), AI: ai });
+    expect(ids(body)).toEqual([3102, 3002, 3202]);
+    expect(ai.run).toHaveBeenCalledTimes(1);
+  });
+
+  it("with RELATED_RERANK=on, orders by the reranker's score", async () => {
+    const ai = fakeAiRerank(scores);
+    const body = await related({ q: "dovetail" }, [], { VEC: vec(), AI: ai, RELATED_RERANK: "on" });
+    expect(ids(body)).toEqual([3202, 3002, 3102]);
+    const call = ai.run.mock.calls.find(([m]) => m === "@cf/baai/bge-reranker-base")!;
+    expect(call[1]).toMatchObject({ query: "dovetail" });
+    // Plain text: no highlight markers.
+    expect(JSON.stringify(call[1])).not.toMatch(/\\u000[12]/);
+  });
+
+  it("debug=1&rerank=1 turns it on, rerank=0 off, and debug carries its rank and score", async () => {
+    const on = await related({ q: "dovetail", debug: "1", rerank: "1" }, [], { VEC: vec(), AI: fakeAiRerank(scores) });
+    expect(on.results[0]!.debug).toMatchObject({ rerank_rank: 1, rerank_score: 0.9, vector_rank: 3 });
+    const off = await related({ q: "dovetail", debug: "1", rerank: "0" }, [], {
+      VEC: vec(), AI: fakeAiRerank(scores), RELATED_RERANK: "on",
+    });
+    expect(ids(off)).toEqual([3102, 3002, 3202]);
+    expect(off.results[0]!.debug).toMatchObject({ rerank_rank: null, rerank_score: null });
+  });
+
+  it("ignores rerank= without debug=1", async () => {
+    const body = await related({ q: "dovetail", rerank: "1" }, [], { VEC: vec(), AI: fakeAiRerank(scores) });
+    expect(ids(body)).toEqual([3102, 3002, 3202]);
+  });
+
+  it.each([
+    ["an error", new Error("AI down")],
+    ["no response", { response: null }],
+    ["a non-object", "nonsense"],
+    ["only unusable scores", { response: [{ id: 99, score: 1 }, { id: 0 }, { id: 1, score: "high" }] }],
+  ])("keeps Vectorize's order when the reranker gives %s, logs it, and is not degraded", async (_name, answer) => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const body = await related({ q: "dovetail", debug: "1" }, [], {
+      VEC: vec(), AI: fakeAiRerank(answer), RELATED_RERANK: "on",
+    });
+    expect(ids(body)).toEqual([3102, 3002, 3202]);
+    expect(body.smart_degraded).toBeUndefined();
+    expect(body.results[0]!.debug).toMatchObject({ rerank_rank: null, rerank_score: null });
+    expect(JSON.stringify(log.mock.calls)).toContain("rerank_unavailable");
+  });
+
+  it("puts rows the reranker left out after the scored ones, each row once", async () => {
+    const ai = {
+      run: vi.fn(async (model: string) =>
+        model === "@cf/baai/bge-reranker-base"
+          ? { response: [{ id: 2, score: 0.9 }, { id: 2, score: 0.8 }, { id: 99, score: 1 }] }
+          : { shape: [1, VECTOR.length], data: [VECTOR], pooling: "cls" }),
+    };
+    const body = await related({ q: "dovetail" }, [], { VEC: vec(), AI: ai, RELATED_RERANK: "on" });
+    expect(ids(body)).toEqual([3202, 3102, 3002]);
+  });
+
+  it("with sort=newest, date order wins and the set is the same", async () => {
+    const body = await related({ q: "dovetail", sort: "newest" }, [], {
+      VEC: vec(), AI: fakeAiRerank({ router: 0.9 }), RELATED_RERANK: "on",
+    });
+    expect(ids(body)).toEqual([3202, 3102, 3002]);
+  });
+});
+
 describe("when meaning-based search can't answer", () => {
   it("has no results and says unavailable when Workers AI fails, calling Vectorize not at all", async () => {
     const vec = fakeVec([3102]);

@@ -52,6 +52,15 @@ export function parseFloor(value: string | null): number | undefined {
   return Number.isFinite(n) && n >= 0 && n <= 1 ? n : undefined;
 }
 
+/** The reranker for Related (spec §4.4); it scores each passage against the query. */
+export const RERANK_MODEL = "@cf/baai/bge-reranker-base";
+
+/** RELATED_RERANK=on, unless a debug request says rerank=0|1. */
+export function rerankFlag(env: Pick<Env, "RELATED_RERANK">, override: string | null, debug: boolean): boolean {
+  if (debug && (override === "0" || override === "1")) return override === "1";
+  return env.RELATED_RERANK === "on";
+}
+
 /** Smart search shows at most this many hits (before collapsing); deeper pages are clamped. */
 export const MAX_SMART_RESULTS = 100;
 
@@ -332,6 +341,43 @@ WHERE chunks_fts MATCH ? AND rowid IN (SELECT value FROM json_each(?))`,
   return loaded;
 }
 
+const MARKS = /[\u0001\u0002]/g;
+
+/**
+ * The rows in the reranker's order (best first), with each one's rank and score; rows it did
+ * not score follow in their given order. Null when the call fails or answers nothing usable
+ * (the caller keeps Vectorize's order).
+ */
+async function rerankRows(
+  env: Pick<Env, "AI">,
+  query: string,
+  rows: Row[],
+): Promise<{ rows: Row[]; scores: Map<number, { rank: number; score: number }> } | null> {
+  let output: unknown;
+  try {
+    // The workers-types input type lacks `query`, though the model takes it.
+    output = await env.AI.run(RERANK_MODEL, {
+      query,
+      contexts: rows.map((r) => ({ text: r.marked.replace(MARKS, "") })),
+    } as unknown as Ai_Cf_Baai_Bge_Reranker_Base_Input);
+  } catch {
+    return null;
+  }
+  const response = (output as { response?: unknown } | null)?.response;
+  if (!Array.isArray(response)) return null;
+  const best = new Map<number, number>();
+  for (const item of response as { id?: unknown; score?: unknown }[]) {
+    if (typeof item?.id !== "number" || typeof item.score !== "number") continue;
+    if (!Number.isInteger(item.id) || item.id < 0 || item.id >= rows.length || best.has(item.id)) continue;
+    best.set(item.id, item.score);
+  }
+  if (best.size === 0) return null;
+  const order = [...best.entries()].sort((a, b) => b[1] - a[1]).map(([i]) => i);
+  const rest = rows.map((_, i) => i).filter((i) => !best.has(i));
+  const scores = new Map(order.map((i, rank) => [rows[i]!.id, { rank: rank + 1, score: best.get(i)! }]));
+  return { rows: [...order, ...rest].map((i) => rows[i]!), scores };
+}
+
 /**
  * Smart search (spec §4.4): the FTS5 top SMART_LIST_SIZE and the Vectorize top
  * SMART_LIST_SIZE, merged by reciprocal rank fusion, filtered, re-sorted by date if asked,
@@ -441,9 +487,21 @@ export async function relatedSearch(
     skipMeaning?: Exclude<DegradedReason, "unavailable">;
     /** Overrides RELATED_FLOOR (debug requests only). */
     floor?: number;
+    /** Reorder the hits with the reranker (RELATED_RERANK, or a debug override). */
+    rerank?: boolean;
+    /** The reranker failed or answered nothing usable: Vectorize's order stands, not degraded. */
+    onRerankFailed?: (err?: unknown) => void;
   } = {},
 ): Promise<SmartAnswer> {
-  const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false, skipMeaning, floor = RELATED_FLOOR } = options;
+  const {
+    limit = PAGE_SIZE,
+    onDegraded = () => {},
+    debug = false,
+    skipMeaning,
+    floor = RELATED_FLOOR,
+    rerank = false,
+    onRerankFailed = () => {},
+  } = options;
   const none: SmartAnswer = { page, limit, has_more: false, results: [] };
   if (parsed.fts === null) return none;
   const nearest = skipMeaning ? null : await nearestChunks(env, parsed, onDegraded);
@@ -454,6 +512,18 @@ export async function relatedSearch(
   const vectorIds = kept.map((n) => n.id);
   const rows = vectorIds.length > 0 ? await loadRelated(env.DB, parsed, vectorIds, parsed.fts) : new Map<number, Row>();
   let hits = vectorIds.flatMap((id) => rows.get(id) ?? []);
+  // The reranker reorders what is left (at most SMART_LIST_SIZE passages, one call); date order,
+  // if asked for, still wins below.
+  let reranked: Map<number, { rank: number; score: number }> | null = null;
+  if (rerank && hits.length > 1) {
+    const answer = await rerankRows(env, parsed.semantic, hits);
+    if (answer) {
+      hits = answer.rows;
+      reranked = answer.scores;
+    } else {
+      onRerankFailed();
+    }
+  }
   if (sort !== "relevance") hits = sortByDate(hits, sort);
 
   let all = hits.map((hit) => toResult(hit, "related"));
@@ -466,6 +536,8 @@ export async function relatedSearch(
         vector_rank: vectorRank.get(r.chunk_id)?.rank ?? null,
         vector_score: vectorRank.get(r.chunk_id)?.score ?? null,
         rrf_score: 0,
+        rerank_rank: reranked?.get(r.chunk_id)?.rank ?? null,
+        rerank_score: reranked?.get(r.chunk_id)?.score ?? null,
       },
     }));
   }

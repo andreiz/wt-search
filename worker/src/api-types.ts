@@ -61,6 +61,9 @@ export interface ResultDebug {
   /** Vectorize's similarity (cosine), or null. */
   vector_score: number | null;
   rrf_score: number;
+  /** Related mode only: rank (1-based) and score from the reranker, or null when not reranked. */
+  rerank_rank?: number | null;
+  rerank_score?: number | null;
 }
 
 /** What fed a smart response (`?debug=1`). */

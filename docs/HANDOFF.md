@@ -44,8 +44,15 @@ in Related. Recall@10 is episode-level (spec), so read it with the time hit rate
   staging over 123 cases: recall@10 0.878 overall (target 0.85), paraphrase 0.827 (0.75),
   exact and jargon time hit rate 1.000; negatives pass 1 of 6 (cornhole boards, moulding
   plane, Eastern European plywood, cold-shop glue, bench top, all Related) and `hvlp sprayer
-  year:2020` still fails. 20 synthetic paraphrases miss. Next: the similarity floor, measured
-  against this baseline.
+  year:2020` still fails. 20 synthetic paraphrases miss.
+- **Related floor and reranker built (2026-10-24)**:
+  [`docs/superpowers/plans/2026-10-24-related-floor-and-reranker.md`](superpowers/plans/2026-10-24-related-floor-and-reranker.md),
+  spec §4.4. Related drops Vectorize hits under 0.62 (picked by replaying the baseline: free
+  up to 0.64, then good hits go); `RELATED_RERANK=on` reranks with bge-reranker-base (off in
+  both environments); `debug=1` takes `floor=` and `rerank=0|1`, and `wts eval run --param`
+  sends them. **Next: Checkpoint M**: deploy staging, `wts eval run` (floor alone; expect
+  `hvlp-sprayer-2020` to pass and no regression), `wts eval run --param rerank=1`, optionally
+  `--param floor=0.60/0.66`; decide on the reranker, then `--update` the baseline.
 - **Then measure, one at a time, against the baseline:** bge's query instruction; a
   reranker over Related's top 50 (`@cf/baai/bge-reranker-base` on Workers AI; no training,
   one extra AI call per Related search); a similarity floor or topK 20–30; and a learned

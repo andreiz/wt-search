@@ -59,9 +59,14 @@ in Related. Recall@10 is episode-level (spec), so read it with the time hit rate
   score replayed and not adopted (numbers in spec §4.4). The maintainer turned the reranker on
   in both environments (`wrangler.jsonc`), deployed it to staging and recorded the new
   baseline (same scores, every Related hit reranked). Watch for episode intros
-  (0:03–0:04) rising under the reranker (`syn-214-1656`). **Measure the reranker's latency**
-  (maintainer, 2026-10-25): uncached Related with `debug=1&rerank=0` vs `rerank=1` on staging,
-  or the Worker's wall time in Workers Logs; not measured yet (guess 100–300 ms). Its money
+  (0:03–0:04) rising under the reranker (`syn-214-1656`). **The reranker's latency, measured
+  2026-10-25:** 10 uncached Related queries each way on staging, from the desktop
+  (`debug=1&rerank=0|1`, order alternated): median ~0.30 s without, ~0.85 s with (mean 0.36 →
+  0.84 s), so it adds about half a second. It grows with the hits left after the floor: a
+  query with 23 left took 0.46 s, ones with ~49 left 0.8–1.2 s. Capping what is reranked is
+  not free: in the new baseline, 17 of 162 right-episode hits in Related's top 10 came from
+  Vectorize ranks 31–50 (13 from 31–40). Suggested: keep it; if it feels slow, add a debug cap
+  (`rerank_n`) and measure 30/40 with `--param`. Its money
   cost is small: ~8k tokens a call ≈ 2.3 neurons, free to ~4,300 Related searches a day,
   ~$25 per million after, capped by the daily budget.
 - **Then measure, one at a time, against the baseline:** bge's query instruction; topK

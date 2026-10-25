@@ -11,8 +11,13 @@ spec §5.2 "Round 2, the phone layout" has the maintainer's calls (Best match, n
 Related's empty and degraded states built from Design's parts; the compact header keeps the
 controls; 44 px hit areas; Tips also on the start page). Tasks 1–5 by Sonnet subagents,
 reviewed and committed in the main session; web 768 unit, 327 browser, axe clean in both
-themes. **Next: Checkpoint L** (end of the plan) on an iPhone after
-`cd worker && npm run deploy:staging`. Open from the captures (`npm run e2e:shots`):
+themes. **Checkpoint L** (end of the plan, on an iPhone after
+`cd worker && npm run deploy:staging`) is partly done: the first look (2026-10-14) led to the
+changes below, accepted 2026-10-16. Still to check (steps 3 and 5 of the plan's checklist were
+updated 2026-10-25 to match what was built): step 4, `zymurgy`'s empty states (on 2026-10-25
+staging still listed 20 Related hits scoring ≤ 0.52, from before the floor was deployed), and
+step 6, VoiceOver on the switch; do both on the Checkpoint M deploy. Open from the captures
+(`npm run e2e:shots`):
 - 2026-10-14, after the maintainer's first look on the iPhone: `--rel*` is a slate blue (oak
   was barely visible, Design's Ebonized too grey); the Related summary is only "Top results
   1–20"; the phone button reads "Sort & years"; BETA has a blue fill; scrolled, the phone header

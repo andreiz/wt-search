@@ -173,7 +173,7 @@
 After `cd worker && npm run deploy:staging`:
 1. Start page: heading on one line; the TRY list; Tips opens the syntax help.
 2. Search `glue`: one-line controls; open Sort & years, set Newest and 2015–2020, Show results; the button shows the dot and the year; Back.
-3. Related: the cards are oak; the summary says Related BETA; How this works and Tips sit at the right.
-4. `zymurgy` in Exact: "Nothing found." and the oak button; in Related: "No related passages." and See exact matches.
-5. Scroll a long result page: the compact header reads "Exact · Best match · Any year ▾" and opens the controls.
+3. Related: the cards are slate blue; the summary says "Top results 1–20"; How this works and Tips sit at the right.
+4. `zymurgy` in Exact: "Nothing found." and the oak button; in Related: "No related passages." and See exact matches (needs the 0.62 floor deployed, spec §4.4; before it, Related lists 20 hits scoring ~0.50).
+5. Scroll a long result page: the header drops only its brand row and keeps the search box, the switch and Sort & years.
 6. VoiceOver on the switch: "Related, beta".

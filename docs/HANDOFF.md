@@ -38,8 +38,14 @@ in Related. Recall@10 is episode-level (spec), so read it with the time hit rate
   `wts review` with `t`: the episode and time are filled in, the tag is guessed, Check runs it
   on `run_env`, Save appends to `eval/queries.yaml` (spec §7.2). Mix searches that work now
   with misses. 2026-10-24: 23 hand-written cases (5 paraphrase, 6 negative, 5 jargon, 4 exact,
-  3 filter); the maintainer is done for now and will add more from reports. Left: publish the
-  new corrections, `wts eval generate` (Ollama), then `wts eval run --update`.
+  3 filter); the maintainer is done for now and will add more from reports. 100 synthetic
+  cases from qwen3.6:35b on the maintainer's Ollama server (`ollama_url`), 24 of them tagged
+  exact because they reuse the passage's words. **Checkpoint K done 2026-10-24**: baseline on
+  staging over 123 cases: recall@10 0.878 overall (target 0.85), paraphrase 0.827 (0.75),
+  exact and jargon time hit rate 1.000; negatives pass 1 of 6 (cornhole boards, moulding
+  plane, Eastern European plywood, cold-shop glue, bench top, all Related) and `hvlp sprayer
+  year:2020` still fails. 20 synthetic paraphrases miss. Next: the similarity floor, measured
+  against this baseline.
 - **Then measure, one at a time, against the baseline:** bge's query instruction; a
   reranker over Related's top 50 (`@cf/baai/bge-reranker-base` on Workers AI; no training,
   one extra AI call per Related search); a similarity floor or topK 20–30; and a learned

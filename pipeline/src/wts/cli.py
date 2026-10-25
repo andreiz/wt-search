@@ -245,7 +245,9 @@ def eval_group() -> None:
 @click.option("--update", is_flag=True, help="Also make this report eval/baseline.json.")
 @click.option("--only", default=None, metavar="TAG-OR-ID",
               help="Only the cases with this tag or id (not compared with the baseline).")
-def eval_run_cmd(env: str | None, update: bool, only: str | None) -> None:
+@click.option("--param", "params", multiple=True, metavar="KEY=VALUE",
+              help="Send with every Related request (debug overrides, e.g. floor=0.66, rerank=1).")
+def eval_run_cmd(env: str | None, update: bool, only: str | None, params: tuple[str, ...]) -> None:
     """Send every case to the API and score the answers; exit 1 on a drop below the baseline.
 
     About one request a second (the Worker's limit is 60 a minute per IP); related requests
@@ -267,6 +269,14 @@ def eval_run_cmd(env: str | None, update: bool, only: str | None) -> None:
 
     if only and update:
         raise click.UsageError("--update records a full run; leave out --only")
+    if params and update:
+        raise click.UsageError("--update records the deployed settings; leave out --param")
+    overrides = {}
+    for item in params:
+        key, eq, value = item.partition("=")
+        if not eq or not key:
+            raise click.BadParameter("use KEY=VALUE", param_hint="--param")
+        overrides[key] = value
     ctx = _ctx()
     name = env or ctx.cfg.run_env
     if not name:
@@ -286,10 +296,11 @@ def eval_run_cmd(env: str | None, update: bool, only: str | None) -> None:
     try:
         with new_client() as client:
             scored = run_cases(client, api_url, cases,
-                               progress=lambda c: click.echo(f"  {c.id}", err=True))
+                               progress=lambda c: click.echo(f"  {c.id}", err=True),
+                               params=overrides)
     except EvalError as exc:
         raise click.ClickException(str(exc)) from exc
-    report = build_report(name, api_url, scored, now=datetime.now(UTC))
+    report = build_report(name, api_url, scored, now=datetime.now(UTC), params=overrides)
     baseline = None if only else load_baseline(directory)
     regressed = regressions(report["summary"], baseline["summary"]) if baseline else []
     missed = newly_missed([s for _, _, s in scored], baseline["cases"]) if baseline else []

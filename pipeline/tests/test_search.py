@@ -21,6 +21,16 @@ FIXTURES = Path(__file__).parent / "fixtures" / "search"
 SECRET_WORD = "zymurgy"  # a query word that must never appear in an error
 
 
+def test_search_sends_extra_params(respx_mock):
+    route = respx_mock.get(f"{API}/api/search").mock(
+        return_value=httpx.Response(200, json={"results": [], "has_more": False}))
+    with new_client() as client:
+        search(client, API, "glue", mode="related", debug=True,
+               extra={"floor": "0.66", "rerank": "1"})
+    sent = route.calls[0].request.url.params
+    assert sent["floor"] == "0.66" and sent["rerank"] == "1" and sent["debug"] == "1"
+
+
 def fixture(name: str) -> dict:
     return json.loads((FIXTURES / f"{name}.json").read_text())
 

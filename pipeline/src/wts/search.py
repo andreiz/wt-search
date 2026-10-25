@@ -47,17 +47,20 @@ def search(
     page: int = 1,
     debug: bool = False,
     sleep: Callable[[float], None] = time.sleep,
+    extra: dict[str, str] | None = None,
 ) -> dict:
     """GET `<api_url>/api/search` and return the parsed response.
 
     `debug` asks smart mode for each result's ranks and scores (never cached by the Worker).
     Network errors, 429 and 5xx (a 503 is D1 being briefly unavailable) are retried once per
-    `RETRY_S` entry; other 4xx fail at once. `sleep` is injectable for tests.
+    `RETRY_S` entry; other 4xx fail at once. `sleep` is injectable for tests. `extra` is more
+    query parameters, sent as given (the Worker's debug overrides, e.g. `floor`, `rerank`).
     """
     url = f"{api_url.rstrip('/')}/api/search"
     params = {"q": q, "mode": mode, "sort": sort, "page": page}
     if debug:
         params["debug"] = "1"
+    params.update(extra or {})
     for attempt in range(len(RETRY_S) + 1):
         try:
             resp = client.get(url, params=params, timeout=TIMEOUT_S)

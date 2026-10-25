@@ -33,14 +33,17 @@ class EvalError(Exception):
 
 
 def ask(client: httpx.Client, api_url: str, case: Case, *,
-        sleep: Callable[[float], None] = time.sleep) -> dict[str, dict]:
+        sleep: Callable[[float], None] = time.sleep,
+        params: dict[str, str] | None = None) -> dict[str, dict]:
     """The case's answer in each of its modes. Related asks with `debug=1`: the report keeps
-    each hit's meaning rank and similarity, and the edge cache is skipped."""
+    each hit's meaning rank and similarity, and the edge cache is skipped. `params` (debug
+    overrides) go with the related request only: the others ignore them."""
     answers = {}
     for mode in case.modes:
         try:
             answer = search(client, api_url, case.query, mode=mode, sort=case.sort,
-                            debug=mode == "related", sleep=sleep)
+                            debug=mode == "related", sleep=sleep,
+                            extra=params if mode == "related" else None)
         except SearchError as exc:  # never holds the query
             raise EvalError(f"case {case.id}: {exc}") from exc
         if reason := answer.get("smart_degraded"):
@@ -54,12 +57,13 @@ def ask(client: httpx.Client, api_url: str, case: Case, *,
 def run_cases(client: httpx.Client, api_url: str, cases: list[Case], *,
               sleep: Callable[[float], None] = time.sleep,
               progress: Callable[[Case], None] | None = None,
+              params: dict[str, str] | None = None,
               ) -> list[tuple[Case, dict[str, dict], CaseScore]]:
     scored = []
     for case in cases:
         if progress:
             progress(case)
-        answers = ask(client, api_url, case, sleep=sleep)
+        answers = ask(client, api_url, case, sleep=sleep, params=params)
         scored.append((case, answers, score_case(case, answers)))
     return scored
 
@@ -77,7 +81,7 @@ def _top_entry(result: dict) -> dict:
 
 def build_report(env: str, api_url: str,
                  scored: list[tuple[Case, dict[str, dict], CaseScore]], *,
-                 now: datetime) -> dict:
+                 now: datetime, params: dict[str, str] | None = None) -> dict:
     scores = [s for _, _, s in scored]
     summary = summarize(scores)
     cases = []
@@ -88,7 +92,7 @@ def build_report(env: str, api_url: str,
                         for mode, a in answers.items()}
         cases.append(entry)
     return {"env": env, "api_url": api_url, "at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "summary": summary, "targets": targets(summary), "cases": cases}
+            "params": params or {}, "summary": summary, "targets": targets(summary), "cases": cases}
 
 
 def write_report(report: dict, directory: Path, *, update: bool) -> Path:
@@ -112,7 +116,10 @@ def format_report(report: dict, *, regressed: list[str], missed: list[str],
     """The console summary: a table overall and per tag, the targets, what failed."""
     summary = report["summary"]
     n = summary["overall"].get("cases", 0)
-    lines = [f"{report['env']}: {n} case{'' if n == 1 else 's'}", ""]
+    lines = [f"{report['env']}: {n} case{'' if n == 1 else 's'}"]
+    if report.get("params"):  # an experiment, not the deployed settings
+        lines.append("params: " + " ".join(f"{k}={v}" for k, v in report["params"].items()))
+    lines.append("")
     lines.append(f"{'':<12}{'cases':>6}" + "".join(f"{_SHORT[m]:>10}" for m in METRICS))
     rows = [("overall", summary["overall"]), *summary["tags"].items()]
     for name, metrics in rows:

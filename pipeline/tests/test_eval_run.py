@@ -90,6 +90,21 @@ def test_build_and_write_a_report(api, tmp_path):
     assert json.loads((tmp_path / "baseline.json").read_text()) == report
 
 
+def test_params_go_with_related_requests_only_and_into_the_report(api):
+    api.side_effect = lambda request: httpx.Response(200, json=body(
+        (71, 41), mode=request.url.params["mode"], debug=True))
+    case = Case("a", "glue", "paraphrase", expect=(Item(71),))  # mode both
+    with new_client() as client:
+        scored = run_cases(client, API, [case], sleep=lambda s: None, params={"floor": "0.66"})
+    exact_request, related_request = (c.request for c in api.calls)
+    assert exact_request.url.params.get("floor") is None
+    assert related_request.url.params["floor"] == "0.66"
+    now = datetime(2026, 10, 13, 20, 1, 2, tzinfo=UTC)
+    report = build_report("staging", API, scored, now=now, params={"floor": "0.66"})
+    assert report["params"] == {"floor": "0.66"}
+    assert build_report("staging", API, scored, now=now)["params"] == {}
+
+
 # --- CLI ---------------------------------------------------------------------------------------
 
 
@@ -145,3 +160,27 @@ def test_cli_a_bad_case_file_fails_before_any_request(cli_env, api):
     (cli_env / "queries.yaml").write_text("- {id: a, query: q, tag: vibes, expect: [{episode: 1}]}")
     r = invoke()
     assert r.exit_code == 1 and "tag must be one of" in r.output and not api.calls
+
+
+def test_cli_param_must_be_key_equals_value(cli_env, api):
+    r = invoke("--param", "floor")
+    assert r.exit_code == 2 and "KEY=VALUE" in r.output and not api.calls
+
+
+def test_cli_update_refuses_params(cli_env, api):
+    # A baseline is the deployed settings, not an experiment.
+    r = invoke("--update", "--param", "floor=0.7")
+    assert r.exit_code == 2 and "--param" in r.output and not api.calls
+
+
+def test_cli_params_are_sent_reported_and_printed(cli_env, api):
+    (cli_env / "queries.yaml").write_text(
+        "- {id: chair, query: chair, tag: paraphrase, mode: related, expect: [{episode: 71}]}")
+    api.mock(return_value=httpx.Response(200, json=body((71, 41), mode="related", debug=True)))
+    r = invoke("--param", "floor=0.66", "--param", "rerank=1")
+    assert r.exit_code == 0, r.output
+    assert "params: floor=0.66 rerank=1" in r.output
+    sent = api.calls[0].request.url.params
+    assert sent["floor"] == "0.66" and sent["rerank"] == "1"
+    [path] = (cli_env / "reports").glob("*.json")
+    assert json.loads(path.read_text())["params"] == {"floor": "0.66", "rerank": "1"}

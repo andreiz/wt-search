@@ -1,9 +1,34 @@
-# Handoff — 2026-10-13 (plan 3 at Checkpoint H, plan 4 at Checkpoint J, plan 5 built and at Checkpoint K)
+# Handoff — 2026-10-25 (plans 5, 6 and the Related floor/reranker done; old checkpoints being cleared)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
+
+**Old checkpoints, what is left (gathered 2026-10-25; the long notes further down are the
+history).** Checked by Claude on staging the same day, read-only: caching (a repeat answers
+`x-wts-cache: hit`, HEAD works), Related's `newest`/`oldest` sorts and `year:`/`after:`
+filters, `/api/context` (7 chunks with cues and links); search latency from the desktop,
+uncached: Exact median ~0.10 s (worst 0.12), Related ~0.85 s with the reranker (~0.30 s
+without). Left, all the maintainer's:
+- **Checkpoint G (plan 2):** step 2's budget test (`SMART_DAILY_BUDGET` = 3 in the dashboard,
+  4 uncached Related searches: alerts at 2 and 4 arrive once each, the 4th answers
+  `"budget"`, then remove it; needs the `NTFY_*` secrets on staging) and the homelab monitor
+  on `/api/health` (exists or not); the kill switch surviving a deploy (`keep_vars`), if not
+  already seen. Step 6: `uv run pytest -m mac -k real_rsync`, and a `wts run --env staging`
+  that writes a backup to `backup_dir` with no error notification (confirm once). Step 7:
+  platform ID coverage and YouTube links after the length rule (`wts status`, or SQL).
+- **Checkpoint H (plan 3):** on the iPhone, each platform button lands at the moment
+  (YouTube precise, Apple/Spotify early by the ad gap), More transcript and "+n more
+  nearby"; the rate-limit notice in the page (console: `for (let i = 0; i < 70; i++)
+  fetch("/api/health")`, then search within the minute); VoiceOver on a result card (soft
+  yes on the Mac, 2026-10-11).
+- **Task 16 step 3 / Checkpoint I (design):** three open choices: the variable Source Serif 4
+  (optical size, matches the mocks, bigger download) or the two fixed files; placeholders in
+  the report form; the results column ~22 px narrower than the header as in the mocks, or
+  aligned. Checkpoint L's phone pass covered the rest of the design review.
+- **Checkpoint J (plan 4):** the review page in Safari.
+- **Task 17:** the domain, when the name is chosen.
 
 **Plan 6, the phone layout from Design's round 2, is built (2026-10-13)**, not yet deployed:
 [`docs/superpowers/plans/2026-10-13-phone-layout.md`](superpowers/plans/2026-10-13-phone-layout.md);

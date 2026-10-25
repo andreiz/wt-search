@@ -610,6 +610,15 @@ Parser rules (`worker/src/query.ts`):
       when not reranked) beside `vector_rank` and `vector_score`.
       `wts eval run --param floor=0.66 --param rerank=1` sends them with
       every Related request and records them in the report.
+    - **bge's query instruction, on trial** *(maintainer, 2026-10-25)*:
+      `debug=1&qi=1` embeds a Related query as "Represent this sentence for
+      searching relevant passages: " + the query, the prefix bge was
+      trained with for short queries against longer passages; passages
+      stay as embedded, and the reranker still gets the query alone. It
+      changes similarities, so the floor is measured with it
+      (`--param qi=1 --param floor=…`). Adopted only on the same bar as
+      the reranker (§7.2's runs against the baseline); then it becomes a
+      var and part of the cache key.
   - `limit` is the page size, 1–20 (default 20; bigger is clamped, bad is
     20), echoed in the response. The result caps stay in results, not pages:
     exact mode's 200 is 10 pages at 20, 40 at 5; the last page stops at

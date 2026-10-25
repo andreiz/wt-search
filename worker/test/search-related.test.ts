@@ -201,6 +201,38 @@ function fakeAiRerank(scores: Record<string, number> | Error | unknown) {
   };
 }
 
+describe("bge's query instruction (spec §4.4, debug only)", () => {
+  const embedded = (ai: ReturnType<typeof fakeAi>): unknown =>
+    ai.run.mock.calls.find(([m]) => m === "@cf/baai/bge-base-en-v1.5")![1];
+
+  it("debug=1&qi=1 embeds the query with the instruction in front", async () => {
+    const ai = fakeAi();
+    await related({ q: "dovetail -drawer year:2019", debug: "1", qi: "1" }, [3102], { AI: ai });
+    expect(embedded(ai)).toEqual({
+      text: ["Represent this sentence for searching relevant passages: dovetail"],
+      pooling: "cls",
+    });
+  });
+
+  it("embeds the query alone by default, with qi=0, and without debug=1", async () => {
+    const cases: Record<string, string>[] = [{}, { debug: "1", qi: "0" }, { qi: "1" }];
+    for (const params of cases) {
+      const ai = fakeAi();
+      await related({ q: "dovetail", ...params }, [3102], { AI: ai });
+      expect(embedded(ai)).toEqual({ text: ["dovetail"], pooling: "cls" });
+    }
+  });
+
+  it("the reranker still gets the query alone", async () => {
+    const ai = fakeAiRerank({ biscuit: 0.9, "hand cut": 0.5, router: 0.1 });
+    await related({ q: "dovetail", debug: "1", qi: "1", rerank: "1" }, [], {
+      VEC: fakeVecScored([[3102, 0.8], [3002, 0.75]]), AI: ai,
+    });
+    const call = ai.run.mock.calls.find(([m]) => m === "@cf/baai/bge-reranker-base")!;
+    expect(call[1]).toMatchObject({ query: "dovetail" });
+  });
+});
+
 describe("the reranker (spec §4.4)", () => {
   // Three episodes, so collapse folds nothing: 3102 "router jig", 3002 "hand cut", 3202 "biscuit".
   const vec = () => fakeVecScored([[3102, 0.8], [3002, 0.75], [3202, 0.7]]);

@@ -72,6 +72,12 @@ export function maxSmartPage(limit: number): number {
 /** The query embedding model; its vectors must match the Mac's (`pooling: "cls"`, spec §4.2). */
 export const EMBEDDING_MODEL = "@cf/baai/bge-base-en-v1.5";
 
+/**
+ * bge's instruction for a short query searching longer passages (passages get none). Tried
+ * on Related through `debug=1&qi=1` (spec §4.4); not used otherwise.
+ */
+export const QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: ";
+
 // The response shapes live in api-types.ts (import-free, so web/ can use them).
 export type {
   DegradedReason,
@@ -268,10 +274,12 @@ async function nearestChunks(
   env: Pick<Env, "AI" | "VEC">,
   parsed: ParsedQuery,
   onDegraded: (stage: SmartStage, err: unknown) => void,
+  instruction = false,
 ): Promise<{ id: number; score: number }[] | null> {
   let vector: number[];
   try {
-    vector = embedding(await env.AI.run(EMBEDDING_MODEL, { text: [parsed.semantic], pooling: "cls" }));
+    const text = instruction ? QUERY_INSTRUCTION + parsed.semantic : parsed.semantic;
+    vector = embedding(await env.AI.run(EMBEDDING_MODEL, { text: [text], pooling: "cls" }));
   } catch (err) {
     onDegraded("ai", err);
     return null;
@@ -491,6 +499,8 @@ export async function relatedSearch(
     rerank?: boolean;
     /** The reranker failed or answered nothing usable: Vectorize's order stands, not degraded. */
     onRerankFailed?: (err?: unknown) => void;
+    /** Embed the query with QUERY_INSTRUCTION in front (debug requests only). */
+    queryInstruction?: boolean;
   } = {},
 ): Promise<SmartAnswer> {
   const {
@@ -501,10 +511,11 @@ export async function relatedSearch(
     floor = RELATED_FLOOR,
     rerank = false,
     onRerankFailed = () => {},
+    queryInstruction = false,
   } = options;
   const none: SmartAnswer = { page, limit, has_more: false, results: [] };
   if (parsed.fts === null) return none;
-  const nearest = skipMeaning ? null : await nearestChunks(env, parsed, onDegraded);
+  const nearest = skipMeaning ? null : await nearestChunks(env, parsed, onDegraded, queryInstruction);
   if (nearest === null) return { ...none, smart_degraded: skipMeaning ?? "unavailable" };
 
   // The floor: what Vectorize found that is not similar enough is not "related" (spec §4.4).

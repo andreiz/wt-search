@@ -851,25 +851,42 @@ function testInputs() {
   };
 }
 
-// A filter if the query has one, negative for "not return it", exact if every word is said
-// within a minute of the passage, otherwise paraphrase. Jargon is left to the maintainer.
-function guessTag(query, absent) {
-  if (absent) return "negative";
-  if (FILTER_RE.test(query)) return "filter";
-  const words = query.split(/\s+/).map(normWord).filter(Boolean);
-  if (!words.length) return "paraphrase";
-  const near = new Set();
-  for (const w of S.words) {
-    if (Math.abs(w[1] - test.atMs) <= GUESS_WINDOW_MS) near.add(normWord(String(w[0])));
-  }
-  return words.every((w) => near.has(w)) ? "exact" : "paraphrase";
+// Whether every query word is said within a minute of the passage. The server compares stems as
+// Exact search does ("calculation" matches "calculator"); unreachable, whole words are compared.
+async function saidNearby(query) {
+  const near = S.words.filter((w) => Math.abs(w[1] - test.atMs) <= GUESS_WINDOW_MS).map((w) => String(w[0]).trim());
+  const r = await api("/api/eval/said", { query, text: near.join(" ") });
+  if (r.status === 200 && r.data && typeof r.data.said === "boolean") return r.data.said;
+  const have = new Set(near.map(normWord));
+  return query.split(/\s+/).map(normWord).filter(Boolean).every((w) => have.has(w));
 }
 
-function guessTest() {
+// A filter if the query has one, negative for "not return it", exact if every word is said
+// near the passage, otherwise paraphrase. Jargon is left to the maintainer.
+async function guessTag(query, absent) {
+  if (absent) return "negative";
+  if (FILTER_RE.test(query)) return "filter";
+  if (!query) return "paraphrase";
+  return (await saidNearby(query)) ? "exact" : "paraphrase";
+}
+
+let guessSeq = 0;
+let guessTimer = 0;
+
+// Typing waits a moment before asking the server; the latest question's answer wins.
+function guessTest({ wait = false } = {}) {
   const cur = testInputs();
-  if (!test.tagTouched) $("test-tag").value = guessTag(cur.query, cur.absent);
   // A passage that shouldn't come back is usually a Related mistake: Exact only returns the words.
   if (!test.modeTouched) $("test-mode").value = cur.absent ? "related" : "both";
+  if (test.tagTouched) return;
+  clearTimeout(guessTimer);
+  const seq = ++guessSeq;
+  const run = async () => {
+    const tag = await guessTag(cur.query, cur.absent);
+    if (seq === guessSeq && !test.tagTouched) $("test-tag").value = tag;
+  };
+  if (wait) guessTimer = setTimeout(run, 150);
+  else run();
 }
 
 function setTestError(text) {
@@ -1142,7 +1159,7 @@ function wire() {
   $("test-cancel").addEventListener("click", () => testDialog.close());
   $("test-query").addEventListener("input", () => {
     $("test-result").replaceChildren(); // the result was for other words
-    guessTest();
+    guessTest({ wait: true });
   });
   for (const id of ["test-want-find", "test-want-absent", "test-any-time"]) {
     $(id).addEventListener("change", () => {

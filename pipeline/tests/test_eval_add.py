@@ -3,7 +3,7 @@ answer (spec §7.2)."""
 
 import pytest
 
-from wts.evalset.add import CaseExists, append_case, case_id, locate
+from wts.evalset.add import CaseExists, all_said, append_case, case_id, locate, stems
 from wts.evalset.cases import Case, CaseError, Item, load_cases
 
 EXISTING = """# The test search set, written by hand.
@@ -108,6 +108,21 @@ def test_a_broken_file_is_not_appended_to():
     with pytest.raises(CaseError):
         append_case("- id: [unclosed\n", query="glue", tag="exact", mode="both", episode=1,
                     at_s=None, absent=False)
+
+
+def test_stems_are_searchs_porter_tokens():
+    assert stems("The board foot Calculator, three-eighths!") == {
+        "the", "board", "foot", "calcul", "three", "eighth"}
+    assert stems("") == set()
+    assert stems("¿?") == set()
+
+
+def test_all_said_compares_stems_as_exact_search_does():
+    passage = "definitely the board foot calculator is awesome when the glue sets"
+    assert all_said("board foot calculation", passage)
+    assert all_said("Glue setting", passage)
+    assert not all_said("board foot math", passage)
+    assert not all_said("  ", passage)
 
 
 def _r(number, hit_s):

@@ -40,7 +40,7 @@ from wts.corrections import (
 )
 from wts.corrections_check import Change, WordKeys, added_rule_changes, changes_digest
 from wts.corrections_edit import EditFailed, RuleExists, add_rule
-from wts.evalset.add import CaseExists, append_case, locate
+from wts.evalset.add import CaseExists, all_said, append_case, locate
 from wts.evalset.cases import CaseError, eval_dir
 from wts.evalset.score import TOP
 from wts.paths import Paths
@@ -417,6 +417,7 @@ def _parse_range(header: str | None, size: int) -> tuple[int, int] | str | None:
 # -- write endpoints --
 
 MAX_RULE_TEXT = 200
+MAX_SAID_TEXT = 20_000  # two minutes of talk is ~2,000 characters
 
 
 class _Bad(Exception):
@@ -633,5 +634,14 @@ def register_eval(app: ReviewApp) -> None:
             _write_replacing(path, text)
         return 200, {"id": case_id}
 
+    def said(body: dict, conn: sqlite3.Connection) -> tuple[int, dict]:
+        query, text = body.get("query"), body.get("text")
+        if not isinstance(query, str) or not isinstance(text, str):
+            return 400, {"error": "bad_request"}
+        if len(query) > MAX_RULE_TEXT or len(text) > MAX_SAID_TEXT:
+            return 400, {"error": "bad_request"}
+        return 200, {"said": all_said(query, text)}
+
+    app.post_routes["/api/eval/said"] = said
     app.post_routes["/api/eval/check"] = check
     app.post_routes["/api/eval"] = save

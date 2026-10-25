@@ -7,6 +7,7 @@ new text is loaded again and must hold the old cases plus the new one, or nothin
 
 import json
 import re
+import sqlite3
 
 import yaml
 
@@ -113,6 +114,26 @@ def append_case(text: str, *, query: str, tag: str, mode: str, episode: int,
     if added.id != new_id or added.query != query:
         raise CaseError("queries.yaml: the appended case did not load as written")
     return new_text, new_id
+
+
+def stems(text: str) -> set[str]:
+    """`text`'s terms as Exact search indexes them: SQLite FTS5 with the Worker's tokenizer
+    (`porter unicode61`, schema/0001_init.sql), in a throwaway in-memory table."""
+    conn = sqlite3.connect(":memory:")
+    try:
+        conn.execute("create virtual table t using fts5(x, tokenize='porter unicode61')")
+        conn.execute("create virtual table v using fts5vocab(t, 'row')")
+        conn.execute("insert into t values (?)", (text,))
+        return {row[0] for row in conn.execute("select term from v")}
+    finally:
+        conn.close()
+
+
+def all_said(query: str, passage: str) -> bool:
+    """Whether every word of `query` is in `passage`, as Exact search would match it (a stem
+    for a stem: "calculation" matches "calculator")."""
+    wanted = stems(query)
+    return bool(wanted) and wanted <= stems(passage)
 
 
 def locate(results: list[dict], episode: int, at_s: int | None) -> dict:

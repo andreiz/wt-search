@@ -132,6 +132,27 @@ def test_the_endpoints_need_the_token(base, ep):
     assert _post(base, "/api/eval", body, headers={}).status_code == 401
 
 
+def test_said_compares_stems(base):
+    text = "the board foot calculator is awesome"
+    r = _post(base, "/api/eval/said", {"query": "board foot calculation", "text": text})
+    assert (r.status_code, r.json()) == (200, {"said": True})
+    r = _post(base, "/api/eval/said", {"query": "board foot math", "text": text})
+    assert r.json() == {"said": False}
+
+
+@pytest.mark.parametrize("body", [
+    {"query": "x"}, {"text": "x"}, {"query": 1, "text": "x"}, {"query": "x", "text": None},
+    {"query": "x" * 201, "text": "x"}, {"query": "x", "text": "x" * 20_001},
+])
+def test_said_bad_bodies_are_400(base, body):
+    assert _post(base, "/api/eval/said", body).status_code == 400
+
+
+def test_said_needs_the_token(base):
+    r = _post(base, "/api/eval/said", {"query": "x", "text": "x"}, headers={})
+    assert r.status_code == 401
+
+
 def _case(ep, **kw):
     return {"query": "aspirational builds", "tag": "paraphrase", "mode": "both",
             "episode_id": ep, "at_ms": 2454_321, "absent": False} | kw

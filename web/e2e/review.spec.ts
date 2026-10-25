@@ -358,6 +358,11 @@ test("t adds a test search for the selected passage to queries.yaml", async ({ p
   await expect(page.getByLabel("Kind")).toHaveValue("exact");
   await query.fill("strong joint");
   await expect(page.getByLabel("Kind")).toHaveValue("paraphrase");
+  // Stems, as Exact search matches them: "setting" is the "sets" said here.
+  await query.fill("glue setting");
+  await expect(page.getByLabel("Kind")).toHaveValue("exact");
+  await query.fill("strong joint");
+  await expect(page.getByLabel("Kind")).toHaveValue("paraphrase");
   await page.getByLabel("Not return it").check();
   await expect(page.getByLabel("Kind")).toHaveValue("negative");
   await expect(page.getByLabel("Tabs")).toHaveValue("related");

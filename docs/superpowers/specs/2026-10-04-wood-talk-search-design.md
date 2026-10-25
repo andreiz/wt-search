@@ -1642,7 +1642,9 @@ since the Exact / Related split; filters live in the query; `wts eval run
   (`expect_absent`), and can tick "anywhere in this episode" (no `at`). The
   page guesses the tag: `negative` for "not return it", `filter` when the
   query has `year:` and the like, `exact` when every query word is said within
-  a minute of the passage, otherwise `paraphrase`. `jargon` and `collapse` are
+  a minute of the passage, otherwise `paraphrase`. Words are compared as Exact
+  search matches them: the server tokenizes both with SQLite FTS5's
+  `porter unicode61`, so "calculation" counts as the "calculator" said there. `jargon` and `collapse` are
   picked by hand. The mode defaults to `both` (`related` for "not return it").
   **Check** asks `run_env` (as `wts eval run` does) in both modes and shows
   where the passage lands, so a passing case and a miss are told apart before

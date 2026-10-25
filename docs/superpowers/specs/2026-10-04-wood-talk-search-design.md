@@ -1701,7 +1701,10 @@ since the Exact / Related split; filters live in the query; `wts eval run
      *(2026-10-24)*) writes the question a
      listener would type for a randomly sampled non-boilerplate chunk of a
      published episode, so the right answer is that chunk (`at` = its start).
-     Tag `paraphrase`, mode `both`. Seeded, so a rerun gives the same sample.
+     Tag `paraphrase`, or `exact` when every word of the query is in the
+     chunk as Exact search matches it (stems, as on the review page): the
+     model often reuses the passage's words despite the prompt, 24 of the
+     first 100 *(2026-10-24)*. Mode `both`. Seeded, so a rerun gives the same sample.
      The file is regenerated whole and reviewed as a diff before committing.
   3. *(M2)* Topics from the show notes, mapped to their episodes. The feed's
      descriptions are not stored yet.

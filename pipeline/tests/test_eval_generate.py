@@ -120,19 +120,31 @@ def test_a_missing_model_says_pull_it(respx_mock):
 
 
 def test_generate_writes_loadable_cases_and_counts_the_skipped(corpus, respx_mock, tmp_path):
-    answers = iter(["flattening a workbench top", ""])
+    answers = iter(["leveling a bench surface", ""])
     respx_mock.post(f"{OLLAMA_URL}/api/generate").mock(
         side_effect=lambda request: httpx.Response(200, json={"response": next(answers)}))
     with new_client() as client:
         cases, skipped = generate(corpus, client, "m", count=2, seed=1)
     assert skipped == 1
-    assert cases == [{"id": "syn-071-0000", "query": "flattening a workbench top",
+    assert cases == [{"id": "syn-071-0000", "query": "leveling a bench surface",
                       "tag": "paraphrase", "expect": [{"episode": 71, "at": "0:00"}]}]
     write_synthetic(cases, tmp_path / "synthetic.yaml", header="# generated")
     text = (tmp_path / "synthetic.yaml").read_text()
     assert text.startswith("# generated\n")
     [case] = load_cases(tmp_path)
     assert case.mode == "both" and case.expect[0].at_s == 0
+
+
+def test_a_query_made_of_the_passages_own_words_is_tagged_exact(corpus, respx_mock):
+    # LONG says "flattening the top of a workbench with a jack plane": the first reply is all its
+    # words (stems: "flatten" for "flattened"), the second is not.
+    answers = iter(["flattened workbench top", "leveling a bench surface"])
+    respx_mock.post(f"{OLLAMA_URL}/api/generate").mock(
+        side_effect=lambda request: httpx.Response(200, json={"response": next(answers)}))
+    with new_client() as client:
+        cases, _ = generate(corpus, client, "m", count=2, seed=1)
+    assert [(c["query"], c["tag"]) for c in cases] == [
+        ("flattened workbench top", "exact"), ("leveling a bench surface", "paraphrase")]
 
 
 def test_cli_needs_a_model(wts_home, monkeypatch):

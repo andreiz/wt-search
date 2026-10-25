@@ -10,6 +10,7 @@ from pathlib import Path
 import httpx
 import yaml
 
+from wts.evalset.add import all_said
 from wts.evalset.score import clock
 
 OLLAMA_URL = "http://localhost:11434"
@@ -79,8 +80,10 @@ def generate(conn: sqlite3.Connection, client: httpx.Client, model: str, *, coun
             skipped += 1
             continue
         at = clock(row["start_ms"] // 1000)
+        # The model often reuses the passage's words; then Exact finds it and it's no paraphrase.
+        tag = "exact" if all_said(query, row["text"]) else "paraphrase"
         cases.append({"id": f"syn-{row['number']:03d}-{at.replace(':', ''):0>4}",
-                      "query": query, "tag": "paraphrase",
+                      "query": query, "tag": tag,
                       "expect": [{"episode": row["number"], "at": at}]})
     return cases, skipped
 

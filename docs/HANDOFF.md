@@ -1458,7 +1458,10 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    but there is no `wts analytics pull` and no digest. Shape: `wts analytics pull` (weekly from
    `wts run`) copies the points into `analytics.db`; the digest mails the week's top searches
    and zero-result searches, the raw material for new test cases (`t` in `wts review`) and
-   corrections. Open: how mail is sent (SMTP from the Mac with the credential in the
+   corrections. The maintainer wants scheduled reports (the weekly email; maybe others, each
+   remembering when it last went out, as the reports digest does) and one-off ones from
+   `analytics.db` (SQL, or a `wts analytics report --since`); building on the Mac fits both,
+   and generating costs ~nothing anywhere (2026-10-25). Open: how mail is sent (SMTP from the Mac with the credential in the
    Keychain, a mail API, or Cloudflare Email Workers' `send_email` to a verified address).
    Before launch or right after. The latency field also answers Related's real latency.
 8. ~~Full transcripts in public history~~ — removed by rewriting `main` (second session).

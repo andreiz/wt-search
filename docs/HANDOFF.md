@@ -37,7 +37,9 @@ in Related. Recall@10 is episode-level (spec), so read it with the time hit rate
   then `wts eval run --update` and commit `eval/`. Cases (2026-10-16) can be added from
   `wts review` with `t`: the episode and time are filled in, the tag is guessed, Check runs it
   on `run_env`, Save appends to `eval/queries.yaml` (spec §7.2). Mix searches that work now
-  with misses.
+  with misses. 2026-10-24: 23 hand-written cases (5 paraphrase, 6 negative, 5 jargon, 4 exact,
+  3 filter); the maintainer is done for now and will add more from reports. Left: publish the
+  new corrections, `wts eval generate` (Ollama), then `wts eval run --update`.
 - **Then measure, one at a time, against the baseline:** bge's query instruction; a
   reranker over Related's top 50 (`@cf/baai/bge-reranker-base` on Workers AI; no training,
   one extra AI call per Related search); a similarity floor or topK 20–30; and a learned

@@ -48,6 +48,15 @@ function fakeVec(ids: (number | string)[]) {
   };
 }
 
+function fakeVecScored(matches: [number, number][]) {
+  return {
+    query: vi.fn(async () => ({
+      count: matches.length,
+      matches: matches.map(([id, score]) => ({ id: String(id), score })),
+    })),
+  };
+}
+
 async function related(
   params: Record<string, string>,
   vecIds: (number | string)[] = [],
@@ -133,6 +142,44 @@ describe("related mode", () => {
     const b = await related({ q: "dovetail", debug: "1" }, [3001, 3102]);
     expect(b.results[0]!.debug).toMatchObject({ keyword_rank: null, vector_rank: 2, rrf_score: 0 });
     expect(b.debug).toEqual({ keyword_hits: 0, vector_hits: 2, dropped: [3001] });
+  });
+});
+
+describe("the similarity floor (spec §4.4)", () => {
+  it("drops hits below 0.62 and keeps the rest in Vectorize's order", async () => {
+    const body = await related({ q: "dovetail" }, [], {
+      VEC: fakeVecScored([[3102, 0.7], [3002, 0.619], [3202, 0.62]]),
+    });
+    expect(ids(body)).toEqual([3102, 3202]);
+  });
+
+  it("with every hit below it, answers no results and is not degraded", async () => {
+    const body = await related({ q: "dovetail" }, [], { VEC: fakeVecScored([[3102, 0.5]]) });
+    expect(body.results).toEqual([]);
+    expect(body.smart_degraded).toBeUndefined();
+  });
+
+  it("debug=1&floor= overrides it; a bad floor is ignored", async () => {
+    const vec = () => fakeVecScored([[3102, 0.7], [3202, 0.65]]);
+    expect(ids(await related({ q: "dovetail", debug: "1", floor: "0.68" }, [], { VEC: vec() }))).toEqual([3102]);
+    expect(ids(await related({ q: "dovetail", debug: "1", floor: "0" }, [], { VEC: vec() }))).toEqual([3102, 3202]);
+    for (const bad of ["", "x", "-0.1", "1.5"]) {
+      expect(ids(await related({ q: "dovetail", debug: "1", floor: bad }, [], { VEC: vec() }))).toEqual([3102, 3202]);
+    }
+  });
+
+  it("ignores floor= without debug=1", async () => {
+    const body = await related({ q: "dovetail", floor: "0.68" }, [], {
+      VEC: fakeVecScored([[3102, 0.7], [3202, 0.65]]),
+    });
+    expect(ids(body)).toEqual([3102, 3202]);
+  });
+
+  it("with debug=1, counts what Vectorize returned and lists the ids under the floor as dropped", async () => {
+    const body = await related({ q: "dovetail", debug: "1" }, [], {
+      VEC: fakeVecScored([[3102, 0.7], [3002, 0.5]]),
+    });
+    expect(body.debug).toEqual({ keyword_hits: 0, vector_hits: 2, dropped: [3002] });
   });
 });
 

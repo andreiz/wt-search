@@ -14,6 +14,7 @@ import {
   maxExactPage,
   maxSmartPage,
   PAGE_SIZE,
+  parseFloor,
   relatedSearch,
   smartSearch,
   type ExactResponse,
@@ -104,6 +105,7 @@ const search: Handler = async (request, env, info, ctx) => {
   const page = parsePage(params.get("page"), mode === "exact" ? maxExactPage(limit) : maxSmartPage(limit));
   const q = params.get("q") ?? "";
   const debug = meaning && params.get("debug") === "1";
+  const floor = parseFloor(params.get("floor"));
   Object.assign(info, {
     q: boundQuery(q),
     mode,
@@ -164,6 +166,8 @@ const search: Handler = async (request, env, info, ctx) => {
             onDegraded: (stage, err) => logError(`${stage}_unavailable`, request, err),
             debug,
             ...(skipMeaning ? { skipMeaning } : {}),
+            // A floor override is a debug-only knob of related mode (spec §4.4).
+            ...(debug && mode === "related" && floor !== undefined ? { floor } : {}),
           }),
       titles,
     ]);

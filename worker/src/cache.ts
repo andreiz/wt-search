@@ -72,8 +72,9 @@ export function pathCacheKey(requestUrl: string, path: string, version: string):
  * 2: `cue_s.page`, and `seek` on the show page link (2026-10-09).
  * 3: `episodes`, the title hits (2026-10-10).
  * 4: the show page link is the Acast page under the guid; `links.notes` (2026-10-11).
+ * 5: Related's similarity floor (2026-10-24).
  */
-export const API_VERSION = 4;
+export const API_VERSION = 5;
 
 function versioned(url: URL, version: string): Request {
   url.searchParams.set("api", String(API_VERSION));

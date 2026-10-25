@@ -216,6 +216,18 @@ describe("meaning-only hits", () => {
     expect(r.cue_s).toEqual({ youtube: 593, apple: 593, spotify: 593, page: 593 });
   });
 
+  it("are fused whatever their similarity: smart mode has no floor", async () => {
+    const vec = {
+      query: vi.fn(async (_vector: number[], _options: unknown) => ({
+        count: 1,
+        matches: [{ id: "3102", score: 0.5 }],
+      })),
+    };
+    const { response, body: b } = await smart({ q: "dovetail jig" }, { vec });
+    expect(response.status).toBe(200);
+    expect(tagged(b)).toEqual([[3102, "related"]]);
+  });
+
   it("highlight stemmed words, phrase words and prefixes too", async () => {
     const b = await body({ q: '"pins and tails" joint* drawer' }, [3102, 3203]);
     const marked = Object.fromEntries(b.results.map((r) => [r.chunk_id, r.ranges.map(([s, e]) => r.text.slice(s, e))]));

@@ -41,6 +41,17 @@ export const COUNT_CAP = 1000;
 
 /** Smart search fuses the top this many keyword hits and the top this many nearest vectors. */
 export const SMART_LIST_SIZE = 50;
+
+/** Related drops Vectorize hits less similar than this (spec §4.4, chosen by replay, §7.2). */
+export const RELATED_FLOOR = 0.62;
+
+/** A `floor=` override (debug only): a number in [0, 1], else undefined (the default stands). */
+export function parseFloor(value: string | null): number | undefined {
+  if (value === null || value.trim() === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : undefined;
+}
+
 /** Smart search shows at most this many hits (before collapsing); deeper pages are clamped. */
 export const MAX_SMART_RESULTS = 100;
 
@@ -428,22 +439,26 @@ export async function relatedSearch(
     onDegraded?: (stage: SmartStage, err: unknown) => void;
     debug?: boolean;
     skipMeaning?: Exclude<DegradedReason, "unavailable">;
+    /** Overrides RELATED_FLOOR (debug requests only). */
+    floor?: number;
   } = {},
 ): Promise<SmartAnswer> {
-  const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false, skipMeaning } = options;
+  const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false, skipMeaning, floor = RELATED_FLOOR } = options;
   const none: SmartAnswer = { page, limit, has_more: false, results: [] };
   if (parsed.fts === null) return none;
   const nearest = skipMeaning ? null : await nearestChunks(env, parsed, onDegraded);
   if (nearest === null) return { ...none, smart_degraded: skipMeaning ?? "unavailable" };
 
-  const vectorIds = nearest.map((n) => n.id);
+  // The floor: what Vectorize found that is not similar enough is not "related" (spec §4.4).
+  const kept = nearest.filter((n) => n.score >= floor);
+  const vectorIds = kept.map((n) => n.id);
   const rows = vectorIds.length > 0 ? await loadRelated(env.DB, parsed, vectorIds, parsed.fts) : new Map<number, Row>();
   let hits = vectorIds.flatMap((id) => rows.get(id) ?? []);
   if (sort !== "relevance") hits = sortByDate(hits, sort);
 
   let all = hits.map((hit) => toResult(hit, "related"));
   if (debug) {
-    const vectorRank = new Map(nearest.map((n, i) => [n.id, { rank: i + 1, score: n.score }]));
+    const vectorRank = new Map(kept.map((n, i) => [n.id, { rank: i + 1, score: n.score }]));
     all = all.map((r) => ({
       ...r,
       debug: {
@@ -462,7 +477,14 @@ export async function relatedSearch(
     has_more: offset + limit < results.length,
     results: results.slice(offset, offset + limit),
   };
-  // `dropped` here also holds the hits that contain the words: exact mode's, not this one's.
-  if (debug) response.debug = { keyword_hits: 0, vector_hits: nearest.length, dropped: vectorIds.filter((id) => !rows.has(id)) };
+  // `dropped` here also holds the hits that contain the words (exact mode's, not this one's) and
+  // the ones under the floor.
+  if (debug) {
+    response.debug = {
+      keyword_hits: 0,
+      vector_hits: nearest.length,
+      dropped: nearest.map((n) => n.id).filter((id) => !rows.has(id)),
+    };
+  }
   return response;
 }

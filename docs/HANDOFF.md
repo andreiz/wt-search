@@ -57,8 +57,8 @@ in Related. Recall@10 is episode-level (spec), so read it with the time hit rate
   the baseline and fixed `hvlp-sprayer-2020`; with the reranker paraphrase recall 0.889,
   overall 0.922, negatives 3/6; floor 0.60 identical, 0.66 worse; a cut-off on the reranker's
   score replayed and not adopted (numbers in spec §4.4). The maintainer turned the reranker on
-  in both environments (`wrangler.jsonc`). **Next:** `npm run deploy:staging`, then
-  `uv run wts eval run --update` to record the new baseline. Watch for episode intros
+  in both environments (`wrangler.jsonc`), deployed it to staging and recorded the new
+  baseline (same scores, every Related hit reranked). Watch for episode intros
   (0:03–0:04) rising under the reranker (`syn-214-1656`). **Measure the reranker's latency**
   (maintainer, 2026-10-25): uncached Related with `debug=1&rerank=0` vs `rerank=1` on staging,
   or the Worker's wall time in Workers Logs; not measured yet (guess 100–300 ms). Its money

@@ -408,6 +408,13 @@ Mac and is never deployed.
 >   transcript's words in memory, read once at start), and only the one
 >   episode for an episode rule. Reading and correcting all of them twice
 >   took 6 s for 37 episodes; a one-episode rule now takes about 0.1 s.
+> - **An episode menu** *(2026-10-24)*: in the header, every transcribed
+>   episode, newest first, with its date and whether it is flagged or
+>   reviewed (`GET /api/episodes`). Picking one opens it in the same tab from
+>   its start, with the same server and token; `--at` and `--report` belong
+>   to the episode they came with and are dropped. The menu has a fixed
+>   width and is there, disabled, before its list arrives, so the header
+>   doesn't move.
 
 - **Launch:**
   - `wts review <episode>` opens an episode.

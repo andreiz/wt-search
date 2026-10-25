@@ -6,6 +6,7 @@ from wts.corrections import CorrectionRule
 from wts.review.data import (
     LOW_PROB,
     chunk_position,
+    episode_list,
     episode_payload,
     is_unsure,
     key_text,
@@ -139,6 +140,24 @@ def test_payload_flags_and_reviewed_at(conn, paths, make_episode):
         episode_payload(conn, _row(conn, e), [])["episode"]["reviewed_at"]
         == "2026-01-01T00:00:00+00:00"
     )
+
+
+def test_episode_list_is_the_transcribed_episodes_newest_first(conn, paths, make_episode):
+    assert episode_list(conn) == []
+    old = make_episode(number=71, title="Welcome to the Three-Way",
+                       published_at="2010-06-10T00:00:00+00:00", flags=json.dumps(["retimed"]))
+    _write(conn, paths, old, tx(seg("Hello there.")))
+    make_episode(number=650, published_at="2026-10-01T00:00:00+00:00")  # no transcript
+    new = make_episode(number=None, title="A bonus", published_at="2026-09-01T00:00:00+00:00")
+    _write(conn, paths, new, tx(seg("Hello there.")))
+    conn.execute("update episodes set reviewed_at = 'x' where id = ?", (new,))
+    conn.commit()
+    assert episode_list(conn) == [
+        {"id": new, "number": None, "title": "A bonus", "date": "2026-09-01",
+         "flagged": False, "reviewed": True},
+        {"id": old, "number": 71, "title": "Welcome to the Three-Way", "date": "2010-06-10",
+         "flagged": True, "reviewed": False},
+    ]
 
 
 def test_next_flagged_is_the_oldest_unreviewed_flagged_transcribed_episode(

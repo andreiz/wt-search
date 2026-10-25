@@ -280,6 +280,26 @@ test("?at scrolls the word into view below the sticky header", async ({ page }) 
   await done();
 });
 
+test("the episode menu lists the transcribed episodes and opens one from its start", async ({ page }) => {
+  const done = await watch(page);
+  await open(page, "&at=5000");
+  const menu = page.getByLabel("Open another episode");
+  await expect(menu.locator("option")).toHaveText([
+    "Open another episode…",
+    "2. The second test episode (2020-02-01, flagged)",
+    "1. The review test episode (2020-01-01, flagged)", // wpm_low, from the chunker's guards
+  ]);
+  await expect(menu.locator("option").nth(2)).toBeDisabled(); // the one open now
+  await menu.selectOption({ label: "2. The second test episode (2020-02-01, flagged)" });
+  await expect(page.locator("#title")).toHaveText("2. The second test episode");
+  await expect(words(page)).toHaveCount(8);
+  const url = new URL(page.url());
+  expect(url.searchParams.get("episode")).toBe("2");
+  expect(url.searchParams.get("t")).toBe(TOKEN);
+  expect(url.searchParams.has("at")).toBe(false);
+  await done();
+});
+
 test("a wrong token shows the page's message", async ({ page }) => {
   // The browser logs the 401 itself as a console error; that is the point of the test.
   const problems: string[] = [];

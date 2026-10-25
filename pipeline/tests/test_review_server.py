@@ -171,6 +171,15 @@ def test_episode_payload_over_http(client, conn, paths, make_episode, audio_file
     assert body["episode"]["has_audio"] is True
 
 
+def test_episode_list_over_http(client, conn, paths, make_episode):
+    e = _transcribed(conn, paths, make_episode, number=71, title="The Three-Way")
+    make_episode()  # not transcribed
+    assert client.get("/api/episodes").status_code == 401
+    body = client.get("/api/episodes", headers=AUTH).json()
+    assert body == {"episodes": [{"id": e, "number": 71, "title": "The Three-Way",
+                                  "date": "2020-01-01", "flagged": False, "reviewed": False}]}
+
+
 def test_episode_unknown_bad_and_not_transcribed(client, conn, make_episode):
     assert client.get("/api/episode?id=9999", headers=AUTH).status_code == 404
     assert client.get("/api/episode?id=abc", headers=AUTH).status_code == 404

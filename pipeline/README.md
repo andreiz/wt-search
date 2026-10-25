@@ -52,7 +52,8 @@ uv run wts reports resolve 12 13   # also: reject, reopen
 
 `wts review` serves a page on `127.0.0.1` only, on a free port, and stops on Ctrl-C. The URL
 it prints holds that run's secret token. The page shows the corrected words (what search has),
-with words Whisper was unsure of underlined.
+with words Whisper was unsure of underlined. The "Open another episode…" menu in the header
+switches to any transcribed episode without restarting the server.
 
 | Key | Does |
 |---|---|

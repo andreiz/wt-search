@@ -168,6 +168,26 @@ def worst_stretches(
     return [{"start_ms": k * window_ms, "share": share} for k, share, _ in stretches[:top]]
 
 
+def episode_list(conn: sqlite3.Connection) -> list[dict]:
+    """The episodes the page can open (those with a transcript), newest first, for its menu."""
+    rows = conn.execute(
+        "select id, number, title, published_at, flags, reviewed_at from episodes "
+        "where transcript_path is not null and transcript_path != '' "
+        "order by published_at desc, id desc"
+    ).fetchall()
+    return [
+        {
+            "id": r["id"],
+            "number": r["number"],
+            "title": r["title"],
+            "date": str(r["published_at"] or "")[:10],
+            "flagged": bool(r["flags"]) and r["flags"] != "[]",
+            "reviewed": r["reviewed_at"] is not None,
+        }
+        for r in rows
+    ]
+
+
 def next_flagged(conn: sqlite3.Connection) -> sqlite3.Row | None:
     """The oldest episode (by `published_at`) with flags, not yet reviewed, and a transcript."""
     return conn.execute(

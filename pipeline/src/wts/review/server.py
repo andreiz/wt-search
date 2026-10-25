@@ -45,7 +45,7 @@ from wts.evalset.cases import CaseError, eval_dir
 from wts.evalset.score import TOP
 from wts.paths import Paths
 from wts.reports import STATUSES, get_report, set_status
-from wts.review.data import episode_payload
+from wts.review.data import episode_list, episode_payload
 from wts.search import SearchError
 
 log = logging.getLogger("wts")
@@ -270,6 +270,8 @@ def _make_handler(app: ReviewApp) -> type[BaseHTTPRequestHandler]:
                 return self._static
             if path == "/api/episode":
                 return self._episode
+            if path == "/api/episodes":
+                return self._episodes
             if path == "/api/report":
                 return self._report
             if path.startswith("/audio/"):
@@ -300,6 +302,14 @@ def _make_handler(app: ReviewApp) -> type[BaseHTTPRequestHandler]:
             finally:
                 conn.close()
             self._json(200, payload)
+
+        def _episodes(self, path, query) -> None:
+            conn = app.conn_factory()
+            try:
+                episodes = episode_list(conn)
+            finally:
+                conn.close()
+            self._json(200, {"episodes": episodes})
 
         def _report(self, path, query) -> None:
             if app.d1 is None:

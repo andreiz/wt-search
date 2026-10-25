@@ -1123,6 +1123,7 @@ function wire() {
   transcriptEl.addEventListener("click", onTranscriptClick);
 
   $("reviewed").addEventListener("click", toggleReviewed);
+  $("episode-pick").addEventListener("change", (e) => openEpisode(e.target.value));
   const editBtn = $("edit-selection");
   editBtn.addEventListener("mousedown", (e) => e.preventDefault()); // keep the selection
   editBtn.addEventListener("click", editSelection);
@@ -1182,6 +1183,29 @@ function wire() {
   });
 }
 
+// The episode menu: every transcribed episode, newest first. Picking one opens it in this tab,
+// from its start (a time or a report belongs to the episode they came with).
+async function loadEpisodeMenu() {
+  const r = await api("/api/episodes");
+  if (r.status !== 200 || !r.data || !Array.isArray(r.data.episodes)) return;
+  const pick = $("episode-pick");
+  for (const ep of r.data.episodes) {
+    const marks = [ep.date, ep.flagged ? "flagged" : "", ep.reviewed ? "reviewed" : ""].filter(Boolean);
+    const name = ep.number !== null && ep.number !== undefined ? `${ep.number}. ${ep.title}` : ep.title;
+    const option = el("option", "", `${name} (${marks.join(", ")})`);
+    option.value = String(ep.id);
+    if (String(ep.id) === episodeParam) option.disabled = true; // the one open now
+    pick.append(option);
+  }
+  pick.disabled = false; // there from the start, so the header doesn't move when the list comes
+}
+
+function openEpisode(id) {
+  if (!id || id === episodeParam) return;
+  const next = new URLSearchParams({ t: token, episode: id });
+  location.assign(`/?${next}`);
+}
+
 function loadErrorSentence(r) {
   if (r.status === 401) return "This link's token is wrong or missing. Start `wts review` again.";
   if (r.status === 404) return "No such episode.";
@@ -1206,6 +1230,7 @@ function openAt(ms) {
 
 async function start() {
   wire();
+  loadEpisodeMenu(); // also on a page whose episode doesn't load: it is the way out
   if (reportParam !== null) $("report-panel").hidden = false;
   if (!episodeParam) {
     showMessage("No episode in the link. Start `wts review` again.");

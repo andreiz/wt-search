@@ -284,6 +284,9 @@ ins { background: var(--ins-bg); color: inherit; text-decoration: underline; }
 
 #edit-error { color: var(--error); margin: 0.6rem 0 0; }
 
+/* A select is as wide as its longest option; episode titles are long. */
+#episode-pick { width: 14rem; }
+
 /* The test-search dialog */
 
 #test-where { color: var(--muted); font-size: 0.85rem; margin: 0; }

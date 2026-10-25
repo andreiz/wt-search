@@ -10,6 +10,9 @@ The transcript has 40 words in three sentences. They are spread over 90 s so tha
 chunker, which closes a chunk at about 30 s, makes three chunks (0 s, 38 s and 80 s); two words
 have probability 0.2 ("sets", and the small word "Then") and the rest 0.9. The sentence at 38 s
 holds "tight bond".
+
+A second episode (number 2, newer, flagged, no audio) has one sentence; it is there for the
+page's episode menu.
 """
 
 import json
@@ -30,6 +33,7 @@ SENTENCES = [
 # "Then" is a small word at the start of a sentence: Whisper doubts those all the time, and the
 # page does not mark them.
 LOW_WORDS = {"sets", "Then"}
+SECOND = "Welcome to the second episode about hand planes."
 
 CORRECTIONS = """\
 # Whole-word transcript fixes for the review page's browser test.
@@ -100,6 +104,30 @@ def main(target: Path) -> None:
             "guid-1", 1, "The review test episode", "2020-01-01T00:00:00+00:00", DURATION_S,
             "https://cdn.example/ep1.mp3", "https://woodtalkshow.com/ep1", stem, "chunked",
             str(audio), str(transcript), "2020-01-01T00:00:00+00:00",
+        ),
+    )
+    conn.commit()
+    row = conn.execute("select * from episodes where id = ?", (cur.lastrowid,)).fetchone()
+    chunk_episode(conn, row, [])
+
+    # A second, newer episode for the episode menu: one sentence, no audio, flagged.
+    stem2 = "2020-02-01_ep002_second-test"
+    transcript2 = paths.transcripts_dir / f"{stem2}.json"
+    words2 = [{"start": i * 0.5, "end": i * 0.5 + 0.4, "word": f" {t}", "probability": 0.9}
+              for i, t in enumerate(SECOND.split())]
+    transcript2.write_text(json.dumps({
+        "meta": {"guid": "g2", "title": "Second test", "duration_s": 30},
+        "segments": [{"start": 0.0, "end": words2[-1]["end"], "text": f" {SECOND}",
+                      "no_speech_prob": 0.01, "avg_logprob": -0.2, "words": words2}],
+    }))
+    cur = conn.execute(
+        "insert into episodes (guid, number, title, published_at, duration_s, audio_url, "
+        "page_url, stem, status, transcript_path, flags, updated_at) "
+        "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            "guid-2", 2, "The second test episode", "2020-02-01T00:00:00+00:00", 30,
+            "https://cdn.example/ep2.mp3", "https://woodtalkshow.com/ep2", stem2, "chunked",
+            str(transcript2), '["retimed"]', "2020-02-01T00:00:00+00:00",
         ),
     )
     conn.commit()

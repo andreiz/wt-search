@@ -33,6 +33,21 @@ def test_missing_config_gives_defaults(tmp_path):
 def test_paths_command_prints_locations(wts_home):
     out = CliRunner().invoke(main, ["paths"]).output
     assert str(wts_home / "state.db") in out
+    assert "transcriber: local mlx" in out
+
+
+def test_transcribe_url(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text('transcribe_url = "https://t.example"\n')
+    assert load_config(f).transcribe_url == "https://t.example"
+    f.write_text("")
+    assert load_config(f).transcribe_url is None
+
+
+def test_paths_command_names_the_remote_transcriber(wts_home):
+    (wts_home / "config.toml").write_text('transcribe_url = "https://t.example"\n')
+    out = CliRunner().invoke(main, ["paths"]).output
+    assert "transcriber: remote https://t.example" in out
 
 
 FULL = """

@@ -320,8 +320,10 @@ def cli_run(paths, monkeypatch):
     """`wts run` through the CLI, with run_all replaced: records the env it was given."""
     got = {}
 
-    def fake_run_all(conn, paths, cfg, selector, *, env=None):
+    def fake_run_all(conn, paths, cfg, selector, *, env=None, local_transcribe=False):
         got["env"] = env
+        if local_transcribe:
+            got["local_transcribe"] = True
         return {}
 
     monkeypatch.setattr(steps, "run_all", fake_run_all)
@@ -345,6 +347,12 @@ def test_cli_run_env_comes_from_the_flag_or_run_env(cli_run, args, config, expec
     result, got = cli_run(*args, config=config)
     assert result.exit_code == 0, result.output
     assert got == {"env": expected}
+
+
+def test_cli_run_local_transcribe_flag(cli_run):
+    result, got = cli_run("--local-transcribe")
+    assert result.exit_code == 0, result.output
+    assert got == {"env": None, "local_transcribe": True}
 
 
 def test_cli_run_checks_the_env_config_before_starting(cli_run):

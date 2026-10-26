@@ -50,6 +50,7 @@ from wts.selection import resolve_selector
 from wts.state import Status, advance, episodes_for_step, fail, reset
 from wts.storage import MachineProblem, ToolMissing
 from wts.transcribe import VOCAB_FILE, Transcriber, get_transcriber, transcribe_episode
+from wts.transcribe_remote import TranscriberUnavailable
 
 log = logging.getLogger("wts")
 
@@ -155,6 +156,7 @@ def run_transcribe(
     *,
     transcriber: Transcriber | None = None,
     vocab_file: Path = VOCAB_FILE,
+    local: bool = False,
 ) -> Counter:
     storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)
     # Newest first: recent episodes are the ones people search for, and a long backlog run
@@ -163,7 +165,7 @@ def run_transcribe(
     counts: Counter = Counter()
     if not rows:
         return counts
-    transcriber = transcriber or get_transcriber()
+    transcriber = transcriber or get_transcriber(cfg, local=local)
     audio_s = [row["audio_duration_s"] or row["duration_s"] or 0 for row in rows]
     done_s = done_audio_s = 0.0
     for i, row in enumerate(rows, 1):
@@ -173,6 +175,11 @@ def run_transcribe(
             out = transcribe_episode(row, transcriber, paths.transcripts_dir, vocab_file)
         except KeyboardInterrupt:
             log.warning("interrupted; episode left as downloaded", extra=extra)
+            raise
+        except TranscriberUnavailable as exc:  # the server, not the episode: stop, keep retries
+            left = plural(len(rows) - i + 1, "episode")
+            raise TranscriberUnavailable(f"{exc}; {left} left to transcribe") from exc
+        except MachineProblem:
             raise
         except OSError as exc:
             storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)  # raises if it's gone
@@ -368,6 +375,7 @@ def run_all(
     embedder: Embedder | None = None,
     probe: Callable[[Path], float] = probe_duration_s,
     notifier: Notifier | None = None,
+    local_transcribe: bool = False,
 ) -> dict[str, Counter]:
     """feed → download → transcribe → chunk → embed → publish → smoke → backup, then one notification
     (spec §3.2, §6, §8.2).
@@ -399,7 +407,8 @@ def run_all(
         ids = resolve_selector(conn, selector)
         steps = [
             ("download", lambda: run_download(conn, paths, cfg, ids, client=client, probe=probe)),
-            ("transcribe", lambda: run_transcribe(conn, paths, cfg, ids, transcriber=transcriber)),
+            ("transcribe", lambda: run_transcribe(conn, paths, cfg, ids, transcriber=transcriber,
+                                                  local=local_transcribe)),
             ("chunk", lambda: run_chunk(conn, paths, cfg, ids)),
             ("embed", lambda: run_embed(conn, paths, cfg, ids, embedder=embedder)),
         ]

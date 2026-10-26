@@ -8,7 +8,10 @@ import tempfile
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from wts.config import Config
 
 PIPELINE_DIR = Path(__file__).resolve().parents[2]
 VOCAB_FILE = PIPELINE_DIR / "vocab.txt"
@@ -79,7 +82,12 @@ class MlxWhisperTranscriber:
         return RawTranscript(segments, model=self.repo, model_version=version("mlx-whisper"))
 
 
-def get_transcriber() -> Transcriber:
+def get_transcriber(cfg: "Config | None" = None, *, local: bool = False) -> Transcriber:
+    """walnut's transcribe-web when `transcribe_url` is set (and not `local`), else this Mac."""
+    if cfg is not None and cfg.transcribe_url and not local:
+        from wts.transcribe_remote import RemoteTranscriber
+
+        return RemoteTranscriber(cfg.transcribe_url)
     return MlxWhisperTranscriber()
 
 
@@ -119,7 +127,8 @@ def transcribe_episode(
             "model": result.model,
             "model_version": result.model_version,
             "vocab_sha256": vocab_sha,
-            "machine": platform.node(),
+            # A remote transcriber names the machine that did the work.
+            "machine": getattr(transcriber, "machine", None) or platform.node(),
             "transcribed_at": datetime.now(UTC).isoformat(timespec="seconds"),
         },
         "segments": [asdict(s) for s in result.segments],

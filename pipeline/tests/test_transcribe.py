@@ -116,6 +116,127 @@ def test_audio_folder_vanishing_does_not_burn_retries(
     assert (status_of(conn, e), retries_of(conn, e)) == ("downloaded", 0)
 
 
+def test_get_transcriber_picks_remote_or_local(cfg):
+    from dataclasses import replace
+
+    from wts.transcribe import get_transcriber
+    from wts.transcribe_remote import RemoteTranscriber
+
+    remote = replace(cfg, transcribe_url="https://t.example")
+    assert isinstance(get_transcriber(remote), RemoteTranscriber)
+    assert isinstance(get_transcriber(remote, local=True), MlxWhisperTranscriber)
+    assert isinstance(get_transcriber(cfg), MlxWhisperTranscriber)
+    assert isinstance(get_transcriber(), MlxWhisperTranscriber)
+
+
+def test_machine_comes_from_remote_transcriber(conn, make_episode, paths, cfg, audio_file):
+    import platform
+
+    class Walnut(FakeTranscriber):
+        machine = "walnut"
+
+    e = make_episode(audio_path=str(audio_file), status="downloaded")
+    run_transcribe(conn, paths, cfg, [e], transcriber=Walnut())
+    meta = json.loads((paths.transcripts_dir / f"{stem_of(conn, e)}.json").read_text())["meta"]
+    assert meta["machine"] == "walnut"
+
+    f = make_episode(audio_path=str(audio_file), status="downloaded")
+    run_transcribe(conn, paths, cfg, [f], transcriber=FakeTranscriber())
+    meta = json.loads((paths.transcripts_dir / f"{stem_of(conn, f)}.json").read_text())["meta"]
+    assert meta["machine"] == platform.node()
+
+
+def test_unavailable_stops_step_and_keeps_retries(conn, make_episode, paths, cfg, audio_file):
+    from conftest import retries_of
+
+    from wts.transcribe_remote import TranscriberUnavailable
+
+    ids = [make_episode(audio_path=str(audio_file), status="downloaded") for _ in range(3)]
+    down = FakeTranscriber(raise_exc=TranscriberUnavailable("walnut unreachable (ConnectError)"))
+    with pytest.raises(TranscriberUnavailable) as info:
+        run_transcribe(conn, paths, cfg, ids, transcriber=down)
+    assert str(info.value) == (
+        "walnut unreachable (ConnectError); 3 episodes left to transcribe"
+    )
+    assert [(status_of(conn, e), retries_of(conn, e)) for e in ids] == [("downloaded", 0)] * 3
+
+
+def test_remote_job_failure_fails_the_episode(conn, make_episode, paths, cfg, audio_file):
+    from conftest import retries_of
+
+    from wts.transcribe_remote import RemoteJobFailed
+
+    class FailsFirst(FakeTranscriber):
+        def transcribe(self, audio, initial_prompt):
+            if self.calls == 0:
+                self.calls += 1
+                raise RemoteJobFailed("transcribe: error: boom")
+            return super().transcribe(audio, initial_prompt)
+
+    newer = make_episode(audio_path=str(audio_file), status="downloaded",
+                         published_at="2026-02-01T00:00:00+00:00")
+    older = make_episode(audio_path=str(audio_file), status="downloaded",
+                         published_at="2026-01-01T00:00:00+00:00")
+    counts = run_transcribe(conn, paths, cfg, [newer, older], transcriber=FailsFirst())
+    assert (status_of(conn, newer), retries_of(conn, newer)) == ("error", 1)
+    assert "boom" in reason_of(conn, newer)
+    assert status_of(conn, older) == "transcribed"
+    assert counts == {"ok": 1, "error": 1}
+
+
+def _remote(handler):
+    import httpx
+
+    from wts.transcribe_remote import RemoteTranscriber
+
+    return RemoteTranscriber("https://t.example", sleep=lambda s: None,
+                             client=httpx.Client(transport=httpx.MockTransport(handler)))
+
+
+def _done_result():
+    return {
+        "status": "done", "machine": "walnut",
+        "result": {"model": "m", "model_version": "0.4.3", "segments": [
+            {"start": 0.0, "end": 1.0, "text": " Hi.", "no_speech_prob": 0.0, "avg_logprob": -0.1,
+             "words": [{"start": 0.0, "end": 1.0, "word": " Hi.", "probability": 0.9}]},
+        ]},
+    }
+
+
+def test_ctrl_c_during_remote_transcription_keeps_episode(
+    conn, make_episode, paths, cfg, audio_file
+):
+    import httpx
+    from conftest import retries_of
+
+    def handler(request):
+        if request.method == "POST":
+            return httpx.Response(202, json={"id": "j1"})
+        raise KeyboardInterrupt
+
+    e = make_episode(audio_path=str(audio_file), status="downloaded")
+    with pytest.raises(KeyboardInterrupt):
+        run_transcribe(conn, paths, cfg, [e], transcriber=_remote(handler))
+    assert (status_of(conn, e), retries_of(conn, e)) == ("downloaded", 0)
+
+
+def test_remote_path_needs_no_mlx(conn, make_episode, paths, cfg, audio_file, monkeypatch):
+    import sys
+
+    import httpx
+
+    monkeypatch.setitem(sys.modules, "mlx_whisper", None)  # import mlx_whisper now fails
+
+    def handler(request):
+        if request.method == "POST":
+            return httpx.Response(202, json={"id": "j1"})
+        return httpx.Response(200, json=_done_result())
+
+    e = make_episode(audio_path=str(audio_file), status="downloaded")
+    counts = run_transcribe(conn, paths, cfg, [e], transcriber=_remote(handler))
+    assert counts["ok"] == 1 and status_of(conn, e) == "transcribed"
+
+
 @pytest.mark.mac
 def test_mlx_backend_smoke(tmp_path):  # run manually on the Mac: uv run pytest -m mac
     assert shutil.which("ffmpeg")

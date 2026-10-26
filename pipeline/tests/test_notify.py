@@ -540,6 +540,19 @@ def test_machine_problem_from_a_step_notifies_then_reraises(conn, paths, cfg, we
     assert TOPIC not in "\n".join(wts_messages)
 
 
+def test_unreachable_transcriber_stops_the_run_and_notifies(conn, paths, cfg, web, topic):
+    from wts.transcribe_remote import TranscriberUnavailable
+
+    ids = scope(conn)
+    down = FakeTranscriber(raise_exc=TranscriberUnavailable("walnut unreachable (ConnectError)"))
+    with pytest.raises(TranscriberUnavailable):
+        go(conn, paths, cfg, web, transcriber=down)
+    (msg,) = sent_json(web.ntfy)
+    assert msg["title"] == "wts: run stopped"
+    assert msg["message"] == "walnut unreachable (ConnectError); 2 episodes left to transcribe"
+    assert [status_of(conn, i) for i in ids] == ["downloaded", "downloaded"]
+
+
 @pytest.mark.parametrize(
     "feed_response",
     [httpx.Response(500, text="down"), httpx.ConnectError("no route to host")],

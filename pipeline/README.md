@@ -20,7 +20,14 @@ feed_url = "https://…"       # the show's RSS feed
 # audio_dir = "/Volumes/media/wts/audio"   # from M2: audio on the NAS (default: local)
 # backup_dir = "/Volumes/media/wts/backup" # wts run copies the app folder here (not audio)
 # run_env = "staging"                      # where wts run publishes (else: --env)
+# transcribe_url = "https://transcribe.home.zmievski.org"  # transcribe on walnut (else: this Mac)
 ```
+
+With `transcribe_url` set, `wts transcribe` uploads each MP3 to walnut's transcribe-web (MLX
+Whisper, the same model and settings) and waits for the result; `wts paths` shows which is in
+use. If walnut can't be reached the step stops without failing any episode, and the next run
+carries on. `wts transcribe --local` / `wts run --local-transcribe` use this Mac for one run.
+Spec: `docs/superpowers/specs/2026-10-26-remote-transcription-design.md`.
 
 Top-level keys go before any `[env.*]` table, or TOML puts them inside it.
 

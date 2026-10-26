@@ -53,9 +53,12 @@ def status(flagged: bool) -> None:
 @main.command()
 def paths() -> None:
     """Print the resolved file locations."""
-    p = _ctx().paths
+    ctx = _ctx()
+    p = ctx.paths
     for f in fields(p):
         click.echo(f"{f.name}: {getattr(p, f.name)}")
+    url = ctx.cfg.transcribe_url
+    click.echo(f"transcriber: remote {url}" if url else "transcriber: local mlx")
 
 
 select_option = click.option(
@@ -101,9 +104,10 @@ def download(selector: str, refetch_ads: bool) -> None:
 
 @main.command()
 @select_option
-def transcribe(selector: str) -> None:
+@click.option("--local", is_flag=True, help="Transcribe on this Mac even if transcribe_url is set.")
+def transcribe(selector: str, local: bool) -> None:
     """Transcribe downloaded episodes with Whisper (one at a time; Ctrl-C safe)."""
-    _run_step("transcribe", selector)
+    _run_step("transcribe", selector, local=local)
 
 
 @main.command()
@@ -673,7 +677,9 @@ def feed(force: bool) -> None:
 @click.option("--env", "env", type=click.Choice(ENV_NAMES), default=None,
               help="Environment to publish to [default: run_env in config.toml; with neither, "
                    "nothing is published].")
-def run_cmd(selector: str, env: str | None) -> None:
+@click.option("--local-transcribe", is_flag=True,
+              help="Transcribe on this Mac even if transcribe_url is set.")
+def run_cmd(selector: str, env: str | None, local_transcribe: bool) -> None:
     """Run feed → download → transcribe → chunk → embed → publish → backup, then notify.
 
     Steps take the selected episodes. A backup failure is a warning and a notification, not a
@@ -690,7 +696,8 @@ def run_cmd(selector: str, env: str | None) -> None:
         _check_publish_config(ctx.cfg, env)
     ctx.logger()
     try:
-        results = run_all(ctx.conn(), ctx.paths, ctx.cfg, selector, env=env)
+        results = run_all(ctx.conn(), ctx.paths, ctx.cfg, selector, env=env,
+                          local_transcribe=local_transcribe)
     except MachineProblem as exc:
         click.echo(f"Stopped: {exc}", err=True)
         raise SystemExit(3) from exc

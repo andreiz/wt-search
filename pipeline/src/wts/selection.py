@@ -44,10 +44,19 @@ def _term(conn: sqlite3.Connection, term: str) -> list[int]:
             return _ordered_ids(conn, "substr(published_at, 1, 4) = ?", (f"{int(arg):04d}",))
         if name == "stem" and arg:
             return _ordered_ids(conn, "stem = ?", (arg,))
+        if name == "spread" and int(arg) >= 1:
+            # N evenly spaced among those not yet in scope, so `scope add spread:N` adds exactly N.
+            n = int(arg)
+            candidates = _ordered_ids(conn, "in_scope = 0")
+            m = len(candidates)
+            if n >= m:
+                return candidates
+            return [candidates[round((i + 0.5) * m / n)] for i in range(n)]
     except ValueError:
         pass
     raise click.BadParameter(
-        f"unknown selector {term!r} (use scope, all, seed, recent:N, ep:N, year:YYYY, stem:S)"
+        f"unknown selector {term!r} "
+        "(use scope, all, seed, recent:N, spread:N, ep:N, year:YYYY, stem:S)"
     )
 
 

@@ -1,4 +1,5 @@
 from datetime import date
+from itertools import pairwise
 
 import click
 import pytest
@@ -47,6 +48,29 @@ def test_scope_default_empty_until_added(conn, make_episodes):
     assert resolve_selector(conn, "scope") == []
     assert add_to_scope(conn, ids[:2]) == 2
     assert resolve_selector(conn, "scope") == ids[:2]
+
+
+def test_spread_is_even_and_skips_scope(conn, make_episodes):
+    ids = make_episodes(100)
+    add_to_scope(conn, ids[-20:])
+    got = resolve_selector(conn, "spread:10")
+    assert len(got) == 10
+    assert not set(got) & set(ids[-20:])
+    assert got[0] == ids[4] and got[-1] == ids[76]  # 80 candidates: indexes 4, 12, ..., 76
+    positions = [ids.index(i) for i in got]
+    assert {b - a for a, b in pairwise(positions)} == {8}
+
+
+def test_spread_more_than_candidates_takes_all(conn, make_episodes):
+    ids = make_episodes(5)
+    add_to_scope(conn, ids[:2])
+    assert resolve_selector(conn, "spread:9") == ids[2:]
+
+
+@pytest.mark.parametrize("term", ["spread:0", "spread:x", "spread:"])
+def test_spread_rejects_bad_n(conn, term):
+    with pytest.raises(click.BadParameter):
+        resolve_selector(conn, term)
 
 
 def test_unknown_selector_rejected(conn):

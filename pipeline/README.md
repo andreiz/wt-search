@@ -97,7 +97,9 @@ The cases are in `../eval/` (see its README). A run sends about one request a se
 to `eval/reports/` (not committed).
 
 Each step also runs on its own (`download`, `transcribe`, `chunk`, `embed`) and takes
-`--select` (`scope`, `all`, `seed`, `recent:N`, `ep:N`, `year:YYYY`, `stem:S`; comma = union).
+`--select` (`scope`, `all`, `seed`, `recent:N`, `spread:N`, `ep:N`, `year:YYYY`, `stem:S`; comma = union).
+`spread:N` is N episodes evenly spaced across the archive among those not yet in scope, so
+`wts scope add spread:N` adds exactly N.
 Everything is safe to re-run and to stop with Ctrl-C.
 
 - Inserted ads: Acast stitches ads into downloads unless the User-Agent looks like a bot, so

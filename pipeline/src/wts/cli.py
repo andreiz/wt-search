@@ -63,7 +63,7 @@ select_option = click.option(
     "selector",
     default="scope",
     show_default=True,
-    help="Episodes: scope, all, seed, recent:N, ep:N, year:YYYY, stem:S (comma = union).",
+    help="Episodes: scope, all, seed, recent:N, spread:N, ep:N, year:YYYY, stem:S (comma = union).",
 )
 
 

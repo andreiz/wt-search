@@ -1501,7 +1501,15 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    and generating costs ~nothing anywhere (2026-10-25). Open: how mail is sent (SMTP from the Mac with the credential in the
    Keychain, a mail API, or Cloudflare Email Workers' `send_email` to a verified address).
    Before launch or right after. The latency field also answers Related's real latency.
-15. **The Mini as a model server only** (maintainer, 2026-10-25; changes spec §1 "Heavy
+15. **The Mini as a model server only** — **spec written 2026-10-26, awaiting review:**
+   `docs/superpowers/specs/2026-10-26-remote-transcription-design.md`. Transcription goes
+   through walnut's transcribe-web with a new `mlx` engine and an upload route; wick uploads
+   each MP3; embedding stays on wick for now; scope grows to a quarter of all episodes,
+   counting the 36 (`spread:N`, ~120 more, ~156 in all) before the hosts are contacted. Later,
+   not needed for the quarter: a Docker-based deployment run from Forgejo, if possible, for the
+   weekly runs after launch (its own design; transcription stays native on walnut, since Docker
+   on macOS has no Metal). The older note
+   follows. (maintainer, 2026-10-25; changes spec §1 "Heavy
    compute", M2 and §3; needs brainstorm → spec → plan, before M2). The Mac Mini is meant to
    be an LLM server, not a general one, so the pipeline does **not** move to it: the M1 Max
    keeps `state.db`, transcripts, the schedule (launchd) and watchdog, analytics, the email

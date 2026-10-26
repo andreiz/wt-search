@@ -1,6 +1,11 @@
 # M2 Plan A — Move the pipeline to the Mac Mini (draft for review)
 
-> **Status:** draft, 2026-10-08, written after Checkpoint G. Nothing here is built yet. The
+> **Status: superseded (2026-10-26), never built.** The pipeline stays on wick; walnut only
+> transcribes, through transcribe-web: `docs/superpowers/specs/2026-10-26-remote-transcription-design.md`.
+> Weekly runs after launch go to a Forgejo action instead of launchd on the Mini. Kept for its
+> one-writer reasoning, which still applies.
+>
+> *Original status:* draft, 2026-10-08, written after Checkpoint G. Nothing here is built yet. The
 > decisions marked **Decide** need the maintainer before the code tasks start.
 
 **Goal:** the Mac Mini (M5 Pro) becomes the one machine that runs the pipeline: it owns

@@ -1,7 +1,10 @@
+import subprocess
+
 from wts.repair import (
     MIN_NEW_WORDS,
     clip_span,
     clip_words,
+    cut_clip,
     propose,
 )
 from wts.transcribe import RawSegment, RawTranscript, RawWord
@@ -101,3 +104,14 @@ def test_clip_words_shifts_times():
     words = clip_words(fresh, 40_000)
     assert [(x.text, x.start_ms, x.end_ms) for x in words] == [
         ("Glue", 40_000, 40_400), ("up.", 40_400, 41_000)]
+
+
+def test_cut_clip_reframes_samples_before_the_mp3_encoder(monkeypatch, tmp_path):
+    # ffmpeg 9.0.2's libmp3lame fails on some cuts ("inadequate AVFrame plane padding",
+    # ep614 1136.760-1158.400 s); aresample hands it freshly allocated frames.
+    seen = []
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: seen.append(cmd))
+    cut_clip(tmp_path / "ep.mp3", (1_136_760, 1_158_400), tmp_path / "clip.mp3")
+    cmd = seen[0]
+    assert cmd[cmd.index("-af") + 1] == "aresample"
+    assert cmd.index("-af") < cmd.index("-c:a")

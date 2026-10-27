@@ -146,11 +146,16 @@ def propose(
 
 
 def cut_clip(audio: Path, clip: Span, out: Path) -> Path:
-    """The clip as a mono MP3. Re-encoded: an MP3 stream copy can only cut on frame edges."""
+    """The clip as a mono MP3. Re-encoded: an MP3 stream copy can only cut on frame edges.
+
+    `aresample` changes no samples here; it hands the encoder new frames. Without it ffmpeg
+    9.0.2's libmp3lame fails about one cut in 80 ("inadequate AVFrame plane padding", ep614
+    1136.760-1158.400 s, 2026-10-27).
+    """
     subprocess.run(
         ["ffmpeg", "-v", "error", "-y", "-ss", f"{clip[0] / 1000:.3f}", "-to",
-         f"{clip[1] / 1000:.3f}", "-i", str(audio), "-ac", "1", "-c:a", "libmp3lame",
-         "-b:a", "64k", str(out)],
+         f"{clip[1] / 1000:.3f}", "-i", str(audio), "-ac", "1", "-af", "aresample",
+         "-c:a", "libmp3lame", "-b:a", "64k", str(out)],
         check=True, capture_output=True,
     )
     return out

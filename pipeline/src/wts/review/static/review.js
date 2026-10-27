@@ -1119,6 +1119,7 @@ async function setReportStatus(status) {
 // where the repair's words start in it.
 const CONTEXT_WORDS = 12;
 const PLAY_LEAD_MS = 2000;
+const REPAIR_AT_SLACK_MS = 2000;
 const PLAY_TAIL_MS = 1000;
 const NO_END_MS = 2 ** 31; // "to_ms" of a repair with nothing after it
 
@@ -1477,6 +1478,27 @@ function loadErrorSentence(r) {
 // Open at the `at` time without playing (browsers block unprompted playback).
 function openAt(ms) {
   seekMs(ms, { play: false });
+  holdPosition(ms);
+}
+
+// `?at=` on a repair (from a hole's start, give or take the 2 s a list may print it earlier, to
+// its end) opens that repair, as its button does: `wts review --next-repair` and `--at` with
+// the Repairs line's time land on the panel, not just near it.
+function repairAt(ms) {
+  const near = S.repairs.filter((r) => r.hole[0] - REPAIR_AT_SLACK_MS <= ms && ms <= r.hole[1]);
+  near.sort((a, b) => Math.abs(a.hole[0] - ms) - Math.abs(b.hole[0] - ms));
+  return near[0] || null;
+}
+
+function openAtOrRepair(ms) {
+  const r = repairAt(ms);
+  if (!r) return openAt(ms);
+  openRepair(r.id, true);
+  holdPosition(Math.max(0, repairRange(r).from - PLAY_LEAD_MS));
+}
+
+// The audio's metadata may arrive after the first seek and reset it: seek again then.
+function holdPosition(ms) {
   if (S.ep.has_audio) {
     audio.addEventListener(
       "loadedmetadata",
@@ -1506,7 +1528,7 @@ async function start() {
   }
   render(r.data, false);
   trackBarHeight(); // after render: the bar has its final lines (weak spots, repairs)
-  if (atParam !== null && atParam !== "" && !Number.isNaN(Number(atParam))) openAt(Number(atParam));
+  if (atParam !== null && atParam !== "" && !Number.isNaN(Number(atParam))) openAtOrRepair(Number(atParam));
   if (reportParam !== null) loadReport();
 }
 

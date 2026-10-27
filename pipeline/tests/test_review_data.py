@@ -11,6 +11,7 @@ from wts.review.data import (
     is_unsure,
     key_text,
     next_flagged,
+    next_repair,
     worst_stretches,
 )
 
@@ -302,6 +303,32 @@ def test_next_flagged_is_the_oldest_unreviewed_flagged_transcribed_episode(
     conn.execute("update episodes set reviewed_at = 'x' where id = ?", (want,))
     conn.commit()
     assert next_flagged(conn)["id"] == later
+
+
+def test_next_repair_is_the_newest_episode_with_an_undecided_repair(conn, paths, make_episode):
+    from pathlib import Path
+
+    from wts.repairs import RepairsFile, save_repairs, transcript_sha
+
+    def make(day, repairs, sha=None):
+        e = make_episode(published_at=f"2020-01-0{day}T00:00:00+00:00")
+        _write(conn, paths, e, tx(seg(f"Hello there {day}.")))
+        t = Path(_row(conn, e)["transcript_path"])
+        if repairs is not None:
+            save_repairs(t, RepairsFile(sha or transcript_sha(t), [], repairs))
+        return e
+
+    assert next_repair(conn) is None
+    make(1, [_repair("40-42", (40_000, 42_000), "proposed")])
+    want = make(2, [_repair("30-32", (30_000, 32_000), "proposed"),
+                    _repair("9-12", (9_000, 12_000), "accepted"),
+                    _repair("20-22", (20_000, 22_000), "proposed")])
+    make(3, [_repair("5-7", (5_000, 7_000), "rejected")])  # all decided
+    make(4, None)  # no repairs file
+    make(5, [_repair("5-7", (5_000, 7_000), "proposed")], sha="stale")  # another transcript
+    row, at_ms = next_repair(conn)
+    assert row["id"] == want
+    assert at_ms == 20_000  # its first undecided repair's hole
 
 
 def test_payload_chunks_in_seq_order_and_empty_before_chunking(conn, paths, make_episode):

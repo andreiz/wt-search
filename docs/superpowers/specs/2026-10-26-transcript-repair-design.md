@@ -214,6 +214,10 @@ The maintainer chose this layout (mockup "B1", 2026-10-26):
 - A decision is saved to the repairs file through a new write endpoint (same checks as the
   existing ones). As with a correction made on the page, search changes after `wts chunk`.
 - Dropped flags are not shown.
+- `wts review --next-repair` opens the newest episode with an undecided repair in a current
+  repairs file, with that repair's panel open; run again, it moves on as decisions are made.
+  `--at` on a repair (from 2 s before its hole to the hole's end) opens it the same way; any
+  other time only moves the player (added 2026-10-27, the maintainer's request).
 
 ## 6. Constraints
 

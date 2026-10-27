@@ -269,6 +269,28 @@ test("?at=5000 opens at 5 s, in view, not playing", async ({ page }) => {
   await done();
 });
 
+test("?at on a repair opens it, as its button does; just before it, only the time", async ({ page }) => {
+  // `wts review --next-repair` and `--at` with the Repairs line's time (the hole starts at 9 s;
+  // a list may print it up to 2 s earlier).
+  const done = await watch(page);
+  await open(page, "&at=7500");
+  const panel = page.locator("#repair-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Repair 1 of 1 · 0:09–0:37");
+  await expect(page.locator("#repairs-list button")).toHaveAttribute("aria-current", "true");
+  await expect(page.locator("#transcript .repairing").first()).toBeInViewport();
+  // Where the button puts the player: 2 s before the word ending at 8.6 s, not playing.
+  await expect.poll(() => audioTime(page)).toBeCloseTo(6.6, 1);
+  await page.waitForTimeout(300);
+  expect(await audioPaused(page)).toBe(true);
+  expect(await audioTime(page)).toBeCloseTo(6.6, 1);
+
+  await open(page, "&at=6900");
+  await expect(page.locator("#repair-panel")).toBeHidden();
+  await expect.poll(() => audioTime(page)).toBeCloseTo(6.9, 1);
+  await done();
+});
+
 test("?at scrolls the word into view below the sticky header", async ({ page }) => {
   const done = await watch(page);
   await page.setViewportSize({ width: 1280, height: 300 });

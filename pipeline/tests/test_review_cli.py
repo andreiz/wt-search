@@ -135,12 +135,38 @@ def test_next_flagged_none_left(fake, conn, paths, make_episode):
     assert fake["serve"] == []
 
 
+def test_next_repair_opens_the_episode_at_its_undecided_repair(fake, conn, paths, make_episode):
+    from pathlib import Path
+
+    from wts.repairs import Repair, RepairsFile, save_repairs, transcript_sha
+    from wts.words import Word
+
+    e = transcribed(conn, paths, make_episode, number=85)
+    t = Path(conn.execute("select transcript_path from episodes where id = ?", (e,)).fetchone()[0])
+    save_repairs(t, RepairsFile(transcript_sha(t), [], [Repair(
+        id="2500000-2501000", hole=(2_500_000, 2_501_000), clip=(2_490_000, 2_510_000),
+        index=3, from_ms=0, to_ms=0, before=[], after=[Word("He", 2_500_000, 2_500_300, 0.9)],
+        second_after=None, fails=[], status="proposed")]))
+    result = run("--next-repair")
+    assert result.exit_code == 0, result.output
+    assert f"&episode={e}&at=2500000" in result.output
+
+
+def test_next_repair_none_left(fake, conn, paths, make_episode):
+    transcribed(conn, paths, make_episode)
+    result = run("--next-repair")
+    assert result.exit_code == 1
+    assert "no undecided repairs left" in result.output
+    assert fake["serve"] == []
+
+
 def test_exactly_one_of_episode_and_next_flagged(fake, conn, paths, make_episode):
     transcribed(conn, paths, make_episode, number=71)
-    for args in ([], ["71", "--next-flagged"]):
+    for args in ([], ["71", "--next-flagged"], ["71", "--next-repair"],
+                 ["--next-flagged", "--next-repair"]):
         result = run(*args)
         assert result.exit_code == 2
-        assert "exactly one of EPISODE, --next-flagged or --report" in result.output
+        assert "exactly one of EPISODE, --next-flagged, --next-repair or --report" in result.output
     result = run("71", "--report", "3")
     assert result.exit_code == 2
     assert fake["serve"] == []

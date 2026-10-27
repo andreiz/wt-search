@@ -412,6 +412,8 @@ def links_cmd(episode: str, at: str | None) -> None:
               help="Start at this time: 12:34, 1:02:03 or seconds. Only with EPISODE.")
 @click.option("--next-flagged", "next_flagged_", is_flag=True,
               help="Open the oldest flagged episode that is not marked reviewed yet.")
+@click.option("--next-repair", "next_repair_", is_flag=True,
+              help="Open the newest episode with an undecided repair, at that repair.")
 @click.option("--report", "report_id", type=click.IntRange(min=1), default=None,
               help="Open the passage a listener reported, and let the page close the report.")
 @click.option("--env", default=None,
@@ -424,6 +426,7 @@ def review_cmd(
     episode: str | None,
     at: str | None,
     next_flagged_: bool,
+    next_repair_: bool,
     report_id: int | None,
     env: str | None,
     port: int,
@@ -432,8 +435,11 @@ def review_cmd(
     """Check an episode's transcript by ear in the browser, and fix a word with a rule.
 
     EPISODE is a number (71) or a selector (stem:S, ep:71), as in `wts links`; give exactly one
-    of EPISODE, --next-flagged and --report. The server listens on 127.0.0.1 only, prints a URL
-    that holds this run's secret token, and stops on Ctrl-C.
+    of EPISODE, --next-flagged, --next-repair and --report. The server listens on 127.0.0.1
+    only, prints a URL that holds this run's secret token, and stops on Ctrl-C.
+
+    --at on a repair's time (the Repairs line's button) opens that repair, as --next-repair
+    does.
 
     Press `t` on the page to add a test search for the passage to eval/queries.yaml; its
     "Check" searches run_env.
@@ -448,16 +454,20 @@ def review_cmd(
 
     from wts.corrections import CORRECTIONS_FILE
     from wts.links import parse_time
-    from wts.review.data import chunk_position, next_flagged
+    from wts.review.data import chunk_position, next_flagged, next_repair
     from wts.review.server import ReviewApp, serve
     from wts.selection import resolve_selector
 
-    if [episode is not None, next_flagged_, report_id is not None].count(True) != 1:
-        raise click.UsageError("give exactly one of EPISODE, --next-flagged or --report")
+    if [episode is not None, next_flagged_, next_repair_, report_id is not None].count(True) != 1:
+        raise click.UsageError(
+            "give exactly one of EPISODE, --next-flagged, --next-repair or --report"
+        )
     at_ms = None
     if at is not None:
         if episode is None:
-            raise click.UsageError("--at goes with EPISODE, not --next-flagged or --report")
+            raise click.UsageError(
+                "--at goes with EPISODE, not --next-flagged, --next-repair or --report"
+            )
         try:
             at_ms = parse_time(at) * 1000
         except ValueError as exc:
@@ -495,6 +505,11 @@ def review_cmd(
                     )
                 episode_id, at_ms = position
                 row = conn.execute("select * from episodes where id = ?", (episode_id,)).fetchone()
+            elif next_repair_:
+                found = next_repair(conn)
+                if found is None:
+                    raise click.ClickException("no undecided repairs left to review")
+                row, at_ms = found
             elif episode is None:
                 row = next_flagged(conn)
                 if row is None:

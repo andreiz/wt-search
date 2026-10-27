@@ -235,6 +235,25 @@ def next_flagged(conn: sqlite3.Connection) -> sqlite3.Row | None:
     ).fetchone()
 
 
+def next_repair(conn: sqlite3.Connection) -> tuple[sqlite3.Row, int] | None:
+    """The newest episode (by `published_at`) with an undecided repair in a current repairs
+    file, and the start of its first undecided repair's hole: where the page opens that repair.
+    Newest first, like `wts repair`."""
+    rows = conn.execute(
+        "select * from episodes where transcript_path is not null and transcript_path != '' "
+        "order by published_at desc, id desc"
+    )
+    for row in rows:
+        path = Path(row["transcript_path"])
+        rf = load_repairs(path)
+        if rf is None or not path.is_file():
+            continue
+        holes = sorted(r.hole[0] for r in rf.repairs if r.status == "proposed")
+        if holes and rf.transcript_sha == transcript_sha(path):
+            return row, holes[0]
+    return None
+
+
 def chunk_position(conn: sqlite3.Connection, chunk_id: int) -> tuple[int, int] | None:
     """`(episode_id, start_ms)` of a local chunk, or None if there is no such chunk."""
     row = conn.execute(

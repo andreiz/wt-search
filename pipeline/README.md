@@ -64,8 +64,9 @@ uv run wts search --debug 'flattening a bench top'   # plus each hit's ranks and
 
 ```sh
 uv run wts review 71               # an episode in the browser: audio and transcript in step
-uv run wts review 71 --at 12:34    # opened at a time
+uv run wts review 71 --at 12:34    # opened at a time (on a repair: with that repair open)
 uv run wts review --next-flagged   # the oldest episode the quality guards flagged, not yet reviewed
+uv run wts review --next-repair    # the newest episode with an undecided repair, at that repair
 uv run wts reports                 # open listener reports and feedback (--all, --json, --env)
 uv run wts review --report 12      # the passage a listener reported
 uv run wts reports resolve 12 13   # also: reject, reopen

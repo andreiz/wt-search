@@ -18,6 +18,7 @@ Woodcraft
 Kreg
 Kregger
 Titebond
+Earlex
 Osmo
 Rubio Monocoat
 Shapeoko

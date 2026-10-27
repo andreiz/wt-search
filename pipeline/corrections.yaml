@@ -24,6 +24,12 @@ global:
   bowshield: Boeshield
   boe shield: Boeshield
   t9: T-9
+  # Lie-Nielsen, the hand-tool maker (ep071, ep085, ep127, ep595, ep607 "Lee Nielsen"; ep071
+  # "Leon Nielsen"), and Earlex, the HVLP sprayer (ep071 "Urlex"). Found comparing walnut's
+  # and wick's ep071, 2026-10-26.
+  lee nielsen: Lie-Nielsen
+  leon nielsen: Lie-Nielsen
+  urlex: Earlex
   container store: Container Store
   borefoot: board foot
   # Titebond glue (ep044 "Tightbond", ep596 and ep604 "tight bond"). Checked on all 36
@@ -175,6 +181,10 @@ keep:
   - vice versa         # not in the first 37 episodes; here so `vice: vise` can't touch them
   - vice president
 episodes:
+  2010-06-10_ep071_welcome-to-the-three-way:
+    # 38:01, "I have a Lie-Nielsen dovetail saw" (the maintainer listened, 2026-10-26; walnut
+    # heard "lineal dovetail saw"). This episode only: "lineal" is also a real word.
+    lineals and dovetails: Lie-Nielsen dovetail saw
   2026-08-19_ep613_shove-a-kregger-in-the-hole:
     # "Craig-er" is two words to Whisper, "Craig" and "-er" (they are joined after the
     # corrections), so the key is two words. This episode only: anywhere else "Craig, er, …"

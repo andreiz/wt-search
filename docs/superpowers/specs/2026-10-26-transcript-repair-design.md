@@ -143,8 +143,11 @@ A file per episode, `<data>/repairs/<stem>.json`, in a folder beside `transcript
 was taken for a transcript by everything that reads every `.json` there, and the corrections
 preview failed on it)*. Per repair: the flag's
 span, the clip span, the current words, both passes' words, the proposed replacement, the
-rule's verdict and reasons, and a status: `proposed`, `accepted`, `rejected`, or `auto` (applied
-by the rule). The file names the transcript it was made from (its `transcribed_at` or a hash);
+rule's verdict and reasons, a status: `proposed`, `accepted`, `rejected`, or `auto` (applied
+by the rule), and the machine that heard the fresh pass (`walnut`, or this Mac's name with
+`--local`; added 2026-10-27, missing in older files; the review panel's "Fresh pass" heading
+shows it). Corrections apply to the words accepted repairs put in, and the corrections preview
+sees them too (2026-10-27). The file names the transcript it was made from (its `transcribed_at` or a hash);
 if the transcript is replaced, its repairs are stale and are made again (decisions carry over
 as below).
 

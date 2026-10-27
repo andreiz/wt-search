@@ -116,6 +116,7 @@ def repairs_payload(row: sqlite3.Row, starts: Sequence[int] = ()) -> list[dict]:
             "id": r.id, "status": r.status, "fails": r.fails, "hole": list(r.hole),
             "index": r.index, "at": _shown_at(r, starts), "from_ms": r.from_ms, "to_ms": r.to_ms,
             "before": [w.text for w in r.before], "after": [[w.text, w.start_ms, w.end_ms, w.prob] for w in r.after],
+            "machine": r.machine,
         }
         for r in ordered
     ]

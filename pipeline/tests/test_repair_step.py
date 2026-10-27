@@ -224,3 +224,19 @@ def test_redo_keeps_decisions(conn, paths, cfg, episode):
     t.write_text(json.dumps(data))
     repair_once(conn, paths, cfg, [e], tr, [(5000, 12000)])
     assert [r.status for r in load_repairs(t).repairs] == ["accepted"]
+
+
+def test_records_the_machine_that_heard_the_fresh_pass(conn, paths, cfg, episode):
+    e, t = episode()
+    tr = ClipTranscriber(said(LEFT, 0, 0.4) + said(NEW, 5) + said(RIGHT, 13, 0.4))
+    tr.machine = "walnut"  # a remote transcriber names the machine (transcribe_remote)
+    repair_once(conn, paths, cfg, [e], tr, [(5000, 12000)])
+    assert [r.machine for r in load_repairs(t).repairs] == ["walnut"]
+
+
+def test_a_local_pass_records_this_machine(conn, paths, cfg, episode, monkeypatch):
+    monkeypatch.setattr("platform.node", lambda: "wick.local")
+    e, t = episode()
+    tr = ClipTranscriber(said(LEFT, 0, 0.4) + said(NEW, 5) + said(RIGHT, 13, 0.4))
+    repair_once(conn, paths, cfg, [e], tr, [(5000, 12000)])
+    assert [r.machine for r in load_repairs(t).repairs] == ["wick.local"]

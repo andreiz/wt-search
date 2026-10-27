@@ -61,6 +61,21 @@ def test_round_trip(tmp_path):
                      repairs=[repair(2, "", "any sort of risk")])
     save_repairs(t, rf)
     assert load_repairs(t) == rf
+    rf.repairs[0].machine = "walnut"
+    save_repairs(t, rf)
+    assert load_repairs(t).repairs[0].machine == "walnut"
+
+
+def test_a_file_from_before_machine_was_recorded_loads(tmp_path):
+    t = tmp_path / "transcripts" / "ep.json"
+    t.parent.mkdir()
+    t.write_text("{}")
+    save_repairs(t, RepairsFile(transcript_sha(t), [], [repair(2, "", "any sort of risk")]))
+    path = repairs_path(t)
+    data = json.loads(path.read_text())
+    del data["repairs"][0]["machine"]
+    path.write_text(json.dumps(data))
+    assert load_repairs(t).repairs[0].machine is None
 
 
 def test_load_missing_is_none(tmp_path):

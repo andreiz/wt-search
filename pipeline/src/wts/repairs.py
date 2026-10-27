@@ -41,6 +41,7 @@ class Repair:
     second_after: list[Word] | None
     fails: list[int]  # the rule's failed checks; empty: it would apply this
     status: str = "proposed"
+    machine: str | None = None  # where the fresh pass was heard ("walnut"); None in older files
 
 
 @dataclass
@@ -80,7 +81,7 @@ def save_repairs(transcript_path: Path, rf: RepairsFile) -> None:
                 "id": r.id, "hole": list(r.hole), "clip": list(r.clip), "index": r.index,
                 "from_ms": r.from_ms, "to_ms": r.to_ms, "before": _words_out(r.before),
                 "after": _words_out(r.after), "second_after": _words_out(r.second_after),
-                "fails": r.fails, "status": r.status,
+                "fails": r.fails, "status": r.status, "machine": r.machine,
             }
             for r in rf.repairs
         ],
@@ -108,7 +109,7 @@ def load_repairs(transcript_path: Path) -> RepairsFile | None:
                 id=r["id"], hole=tuple(r["hole"]), clip=tuple(r["clip"]), index=r["index"],
                 from_ms=r["from_ms"], to_ms=r["to_ms"], before=_words_in(r["before"]),
                 after=_words_in(r["after"]), second_after=_words_in(r["second_after"]),
-                fails=r["fails"], status=r["status"],
+                fails=r["fails"], status=r["status"], machine=r.get("machine"),
             )
             for r in data["repairs"]
         ],

@@ -31,7 +31,7 @@ from wts.repairs import (
     transcript_sha,
 )
 from wts.storage import MachineProblem
-from wts.transcribe import Transcriber
+from wts.transcribe import Transcriber, machine_name
 from wts.vad import SpeechDetector
 from wts.words import Word
 
@@ -124,6 +124,7 @@ def repair_episode(
                 id=f"{hole[0]}-{hole[1]}", hole=hole, clip=clip, index=p.index,
                 from_ms=p.from_ms, to_ms=p.to_ms, before=list(p.before), after=list(p.after),
                 second_after=list(second.after) if second else None, fails=fails, status=status,
+                machine=machine_name(transcriber),
             ))
     old = load_repairs(path)
     if old is not None:

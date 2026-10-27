@@ -82,6 +82,12 @@ class MlxWhisperTranscriber:
         return RawTranscript(segments, model=self.repo, model_version=version("mlx-whisper"))
 
 
+def machine_name(transcriber: Transcriber) -> str:
+    """Where the transcriber's last pass ran: a remote one names its machine ("walnut"),
+    otherwise this one."""
+    return getattr(transcriber, "machine", None) or platform.node()
+
+
 def get_transcriber(cfg: "Config | None" = None, *, local: bool = False) -> Transcriber:
     """walnut's transcribe-web when `transcribe_url` is set (and not `local`), else this Mac."""
     if cfg is not None and cfg.transcribe_url and not local:
@@ -127,8 +133,7 @@ def transcribe_episode(
             "model": result.model,
             "model_version": result.model_version,
             "vocab_sha256": vocab_sha,
-            # A remote transcriber names the machine that did the work.
-            "machine": getattr(transcriber, "machine", None) or platform.node(),
+            "machine": machine_name(transcriber),
             "transcribed_at": datetime.now(UTC).isoformat(timespec="seconds"),
         },
         "segments": [asdict(s) for s in result.segments],

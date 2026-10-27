@@ -150,7 +150,7 @@ def main(target: Path) -> None:
     repair = Repair(
         id="9000-37900", hole=(9000, 37900), clip=(0, 47900), index=14,
         from_ms=8600, to_ms=38000, before=[], after=after, second_after=None,
-        fails=[2, 5], status="proposed",
+        fails=[2, 5], status="proposed", machine="walnut",
     )
     save_repairs(transcript, RepairsFile(transcript_sha(transcript), [], [repair]))
 

@@ -449,7 +449,7 @@ test("a proposed repair is opened in a side-by-side panel, accepted into the tra
   expect(await audioPaused(page)).toBe(true);
   await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Repair 1 of 1 · 0:09–0:37");
   await expect(panel.getByRole("heading", { name: "Transcript now" })).toBeVisible();
-  await expect(panel.getByRole("heading", { name: "Fresh pass" })).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Fresh pass · walnut", exact: true })).toBeVisible();
   // The transcript has a gap there; the fresh pass has the words, marked.
   await expect(page.locator("#repair-now .gap")).toHaveText("⋯ 29 s ⋯");
   await expect(page.locator("#repair-now")).toContainText("helps every project.");

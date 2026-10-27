@@ -98,6 +98,7 @@ def test_payload_repairs_in_time_order_whatever_their_status(conn, paths, make_e
         _repair("10-12", (10, 12), "accepted"),
         _repair("5-7", (5, 7), "proposed"),
     ]
+    repairs[3].machine = "walnut"
     save_repairs(t, RepairsFile(transcript_sha(t), [], repairs))
     got = episode_payload(conn, row, [])["repairs"]
     assert [r["id"] for r in got] == ["5-7", "10-12", "20-22", "30-32"]
@@ -109,6 +110,8 @@ def test_payload_repairs_in_time_order_whatever_their_status(conn, paths, make_e
     assert (first["from_ms"], first["to_ms"]) == (0, 0)
     assert first["before"] == []
     assert first["after"] == [["and", 5000, 5300, 0.9]]
+    assert first["machine"] == "walnut"
+    assert got[1]["machine"] is None  # a file from before the machine was recorded
 
 
 def test_payload_repairs_say_where_they_are_in_the_shown_words(conn, paths, make_episode):

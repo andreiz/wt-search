@@ -1187,6 +1187,8 @@ function renderRepairPanel() {
   // ones, so this column is rebuilt as the transcript was (the repair's `before` words, or the
   // gap, between the same context) and its heading says so.
   $("repair-now-heading").textContent = applied ? "Transcript before" : "Transcript now";
+  // Where it was heard: walnut's transcribe-web, or this Mac (older files don't say).
+  $("repair-fresh-heading").textContent = r.machine ? `Fresh pass · ${r.machine.split(".")[0]}` : "Fresh pass";
   const now = $("repair-now");
   now.replaceChildren();
   addWords(now, left);

@@ -106,6 +106,7 @@ def test_payload_repairs_in_time_order_whatever_their_status(conn, paths, make_e
     first = got[0]
     assert first["status"] == "proposed"
     assert first["fails"] == [2]
+    assert first["clear_cut"] is False  # 2 decides; 1 and 5 alone wouldn't
     assert first["hole"] == [5, 7]
     assert first["index"] == 3
     assert (first["from_ms"], first["to_ms"]) == (0, 0)

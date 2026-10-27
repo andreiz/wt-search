@@ -20,7 +20,7 @@ from wts.repair import (
     cut_clip,
     propose,
 )
-from wts.repair_rule import judge
+from wts.repair_rule import clear_cut, judge
 from wts.repairs import (
     APPLIED,
     Repair,
@@ -118,7 +118,7 @@ def repair_episode(
             filled = speech_between(speech, _filled_span(p, hole, clip))
             nearby = words[max(0, p.index - NEARBY_WORDS):p.index] + words[end:end + NEARBY_WORDS]
             fails = judge(p, second, filled, nearby)
-            status = "auto" if auto and not fails else "proposed"
+            status = "auto" if auto and clear_cut(fails) else "proposed"
             counts[status] += 1
             repairs.append(Repair(
                 id=f"{hole[0]}-{hole[1]}", hole=hole, clip=clip, index=p.index,

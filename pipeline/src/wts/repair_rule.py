@@ -1,8 +1,8 @@
 """The automatic rule: is a proposed repair clear-cut enough to apply without a look?
 
-Repair spec §5.3. Five checks; a repair that fails none is clear-cut (applied without review only
-when `repair_auto` is on), one that fails any waits for the maintainer with the failed numbers.
-All times are milliseconds.
+Repair spec §5.3. Five checks, all recorded; only 2, 3 and 4 decide. A repair that fails none of
+those is clear-cut (applied without review only when `repair_auto` is on); one that fails any
+waits for the maintainer with the failed numbers. All times are milliseconds.
 """
 
 from collections.abc import Sequence
@@ -18,6 +18,10 @@ CONFIDENT_PROB = 0.5
 CONFIDENT_SHARE = 0.8
 AGREE = 0.9
 MIN_REPEAT_TOKENS = 4
+# The checks that hold a repair for the maintainer. 1 (anchors) and 5 (a second pass agrees)
+# failed on 15 and 18 of the 41 repairs the maintainer accepted in the rollout's review
+# (2026-10-27); every one of the 5 rejected was correct but unimportant chatter.
+DECIDING = frozenset({2, 3, 4})
 STOCK_PHRASES = (
     "thanks for watching",
     "thank you for watching",
@@ -35,10 +39,15 @@ def _contains_run(haystack: list[str], needle: list[str]) -> bool:
     return any(haystack[i : i + n] == needle for i in range(len(haystack) - n + 1))
 
 
+def clear_cut(failed: Sequence[int]) -> bool:
+    """True when none of the failed checks is one that decides."""
+    return not DECIDING.intersection(failed)
+
+
 def judge(
     p: Proposal, second: Proposal | None, speech_ms: int, nearby: Sequence[Word]
 ) -> list[int]:
-    """The numbers of the checks `p` fails (1-5); empty when it is clear-cut."""
+    """The numbers of the checks `p` fails (1-5); `clear_cut` says whether they hold it back."""
     failed = []
     after = _tokens(p.after)
 

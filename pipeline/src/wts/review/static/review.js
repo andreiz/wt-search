@@ -1215,7 +1215,10 @@ function renderRepairPanel() {
   addWords(fresh, right);
   if (!afterCount) fresh.append(" ", el("span", "gap", "⋯"));
 
-  $("repair-rule").textContent = r.fails.length ? `The rule would ask: fails ${r.fails.join(", ")}` : "The rule would apply this";
+  // Only checks 2, 3 and 4 hold a repair back (repair_rule.DECIDING); 1 and 5 are shown anyway.
+  $("repair-rule").textContent = !r.clear_cut ? `The rule would ask: fails ${r.fails.join(", ")}`
+    : r.fails.length ? `The rule would apply this (fails ${r.fails.join(", ")}, which don't decide)`
+    : "The rule would apply this";
   $("repair-play").disabled = !(S.ep && S.ep.has_audio);
   $("repair-accept").hidden = applied;
   $("repair-reject").hidden = r.status === "rejected";

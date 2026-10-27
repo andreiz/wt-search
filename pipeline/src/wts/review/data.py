@@ -14,6 +14,7 @@ from pathlib import Path
 
 from wts.chunking import prepare_episode
 from wts.corrections import CorrectionRule, apply_corrections
+from wts.repair_rule import clear_cut
 from wts.repairs import APPLIED, cleaned_words, load_repairs, transcript_sha
 from wts.words import Word, joined_words
 
@@ -113,7 +114,8 @@ def repairs_payload(row: sqlite3.Row, starts: Sequence[int] = ()) -> list[dict]:
     ordered = sorted(rf.repairs, key=lambda r: r.hole[0])
     return [
         {
-            "id": r.id, "status": r.status, "fails": r.fails, "hole": list(r.hole),
+            "id": r.id, "status": r.status, "fails": r.fails, "clear_cut": clear_cut(r.fails),
+            "hole": list(r.hole),
             "index": r.index, "at": _shown_at(r, starts), "from_ms": r.from_ms, "to_ms": r.to_ms,
             "before": [w.text for w in r.before], "after": [[w.text, w.start_ms, w.end_ms, w.prob] for w in r.after],
             "machine": r.machine,

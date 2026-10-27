@@ -27,6 +27,7 @@ from pathlib import Path
 from wts.config import load_config
 from wts.guards import clean_transcript
 from wts.paths import resolve_paths
+from wts.repair_rule import clear_cut
 from wts.repairs import cleaned_words, load_repairs
 from wts.selection import resolve_selector
 from wts.words import Word, normalize_text
@@ -111,7 +112,7 @@ def main() -> None:
             if r.status not in ("accepted", "rejected"):
                 continue
             decided += 1
-            apply = not r.fails
+            apply = clear_cut(r.fails)
             matched += (apply and r.status == "accepted") or (not apply and r.status == "rejected")
             for n in CHECKS:
                 per_check[n][r.status][1 if n in r.fails else 0] += 1

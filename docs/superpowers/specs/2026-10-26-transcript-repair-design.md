@@ -140,6 +140,14 @@ A repair is clear-cut only if all hold; otherwise it is for the maintainer:
 Each repair stores the rule's verdict and which checks failed. A config setting turns automatic
 application on; it is **off** by default and stays off through the rollout.
 
+**After the rollout's review (2026-10-27):** only checks 2, 3 and 4 decide; 1 and 5 are still
+recorded and shown. Of 46 repairs the maintainer decided, the five-check rule would have applied
+11 (all accepted) and asked about 35, of which 30 were accepted. Checks 1 and 5 failed on 15 and 18
+accepted repairs. Every rejected repair was correct but unimportant chatter (wick's transcript
+had the same words), never invented text. With 2, 3 and 4 deciding, the rule applies 22 and asks
+about 24; one of the 22 is a rejection, for noise. The maintainer turned `repair_auto` on for the
+rest of the catalog.
+
 ### 5.4 Where repairs live
 
 A file per episode, `<data>/repairs/<stem>.json`, in a folder beside `transcripts_dir`, not in it

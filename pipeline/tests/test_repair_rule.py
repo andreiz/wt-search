@@ -1,7 +1,7 @@
 from dataclasses import replace
 
 from wts.repair import Proposal
-from wts.repair_rule import judge
+from wts.repair_rule import clear_cut, judge
 from wts.words import Word
 
 GOOD_TEXT = (
@@ -34,6 +34,14 @@ OTHER = proposal("an entirely different set of words that shares nothing at all 
 
 def test_clear_cut():
     assert judge(GOOD, GOOD, 8000, CTX) == []
+
+
+def test_only_checks_2_3_and_4_decide():
+    # The rollout's review (2026-10-27, 46 decisions): every repair failing only 1 or 5 that the
+    # maintainer rejected was noise, never wrong words. 1 and 5 are still recorded.
+    assert clear_cut([]) and clear_cut([1]) and clear_cut([5]) and clear_cut([1, 5])
+    for failed in ([2], [3], [4], [1, 3], [3, 5], [1, 2, 5]):
+        assert not clear_cut(failed)
 
 
 def test_fails_1_without_anchors():

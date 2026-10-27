@@ -114,6 +114,22 @@ def test_auto_when_configured(conn, paths, cfg, episode, tmp_path):
     assert "n0 n1 n2" in text
 
 
+def test_auto_despite_failing_checks_that_dont_decide(conn, paths, cfg, episode):
+    # No second pass (it failed): check 5 fails, which no longer holds a repair back.
+    class FirstPassOnly(ClipTranscriber):
+        def transcribe(self, audio, initial_prompt):
+            if self.calls:
+                self.calls += 1
+                raise RemoteJobFailed("job failed")
+            return super().transcribe(audio, initial_prompt)
+
+    e, t = episode()
+    tr = FirstPassOnly(said(LEFT, 0, 0.4) + said(NEW21, 5) + said(RIGHT, 13, 0.4))
+    repair_once(conn, paths, replace(cfg, repair_auto=True), [e], tr, [(5000, 12000)])
+    (r,) = load_repairs(t).repairs
+    assert (r.status, r.fails) == ("auto", [5])
+
+
 def test_stretched_word_over_a_hole_counts_the_hole_speech(conn, paths, cfg, episode):
     # Whisper stretched "five" from 1.6 s to 13 s over the skipped passage. The repair's
     # stretch then runs from five's (stretched) end, but the speech it fills is the hole's.

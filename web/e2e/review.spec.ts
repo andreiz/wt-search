@@ -435,6 +435,12 @@ test("a proposed repair is opened in a side-by-side panel, accepted into the tra
   await line.click();
   const panel = page.locator("#repair-panel");
   await expect(panel).toBeVisible();
+  // In the window (it sticks under the bar), with the stretch shown below it, not behind it.
+  await expect(panel).toBeInViewport();
+  const mark = page.locator("#transcript .repairing").first();
+  await expect(mark).toBeInViewport();
+  await expect.poll(async () => (await mark.boundingBox())!.y)
+    .toBeGreaterThanOrEqual(await panel.evaluate((p) => p.getBoundingClientRect().bottom - 1));
   // Like a weak spot's button, it moves the player to the stretch (2 s before the word ending
   // at 8.6 s) without playing.
   await expect.poll(() => audioTime(page)).toBeCloseTo(6.6, 1);

@@ -375,7 +375,7 @@ function setCurrent(i, scrollMode) {
 function keepInView(span, force) {
   if (!force && Date.now() < S.pausedUntil) return;
   const r = span.getBoundingClientRect();
-  const top = $("bar").offsetHeight;
+  const top = stickyTop();
   const third = (window.innerHeight - top) / 3;
   if (r.top >= top + third && r.bottom <= top + 2 * third) return;
   span.scrollIntoView({ block: "center", behavior: reducedMotion.matches ? "auto" : "smooth" });
@@ -385,12 +385,23 @@ function keepInView(span, force) {
 // height is the page's scroll padding, kept up to date as the bar grows (a repairs line, a
 // wrapped title) or shrinks.
 function trackBarHeight() {
-  const bar = $("bar");
-  const sync = () => {
-    document.documentElement.style.scrollPaddingTop = `${bar.offsetHeight}px`;
-  };
-  sync();
-  if (typeof ResizeObserver === "function") new ResizeObserver(sync).observe(bar);
+  syncStickyTop();
+  if (typeof ResizeObserver !== "function") return;
+  const watch = new ResizeObserver(syncStickyTop);
+  watch.observe($("bar"));
+  watch.observe($("repair-panel")); // sticky under the bar while open
+}
+
+function syncStickyTop() {
+  document.documentElement.style.setProperty("--bar-h", `${$("bar").offsetHeight}px`);
+  document.documentElement.style.scrollPaddingTop = `${stickyTop()}px`;
+}
+
+// How much of the top of the window sticky things cover: the bar, and the repair panel when
+// it is open.
+function stickyTop() {
+  const panel = $("repair-panel");
+  return $("bar").offsetHeight + (panel.hidden ? 0 : panel.offsetHeight);
 }
 
 function tick() {
@@ -1221,6 +1232,7 @@ function openRepair(id, scroll) {
   setRepairError("");
   renderRepairs(S.repairs);
   if (!scroll) return;
+  syncStickyTop(); // the panel just opened: centre things below it, not behind it
   const r = S.repairs[openRepairIndex()];
   if (r) seekMs(Math.max(0, repairRange(r).from - PLAY_LEAD_MS), { play: false });
   const first = transcriptEl.querySelector(".repairing");

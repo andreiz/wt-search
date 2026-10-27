@@ -249,13 +249,21 @@ button[aria-pressed="true"],
 #report-body dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 #report-error { color: var(--error); }
 
-/* The repair panel: the transcript as it is beside what a fresh pass heard, above the transcript */
+/* The repair panel: the transcript as it is beside what a fresh pass heard, above the transcript.
+   Sticky just under the bar, so it stays in view while the transcript scrolls to the stretch;
+   --bar-h is the bar's height, kept by review.js. */
 
 #repair-panel {
+  position: sticky;
+  top: var(--bar-h, 0px);
+  z-index: 9;
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.5rem 1rem 1rem;
   margin-bottom: 1.5rem;
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
 .repair-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem; }

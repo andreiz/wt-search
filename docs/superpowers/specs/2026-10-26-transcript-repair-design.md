@@ -103,6 +103,15 @@ before corrections):
 The 1.5 s threshold is a starting value. False alarms are cheap (§5.2 drops them), so it errs
 low; the rollout (§7) checks it.
 
+4. **Loops are flags too** (added 2026-10-27): the same sentence of at most 6 words, 5 or more
+   times in a row, is a flag from its first word to its last. Whisper sometimes loops on a
+   sentence over real speech (ep603 1:06–1:28, "I'm good." 18 times), and its words cover the
+   time, so step 3 can't see it. A repair may then replace many more words than it adds, as long
+   as the words it replaces are a loop (the guards' loop test); check 2 usually sends such a
+   repair to the maintainer. On the 38 rollout episodes this flags only ep603; sign-off "Bye."
+   runs are trimmed by the guards first, and a run that was really said gets no repair, because
+   the fresh pass hears the same words.
+
 ### 5.2 Making a repair
 
 For each flag:

@@ -98,6 +98,25 @@ def test_a_word_beside_the_stretch_takes_the_fresh_pass_capitals_and_stops():
     assert starts == sorted(starts)
 
 
+def test_replaces_a_loop_over_real_speech():
+    # ep603: "I'm good." 8 times where the fresh pass hears the real words. A repair may replace
+    # many more words than it adds when the words it replaces are a loop.
+    loop = " ".join(["I'm good."] * 8)
+    transcript = seq(LEFT, 0) + seq(loop, 3, 0.55) + seq(RIGHT, 13)
+    fresh = seq(LEFT, 0) + seq(NEW, 3, 1.2) + seq(RIGHT, 13)
+    p = propose(transcript, hole=(3000, 11800), clip=(0, 20000), fresh=fresh)
+    assert p is not None
+    assert [x.text for x in p.before] == loop.split()
+    assert [x.text for x in p.after] == NEW.split()
+
+
+def test_still_no_proposal_when_it_would_replace_many_real_words():
+    talk = " ".join(f"t{i}" for i in range(16))
+    transcript = seq(LEFT, 0) + seq(talk, 3, 0.55) + seq(RIGHT, 13)
+    fresh = seq(LEFT, 0) + seq(NEW, 3, 1.2) + seq(RIGHT, 13)
+    assert propose(transcript, hole=(3000, 11800), clip=(0, 20000), fresh=fresh) is None
+
+
 def test_hole_at_episode_start_has_no_left_anchor():
     transcript = seq(RIGHT, 9)
     fresh = seq(NEW, 1) + seq(RIGHT, 9)

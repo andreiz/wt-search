@@ -8,9 +8,10 @@ A word counts as covering at most `WORD_COVER_MS` plus `PAD_MS` after it: Whispe
 skip by stretching one word across it. All times are milliseconds.
 """
 
+import re
 from collections.abc import Sequence
 
-from wts.words import Word
+from wts.words import Word, normalize_text
 
 Span = tuple[int, int]  # (start_ms, end_ms), start < end
 
@@ -19,6 +20,34 @@ PAD_MS = 300
 MIN_HOLE_MS = 1500
 JOIN_MS = 5000
 _PIECE_JOIN_MS = 500  # speech pieces this close are one stretch before the length test
+LOOP_SENTENCES = 5  # the same short sentence this many times in a row is a loop
+LOOP_MAX_WORDS = 6
+_SENTENCE_END = re.compile(r"[.?!][\"')\]]*$")
+
+
+def loops(words: Sequence[Word]) -> list[Span]:
+    """Runs of one short sentence repeated back to back, from the first's start to the last's end.
+
+    Whisper sometimes loops on a sentence over real speech (ep603 1:06-1:28, "I'm good." 18
+    times); its words cover the time, so `uncovered` can't see it. A run that was really said
+    ("Bye." five times) costs only a fresh pass that hears the same words, and no repair."""
+    sentences: list[tuple[str, int, int]] = []  # (normalized text, first word, last word)
+    start = 0
+    for k, w in enumerate(words):
+        if _SENTENCE_END.search(w.text) or k == len(words) - 1:
+            text = normalize_text(" ".join(x.text for x in words[start:k + 1]))
+            sentences.append((text, start, k))
+            start = k + 1
+    out: list[Span] = []
+    i = 0
+    while i < len(sentences):
+        j = i
+        while j + 1 < len(sentences) and sentences[j + 1][0] == sentences[i][0]:
+            j += 1
+        if j - i + 1 >= LOOP_SENTENCES and 0 < len(sentences[i][0].split()) <= LOOP_MAX_WORDS:
+            out.append((words[sentences[i][1]].start_ms, words[sentences[j][2]].end_ms))
+        i = j + 1
+    return out
 
 
 def uncovered(words: Sequence[Word]) -> list[Span]:
@@ -63,10 +92,11 @@ def find_holes(
     min_ms: int = MIN_HOLE_MS,
     join_ms: int = JOIN_MS,
 ) -> list[Span]:
-    """Speech no word covers, in stretches of at least `min_ms`; those within `join_ms` of each
-    other are one flag (one place to look at)."""
+    """Speech no word covers, in stretches of at least `min_ms`, and `loops`; those within
+    `join_ms` of each other are one flag (one place to look at)."""
     pieces = _join(_intersect(uncovered(words), sorted(speech)), _PIECE_JOIN_MS)
-    return _join([p for p in pieces if p[1] - p[0] >= min_ms], join_ms)
+    holes = [p for p in pieces if p[1] - p[0] >= min_ms]
+    return _join(sorted(holes + loops(words)), join_ms)
 
 
 def speech_between(speech: Sequence[Span], span: Span) -> int:

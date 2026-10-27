@@ -35,5 +35,32 @@ def test_nothing_before_first_or_after_last_word():
     assert find_holes(words, speech=[(0, 9000), (12000, 20000)]) == []
 
 
+def said(sentences, start_s, step_s=1.0):
+    """Words one every `step_s` seconds, sentence after sentence."""
+    out, t = [], start_s
+    for sentence in sentences:
+        for token in sentence.split():
+            out.append(w(token, t, t + step_s * 0.8))
+            t += step_s
+    return out
+
+
+def test_a_loop_of_one_short_sentence_is_a_flag():
+    # ep603 1:06-1:28: walnut wrote "I'm good." 18 times over real speech. Words cover the
+    # time, so only the loop shows where the transcript is wrong.
+    words = said(["So that's it."], 0) + said(["I'm good."] * 6, 3) + said(["Then more talk."], 15)
+    speech = [(0, 20_000)]
+    assert find_holes(words, speech) == [(3000, 14_800)]
+
+
+def test_four_repeats_or_long_sentences_are_not_a_loop():
+    speech = [(0, 40_000)]
+    words = said(["So that's it."], 0) + said(["I'm good."] * 4, 3) + said(["Then more."], 12)
+    assert find_holes(words, speech) == []
+    long = "we glued it up on a Tuesday."  # seven words
+    words = said(["So that's it."], 0) + said([long] * 5, 3, 0.25) + said(["Then more."], 13)
+    assert find_holes(words, speech) == []
+
+
 def test_speech_between():
     assert speech_between([(0, 1000), (2000, 5000)], (500, 3000)) == 1500

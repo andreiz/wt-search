@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from wts.guards import clean_transcript
+from wts.guards import _has_loop, clean_transcript
 from wts.holes import Span
 from wts.transcribe import RawTranscript
 from wts.words import Word, normalize_text
@@ -120,7 +120,9 @@ def propose(
         return None
     i_from, i_to, j_from, j_to = hit[0][1], hit[-1][2], hit[0][3], hit[-1][4]
     before, after = tuple(cur[i_from:i_to]), tuple(fresh[j_from:j_to])
-    if len(after) < MIN_NEW_WORDS or len(before) > max(1, len(after) // 4):
+    # Far fewer words replaced than added, unless what's replaced is a loop (holes.loops).
+    loop = _has_loop([_token(w) for w in before])
+    if len(after) < MIN_NEW_WORDS or (len(before) > max(1, len(after) // 4) and not loop):
         return None
 
     # Anchors: the matched run right next to the stretch on each side.

@@ -66,7 +66,13 @@ def corrected_spans(heard: Sequence[Joined], shown: Sequence[Joined]) -> list[li
     words: the text then belongs before word `index`, which can be one past the end). `was` is
     the text Whisper wrote, to show, and `key` the same as a rule would name it (`key_text`).
     A word is the same when its text and start are, so the comparison has almost nothing to try.
+    A span whose text reads the same is no change: a rule can match words Whisper already got
+    right (`wood talk: Wood Talk`), and a value of several words is re-timed evenly over them.
     """
+
+    def text(words: Sequence[Joined]) -> str:
+        return " ".join(w.text.strip() for w, _ in words)
+
     matcher = SequenceMatcher(
         None,
         [(w.text, w.start_ms) for w, _ in heard],
@@ -77,11 +83,11 @@ def corrected_spans(heard: Sequence[Joined], shown: Sequence[Joined]) -> list[li
         [
             j1,
             j2 - j1,
-            " ".join(w.text.strip() for w, _ in heard[i1:i2]),
+            text(heard[i1:i2]),
             key_text([part for _, parts in heard[i1:i2] for part in parts]),
         ]
         for tag, i1, i2, j1, j2 in matcher.get_opcodes()
-        if tag != "equal" and i2 > i1
+        if tag != "equal" and i2 > i1 and text(heard[i1:i2]) != text(shown[j1:j2])
     ]
 
 

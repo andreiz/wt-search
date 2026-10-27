@@ -183,6 +183,23 @@ def test_payload_fixes_say_what_whisper_wrote(conn, paths, make_episode):
     assert episode_payload(conn, _row(conn, e), [])["fixes"] == []
 
 
+def test_payload_fixes_skip_a_rule_that_changed_nothing(conn, paths, make_episode):
+    # `wood talk: Wood Talk` matches a "Wood Talk" Whisper already wrote right (keys ignore
+    # case). The words come back with new timings but the same text: nothing to show.
+    e = make_episode()
+    data = tx(seg("Wood Talk is sponsored by WoodCraft."))
+    wood, talk = data["segments"][0]["words"][:2]
+    wood["end"] = talk["start"] = wood["start"] + 0.16  # uneven, as Whisper times them
+    _write(conn, paths, e, data)
+    rules = [
+        CorrectionRule(("wood", "talk"), "Wood Talk", None),
+        CorrectionRule(("woodcraft",), "Woodcraft", None),
+    ]
+    payload = episode_payload(conn, _row(conn, e), rules)
+    assert [w[0] for w in payload["words"]] == ["Wood", "Talk", "is", "sponsored", "by", "Woodcraft."]
+    assert payload["fixes"] == [[5, 1, "WoodCraft.", "WoodCraft"]]
+
+
 def test_payload_fixes_give_deleted_words_a_place(conn, paths, make_episode):
     e = make_episode()
     _write(conn, paths, e, tx(seg("Well uh glue it up yeah")))

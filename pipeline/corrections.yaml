@@ -208,6 +208,10 @@ episodes:
     # corrections), so the key is two words. This episode only: anywhere else "Craig, er, …"
     # would be someone called Craig.
     craig er: Kregger
+    # Where accepted repairs meet the transcript (the walnut rollout's review, 2026-10-27).
+    great but i'm going: great, but I'm going     # 22:27
+    1 0 like: 1.0. Like                           # 41:04
+    like the apple stock: like the Apple stock    # 41:08
   2026-03-25_ep603_kids-today:
     # 0:23–0:33, a joke on too much footage being "a Matt problem". This episode only: "mats"
     # everywhere else are floor and glue mats.
@@ -219,6 +223,33 @@ episodes:
     a pole lathes: a pole lathe
     spends: spins        # 48:35–48:42, what the lathe does to the work
     co pilot: Copilot
+    # 1:06–1:28: walnut looped "I'm good." over this stretch and the repair replaced only its
+    # tail. The words are wick's (transcripts-previous, 69.7–84.0 s), 2026-10-27.
+    i'm done i'm good i'm good i'm good i'm good i'm good i'm good i'm good i'm good i'm good i'm good i'm good i'm good i'm good i'm good i'm good i'm good i don't technically: "I'm done. I'm done. You feel okay now? I'm better. I'm good. It's so nice outside. I mean, I love doing a show. The look on your face. The more you read, the more the life is draining out of you. Yeah. I mean, I have to close the blinds. I have to make it dark in here. I don't technically"
+    my soul mark: my soul, Marc        # 1:31
+    like we got things: like, we got things   # 1:36, where the repair meets the transcript
   2026-05-20_ep607_do-those-nickers-go-all-the-way-up:
     # 10:19, the guild's short address, written "TWWguild.com" at 7:06 and 7:12.
     www guild com: TWWguild.com
+  # Where accepted repairs meet the transcript mid-sentence: the transcript's side kept a capital
+  # or a full stop from before the repair (the walnut rollout's review, 2026-10-27). Each only
+  # in its episode.
+  2026-07-23_ep611_when-she-gives-away-your-tools:
+    my grinder or some: my grinder or some        # 1:13:58
+    # 1:14:01, the words walnut skipped three times; the maintainer's wording (wick heard them).
+    concrete and i was like: "concrete, and things that I don't do that often, but I still I know I own the tool, and it's mine. And I was like"
+  2026-08-05_ep612_reservations-about-shannon:
+    it's also: it's also                          # 26:09
+    pipes that's the problem: pipes. That's the problem   # 34:49
+    power tools but no matter: power tools. But no matter # 39:28
+    table saw no matter: table saw. No matter     # 39:33
+  2026-09-17_ep615_why-we-dont-use-metric:
+    contributions of our patrons: contributions of our patrons   # 41:07
+  2023-05-24_ep552_embarrassed-by-all-the-shiplap:
+    nicole who would be: Nicole. Who would be     # 38:06
+  2020-04-08_ep466_outdoor-oil-is-it-though:
+    yeah you do yeah: Yeah. You do. Yeah          # 18:47
+  2018-01-16_ep422_matt-is-wrong-about-breadboards:
+    you're probably not: you're probably not      # 24:00
+  2026-07-15_ep610_jazz-hands-joinery:
+    towards the dam: worth a damn

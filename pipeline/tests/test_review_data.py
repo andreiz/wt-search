@@ -81,7 +81,9 @@ def _repair(rid, hole, status, index=3):
     )
 
 
-def test_payload_repairs_proposed_first_then_by_time(conn, paths, make_episode):
+def test_payload_repairs_in_time_order_whatever_their_status(conn, paths, make_episode):
+    # A decided repair keeps its place in the Repairs line (the maintainer, 2026-10-27: it
+    # jumped to the end when accepted).
     from pathlib import Path
 
     from wts.repairs import RepairsFile, save_repairs, transcript_sha
@@ -98,7 +100,7 @@ def test_payload_repairs_proposed_first_then_by_time(conn, paths, make_episode):
     ]
     save_repairs(t, RepairsFile(transcript_sha(t), [], repairs))
     got = episode_payload(conn, row, [])["repairs"]
-    assert [r["id"] for r in got] == ["5-7", "20-22", "10-12", "30-32"]
+    assert [r["id"] for r in got] == ["5-7", "10-12", "20-22", "30-32"]
     first = got[0]
     assert first["status"] == "proposed"
     assert first["fails"] == [2]

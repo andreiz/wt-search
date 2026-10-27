@@ -49,7 +49,7 @@ const S = {
   pausedUntil: 0, // auto-scroll is paused until this time (Date.now())
   raf: 0,
   report: null, // the report object once loaded
-  repairs: [], // the episode's repairs, as the server sent them (proposed first)
+  repairs: [], // the episode's repairs, as the server sent them (time order)
   repairOpen: null, // id of the repair the panel shows
   stopAtMs: null, // "Play" on a repair pauses the audio at this time
   lastSelection: null, // {lo, hi} of the last selection inside the transcript

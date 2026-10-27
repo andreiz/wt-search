@@ -287,10 +287,12 @@ button[aria-pressed="true"],
 #repair-rule { margin: 0.75rem 0 0; }
 #repair-error { color: var(--error); }
 
-/* The stretch a repair is about, in the transcript */
+/* The stretch a repair is about, in the transcript: one band of tint, like a highlighter, not a
+   box per word. Each word's shadow covers the space after it, so the band has no gaps. */
 #transcript .repairing {
   background: var(--ins-bg);
-  box-shadow: 0 0 0 1px var(--reported-line);
+  box-shadow: 0.3em 0 0 var(--ins-bg);
+  border-radius: 0;
 }
 
 .buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }

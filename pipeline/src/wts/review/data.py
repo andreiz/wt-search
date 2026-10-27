@@ -97,13 +97,14 @@ def _shown_at(r, starts: Sequence[int]) -> int:
 
 
 def repairs_payload(row: sqlite3.Row, starts: Sequence[int] = ()) -> list[dict]:
-    """The episode's repairs, proposed first then by time; none when the file is missing or stale.
+    """The episode's repairs in time order; none when the file is missing or stale.
     `starts` are the shown words' start times, for each repair's `at`."""
     path = Path(row["transcript_path"])
     rf = load_repairs(path)
     if rf is None or rf.transcript_sha != transcript_sha(path):
         return []
-    ordered = sorted(rf.repairs, key=lambda r: (r.status != "proposed", r.hole[0]))
+    # Time order, whatever the status: a decided repair keeps its place in the Repairs line.
+    ordered = sorted(rf.repairs, key=lambda r: r.hole[0])
     return [
         {
             "id": r.id, "status": r.status, "fails": r.fails, "hole": list(r.hole),

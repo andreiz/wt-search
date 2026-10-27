@@ -7,8 +7,9 @@ import sqlite3
 import threading
 import time
 from collections import Counter
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Iterator
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -31,7 +32,7 @@ from wts.download import (
 from wts.embed import Embedder, embed_episode, get_embedder
 from wts.evalset.run import smoke
 from wts.feed import parse_feed, upsert_episodes
-from wts.log import clock, plural, run_record
+from wts.log import RunRecord, clock, describe, plural, run_record
 from wts.net import describe_http_error, new_client
 from wts.notify import (
     REPORTS_ID_KEY,
@@ -480,6 +481,16 @@ def run_feed(
     return counts
 
 
+@contextmanager
+def _stage(conn: sqlite3.Connection, name: str, starting: str) -> Iterator[RunRecord]:
+    """A step of `wts run` in its run record, with a line as it starts and its counts at the
+    end; a step that raises gets no end line."""
+    log.info(f"{starting}…")
+    with run_record(conn, name) as run:
+        yield run
+    log.info(f"{name}: {describe(run.counts)}")
+
+
 def run_all(
     conn: sqlite3.Connection,
     paths: Paths,
@@ -511,7 +522,7 @@ def run_all(
     results: dict[str, Counter] = {}
     try:
         if cfg.feed_url:
-            with run_record(conn, "feed") as run:
+            with _stage(conn, "feed", "fetching the feed") as run:
                 try:
                     run.counts.update(run_feed(conn, cfg, client=client))
                 except httpx.HTTPError as exc:  # not MassReset: that still stops the run
@@ -524,27 +535,32 @@ def run_all(
         else:
             log.warning("feed_url is not set; skipping the feed step", extra={"step": "feed"})
         ids = resolve_selector(conn, selector)
+        n = plural(len(ids), "episode")
         steps = [
-            ("download", lambda: run_download(conn, paths, cfg, ids, client=client, probe=probe)),
-            ("transcribe", lambda: run_transcribe(conn, paths, cfg, ids, transcriber=transcriber,
-                                                  local=local_transcribe)),
-            ("repair", lambda: run_repair(conn, paths, cfg, ids, transcriber=transcriber,
-                                          detector=detector, local=local_transcribe)),
-            ("chunk", lambda: run_chunk(conn, paths, cfg, ids)),
-            ("embed", lambda: run_embed(conn, paths, cfg, ids, embedder=embedder)),
+            ("download", f"downloading {n}",
+             lambda: run_download(conn, paths, cfg, ids, client=client, probe=probe)),
+            ("transcribe", f"transcribing {n}",
+             lambda: run_transcribe(conn, paths, cfg, ids, transcriber=transcriber,
+                                    local=local_transcribe)),
+            ("repair", f"looking for skips in {n}",
+             lambda: run_repair(conn, paths, cfg, ids, transcriber=transcriber,
+                                detector=detector, local=local_transcribe)),
+            ("chunk", f"chunking {n}", lambda: run_chunk(conn, paths, cfg, ids)),
+            ("embed", f"embedding {n}",
+             lambda: run_embed(conn, paths, cfg, ids, embedder=embedder)),
         ]
         if env:
-            steps.append(("publish", lambda: run_publish(conn, paths, cfg, ids, env=env,
-                                                         client=client)))
+            steps.append(("publish", f"publishing {n} to {env}",
+                          lambda: run_publish(conn, paths, cfg, ids, env=env, client=client)))
         else:
             log.warning("no environment (--env or run_env in config.toml); not publishing",
                         extra={"step": "publish"})
-        for name, step in steps:
-            with run_record(conn, name) as run:
+        for name, starting, step in steps:
+            with _stage(conn, name, starting) as run:
                 run.counts.update(step())
             results[name] = run.counts
         if env:  # the publish step ran: check the environment answers (spec §8.1)
-            with run_record(conn, "smoke") as run:
+            with _stage(conn, "smoke", f"smoke search on {env}") as run:
                 try:
                     run.counts.update(smoke(cfg, env, client_, notifier))
                 except Exception as exc:  # noqa: BLE001 — a smoke failure never stops the backup
@@ -558,7 +574,7 @@ def run_all(
     except MachineProblem as exc:  # its message names folders or tools, never secrets
         notifier.send("wts: run stopped", str(exc), priority="high", tags=("rotating_light",))
         raise
-    with run_record(conn, "backup") as run:
+    with _stage(conn, "backup", "backing up") as run:
         try:
             if backup(paths, cfg) is not None:
                 run.counts["ok"] += 1

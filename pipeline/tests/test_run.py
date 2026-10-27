@@ -1,3 +1,4 @@
+import re
 import sqlite3
 from collections import Counter
 from dataclasses import replace
@@ -174,6 +175,26 @@ def test_an_unexpected_smoke_error_still_backs_up_and_notifies(conn, paths, cfg,
     [sent] = [s for s in notifier.sent if s["title"] == "wts: smoke search failed"]
     assert "TypeError" in sent["body"] and "zymurgy" not in sent["body"]
     assert any("smoke search failed" in m and "zymurgy" not in m for m in wts_messages)
+
+
+def test_run_all_says_when_each_step_starts_and_ends(conn, paths, cfg, calls, wts_messages):
+    upsert_from_fixture_and_scope(conn, "recent:2")
+    quick_run(conn, paths, cfg, env="staging")
+    stages = [m for m in wts_messages if m.endswith("…") or m.split(":")[0] in {
+        "feed", "download", "transcribe", "repair", "chunk", "embed", "publish", "smoke",
+        "backup"}]
+    starts = [m for m in stages if m.endswith("…")]
+    assert starts == ["downloading 2 episodes…", "transcribing 2 episodes…",
+                      "looking for skips in 2 episodes…", "chunking 2 episodes…",
+                      "embedding 2 episodes…", "publishing 2 episodes to staging…",
+                      "smoke search on staging…", "backing up…"]
+    # Each start is followed, after the step's own lines, by its summary.
+    ends = [m for m in stages if not m.endswith("…")]
+    assert [m.split(":")[0] for m in ends] == [
+        "download", "transcribe", "repair", "chunk", "embed", "publish", "smoke", "backup"]
+    assert all(re.fullmatch(r"\w+: (.+ in \d+:\d\d|nothing to do \(\d+:\d\d\))", m) for m in ends), ends
+    order = [m for m in stages if m in starts or m in ends]
+    assert order[0::2] == starts and order[1::2] == ends
 
 
 def test_run_all_without_env_skips_publish_with_a_warning(conn, paths, cfg, calls, wts_messages):

@@ -299,6 +299,8 @@ button[aria-pressed="true"],
   border-radius: 0;
 }
 
+#transcript .repairing { scroll-margin-top: 0.4rem; } /* a little air under the panel */
+
 .buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
 
 /* The edit dialog */

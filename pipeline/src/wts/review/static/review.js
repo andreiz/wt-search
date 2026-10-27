@@ -426,7 +426,9 @@ function stopFrames() {
   S.raf = 0;
 }
 
-function seekMs(ms, { play }) {
+// `scroll: false` moves the player without bringing its word into view (a caller that scrolls
+// to something else: a second smooth scroll can lose to the first).
+function seekMs(ms, { play, scroll = true }) {
   S.stopAtMs = null; // a seek by hand ends a repair's "Play"
   ms = Math.max(0, ms);
   if (S.ep && S.ep.has_audio) {
@@ -440,9 +442,9 @@ function seekMs(ms, { play }) {
     S.virtualMs = ms;
   }
   const i = wordIndexAt(ms + 30);
-  setCurrent(i, "force");
+  setCurrent(i, scroll ? "force" : "none");
   // Before the first word (music at the start) there is no word to bring into view.
-  if (i < 0) window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
+  if (i < 0 && scroll) window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
 }
 
 function seekWord(i, play) {
@@ -1245,13 +1247,15 @@ function openRepair(id, scroll) {
   setRepairError("");
   renderRepairs(S.repairs);
   if (!scroll) return;
-  syncStickyTop(); // the panel just opened: centre things below it, not behind it
+  syncStickyTop(); // the panel just opened: scroll to just below it, not behind it
   const r = S.repairs[openRepairIndex()];
-  if (r) seekMs(Math.max(0, repairRange(r).from - PLAY_LEAD_MS), { play: false });
+  if (r) seekMs(Math.max(0, repairRange(r).from - PLAY_LEAD_MS), { play: false, scroll: false });
   const first = transcriptEl.querySelector(".repairing");
   if (!first) return;
   pauseAutoScroll();
-  first.scrollIntoView({ block: "center", behavior: reducedMotion.matches ? "auto" : "smooth" });
+  // The stretch's first word on the first line under the panel (the page's scroll padding is
+  // the bar and the panel), so the panel and the place it changes are read together.
+  first.scrollIntoView({ block: "start", behavior: reducedMotion.matches ? "auto" : "smooth" });
 }
 
 function stepRepair(dir) {

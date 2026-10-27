@@ -439,8 +439,10 @@ test("a proposed repair is opened in a side-by-side panel, accepted into the tra
   await expect(panel).toBeInViewport();
   const mark = page.locator("#transcript .repairing").first();
   await expect(mark).toBeInViewport();
-  await expect.poll(async () => (await mark.boundingBox())!.y)
-    .toBeGreaterThanOrEqual(await panel.evaluate((p) => p.getBoundingClientRect().bottom - 1));
+  // Right under the panel: the first line below it, not centred further down.
+  const panelBottom = await panel.evaluate((p) => p.getBoundingClientRect().bottom);
+  await expect.poll(async () => (await mark.boundingBox())!.y).toBeGreaterThanOrEqual(panelBottom - 1);
+  await expect.poll(async () => (await mark.boundingBox())!.y).toBeLessThan(panelBottom + 40);
   // Like a weak spot's button, it moves the player to the stretch (2 s before the word ending
   // at 8.6 s) without playing.
   await expect.poll(() => audioTime(page)).toBeCloseTo(6.6, 1);

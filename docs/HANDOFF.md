@@ -5,6 +5,30 @@ then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
 
+**walnut transcription and transcript repair (2026-10-26).** Transcription moved to walnut
+(spec `2026-10-26-remote-transcription-design.md`; transcribe-web's `mlx` engine is deployed,
+pinned to wick's `mlx-whisper`/`mlx`/`numpy`). walnut and wick never match exactly (different
+GPU and macOS; each repeats itself); the maintainer listened to where they differ: mostly
+crosstalk, plus passages either machine skips (walnut 79 words at ep071 1:11:41; wick 22 at
+ep300 33:31). So a repair step was designed and built (spec
+`2026-10-26-transcript-repair-design.md`, plan `plans/2026-10-26-transcript-repair.md`):
+`wts repair` flags speech no word covers (Silero VAD, ≥ 1.5 s), re-transcribes a clip around
+each, and proposes repairs the maintainer accepts or rejects in `wts review` (panel above the
+transcript); accepted ones are applied by `wts chunk`. The automatic rule records its verdict
+but is off (`repair_auto`). ep616 (recorded live, music under it) makes Whisper random on any
+machine; leave it out of comparisons. The rollout, all the maintainer's, in a normal terminal:
+1. `transcribe_url = "https://transcribe.home.zmievski.org"` at the top of `config.toml`.
+2. `uv run wts transcribe --redo --select scope` (the 36 on walnut with today's vocabulary;
+   wick's transcripts go to `transcripts-previous/`), then `uv run wts repair`.
+3. Review every repair: `uv run wts review <ep>` (the "repairs:" line), then `uv run wts chunk`.
+4. `uv run python spikes/repair_audit.py`: holes repair missed (listen to them), flags per hour,
+   and how the rule's checks matched your decisions (check 5 especially: both passes run on
+   walnut). Then decide the threshold and whether to turn `repair_auto` on.
+5. The search eval for a new baseline; then `uv run wts scope add spread:N` (N ≈ 121) and
+   `uv run wts run --env staging` for the quarter.
+Also open from this work: Earlex / Lie-Nielsen corrections from the ep071/ep300 comparison;
+upgrading walnut to macOS 27.2 (before the backlog, so one setup makes it all).
+
 **Old checkpoints, what is left (gathered 2026-10-25; the long notes further down are the
 history).** Checked by Claude on staging the same day, read-only: caching (a repeat answers
 `x-wts-cache: hit`, HEAD works), Related's `newest`/`oldest` sorts and `year:`/`after:`
@@ -1501,7 +1525,8 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    and generating costs ~nothing anywhere (2026-10-25). Open: how mail is sent (SMTP from the Mac with the credential in the
    Keychain, a mail API, or Cloudflare Email Workers' `send_email` to a verified address).
    Before launch or right after. The latency field also answers Related's real latency.
-15. **The Mini as a model server only** — **spec written 2026-10-26, awaiting review:**
+15. **The Mini as a model server only** — **built and deployed 2026-10-26** (see "Start
+   here"; the equivalence check was replaced by transcript repair). Spec:
    `docs/superpowers/specs/2026-10-26-remote-transcription-design.md`. Transcription goes
    through walnut's transcribe-web with a new `mlx` engine and an upload route; wick uploads
    each MP3; embedding stays on wick for now; scope grows to a quarter of all episodes,

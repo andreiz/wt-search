@@ -29,6 +29,19 @@ use. If walnut can't be reached the step stops without failing any episode, and 
 carries on. `wts transcribe --local` / `wts run --local-transcribe` use this Mac for one run.
 Spec: `docs/superpowers/specs/2026-10-26-remote-transcription-design.md`.
 
+`wts repair` (also part of `wts run`, after transcribe) looks for passages Whisper skipped:
+speech in the audio that no word covers. It transcribes a short clip around each one again
+(on walnut when `transcribe_url` is set) and saves what the fresh pass found in
+`repairs/<stem>.json`, next to the `transcripts/` folder. Accept or reject each repair in `wts review`;
+accepted ones reach search at the next `wts chunk`/`wts run`. `repair_auto = true` in
+config.toml applies the clear-cut ones without review; leave it off until the rule has been
+checked against your decisions (`uv run python spikes/repair_audit.py`). Spec:
+`docs/superpowers/specs/2026-10-26-transcript-repair-design.md`.
+
+`wts transcribe --redo --select …` transcribes episodes again (say, after the vocabulary
+changed); the previous transcript goes to `transcripts-previous/` next to `transcripts/`, and
+earlier repair decisions carry over where the same repair comes back.
+
 Top-level keys go before any `[env.*]` table, or TOML puts them inside it.
 
 ## Everyday use
@@ -36,7 +49,8 @@ Top-level keys go before any `[env.*]` table, or TOML puts them inside it.
 ```sh
 uv run wts feed                    # add/update episodes from the feed
 uv run wts scope add seed          # M1: 20 most recent + 15 across the years
-uv run wts run --env staging       # feed → download → transcribe → chunk → embed → publish → smoke → backup
+uv run wts run --env staging       # feed → download → transcribe → repair → chunk → embed → publish → smoke → backup
+uv run wts repair                  # find skipped passages and propose repairs (review them in wts review)
 uv run wts status                  # counts per status, errors, recent runs
 uv run wts status --flagged        # the episodes the guards flagged, and which are reviewed
 uv run wts logs --since 1d --level warning  # log lines (--run ID, --episode ep312, --json)

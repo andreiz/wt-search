@@ -52,6 +52,104 @@ def test_payload_words_sentences_and_episode(conn, paths, make_episode, audio_fi
     assert {"number", "published_at", "stem", "duration_s"} <= set(ep)
 
 
+def test_payload_words_include_accepted_repair(conn, paths, make_episode):
+    from pathlib import Path
+
+    from wts.repairs import Repair, RepairsFile, save_repairs, transcript_sha
+    from wts.words import Word
+
+    e = make_episode()
+    _write(conn, paths, e, tx(seg("Cut the tenon."), seg("Then glue it up.")))
+    row = _row(conn, e)
+    t = Path(row["transcript_path"])
+    after = [Word(x, 900 + i, 950 + i, 0.9) for i, x in enumerate(["and", "let", "it", "dry"])]
+    save_repairs(t, RepairsFile(transcript_sha(t), [], [Repair(
+        id="1-2", hole=(1, 2), clip=(0, 3), index=3, from_ms=0, to_ms=0, before=[],
+        after=after, second_after=None, fails=[], status="accepted")]))
+    payload = episode_payload(conn, row, [])  # raises if it disagrees with wts chunk's words
+    assert [w[0] for w in payload["words"]][3:7] == ["and", "let", "it", "dry"]
+
+
+def _repair(rid, hole, status, index=3):
+    from wts.repairs import Repair
+    from wts.words import Word
+
+    after = [Word("and", hole[0] * 1000, hole[0] * 1000 + 300, 0.9)]
+    return Repair(
+        id=rid, hole=hole, clip=(hole[0] - 1, hole[1] + 1), index=index, from_ms=0, to_ms=0,
+        before=[], after=after, second_after=None, fails=[2], status=status,
+    )
+
+
+def test_payload_repairs_proposed_first_then_by_time(conn, paths, make_episode):
+    from pathlib import Path
+
+    from wts.repairs import RepairsFile, save_repairs, transcript_sha
+
+    e = make_episode()
+    _write(conn, paths, e, tx(seg("Cut the tenon."), seg("Then glue it up.")))
+    row = _row(conn, e)
+    t = Path(row["transcript_path"])
+    repairs = [
+        _repair("30-32", (30, 32), "rejected"),
+        _repair("20-22", (20, 22), "proposed"),
+        _repair("10-12", (10, 12), "accepted"),
+        _repair("5-7", (5, 7), "proposed"),
+    ]
+    save_repairs(t, RepairsFile(transcript_sha(t), [], repairs))
+    got = episode_payload(conn, row, [])["repairs"]
+    assert [r["id"] for r in got] == ["5-7", "20-22", "10-12", "30-32"]
+    first = got[0]
+    assert first["status"] == "proposed"
+    assert first["fails"] == [2]
+    assert first["hole"] == [5, 7]
+    assert first["index"] == 3
+    assert (first["from_ms"], first["to_ms"]) == (0, 0)
+    assert first["before"] == []
+    assert first["after"] == [["and", 5000, 5300, 0.9]]
+
+
+def test_payload_repairs_say_where_they_are_in_the_shown_words(conn, paths, make_episode):
+    # `index` counts the cleaned words before any repair or join; the page needs the position
+    # in payload.words, after an earlier accepted repair (+2) and a joined "split -top" (-1).
+    from pathlib import Path
+
+    from wts.repairs import Repair, RepairsFile, save_repairs, transcript_sha
+    from wts.words import Word
+
+    e = make_episode()
+    _write(conn, paths, e, tx(seg("Cut the split -top tenon."), seg("Then glue it up."),
+                              seg("Clamp it tight.")))
+    row = _row(conn, e)
+    t = Path(row["transcript_path"])
+    added = [Word("and", 1300, 1350, 0.9), Word("dry", 1400, 1450, 0.9)]
+    save_repairs(t, RepairsFile(transcript_sha(t), [], [
+        Repair(id="a", hole=(1250, 1490), clip=(0, 3000), index=5, from_ms=1200, to_ms=1500,
+               before=[], after=added, second_after=None, fails=[], status="accepted"),
+        Repair(id="b", hole=(2650, 2690), clip=(0, 4000), index=9, from_ms=2600, to_ms=2700,
+               before=[], after=[Word("x", 2660, 2680, 0.9)] * 3, second_after=None, fails=[2],
+               status="proposed"),
+    ]))
+    payload = episode_payload(conn, row, [])
+    words = [w[0] for w in payload["words"]]
+    at = {r["id"]: r["at"] for r in payload["repairs"]}
+    assert words[at["a"]:at["a"] + 2] == ["and", "dry"]
+    assert words[at["b"]] == "Clamp"
+
+
+def test_payload_repairs_empty_when_missing_or_stale(conn, paths, make_episode):
+    from pathlib import Path
+
+    from wts.repairs import RepairsFile, save_repairs
+
+    e = make_episode()
+    _write(conn, paths, e, tx(seg("Cut the tenon.")))
+    row = _row(conn, e)
+    assert episode_payload(conn, row, [])["repairs"] == []
+    save_repairs(Path(row["transcript_path"]), RepairsFile("0" * 64, [], [_repair("1-2", (1, 2), "proposed")]))
+    assert episode_payload(conn, row, [])["repairs"] == []
+
+
 def test_payload_shows_corrected_words(conn, paths, make_episode):
     e = make_episode()
     _write(conn, paths, e, tx(seg("Ask mark about it.")))

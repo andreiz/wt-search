@@ -34,7 +34,7 @@ STEP_OUTPUT: dict[str, Status] = {
     "publish": Status.PUBLISHED,
 }
 
-RESET_TARGETS = {Status.NEW, Status.TRANSCRIBED}
+RESET_TARGETS = {Status.NEW, Status.DOWNLOADED, Status.TRANSCRIBED}
 
 
 class InvalidTransition(Exception):

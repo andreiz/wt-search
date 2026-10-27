@@ -5,14 +5,17 @@
 // current word is highlighted and scrolled to, clicking a word seeks, keys
 // control playback, a native <dialog> previews and saves a correction, another
 // adds a test search for a passage to eval/queries.yaml, and, when the URL has
-// `report`, a panel shows a listener's report.
+// `report`, a panel shows a listener's report. Repairs (stretches a fresh pass filled in) are
+// listed in the bar; one opens in a panel above the transcript, beside the transcript's own words,
+// to be accepted or rejected.
 //
 // Everything that comes from the server is inserted with textContent or
 // createElement, never innerHTML. No inline script or style (the page's CSP
 // forbids both).
 //
 // Sections: helpers, API, rendering, following playback, keyboard and
-// selection, the edit dialog, the test-search dialog, the report panel, startup.
+// selection, the edit dialog, the test-search dialog, the report panel, the repairs panel,
+// startup.
 
 const SCROLL_PAUSE_MS = 5000;
 const SEEK_STEP_S = 5;
@@ -46,6 +49,9 @@ const S = {
   pausedUntil: 0, // auto-scroll is paused until this time (Date.now())
   raf: 0,
   report: null, // the report object once loaded
+  repairs: [], // the episode's repairs, as the server sent them (proposed first)
+  repairOpen: null, // id of the repair the panel shows
+  stopAtMs: null, // "Play" on a repair pauses the audio at this time
   lastSelection: null, // {lo, hi} of the last selection inside the transcript
   keyAt: new Map(), // word index -> the struck-out text before it, as a rule's key names it
   fixStart: new Map(), // corrected word -> the first word of its correction
@@ -348,6 +354,7 @@ function render(payload, keep) {
   renderHeader();
   renderWorst(payload.worst);
   renderTranscript(payload);
+  renderRepairs(payload.repairs);
   markReported();
   if (keep) window.scrollTo({ top: y, behavior: "instant" });
   setCurrent(wordIndexAt(currentMs() + 30), "none");
@@ -364,16 +371,33 @@ function setCurrent(i, scrollMode) {
   if (scrollMode !== "none") keepInView(S.spans[i], scrollMode === "force");
 }
 
-// Keep the word within the middle third of the window.
+// Keep the word within the middle third of the window below the sticky bar.
 function keepInView(span, force) {
   if (!force && Date.now() < S.pausedUntil) return;
   const r = span.getBoundingClientRect();
-  const h = window.innerHeight;
-  if (r.top >= h / 3 && r.bottom <= (2 * h) / 3) return;
+  const top = $("bar").offsetHeight;
+  const third = (window.innerHeight - top) / 3;
+  if (r.top >= top + third && r.bottom <= top + 2 * third) return;
   span.scrollIntoView({ block: "center", behavior: reducedMotion.matches ? "auto" : "smooth" });
 }
 
+// scrollIntoView centres in the part of the window the sticky bar doesn't cover: the bar's
+// height is the page's scroll padding, kept up to date as the bar grows (a repairs line, a
+// wrapped title) or shrinks.
+function trackBarHeight() {
+  const bar = $("bar");
+  const sync = () => {
+    document.documentElement.style.scrollPaddingTop = `${bar.offsetHeight}px`;
+  };
+  sync();
+  if (typeof ResizeObserver === "function") new ResizeObserver(sync).observe(bar);
+}
+
 function tick() {
+  if (S.stopAtMs !== null && S.ep && S.ep.has_audio && currentMs() >= S.stopAtMs) {
+    S.stopAtMs = null;
+    audio.pause();
+  }
   setCurrent(wordIndexAt(currentMs() + 30), "auto");
 }
 
@@ -392,6 +416,7 @@ function stopFrames() {
 }
 
 function seekMs(ms, { play }) {
+  S.stopAtMs = null; // a seek by hand ends a repair's "Play"
   ms = Math.max(0, ms);
   if (S.ep && S.ep.has_audio) {
     try {
@@ -1074,6 +1099,191 @@ async function setReportStatus(status) {
   renderReport();
 }
 
+// ------------------------------------------------------- the repairs panel
+
+// A repair is a stretch Whisper left out (a hole) that a fresh pass over the audio filled. The
+// transcript the page shows has the accepted repairs spliced in already (S.words); `index` is
+// where the repair's words start in it.
+const CONTEXT_WORDS = 12;
+const PLAY_LEAD_MS = 2000;
+const PLAY_TAIL_MS = 1000;
+const NO_END_MS = 2 ** 31; // "to_ms" of a repair with nothing after it
+
+const isApplied = (r) => r.status === "accepted" || r.status === "auto";
+const wordText = (w) => String(w[0]).trim();
+
+function repairMark(r) {
+  return isApplied(r) ? " ✓" : r.status === "rejected" ? " ✕" : "";
+}
+
+function renderRepairs(repairs) {
+  S.repairs = Array.isArray(repairs) ? repairs : [];
+  const list = $("repairs-list");
+  list.replaceChildren();
+  for (const r of S.repairs) {
+    const b = el("button", "", `${fmtTime(r.hole[0])}${repairMark(r)}`);
+    b.type = "button";
+    b.title = `${r.status}: open this repair`;
+    b.dataset.id = r.id;
+    if (r.id === S.repairOpen) b.setAttribute("aria-current", "true");
+    b.addEventListener("click", () => openRepair(r.id, true));
+    list.append(b);
+  }
+  $("repairs").hidden = !S.repairs.length;
+  if (S.repairOpen !== null && !S.repairs.some((r) => r.id === S.repairOpen)) S.repairOpen = null;
+  renderRepairPanel();
+}
+
+function openRepairIndex() {
+  return S.repairs.findIndex((r) => r.id === S.repairOpen);
+}
+
+// Words as text, with a space between pieces; `kind` makes the wrapper element, if any.
+function addWords(parent, texts, tag) {
+  if (!texts.length) return;
+  if (parent.childNodes.length) parent.append(" ");
+  const joined = texts.join(" ");
+  parent.append(tag ? el(tag, "", joined) : document.createTextNode(joined));
+}
+
+// How many words of S.words the repair covers now: its own (accepted) or the transcript's.
+function coveredNow(r) {
+  return isApplied(r) ? r.after.length : r.before.length;
+}
+
+function renderRepairPanel() {
+  const k = openRepairIndex();
+  const panel = $("repair-panel");
+  panel.hidden = k < 0;
+  markRepairSpan();
+  if (k < 0) return;
+  const r = S.repairs[k];
+  const applied = isApplied(r);
+  const at = Math.min(Math.max(repairAt(r), 0), S.words.length);
+  const afterCount = r.after.length;
+  const covered = coveredNow(r);
+  const left = S.words.slice(Math.max(0, at - CONTEXT_WORDS), at).map(wordText);
+  const right = S.words.slice(at + covered, at + covered + CONTEXT_WORDS).map(wordText);
+
+  $("repair-heading").textContent = `Repair ${k + 1} of ${S.repairs.length} · ${fmtTime(r.hole[0])}–${fmtTime(r.hole[1])}`;
+  $("repair-state").textContent = r.status === "proposed" ? "" : r.status;
+  $("repair-prev").disabled = k === 0;
+  $("repair-next").disabled = k === S.repairs.length - 1;
+
+  // Left: the transcript. Once the repair is accepted the page's words already hold the fresh
+  // ones, so this column is rebuilt as the transcript was (the repair's `before` words, or the
+  // gap, between the same context) and its heading says so.
+  $("repair-now-heading").textContent = applied ? "Transcript before" : "Transcript now";
+  const now = $("repair-now");
+  now.replaceChildren();
+  addWords(now, left);
+  if (r.before.length) {
+    addWords(now, r.before, "del");
+  } else {
+    const secs = Math.max(1, Math.round((r.hole[1] - r.hole[0]) / 1000));
+    if (now.childNodes.length) now.append(" ");
+    now.append(el("span", "gap", `⋯ ${secs} s ⋯`));
+  }
+  addWords(now, right);
+
+  const fresh = $("repair-fresh");
+  fresh.replaceChildren();
+  addWords(fresh, left);
+  addWords(fresh, r.after.map(wordText), "mark");
+  addWords(fresh, right);
+  if (!afterCount) fresh.append(" ", el("span", "gap", "⋯"));
+
+  $("repair-rule").textContent = r.fails.length ? `The rule would ask: fails ${r.fails.join(", ")}` : "The rule would apply this";
+  $("repair-play").disabled = !(S.ep && S.ep.has_audio);
+  $("repair-accept").hidden = applied;
+  $("repair-reject").hidden = r.status === "rejected";
+  $("repair-undo").hidden = r.status === "proposed";
+}
+
+// Mark the stretch in the transcript: the repair's words, or when it has none there (a hole
+// in the transcript), the words either side of the gap.
+function markRepairSpan() {
+  for (const span of transcriptEl.querySelectorAll(".repairing")) span.classList.remove("repairing");
+  const k = openRepairIndex();
+  if (k < 0) return;
+  const r = S.repairs[k];
+  const n = coveredNow(r);
+  const at = repairAt(r);
+  const lo = n ? at : at - 1;
+  const hi = n ? at + n - 1 : at;
+  for (let i = Math.max(lo, 0); i <= hi && i < S.spans.length; i++) S.spans[i].classList.add("repairing");
+}
+
+function openRepair(id, scroll) {
+  S.repairOpen = id;
+  setRepairError("");
+  renderRepairs(S.repairs);
+  if (!scroll) return;
+  const first = transcriptEl.querySelector(".repairing");
+  if (!first) return;
+  pauseAutoScroll();
+  first.scrollIntoView({ block: "center", behavior: reducedMotion.matches ? "auto" : "smooth" });
+}
+
+function stepRepair(dir) {
+  const next = S.repairs[openRepairIndex() + dir];
+  if (next) openRepair(next.id, true);
+}
+
+function closeRepair() {
+  S.repairOpen = null;
+  setRepairError("");
+  renderRepairs(S.repairs);
+}
+
+// The repair's position in S.words (payload.words): the server's `at`, found by time. (`index`
+// counts the words before repairs, corrections and joins, so it drifts.)
+function repairAt(r) {
+  return Number.isInteger(r.at) ? r.at : r.index;
+}
+
+// From 2 s before the earliest of the stretch, the hole and the fresh words, to 1 s after the
+// latest. `from_ms` alone can be late: Whisper often stretches the word before a skip over it.
+function playRepair() {
+  const r = S.repairs[openRepairIndex()];
+  if (!r || !S.ep || !S.ep.has_audio) return;
+  const first = r.after.length ? r.after[0][1] : r.hole[0];
+  const last = r.after.length ? r.after[r.after.length - 1][2] : r.hole[1];
+  const from = Math.min(r.from_ms >= 0 ? r.from_ms : r.hole[0], r.hole[0], first);
+  const to = Math.max(r.to_ms >= 0 && r.to_ms < NO_END_MS ? r.to_ms : r.hole[1], r.hole[1], last);
+  seekMs(Math.max(0, from - PLAY_LEAD_MS), { play: true });
+  S.stopAtMs = to + PLAY_TAIL_MS;
+}
+
+function setRepairError(text) {
+  const e = $("repair-error");
+  e.textContent = text || "";
+  e.hidden = !text;
+}
+
+function repairErrorSentence(r) {
+  if (r.status === 0) return SERVER_GONE;
+  if (r.status === 409) return "The repairs were made for another transcript. Run `wts repair` again.";
+  return "Couldn't save. Nothing was changed.";
+}
+
+async function decideRepair(status) {
+  const r = S.repairs[openRepairIndex()];
+  if (!r) return;
+  setRepairError("");
+  const buttons = ["repair-accept", "repair-reject", "repair-undo"].map($);
+  for (const b of buttons) b.disabled = true;
+  const res = await api("/api/repair", { episode_id: S.ep.id, repair_id: r.id, status });
+  for (const b of buttons) b.disabled = false;
+  if (res.status !== 200 || !res.data || !res.data.episode) {
+    setRepairError(repairErrorSentence(res));
+    return;
+  }
+  render(res.data, true);
+  const done = { accepted: "Fresh pass used.", rejected: "Transcript kept.", proposed: "Decision undone." };
+  setStatus(`${done[status]} The transcript is chunked again.`);
+}
+
 // ----------------------------------------------------------------- startup
 
 async function toggleReviewed() {
@@ -1175,6 +1385,14 @@ function wire() {
   });
   testDialog.addEventListener("close", onSelectionChange);
 
+  $("repair-prev").addEventListener("click", () => stepRepair(-1));
+  $("repair-next").addEventListener("click", () => stepRepair(1));
+  $("repair-close").addEventListener("click", closeRepair);
+  $("repair-play").addEventListener("click", playRepair);
+  $("repair-accept").addEventListener("click", () => decideRepair("accepted"));
+  $("repair-reject").addEventListener("click", () => decideRepair("rejected"));
+  $("repair-undo").addEventListener("click", () => decideRepair("proposed"));
+
   $("report-resolve").addEventListener("click", () => setReportStatus("resolved"));
   $("report-reject").addEventListener("click", () => setReportStatus("rejected"));
   $("report-reopen").addEventListener("click", () => setReportStatus("open"));
@@ -1245,6 +1463,7 @@ async function start() {
     return;
   }
   render(r.data, false);
+  trackBarHeight(); // after render: the bar has its final lines (weak spots, repairs)
   if (atParam !== null && atParam !== "" && !Number.isNaN(Number(atParam))) openAt(Number(atParam));
   if (reportParam !== null) loadReport();
 }

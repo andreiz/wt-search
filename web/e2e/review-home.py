@@ -11,6 +11,10 @@ chunker, which closes a chunk at about 30 s, makes three chunks (0 s, 38 s and 8
 have probability 0.2 ("sets", and the small word "Then") and the rest 0.9. The sentence at 38 s
 holds "tight bond".
 
+Episode 1 also gets a repairs file (`data/repairs/<stem>.json`) with one proposed repair: five new words ("Meanwhile
+the zebrawood veneer cured.") for the gap between the first and second sentence, no words
+replaced, and the rule's checks 2 and 5 failed.
+
 A second episode (number 2, newer, flagged, no audio) has one sentence; it is there for the
 page's episode menu.
 """
@@ -134,6 +138,21 @@ def main(target: Path) -> None:
     row = conn.execute("select * from episodes where id = ?", (cur.lastrowid,)).fetchone()
     chunk_episode(conn, row, [])
     conn.close()
+
+    # One proposed repair for episode 1: five new words in the gap between sentence 1 (ends at
+    # 8.6 s) and sentence 2 (starts at 38 s), that is at word index 14. It has no `before`
+    # words (the transcript has nothing there) and the rule would have asked about checks 2 and 5.
+    from wts.repairs import Repair, RepairsFile, save_repairs, transcript_sha
+    from wts.words import Word
+
+    after = [Word(t, 20000 + i * 700, 20000 + i * 700 + 500, 0.8)
+             for i, t in enumerate(["Meanwhile", "the", "zebrawood", "veneer", "cured."])]
+    repair = Repair(
+        id="9000-37900", hole=(9000, 37900), clip=(0, 47900), index=14,
+        from_ms=8600, to_ms=38000, before=[], after=after, second_after=None,
+        fails=[2, 5], status="proposed",
+    )
+    save_repairs(transcript, RepairsFile(transcript_sha(transcript), [], [repair]))
 
     (target / "corrections.yaml").write_text(CORRECTIONS)
 

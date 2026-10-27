@@ -420,6 +420,74 @@ test("t with nothing selected takes the current word; Esc closes without saving"
   await done();
 });
 
+test("a proposed repair is opened in a side-by-side panel, accepted into the transcript and undone", async ({ page }) => {
+  const done = await watch(page);
+  await open(page);
+  const fresh = "Meanwhile the zebrawood veneer cured.";
+  const zebra = page.locator("#transcript span[data-i]", { hasText: /^zebrawood$/ });
+
+  // The repairs line has the one repair, by its time (the hole starts at 9 s); the panel is shut.
+  const line = page.locator("#repairs-list button");
+  await expect(line).toHaveCount(1);
+  await expect(line).toHaveText("0:09");
+  await expect(page.locator("#repair-panel")).toBeHidden();
+
+  await line.click();
+  const panel = page.locator("#repair-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Repair 1 of 1 · 0:09–0:37");
+  await expect(panel.getByRole("heading", { name: "Transcript now" })).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Fresh pass" })).toBeVisible();
+  // The transcript has a gap there; the fresh pass has the words, marked.
+  await expect(page.locator("#repair-now .gap")).toHaveText("⋯ 29 s ⋯");
+  await expect(page.locator("#repair-now")).toContainText("helps every project.");
+  await expect(page.locator("#repair-now")).toContainText("Honestly a tight bond");
+  await expect(page.locator("#repair-fresh mark")).toHaveText(fresh);
+  await expect(page.locator("#repair-fresh")).toContainText("helps every project.");
+  await expect(page.locator("#repair-rule")).toHaveText("The rule would ask: fails 2, 5");
+  await expect(panel.getByRole("button", { name: "Undo" })).toBeHidden();
+  await expect(zebra).toHaveCount(0);
+  // Opening it marks the stretch in the transcript (here, the words either side of the gap).
+  await expect(page.locator("#transcript .repairing")).toHaveCount(2);
+
+  // Play starts 2 s before the stretch (the word before the gap ends at 8.6 s), not at the new
+  // words (20 s): the whole gap is heard.
+  await panel.getByRole("button", { name: "Play" }).click();
+  await expect.poll(() => audioTime(page)).toBeGreaterThan(6.5);
+  expect(await audioTime(page)).toBeLessThan(12);
+  await page.evaluate(() => (document.getElementById("player") as HTMLAudioElement).pause());
+
+  await panel.getByRole("button", { name: "Use fresh pass" }).click();
+  await expect(words(page)).toHaveCount(WORDS + 5);
+  await expect(zebra).toHaveCount(1);
+  await expect(page.locator("#transcript .repairing")).toHaveText(["Meanwhile", "the", "zebrawood", "veneer", "cured."]);
+  await expect(line).toHaveText("0:09 ✓");
+  await expect(panel.getByRole("button", { name: "Undo" })).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Use fresh pass" })).toBeHidden();
+  // The panel shows the words as they were before the repair, and the fresh pass as it is now.
+  await expect(page.locator("#repair-now .gap")).toHaveText("⋯ 29 s ⋯");
+  await expect(page.locator("#repair-now")).not.toContainText("zebrawood");
+  await expect(page.locator("#repair-fresh mark")).toHaveText(fresh);
+  // The decision is saved: a reload shows it too.
+  await page.reload();
+  await expect(words(page)).toHaveCount(WORDS + 5);
+  await expect(line).toHaveText("0:09 ✓");
+
+  await line.click();
+  await panel.getByRole("button", { name: "Undo" }).click();
+  await expect(words(page)).toHaveCount(WORDS);
+  await expect(zebra).toHaveCount(0);
+  await expect(line).toHaveText("0:09");
+
+  // Keeping the transcript is a decision too, and Undo takes it back.
+  await panel.getByRole("button", { name: "Keep transcript" }).click();
+  await expect(line).toHaveText("0:09 ✕");
+  await expect(words(page)).toHaveCount(WORDS);
+  await panel.getByRole("button", { name: "Undo" }).click();
+  await expect(line).toHaveText("0:09");
+  await done();
+});
+
 test("the Reviewed button toggles and survives a reload", async ({ page }) => {
   const done = await watch(page);
   await open(page);

@@ -47,6 +47,10 @@
     <span class="muted">Worst stretches</span>
     <span id="worst-list"></span>
   </div>
+  <div id="repairs" class="worst" hidden>
+    <span class="muted">Repairs</span>
+    <span id="repairs-list"></span>
+  </div>
   <p id="status" role="status" aria-live="polite"></p>
 </header>
 
@@ -62,6 +66,35 @@
       <button id="report-reject" type="button">Reject</button>
       <button id="report-reopen" type="button" hidden>Reopen</button>
       <button id="report-edit" type="button">Edit from this report</button>
+    </div>
+  </section>
+
+  <section id="repair-panel" aria-labelledby="repair-heading" hidden>
+    <div class="repair-head">
+      <h2 id="repair-heading">Repair</h2>
+      <span id="repair-state" class="muted"></span>
+      <span class="spacer"></span>
+      <button id="repair-prev" type="button" aria-label="Previous repair">◀</button>
+      <button id="repair-next" type="button" aria-label="Next repair">▶</button>
+      <button id="repair-close" type="button">Close</button>
+    </div>
+    <p id="repair-error" role="alert" hidden></p>
+    <div class="repair-cols">
+      <div role="group" aria-labelledby="repair-now-heading">
+        <h3 id="repair-now-heading">Transcript now</h3>
+        <p id="repair-now"></p>
+      </div>
+      <div role="group" aria-labelledby="repair-fresh-heading">
+        <h3 id="repair-fresh-heading">Fresh pass</h3>
+        <p id="repair-fresh"></p>
+      </div>
+    </div>
+    <p id="repair-rule"></p>
+    <div class="buttons">
+      <button id="repair-play" type="button">▶ Play</button>
+      <button id="repair-accept" type="button">Use fresh pass</button>
+      <button id="repair-reject" type="button">Keep transcript</button>
+      <button id="repair-undo" type="button">Undo</button>
     </div>
   </section>
 

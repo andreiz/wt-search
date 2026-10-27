@@ -44,13 +44,22 @@ from wts.notify import (
 from wts.paths import Paths
 from wts.platforms import match_platform_ids
 from wts.publish import run_publish as publish_to
+from wts.repair import cut_clip
+from wts.repairing import Clipper, repair_episode, repairs_due
 from wts.reports import new_since, open_d1
 from wts.secrets import SecretStore, get_store
 from wts.selection import resolve_selector
 from wts.state import Status, advance, episodes_for_step, fail, reset
 from wts.storage import MachineProblem, ToolMissing
-from wts.transcribe import VOCAB_FILE, Transcriber, get_transcriber, transcribe_episode
+from wts.transcribe import (
+    VOCAB_FILE,
+    Transcriber,
+    build_initial_prompt,
+    get_transcriber,
+    transcribe_episode,
+)
 from wts.transcribe_remote import TranscriberUnavailable
+from wts.vad import SileroDetector, SpeechDetector
 
 log = logging.getLogger("wts")
 
@@ -148,6 +157,44 @@ def run_download(
     return counts
 
 
+_PAST_TRANSCRIBE = (Status.TRANSCRIBED, Status.CHUNKED, Status.EMBEDDED, Status.PUBLISHED)
+
+
+def _reset_for_redo(conn: sqlite3.Connection, paths: Paths, ids: Collection[int]) -> int:
+    """Move each selected, already-transcribed episode's transcript to `transcripts-previous/`
+    and send it back to `downloaded`. Returns how many were skipped for lack of audio."""
+    skipped = 0
+    for episode_id in ids:
+        row = conn.execute("select * from episodes where id = ?", (episode_id,)).fetchone()
+        if row is None:
+            continue
+        past = row["status"] in _PAST_TRANSCRIBE or (
+            row["status"] == Status.ERROR and row["error_step"] in ("chunk", "embed", "publish")
+        )
+        if not past:
+            continue
+        extra = {"step": "transcribe", "episode": row["stem"]}
+        if not row["audio_path"] or not Path(row["audio_path"]).exists():
+            log.warning("no audio file to re-transcribe; left as it is", extra=extra)
+            skipped += 1
+            continue
+        src = Path(row["transcript_path"] or paths.transcripts_dir / f"{row['stem']}.json")
+        if src.exists():
+            keep = paths.data_dir / "transcripts-previous"
+            keep.mkdir(parents=True, exist_ok=True)
+            dest = keep / src.name
+            if dest.exists():
+                try:
+                    at = json.loads(src.read_text())["meta"]["transcribed_at"]
+                except (OSError, ValueError, KeyError, TypeError):
+                    at = datetime.fromtimestamp(src.stat().st_mtime, UTC).isoformat(timespec="seconds")
+                dest = keep / f"{src.stem}.{str(at).replace(':', '-')}{src.suffix}"
+            shutil.move(src, dest)
+            log.info(f"previous transcript kept as {dest.name}", extra=extra)
+        reset(conn, episode_id, Status.DOWNLOADED)
+    return skipped
+
+
 def run_transcribe(
     conn: sqlite3.Connection,
     paths: Paths,
@@ -157,12 +204,15 @@ def run_transcribe(
     transcriber: Transcriber | None = None,
     vocab_file: Path = VOCAB_FILE,
     local: bool = False,
+    redo: bool = False,
 ) -> Counter:
     storage.check_audio_dir(paths.audio_dir, cfg.min_free_gb)
+    counts: Counter = Counter()
+    if redo:
+        counts["skipped"] = _reset_for_redo(conn, paths, ids)
     # Newest first: recent episodes are the ones people search for, and a long backlog run
     # makes them searchable before the archive.
     rows = episodes_for_step(conn, "transcribe", ids, newest_first=True)
-    counts: Counter = Counter()
     if not rows:
         return counts
     transcriber = transcriber or get_transcriber(cfg, local=local)
@@ -212,6 +262,73 @@ def run_transcribe(
             f"{_speed(done_audio_s, done_s)}",
             extra={"step": "transcribe"},
         )
+    return counts
+
+
+def run_repair(
+    conn: sqlite3.Connection,
+    paths: Paths,
+    cfg: Config,
+    ids: Collection[int],
+    *,
+    transcriber: Transcriber | None = None,
+    detector: SpeechDetector | None = None,
+    clipper: Clipper = cut_clip,
+    local: bool = False,
+    corrections_file: Path = CORRECTIONS_FILE,
+) -> Counter:
+    """Find Whisper's skipped passages and propose repairs (repair spec §5.5).
+
+    Beside the status machine, like corrections: it never changes an episode's status, and an
+    undecided repair never holds an episode back. Episodes are due when they have no repairs
+    file or one made from another transcript.
+    """
+    counts: Counter = Counter()
+    if not ids:
+        return counts
+    marks = ", ".join("?" for _ in ids)
+    done = (Status.TRANSCRIBED, Status.CHUNKED, Status.EMBEDDED, Status.PUBLISHED)
+    rows = [
+        row for row in conn.execute(
+            f"select * from episodes where id in ({marks}) and status in (?, ?, ?, ?) "
+            "and transcript_path is not null order by published_at desc", (*ids, *done))
+        if repairs_due(Path(row["transcript_path"]))
+    ]
+    if not rows:
+        return counts
+    transcriber = transcriber or get_transcriber(cfg, local=local)
+    detector = detector or SileroDetector()
+    prompt, _ = build_initial_prompt(VOCAB_FILE)
+    corrections = None
+    for i, row in enumerate(rows, 1):
+        extra = {"step": "repair", "episode": row["stem"]}
+        if not row["audio_path"] or not Path(row["audio_path"]).is_file():
+            counts["skipped"] += 1
+            log.warning("no audio file; not repaired", extra=extra)
+            continue
+        try:
+            rf, applied = repair_episode(row, transcriber, detector, prompt,
+                                         auto=cfg.repair_auto, clipper=clipper, counts=counts)
+        except TranscriberUnavailable as exc:
+            left = plural(len(rows) - i + 1, "episode")
+            raise TranscriberUnavailable(f"{exc}; {left} left to repair") from exc
+        except MachineProblem:
+            raise
+        except Exception as exc:  # noqa: BLE001 — one bad episode must not stop the batch
+            counts["error"] += 1
+            log.error(f"repair failed: {exc!r}", extra=extra)
+            continue
+        counts["episodes"] += 1
+        log.info(f"{plural(len(rf.flags), 'flag')}, {plural(len(rf.repairs), 'repair')}",
+                 extra=extra)
+        if applied and row["status"] != Status.TRANSCRIBED:
+            corrections = corrections or load_corrections(corrections_file)
+            try:
+                chunk_episode(conn, row, corrections)
+            except Exception as exc:  # noqa: BLE001 — as in the chunk step: fail the episode
+                fail(conn, row["id"], "chunk", repr(exc)[:500])
+                counts["error"] += 1
+                log.error(f"re-chunking after repair failed: {exc!r}", extra=extra)
     return counts
 
 
@@ -376,8 +493,10 @@ def run_all(
     probe: Callable[[Path], float] = probe_duration_s,
     notifier: Notifier | None = None,
     local_transcribe: bool = False,
+    detector: SpeechDetector | None = None,
 ) -> dict[str, Counter]:
-    """feed → download → transcribe → chunk → embed → publish → smoke → backup, then one notification
+    """feed → download → transcribe → repair → chunk → embed → publish → smoke → backup, then one
+    notification
     (spec §3.2, §6, §8.2).
 
     Publishes to `env`; with none (the CLI has already fallen back to `run_env`), publish is
@@ -409,6 +528,8 @@ def run_all(
             ("download", lambda: run_download(conn, paths, cfg, ids, client=client, probe=probe)),
             ("transcribe", lambda: run_transcribe(conn, paths, cfg, ids, transcriber=transcriber,
                                                   local=local_transcribe)),
+            ("repair", lambda: run_repair(conn, paths, cfg, ids, transcriber=transcriber,
+                                          detector=detector, local=local_transcribe)),
             ("chunk", lambda: run_chunk(conn, paths, cfg, ids)),
             ("embed", lambda: run_embed(conn, paths, cfg, ids, embedder=embedder)),
         ]

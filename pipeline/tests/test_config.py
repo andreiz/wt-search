@@ -36,6 +36,14 @@ def test_paths_command_prints_locations(wts_home):
     assert "transcriber: local mlx" in out
 
 
+def test_repair_auto_defaults_off(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text("")
+    assert load_config(f).repair_auto is False
+    f.write_text("repair_auto = true\n")
+    assert load_config(f).repair_auto is True
+
+
 def test_transcribe_url(tmp_path):
     f = tmp_path / "config.toml"
     f.write_text('transcribe_url = "https://t.example"\n')

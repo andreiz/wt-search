@@ -7,13 +7,14 @@ page shows what search has.
 import json
 import re
 import sqlite3
+from bisect import bisect_left
 from collections.abc import Sequence
 from difflib import SequenceMatcher
 from pathlib import Path
 
 from wts.chunking import prepare_episode
 from wts.corrections import CorrectionRule, apply_corrections
-from wts.guards import clean_transcript
+from wts.repairs import APPLIED, cleaned_words, load_repairs, transcript_sha
 from wts.words import Word, joined_words
 
 LOW_PROB = 0.5  # a word Whisper was less sure of than this counts as unsure
@@ -84,13 +85,41 @@ def corrected_spans(heard: Sequence[Joined], shown: Sequence[Joined]) -> list[li
     ]
 
 
+def _shown_at(r, starts: Sequence[int]) -> int:
+    """Where the repair sits in the shown words (`payload.words`). `r.index` counts the cleaned
+    words before repairs, corrections and joins, so it's found by time instead: the first
+    shown word at or after the repair's words (accepted) or the words it would replace."""
+    if r.status in APPLIED and r.after:
+        t = r.after[0].start_ms
+    else:
+        t = r.before[0].start_ms if r.before else r.to_ms
+    return bisect_left(starts, t)
+
+
+def repairs_payload(row: sqlite3.Row, starts: Sequence[int] = ()) -> list[dict]:
+    """The episode's repairs, proposed first then by time; none when the file is missing or stale.
+    `starts` are the shown words' start times, for each repair's `at`."""
+    path = Path(row["transcript_path"])
+    rf = load_repairs(path)
+    if rf is None or rf.transcript_sha != transcript_sha(path):
+        return []
+    ordered = sorted(rf.repairs, key=lambda r: (r.status != "proposed", r.hole[0]))
+    return [
+        {
+            "id": r.id, "status": r.status, "fails": r.fails, "hole": list(r.hole),
+            "index": r.index, "at": _shown_at(r, starts), "from_ms": r.from_ms, "to_ms": r.to_ms,
+            "before": [w.text for w in r.before], "after": [[w.text, w.start_ms, w.end_ms, w.prob] for w in r.after],
+        }
+        for r in ordered
+    ]
+
+
 def episode_payload(
     conn: sqlite3.Connection, row: sqlite3.Row, corrections: Sequence[CorrectionRule]
 ) -> dict:
     sentences, _ = prepare_episode(row, corrections)
     # The same steps as `prepare_episode`, keeping what each shown word was joined from.
-    data = json.loads(Path(row["transcript_path"]).read_text())
-    cleaned, _ = clean_transcript(data, row["audio_duration_s"] or row["duration_s"])
+    cleaned, _ = cleaned_words(row)
     shown = joined_words(apply_corrections(cleaned, corrections, row["stem"]))
     heard = joined_words(cleaned) if corrections else shown
     words = [[w.text, w.start_ms, w.end_ms, w.prob] for s in sentences for w in s.words]
@@ -137,6 +166,7 @@ def episode_payload(
         "sentences": firsts,
         "chunks": chunks,
         "worst": worst_stretches(words),
+        "repairs": repairs_payload(row, [w[1] for w in words]),
     }
 
 

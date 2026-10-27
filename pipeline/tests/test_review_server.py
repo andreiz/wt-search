@@ -832,3 +832,80 @@ def test_report_endpoints_when_d1_is_down_are_502(app, base, caplog):
         r = _api(base, "/api/report", {"id": 7, "status": "resolved"})
         assert (r.status_code, r.json()) == (502, {"error": "d1_unavailable"})
     assert TOKEN not in caplog.text
+
+
+def _with_repairs(conn, paths, make_episode, sha=None, status="proposed"):
+    from pathlib import Path
+
+    from wts.repairs import Repair, RepairsFile, save_repairs, transcript_sha
+    from wts.words import Word
+
+    e = _transcribed(conn, paths, make_episode)
+    t = Path(conn.execute("select transcript_path from episodes where id = ?", (e,)).fetchone()[0])
+    after = [Word(x, 10_000 + i * 400, 10_300 + i * 400, 0.9) for i, x in enumerate(["and", "let"])]
+    repair = Repair(
+        id="9-11", hole=(9, 11), clip=(8, 12), index=3, from_ms=0, to_ms=0, before=[],
+        after=after, second_after=None, fails=[], status=status,
+    )
+    save_repairs(t, RepairsFile(sha or transcript_sha(t), [], [repair]))
+    return e
+
+
+def _last_end(payload):
+    return max(c["end_ms"] for c in payload["chunks"])
+
+
+def test_repair_accept_and_reject_rechunk_the_episode(base, conn, paths, make_episode):
+    e = _with_repairs(conn, paths, make_episode)
+    body = {"episode_id": e, "repair_id": "9-11", "status": "accepted"}
+    r = _api(base, "/api/repair", body)
+    assert r.status_code == 200
+    accepted = r.json()
+    assert [w[0] for w in accepted["words"]] == ["Cut", "the", "tenon.", "and", "let"]
+    assert [x["status"] for x in accepted["repairs"]] == ["accepted"]
+    assert _last_end(accepted) >= 10_700
+    body["status"] = "rejected"
+    rejected = _api(base, "/api/repair", body).json()
+    assert [w[0] for w in rejected["words"]] == ["Cut", "the", "tenon."]
+    assert [x["status"] for x in rejected["repairs"]] == ["rejected"]
+    assert _last_end(rejected) < 10_000
+
+
+def test_repair_unknown_repair_or_episode_is_404(base, conn, paths, make_episode):
+    e = _with_repairs(conn, paths, make_episode)
+    r = _api(base, "/api/repair", {"episode_id": e, "repair_id": "1-2", "status": "accepted"})
+    assert (r.status_code, r.json()) == (404, {"error": "not_found"})
+    r = _api(base, "/api/repair", {"episode_id": 999, "repair_id": "9-11", "status": "accepted"})
+    assert r.status_code == 404
+
+
+def test_repair_without_a_file_is_404(base, conn, paths, make_episode):
+    e = _transcribed(conn, paths, make_episode)
+    r = _api(base, "/api/repair", {"episode_id": e, "repair_id": "9-11", "status": "accepted"})
+    assert r.status_code == 404
+
+
+def test_repair_stale_file_is_409(base, conn, paths, make_episode):
+    e = _with_repairs(conn, paths, make_episode, sha="0" * 64)
+    r = _api(base, "/api/repair", {"episode_id": e, "repair_id": "9-11", "status": "accepted"})
+    assert (r.status_code, r.json()) == (409, {"error": "stale"})
+
+
+def test_repair_bad_bodies_are_400(base, conn, paths, make_episode):
+    e = _with_repairs(conn, paths, make_episode)
+    for bad in (
+        {},
+        {"episode_id": e, "repair_id": "9-11"},
+        {"episode_id": e, "repair_id": "9-11", "status": "auto"},
+        {"episode_id": e, "repair_id": "9-11", "status": "nope"},
+        {"episode_id": e, "repair_id": 5, "status": "accepted"},
+        {"episode_id": "1", "repair_id": "9-11", "status": "accepted"},
+    ):
+        r = _api(base, "/api/repair", bad)
+        assert (r.status_code, r.json()) == (400, {"error": "bad_request"}), bad
+
+
+def test_repair_needs_the_token(client, conn, paths, make_episode):
+    e = _with_repairs(conn, paths, make_episode)
+    r = client.post("/api/repair", json={"episode_id": e, "repair_id": "9-11", "status": "accepted"})
+    assert r.status_code == 401

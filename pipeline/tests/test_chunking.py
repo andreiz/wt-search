@@ -342,6 +342,20 @@ def test_prepare_episode_joins_hyphenated_words_after_corrections(conn, paths, m
     assert sentences[2].text == "we built a Roubo-style bench with a split-top."
 
 
+def test_chunk_includes_accepted_repair(conn, transcribed_episode, paths, cfg, empty_corrections):
+    from wts.repairs import Repair, RepairsFile, save_repairs, transcript_sha
+    from wts.words import Word
+
+    row = conn.execute("select * from episodes where id = ?", (transcribed_episode,)).fetchone()
+    t = Path(row["transcript_path"])
+    after = [Word(x, 1000 * i, 1000 * i + 400, 0.9) for i, x in enumerate(["boiled", "linseed", "oil"])]
+    save_repairs(t, RepairsFile(transcript_sha(t), [], [Repair(
+        id="1-2", hole=(1, 2), clip=(0, 3), index=10, from_ms=0, to_ms=0, before=[],
+        after=after, second_after=None, fails=[5], status="accepted")]))
+    run_chunk(conn, paths, cfg, [transcribed_episode], corrections_file=empty_corrections)
+    assert "boiled linseed oil" in all_text(conn, transcribed_episode)
+
+
 def test_chunk_cli(wts_home):
     r = CliRunner().invoke(main, ["chunk", "--select", "all", "--force"])
     assert r.exit_code == 0, r.output

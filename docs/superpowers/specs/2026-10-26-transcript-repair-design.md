@@ -138,7 +138,10 @@ application on; it is **off** by default and stays off through the rollout.
 
 ### 5.4 Where repairs live
 
-A file beside the transcript, `<stem>.repairs.json`, in `transcripts_dir`. Per repair: the flag's
+A file per episode, `<data>/repairs/<stem>.json`, in a folder beside `transcripts_dir`, not in it
+*(changed during implementation, 2026-10-26: as `<stem>.repairs.json` inside `transcripts/`, it
+was taken for a transcript by everything that reads every `.json` there, and the corrections
+preview failed on it)*. Per repair: the flag's
 span, the clip span, the current words, both passes' words, the proposed replacement, the
 rule's verdict and reasons, and a status: `proposed`, `accepted`, `rejected`, or `auto` (applied
 by the rule). The file names the transcript it was made from (its `transcribed_at` or a hash);
@@ -170,7 +173,9 @@ embedded and published as transcribed, and an accepted repair reaches search at 
 that re-chunks it. This holds for the rollout's 36 and for the backlog. Search is never worse
 than a plain transcript, and nothing waits on the review queue.
 
-`silero-vad` becomes a pipeline dependency (`torch` is already one).
+`silero-vad` becomes a pipeline dependency, and with it CPU `torch` in the core dependencies
+(before, `torch` came only with the `mac` extra): repair has to run on the later Linux runner
+too. *(Corrected during implementation, 2026-10-26.)*
 
 ### 5.6 Which machine does what
 

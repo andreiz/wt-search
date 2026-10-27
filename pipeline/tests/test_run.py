@@ -86,6 +86,17 @@ def test_run_all_processes_a_new_release_in_the_same_run(conn, paths, cfg, mocke
     assert tuple(row) == (newest.guid, "embedded")
 
 
+def test_run_all_repairs_between_transcribe_and_chunk(conn, paths, cfg):
+    class NoSpeech:
+        def speech(self, audio):
+            return []
+
+    results = run_all(conn, paths, cfg, "scope", transcriber=FakeTranscriber(),
+                      embedder=FakeEmbedder(), probe=lambda p: 0.0, detector=NoSpeech())
+    order = list(results)
+    assert order.index("transcribe") < order.index("repair") < order.index("chunk")
+
+
 def test_run_all_without_feed_url_skips_feed(conn, paths, cfg):
     results = run_all(conn, paths, cfg, "scope", transcriber=FakeTranscriber(),
                       embedder=FakeEmbedder(), probe=lambda p: 0.0)
@@ -145,7 +156,7 @@ def test_run_all_with_env_publishes_then_backs_up_then_notifies(conn, paths, cfg
     assert calls[1] == ("smoke", "staging")
     # The summary sees every step's counts.
     assert calls[3] == ("notify", ["backup", "chunk", "download", "embed", "publish",
-                                   "smoke", "transcribe"])
+                                   "repair", "smoke", "transcribe"])
     assert results["publish"]["ok"] == 2 and results["backup"]["ok"] == 1
     assert results["smoke"]["ok"] == 5
 

@@ -214,6 +214,11 @@ httpx `MockTransport` for the server.
 
 ## 5. Equivalence
 
+*Replaced 2026-10-26 by `2026-10-26-transcript-repair-design.md` §2: two different Macs can't
+pass an exact match (each repeats itself; they differ from each other, mostly in crosstalk and in
+passages either one skips). walnut is accepted on the maintainer's listening, and skipped
+passages are caught by `wts repair`. The original text follows for the record.*
+
 walnut's output must match wick's closely enough that the archive does not care which machine
 made a transcript. Not bit-identical (different GPU). On 3 seed episodes already transcribed on
 wick (one 2007-era, one mid, one recent), a Mac-only check compares walnut's transcript with

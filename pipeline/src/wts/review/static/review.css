@@ -146,8 +146,9 @@ button[aria-pressed="true"],
   font-size: 0.9rem;
 }
 
-#worst-list { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; }
-#worst-list button { padding: 0 0.5rem; font-size: 0.85rem; }
+#worst-list, #repairs-list { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; }
+#worst-list button, #repairs-list button { padding: 0 0.5rem; font-size: 0.85rem; }
+#repairs-list button[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
 #status {
   margin: 0.3rem 0 0;
@@ -248,6 +249,42 @@ button[aria-pressed="true"],
 #report-body dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 #report-error { color: var(--error); }
 
+/* The repair panel: the transcript as it is beside what a fresh pass heard, above the transcript */
+
+#repair-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.5rem 1rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.repair-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem; }
+.repair-head h2 { font-size: 1rem; margin: 0.5rem 0; }
+.repair-head button { padding: 0 0.5rem; }
+
+.repair-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.repair-cols h3 { margin: 0 0 0.25rem; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+.repair-cols p {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: Charter, "Iowan Old Style", Georgia, "Times New Roman", serif;
+  overflow-wrap: anywhere;
+}
+
+#repair-now del { color: var(--error); }
+#repair-now .gap { color: var(--muted); font-style: italic; background: var(--bar); border-radius: 3px; padding: 0 0.3rem; }
+#repair-fresh mark { background: var(--ins-bg); color: inherit; border-radius: 3px; }
+#repair-rule { margin: 0.75rem 0 0; }
+#repair-error { color: var(--error); }
+
+/* The stretch a repair is about, in the transcript */
+#transcript .repairing {
+  background: var(--ins-bg);
+  box-shadow: 0 0 0 1px var(--reported-line);
+}
+
 .buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
 
 /* The edit dialog */
@@ -308,6 +345,7 @@ ins { background: var(--ins-bg); color: inherit; text-decoration: underline; }
 @media (max-width: 40rem) {
   .para { grid-template-columns: 3.5rem minmax(0, 1fr); }
   #transcript { font-size: 1.1rem; }
+  .repair-cols { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {

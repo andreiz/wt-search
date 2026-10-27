@@ -105,9 +105,23 @@ def download(selector: str, refetch_ads: bool) -> None:
 @main.command()
 @select_option
 @click.option("--local", is_flag=True, help="Transcribe on this Mac even if transcribe_url is set.")
-def transcribe(selector: str, local: bool) -> None:
+@click.option(
+    "--redo",
+    is_flag=True,
+    help="Also re-transcribe selected episodes already transcribed (the old transcript is kept "
+    "in transcripts-previous/).",
+)
+def transcribe(selector: str, local: bool, redo: bool) -> None:
     """Transcribe downloaded episodes with Whisper (one at a time; Ctrl-C safe)."""
-    _run_step("transcribe", selector, local=local)
+    _run_step("transcribe", selector, local=local, redo=redo)
+
+
+@main.command()
+@select_option
+@click.option("--local", is_flag=True, help="Transcribe clips on this Mac even if transcribe_url is set.")
+def repair(selector: str, local: bool) -> None:
+    """Find passages Whisper skipped and propose repairs to review (wts review)."""
+    _run_step("repair", selector, local=local)
 
 
 @main.command()

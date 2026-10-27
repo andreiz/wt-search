@@ -10,11 +10,10 @@ import json
 import logging
 import sqlite3
 from collections.abc import Sequence
-from pathlib import Path
 
 from wts.chunker import build_chunks
 from wts.corrections import CorrectionRule, apply_corrections
-from wts.guards import clean_transcript
+from wts.repairs import cleaned_words
 from wts.state import Status, fail, requeue_embedding
 from wts.words import Sentence, join_split_words, split_sentences
 
@@ -35,9 +34,8 @@ def chunking_inputs(corrections_sha: str) -> str:
 def prepare_episode(
     row: sqlite3.Row, corrections: Sequence[CorrectionRule]
 ) -> tuple[list[Sentence], list[str]]:
-    data = json.loads(Path(row["transcript_path"]).read_text())
-    # The downloaded file's own length beats the feed's (inserted ads can make it longer).
-    words, flags = clean_transcript(data, row["audio_duration_s"] or row["duration_s"])
+    # The guards' words with accepted repairs spliced in (repair spec §5.4).
+    words, flags = cleaned_words(row)
     words = apply_corrections(words, corrections, row["stem"])
     # After corrections, so a rule still sees "Rubo" on its own in "Rubo -style" (and "10" in
     # "10 %").

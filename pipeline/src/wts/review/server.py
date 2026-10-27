@@ -44,6 +44,7 @@ from wts.evalset.add import CaseExists, all_said, append_case, locate
 from wts.evalset.cases import CaseError, eval_dir
 from wts.evalset.score import TOP
 from wts.paths import Paths
+from wts.repairs import load_repairs, save_repairs, transcript_sha
 from wts.reports import STATUSES, get_report, set_status
 from wts.review.data import episode_list, episode_payload
 from wts.search import SearchError
@@ -90,9 +91,12 @@ class ReviewApp:
         self.post_routes: dict[str, PostHandler] = {}
         # The server is threaded: reading, checking and replacing corrections.yaml is one step.
         self.corrections_lock = threading.Lock()
+        # Likewise for an episode's repairs file; apart from the lock above, which it never needs.
+        self.repairs_lock = threading.Lock()
         # What a correction preview searches (corrections_check.WordKeys); `serve` fills it.
         self.word_keys = WordKeys()
         register_corrections(self)
+        register_repairs(self)
         register_eval(self)
 
     def url(
@@ -584,6 +588,42 @@ def register_corrections(app: ReviewApp) -> None:
     app.post_routes["/api/corrections/preview"] = preview
     app.post_routes["/api/corrections"] = save
     app.post_routes["/api/reviewed"] = reviewed
+
+
+REPAIR_DECISIONS = ("accepted", "rejected", "proposed")
+
+
+def register_repairs(app: ReviewApp) -> None:
+    """Add the repair-decision endpoint (spec §5.4) to `app.post_routes`."""
+
+    def decide(body: dict, conn: sqlite3.Connection) -> tuple[int, dict]:
+        repair_id, status = body.get("repair_id"), body.get("status")
+        if not isinstance(repair_id, str) or status not in REPAIR_DECISIONS:
+            return 400, {"error": "bad_request"}
+        try:
+            row = _episode_row(conn, body.get("episode_id"))
+            if not row["transcript_path"]:
+                raise _Bad(404, "not_found")
+            path = Path(row["transcript_path"])
+            with app.repairs_lock:
+                rf = load_repairs(path)
+                if rf is None:
+                    raise _Bad(404, "not_found")
+                if rf.transcript_sha != transcript_sha(path):
+                    raise _Bad(409, "stale")
+                repair = next((r for r in rf.repairs if r.id == repair_id), None)
+                if repair is None:
+                    raise _Bad(404, "not_found")
+                repair.status = status
+                save_repairs(path, rf)
+                rules = load_corrections(app.corrections_file)
+                chunk_episode(conn, row, rules)
+                conn.commit()
+                return 200, episode_payload(conn, row, rules)
+        except _Bad as bad:
+            return bad.status, {"error": bad.error}
+
+    app.post_routes["/api/repair"] = decide
 
 
 def _parse_passage(body: dict, conn: sqlite3.Connection) -> tuple[str, int, int | None]:

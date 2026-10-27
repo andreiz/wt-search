@@ -246,3 +246,80 @@ def test_mlx_backend_smoke(tmp_path):  # run manually on the Mac: uv run pytest 
     )
     t = MlxWhisperTranscriber().transcribe(f, "Wood Talk")
     assert t.model.endswith("whisper-large-v3-turbo") and t.model_version
+
+
+def _previous(paths):
+    return sorted(p.name for p in (paths.data_dir / "transcripts-previous").glob("*.json"))
+
+
+def test_redo_keeps_the_old_transcript_and_writes_a_new_one(
+    conn, make_episode, paths, cfg, audio_file
+):
+    e = make_episode(audio_path=str(audio_file), status="downloaded")
+    run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber())
+    stem = stem_of(conn, e)
+    out = paths.transcripts_dir / f"{stem}.json"
+    old_text = out.read_text()
+    conn.execute("update episodes set status = 'published' where id = ?", (e,))
+    conn.commit()
+    counts = run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber(), redo=True)
+    assert counts["ok"] == 1 and status_of(conn, e) == "transcribed"
+    assert (paths.data_dir / "transcripts-previous" / f"{stem}.json").read_text() == old_text
+    assert out.exists()
+
+
+def test_second_redo_does_not_overwrite_the_first_saved_copy(
+    conn, make_episode, paths, cfg, audio_file
+):
+    e = make_episode(audio_path=str(audio_file), status="downloaded")
+    run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber())
+    stem = stem_of(conn, e)
+    out = paths.transcripts_dir / f"{stem}.json"
+    run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber(), redo=True)
+    first_text = (paths.data_dir / "transcripts-previous" / f"{stem}.json").read_text()
+    second = json.loads(out.read_text())
+    second["meta"]["transcribed_at"] = "2026-10-26T10:11:12+00:00"
+    out.write_text(json.dumps(second))
+    run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber(), redo=True)
+    prev = paths.data_dir / "transcripts-previous"
+    assert (prev / f"{stem}.json").read_text() == first_text
+    assert _previous(paths) == sorted([f"{stem}.json", f"{stem}.2026-10-26T10-11-12+00-00.json"])
+    assert json.loads((prev / f"{stem}.2026-10-26T10-11-12+00-00.json").read_text()) == second
+
+
+def test_redo_skips_episodes_without_audio_with_a_warning(
+    conn, make_episode, paths, cfg, audio_file, wts_messages
+):
+    e = make_episode(audio_path=str(audio_file), status="downloaded")
+    run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber())
+    out = paths.transcripts_dir / f"{stem_of(conn, e)}.json"
+    before = out.read_text()
+    audio_file.unlink()
+    counts = run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber(), redo=True)
+    assert counts["skipped"] == 1 and counts["ok"] == 0
+    assert status_of(conn, e) == "transcribed" and out.read_text() == before
+    assert not (paths.data_dir / "transcripts-previous").exists()
+    assert any("no audio" in m for m in wts_messages)
+
+
+def test_redo_leaves_not_yet_transcribed_episodes_to_the_normal_run(
+    conn, make_episode, paths, cfg, audio_file
+):
+    e = make_episode(audio_path=str(audio_file), status="downloaded")
+    counts = run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber(), redo=True)
+    assert counts["ok"] == 1 and not (paths.data_dir / "transcripts-previous").exists()
+
+
+def test_redo_rechunks_in_place(conn, make_episode, paths, cfg, audio_file):
+    from wts.steps import run_chunk
+
+    e = make_episode(audio_path=str(audio_file), status="downloaded")
+    run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber())
+    run_chunk(conn, paths, cfg, [e])
+    ids = [r[0] for r in conn.execute("select id from chunks where episode_id = ?", (e,))]
+    assert ids
+    run_transcribe(conn, paths, cfg, [e], transcriber=FakeTranscriber(), redo=True)
+    assert status_of(conn, e) == "transcribed"
+    run_chunk(conn, paths, cfg, [e])
+    assert status_of(conn, e) == "chunked"
+    assert [r[0] for r in conn.execute("select id from chunks where episode_id = ?", (e,))] == ids

@@ -33,6 +33,7 @@ class Config:
     eval_model: str | None = None  # wts eval generate: an Ollama model
     ollama_url: str = "http://localhost:11434"  # ... and the Ollama server that runs it
     transcribe_url: str | None = None  # transcribe-web on walnut; unset: transcribe on this Mac
+    repair_auto: bool = False  # apply clear-cut repairs without review (repair spec §5.3)
 
     @property
     def envs(self) -> dict[str, CloudflareEnv]:
@@ -103,4 +104,5 @@ def load_config(path: Path) -> Config:
         eval_model=data.get("eval_model"),
         ollama_url=data.get("ollama_url", defaults.ollama_url),
         transcribe_url=data.get("transcribe_url"),
+        repair_auto=bool(data.get("repair_auto", False)),
     )

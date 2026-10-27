@@ -16,6 +16,7 @@
   --reported-line: #1f6b2c;
   --del-bg: #f6cfcf;
   --ins-bg: #cdeccf;
+  --repair-bg: #d6e6f7; /* words a repair put in: a soft blue, apart from corrections' green */
   --error: #a3200f;
   --focus: #0b57d0;
 }
@@ -37,6 +38,7 @@
     --reported-line: #8fd49a;
     --del-bg: #5c2323;
     --ins-bg: #1f4a28;
+    --repair-bg: #1c3a5c;
     --error: #ff9a8a;
     --focus: #8ab9f0;
   }
@@ -283,22 +285,18 @@ button[aria-pressed="true"],
 
 #repair-now del { color: var(--error); }
 #repair-now .gap { color: var(--muted); font-style: italic; background: var(--bar); border-radius: 3px; padding: 0 0.3rem; }
-#repair-fresh mark { background: var(--ins-bg); color: inherit; border-radius: 3px; }
+#repair-fresh mark { background: var(--repair-bg); color: inherit; border-radius: 3px; }
 #repair-rule { margin: 0.75rem 0 0; }
 #repair-error { color: var(--error); }
 
-/* Repairs in the transcript: one band of tint, like a highlighter, not a box per word (each
-   word's shadow covers the space after it, so the band has no gaps). Words an accepted repair
-   added keep the tint corrected words have; the repair whose panel is open is also underlined. */
+/* Repairs in the transcript: one band of soft blue, like a highlighter, not a box per word
+   (each word's shadow covers the space after it, so the band has no gaps). Its own colour,
+   apart from corrections' green: a repair is a whole passage from a second Whisper pass. */
 #transcript .repaired,
 #transcript .repairing {
-  background: var(--ins-bg);
-  box-shadow: 0.3em 0 0 var(--ins-bg);
+  background: var(--repair-bg);
+  box-shadow: 0.3em 0 0 var(--repair-bg);
   border-radius: 0;
-}
-#transcript .repairing {
-  text-decoration: underline 2px var(--accent);
-  text-underline-offset: 0.2em;
 }
 
 .buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }

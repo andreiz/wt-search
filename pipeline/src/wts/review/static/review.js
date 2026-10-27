@@ -1214,7 +1214,20 @@ function renderRepairPanel() {
 // Mark the stretch in the transcript: the repair's words, or when it has none there (a hole
 // in the transcript), the words either side of the gap.
 function markRepairSpan() {
-  for (const span of transcriptEl.querySelectorAll(".repairing")) span.classList.remove("repairing");
+  for (const span of transcriptEl.querySelectorAll(".repairing, .repaired")) {
+    span.classList.remove("repairing", "repaired");
+    span.removeAttribute("title");
+  }
+  // Words an applied repair put in stay tinted, panel open or not, like corrected words: the
+  // transcript should say which text Whisper didn't write.
+  for (const r of S.repairs) {
+    if (!isApplied(r)) continue;
+    const at = repairAt(r);
+    for (let i = Math.max(at, 0); i < at + r.after.length && i < S.spans.length; i++) {
+      S.spans[i].classList.add("repaired");
+      S.spans[i].title = `Added by a repair (fresh pass, ${fmtTime(r.hole[0])})`;
+    }
+  }
   const k = openRepairIndex();
   if (k < 0) return;
   const r = S.repairs[k];

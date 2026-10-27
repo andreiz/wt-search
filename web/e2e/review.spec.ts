@@ -472,6 +472,13 @@ test("a proposed repair is opened in a side-by-side panel, accepted into the tra
   await expect(zebra).toHaveCount(1);
   await expect(page.locator("#transcript .repairing")).toHaveText(["Meanwhile", "the", "zebrawood", "veneer", "cured."]);
   await expect(line).toHaveText("0:09 ✓");
+  // Closed, the repair's words stay marked as added (the maintainer: after Close nothing showed
+  // what changed); then it is opened again for the rest.
+  await panel.getByRole("button", { name: "Close" }).click();
+  await expect(panel).toBeHidden();
+  await expect(page.locator("#transcript .repairing")).toHaveCount(0);
+  await expect(page.locator("#transcript .repaired")).toHaveText(["Meanwhile", "the", "zebrawood", "veneer", "cured."]);
+  await line.click();
   await expect(panel.getByRole("button", { name: "Undo" })).toBeVisible();
   await expect(panel.getByRole("button", { name: "Use fresh pass" })).toBeHidden();
   // The panel shows the words as they were before the repair, and the fresh pass as it is now.

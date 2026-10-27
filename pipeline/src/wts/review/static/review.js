@@ -1484,14 +1484,14 @@ function openAt(ms) {
 // `?at=` on a repair (from a hole's start, give or take the 2 s a list may print it earlier, to
 // its end) opens that repair, as its button does: `wts review --next-repair` and `--at` with
 // the Repairs line's time land on the panel, not just near it.
-function repairAt(ms) {
+function repairNear(ms) {
   const near = S.repairs.filter((r) => r.hole[0] - REPAIR_AT_SLACK_MS <= ms && ms <= r.hole[1]);
   near.sort((a, b) => Math.abs(a.hole[0] - ms) - Math.abs(b.hole[0] - ms));
   return near[0] || null;
 }
 
 function openAtOrRepair(ms) {
-  const r = repairAt(ms);
+  const r = repairNear(ms);
   if (!r) return openAt(ms);
   openRepair(r.id, true);
   holdPosition(Math.max(0, repairRange(r).from - PLAY_LEAD_MS));

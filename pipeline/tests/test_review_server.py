@@ -1,6 +1,9 @@
 import json
 import re
+import shutil
+import subprocess
 import threading
+from pathlib import Path
 
 import httpx
 import pytest
@@ -89,6 +92,19 @@ def test_static_files(client):
     css = client.get("/static/review.css")
     assert css.status_code == 200
     assert css.headers["content-type"].startswith("text/css")
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="needs node")
+def test_review_js_parses_as_a_module(tmp_path):
+    # The page loads it as a module, where a name declared twice stops the whole script (the
+    # page stuck on "Loading…", 2026-10-27); `node --check` on a .js file would allow it.
+    from wts.review import server as server_mod
+
+    js = Path(server_mod.__file__).parent / "static" / "review.js"
+    copy = tmp_path / "review.mjs"
+    copy.write_text(js.read_text())
+    r = subprocess.run(["node", "--check", str(copy)], capture_output=True, text=True, check=False)
+    assert r.returncode == 0, r.stderr
 
 
 @pytest.mark.parametrize(

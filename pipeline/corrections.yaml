@@ -176,6 +176,13 @@ global:
   # ep616, 30:41–31:12, gluing up large panels (2026-10-24, the only uses).
   high glue: hide glue
   an abdominal: a Domino
+  # The maintainer's ep601 review, 2026-10-27 (each checked on the 38 transcripts: ep601 only).
+  pedula: Pedulla
+  fretzall: fret saw
+  woodweaver: WoodRiver
+  findwoodworking: Fine Woodworking
+  agamation: amalgamation
+  fretzol: fret saw
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:
@@ -188,6 +195,11 @@ episodes:
     # 38:01, "I have a Lie-Nielsen dovetail saw" (the maintainer listened, 2026-10-26; walnut
     # heard "lineal dovetail saw"). This episode only: "lineal" is also a real word.
     lineals and dovetails: Lie-Nielsen dovetail saw
+  2026-02-25_ep601_who-doesnt-love-a-concealed-weapon:
+    # 23:31, "the 32nd inch pass on a jointer" (the maintainer's report, 2026-10-27). This
+    # episode only: a "32-inch pass" can be real (a wide drum sander).
+    32 inch pass: 32nd inch pass
+    olsen: Olson
   2026-05-06_ep606_its-tiny-but-its-better-than-nothing:
     # 58:06, "Shannon throwing shade" (the maintainer's report, 2026-10-27).
     thrown shade: throwing shade

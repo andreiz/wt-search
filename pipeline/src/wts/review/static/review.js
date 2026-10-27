@@ -1214,11 +1214,15 @@ function markRepairSpan() {
   for (let i = Math.max(lo, 0); i <= hi && i < S.spans.length; i++) S.spans[i].classList.add("repairing");
 }
 
+// `scroll`: opened by hand (the repairs line, ◀ ▶), so the player and the transcript go to the
+// stretch, as a weak spot's button does; re-renders after a decision leave both where they are.
 function openRepair(id, scroll) {
   S.repairOpen = id;
   setRepairError("");
   renderRepairs(S.repairs);
   if (!scroll) return;
+  const r = S.repairs[openRepairIndex()];
+  if (r) seekMs(Math.max(0, repairRange(r).from - PLAY_LEAD_MS), { play: false });
   const first = transcriptEl.querySelector(".repairing");
   if (!first) return;
   pauseAutoScroll();
@@ -1242,15 +1246,22 @@ function repairAt(r) {
   return Number.isInteger(r.at) ? r.at : r.index;
 }
 
-// From 2 s before the earliest of the stretch, the hole and the fresh words, to 1 s after the
-// latest. `from_ms` alone can be late: Whisper often stretches the word before a skip over it.
+// The stretch a repair covers: the earliest to the latest of its bounds, the hole and the fresh
+// words. `from_ms` alone can be late: Whisper often stretches the word before a skip over it.
+function repairRange(r) {
+  const first = r.after.length ? r.after[0][1] : r.hole[0];
+  const last = r.after.length ? r.after[r.after.length - 1][2] : r.hole[1];
+  return {
+    from: Math.min(r.from_ms >= 0 ? r.from_ms : r.hole[0], r.hole[0], first),
+    to: Math.max(r.to_ms >= 0 && r.to_ms < NO_END_MS ? r.to_ms : r.hole[1], r.hole[1], last),
+  };
+}
+
+// From 2 s before the stretch to 1 s after it.
 function playRepair() {
   const r = S.repairs[openRepairIndex()];
   if (!r || !S.ep || !S.ep.has_audio) return;
-  const first = r.after.length ? r.after[0][1] : r.hole[0];
-  const last = r.after.length ? r.after[r.after.length - 1][2] : r.hole[1];
-  const from = Math.min(r.from_ms >= 0 ? r.from_ms : r.hole[0], r.hole[0], first);
-  const to = Math.max(r.to_ms >= 0 && r.to_ms < NO_END_MS ? r.to_ms : r.hole[1], r.hole[1], last);
+  const { from, to } = repairRange(r);
   seekMs(Math.max(0, from - PLAY_LEAD_MS), { play: true });
   S.stopAtMs = to + PLAY_TAIL_MS;
 }

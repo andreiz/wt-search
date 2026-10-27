@@ -9,6 +9,9 @@ Searches with known right answers, scored against a deployed environment (spec Â
   the diff).
 - `baseline.json`: the scores a run is compared with; `wts eval run --update` replaces it.
 - `reports/`: one JSON per run (not committed).
+- `scope-38.txt`: the 38 episodes the first baseline and `synthetic.yaml` were made from
+  (2026-10-27, before `spread:121`). `uv run wts scope restore ../eval/scope-38.txt` brings an
+  instance back to them.
 
 ```
 cd pipeline

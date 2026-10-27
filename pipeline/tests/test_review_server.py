@@ -196,6 +196,26 @@ def test_episode_list_over_http(client, conn, paths, make_episode):
                                   "date": "2020-01-01", "flagged": False, "reviewed": False}]}
 
 
+def test_next_repair_over_http(client, conn, paths, make_episode):
+    from wts.repairs import Repair, RepairsFile, save_repairs, transcript_sha
+    from wts.words import Word
+
+    here = _transcribed(conn, paths, make_episode, number=72,
+                        published_at="2020-01-02T00:00:00+00:00")
+    other = _transcribed(conn, paths, make_episode, number=71, title="The Three-Way")
+    t = Path(conn.execute("select transcript_path from episodes where id = ?",
+                          (other,)).fetchone()[0])
+    save_repairs(t, RepairsFile(transcript_sha(t), [], [Repair(
+        id="5000-7000", hole=(5000, 7000), clip=(0, 17000), index=3, from_ms=0, to_ms=0,
+        before=[], after=[Word("Then", 5000, 5300, 0.9)], second_after=None, fails=[],
+        status="proposed")]))
+    assert client.get(f"/api/next-repair?after={here}").status_code == 401
+    body = client.get(f"/api/next-repair?after={here}", headers=AUTH).json()
+    assert body == {"next": {"id": other, "number": 71, "title": "The Three-Way", "at": 5000}}
+    # The only episode with an undecided repair is the one open: nothing next.
+    assert client.get(f"/api/next-repair?after={other}", headers=AUTH).json() == {"next": None}
+
+
 def test_episode_unknown_bad_and_not_transcribed(client, conn, make_episode):
     assert client.get("/api/episode?id=9999", headers=AUTH).status_code == 404
     assert client.get("/api/episode?id=abc", headers=AUTH).status_code == 404

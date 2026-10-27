@@ -51,6 +51,7 @@ const S = {
   report: null, // the report object once loaded
   repairs: [], // the episode's repairs, as the server sent them (time order)
   repairOpen: null, // id of the repair the panel shows
+  nextRepair: null, // {id, number, title, at}: where ▶ goes from the last repair (another episode)
   stopAtMs: null, // "Play" on a repair pauses the audio at this time
   lastSelection: null, // {lo, hi} of the last selection inside the transcript
   keyAt: new Map(), // word index -> the struck-out text before it, as a rule's key names it
@@ -1182,7 +1183,12 @@ function renderRepairPanel() {
   $("repair-heading").textContent = `Repair ${k + 1} of ${S.repairs.length} · ${fmtTime(r.hole[0])}–${fmtTime(r.hole[1])}`;
   $("repair-state").textContent = r.status === "proposed" ? "" : r.status;
   $("repair-prev").disabled = k === 0;
-  $("repair-next").disabled = k === S.repairs.length - 1;
+  // On the last repair, ▶ goes on to the next episode with an undecided repair, if any.
+  const last = k === S.repairs.length - 1;
+  $("repair-next").disabled = last && !S.nextRepair;
+  $("repair-next").title = !last ? "Next repair"
+    : S.nextRepair ? `Next episode with undecided repairs: ${episodeName(S.nextRepair)}`
+    : "No other episode has undecided repairs";
 
   // Left: the transcript. Once the repair is accepted the page's words already hold the fresh
   // ones, so this column is rebuilt as the transcript was (the repair's `before` words, or the
@@ -1263,7 +1269,23 @@ function openRepair(id, scroll) {
 
 function stepRepair(dir) {
   const next = S.repairs[openRepairIndex() + dir];
-  if (next) openRepair(next.id, true);
+  if (next) return openRepair(next.id, true);
+  // ▶ past the last repair: the next episode's first undecided repair (`?at=` opens it).
+  if (dir > 0 && S.nextRepair) {
+    const q = new URLSearchParams({ t: token, episode: String(S.nextRepair.id), at: String(S.nextRepair.at) });
+    location.assign(`/?${q}`);
+  }
+}
+
+// Where ▶ goes after this episode's last repair; asked once, when the episode opens.
+async function loadNextRepair() {
+  const r = await api(`/api/next-repair?after=${encodeURIComponent(episodeParam)}`);
+  S.nextRepair = r.status === 200 && r.data ? r.data.next : null;
+  if (S.repairOpen !== null) renderRepairPanel();
+}
+
+function episodeName(ep) {
+  return ep.number !== null && ep.number !== undefined ? `${ep.number}. ${ep.title}` : ep.title;
 }
 
 function closeRepair() {
@@ -1452,8 +1474,7 @@ async function loadEpisodeMenu() {
   const pick = $("episode-pick");
   for (const ep of r.data.episodes) {
     const marks = [ep.date, ep.flagged ? "flagged" : "", ep.reviewed ? "reviewed" : ""].filter(Boolean);
-    const name = ep.number !== null && ep.number !== undefined ? `${ep.number}. ${ep.title}` : ep.title;
-    const option = el("option", "", `${name} (${marks.join(", ")})`);
+    const option = el("option", "", `${episodeName(ep)} (${marks.join(", ")})`);
     option.value = String(ep.id);
     if (String(ep.id) === episodeParam) option.disabled = true; // the one open now
     pick.append(option);
@@ -1529,6 +1550,7 @@ async function start() {
   render(r.data, false);
   trackBarHeight(); // after render: the bar has its final lines (weak spots, repairs)
   if (atParam !== null && atParam !== "" && !Number.isNaN(Number(atParam))) openAtOrRepair(Number(atParam));
+  if (S.repairs.length) loadNextRepair();
   if (reportParam !== null) loadReport();
 }
 

@@ -46,7 +46,7 @@ from wts.evalset.score import TOP
 from wts.paths import Paths
 from wts.repairs import load_repairs, save_repairs, transcript_sha
 from wts.reports import STATUSES, get_report, set_status
-from wts.review.data import episode_list, episode_payload
+from wts.review.data import episode_list, episode_payload, next_repair
 from wts.search import SearchError
 
 log = logging.getLogger("wts")
@@ -278,6 +278,8 @@ def _make_handler(app: ReviewApp) -> type[BaseHTTPRequestHandler]:
                 return self._episodes
             if path == "/api/report":
                 return self._report
+            if path == "/api/next-repair":
+                return self._next_repair
             if path.startswith("/audio/"):
                 return self._audio
             return None
@@ -314,6 +316,21 @@ def _make_handler(app: ReviewApp) -> type[BaseHTTPRequestHandler]:
             finally:
                 conn.close()
             self._json(200, {"episodes": episodes})
+
+        def _next_repair(self, path, query) -> None:
+            # The episode the panel's ▶ goes to from the open episode's last repair.
+            after = _int((query.get("after") or [""])[0])
+            conn = app.conn_factory()
+            try:
+                found = next_repair(conn, after=after)
+            finally:
+                conn.close()
+            if found is None:
+                self._json(200, {"next": None})
+                return
+            row, at_ms = found
+            self._json(200, {"next": {"id": row["id"], "number": row["number"],
+                                      "title": row["title"], "at": at_ms}})
 
         def _report(self, path, query) -> None:
             if app.d1 is None:

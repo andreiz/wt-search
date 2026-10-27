@@ -235,14 +235,22 @@ def next_flagged(conn: sqlite3.Connection) -> sqlite3.Row | None:
     ).fetchone()
 
 
-def next_repair(conn: sqlite3.Connection) -> tuple[sqlite3.Row, int] | None:
+def next_repair(
+    conn: sqlite3.Connection, after: int | None = None
+) -> tuple[sqlite3.Row, int] | None:
     """The newest episode (by `published_at`) with an undecided repair in a current repairs
     file, and the start of its first undecided repair's hole: where the page opens that repair.
-    Newest first, like `wts repair`."""
-    rows = conn.execute(
+    Newest first, like `wts repair`.
+
+    `after`: the episode open now (the page's ▶ on its last repair). The search starts with the
+    episode after it in that order and comes round to the newest; it never returns `after`."""
+    rows = list(conn.execute(
         "select * from episodes where transcript_path is not null and transcript_path != '' "
         "order by published_at desc, id desc"
-    )
+    ))
+    if after is not None:
+        k = next((i for i, row in enumerate(rows) if row["id"] == after), -1)
+        rows = rows[k + 1:] + rows[:max(k, 0)]
     for row in rows:
         path = Path(row["transcript_path"])
         rf = load_repairs(path)

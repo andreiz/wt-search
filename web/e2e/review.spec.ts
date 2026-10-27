@@ -291,6 +291,28 @@ test("?at on a repair opens it, as its button does; just before it, only the tim
   await done();
 });
 
+test("▶ on the last repair goes on to the next episode with an undecided repair", async ({ page }) => {
+  const done = await watch(page);
+  // The real server: episode 2 has no repairs, so there is nowhere to go.
+  await open(page, "&at=9000");
+  const next = page.locator("#repair-next");
+  await expect(next).toBeDisabled();
+  await expect(next).toHaveAttribute("title", "No other episode has undecided repairs");
+
+  // As if episode 2 had one at 1 s: ▶ opens episode 2 there, in this tab.
+  await page.route("**/api/next-repair**", (route) =>
+    route.fulfill({ json: { next: { id: 2, number: 2, title: "The second test episode", at: 1000 } } }),
+  );
+  await open(page, "&at=9000");
+  await expect(next).toBeEnabled();
+  await expect(next).toHaveAttribute("title", "Next episode with undecided repairs: 2. The second test episode");
+  await next.click();
+  await expect(page.locator("#title")).toHaveText("2. The second test episode");
+  expect(new URL(page.url()).searchParams.get("episode")).toBe("2");
+  expect(new URL(page.url()).searchParams.get("at")).toBe("1000");
+  await done();
+});
+
 test("?at scrolls the word into view below the sticky header", async ({ page }) => {
   const done = await watch(page);
   await page.setViewportSize({ width: 1280, height: 300 });

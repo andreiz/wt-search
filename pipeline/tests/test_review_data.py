@@ -330,6 +330,18 @@ def test_next_repair_is_the_newest_episode_with_an_undecided_repair(conn, paths,
     assert row["id"] == want
     assert at_ms == 20_000  # its first undecided repair's hole
 
+    # After an episode: the next one in the same order (older), coming round to the newest;
+    # never the episode itself.
+    oldest = conn.execute("select id from episodes order by published_at limit 1").fetchone()[0]
+    assert next_repair(conn, after=want)[0]["id"] == oldest
+    assert next_repair(conn, after=oldest)[0]["id"] == want
+    newest = conn.execute(
+        "select id from episodes order by published_at desc limit 1").fetchone()[0]
+    assert next_repair(conn, after=newest)[0]["id"] == want
+    conn.execute("delete from episodes where id = ?", (oldest,))
+    conn.commit()
+    assert next_repair(conn, after=want) is None  # the only one left with undecided repairs
+
 
 def test_payload_chunks_in_seq_order_and_empty_before_chunking(conn, paths, make_episode):
     e = make_episode()

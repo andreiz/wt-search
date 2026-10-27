@@ -203,7 +203,12 @@ system.
   item in scope when it is at least as new as the newest episode already
   stored. Not on the first import (nothing stored yet: that would queue the
   whole archive), nor for an old item that turns up later. *(Added
-  2026-10-08, open decision 3, option a.)*
+  2026-10-08, open decision 3, option a.)* `wts scope save FILE` writes the
+  in-scope stems; `wts scope restore FILE` makes the scope exactly that list,
+  refusing (and changing nothing) if a stem isn't stored, for undoing a trial
+  `scope add` or giving another instance the same episodes. Taking an episode
+  out of scope leaves its files, chunks and published rows alone. *(Added
+  2026-10-27.)*
 
 ### 3.2 Commands
 

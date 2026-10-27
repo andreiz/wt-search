@@ -612,6 +612,35 @@ def scope_list() -> None:
     click.echo(f"{len(rows)} in scope")
 
 
+@scope.command("save")
+@click.argument("file", type=click.File("w"))
+def scope_save(file) -> None:
+    """Write the in-scope episodes' stems to FILE (- for stdout), one per line."""
+    from wts.selection import scope_stems
+
+    stems = scope_stems(_ctx().conn())
+    file.write(f"# wts scope: {len(stems)} episodes; `wts scope restore` reads this\n")
+    file.writelines(f"{s}\n" for s in stems)
+    if file.name != "<stdout>":
+        click.echo(f"{len(stems)} in scope, saved to {file.name}")
+
+
+@scope.command("restore")
+@click.argument("file", type=click.File("r"))
+def scope_restore(file) -> None:
+    """Make the scope exactly the episodes listed in FILE.
+
+    One stem per line, as `scope save` writes; only each line's first word counts, and `#`
+    comments and blank lines are skipped. Episodes leaving the scope keep their files, chunks and
+    anything already published; they just stop being processed and published by default.
+    """
+    from wts.selection import set_scope
+
+    stems = [ln.split()[0] for ln in file if ln.strip() and not ln.lstrip().startswith("#")]
+    added, removed = set_scope(_ctx().conn(), stems)
+    click.echo(f"{len(set(stems))} in scope ({added} added, {removed} removed)")
+
+
 @main.group("secrets")
 def secrets_group() -> None:
     """Manage secrets in the macOS Keychain (values are never printed)."""

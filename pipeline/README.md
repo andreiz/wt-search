@@ -122,6 +122,10 @@ Each step also runs on its own (`download`, `transcribe`, `chunk`, `embed`) and 
 `--select` (`scope`, `all`, `seed`, `recent:N`, `spread:N`, `ep:N`, `year:YYYY`, `stem:S`; comma = union).
 `spread:N` is N episodes evenly spaced across the archive among those not yet in scope, so
 `wts scope add spread:N` adds exactly N.
+`wts scope save FILE` writes the in-scope stems, one per line; `wts scope restore FILE` makes
+the scope exactly that list (every stem must be in `state.db` already, or nothing changes), to
+undo a trial `scope add` or to set up another instance with the same episodes. Episodes it
+takes out keep their files, chunks and anything published.
 Everything is safe to re-run and to stop with Ctrl-C.
 
 - Inserted ads: Acast stitches ads into downloads unless the User-Agent looks like a bot, so

@@ -72,3 +72,32 @@ def add_to_scope(conn: sqlite3.Connection, ids: Iterable[int]) -> int:
     with conn:
         conn.executemany("update episodes set in_scope = 1 where id = ?", [(i,) for i in ids])
     return len(ids)
+
+
+def scope_stems(conn: sqlite3.Connection) -> list[str]:
+    return [
+        r[0]
+        for r in conn.execute("select stem from episodes where in_scope = 1 order by published_at")
+    ]
+
+
+def set_scope(conn: sqlite3.Connection, stems: Iterable[str]) -> tuple[int, int]:
+    """Make the scope exactly `stems`; returns (added, removed).
+
+    Every stem must be a known episode, or nothing changes: on a new instance, fetch the feed
+    first. Episodes leaving the scope keep their files, chunks and anything already published.
+    """
+    wanted = set(stems)
+    known = {r[0]: (r[1], bool(r[2])) for r in conn.execute(
+        "select stem, id, in_scope from episodes")}
+    unknown = sorted(wanted - known.keys())
+    if unknown:
+        raise click.ClickException(
+            f"{len(unknown)} unknown episode(s), scope unchanged (fetch the feed first?): "
+            + ", ".join(unknown))
+    add = [i for s, (i, on) in known.items() if s in wanted and not on]
+    drop = [i for s, (i, on) in known.items() if s not in wanted and on]
+    with conn:
+        conn.executemany("update episodes set in_scope = 1 where id = ?", [(i,) for i in add])
+        conn.executemany("update episodes set in_scope = 0 where id = ?", [(i,) for i in drop])
+    return len(add), len(drop)

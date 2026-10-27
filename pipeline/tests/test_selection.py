@@ -6,7 +6,7 @@ import pytest
 from click.testing import CliRunner
 
 from wts.cli import main
-from wts.selection import add_to_scope, resolve_selector, seed_ids
+from wts.selection import add_to_scope, resolve_selector, scope_stems, seed_ids, set_scope
 
 
 def _year(conn, episode_id):
@@ -89,3 +89,50 @@ def test_scope_cli_add_and_list(wts_home):
     c.commit()
     assert "1 episode(s) added" in CliRunner().invoke(main, ["scope", "add", "all"]).output
     assert "2020-01-01_t" in CliRunner().invoke(main, ["scope", "list"]).output
+
+
+def _stems(conn, ids):
+    return [conn.execute("select stem from episodes where id = ?", (i,)).fetchone()[0] for i in ids]
+
+
+def test_set_scope_makes_the_scope_exactly_the_list(conn, make_episodes):
+    ids = make_episodes(6)
+    add_to_scope(conn, ids[:3])
+    assert set_scope(conn, _stems(conn, [ids[2], ids[4]])) == (1, 2)  # (added, removed)
+    assert resolve_selector(conn, "scope") == [ids[2], ids[4]]
+    assert scope_stems(conn) == _stems(conn, [ids[2], ids[4]])
+
+
+def test_set_scope_with_an_unknown_stem_changes_nothing(conn, make_episodes):
+    ids = make_episodes(3)
+    add_to_scope(conn, ids[:1])
+    with pytest.raises(click.ClickException, match="2001-01-01_ep999_gone"):
+        set_scope(conn, [*_stems(conn, ids[1:2]), "2001-01-01_ep999_gone"])
+    assert resolve_selector(conn, "scope") == ids[:1]
+
+
+def test_scope_cli_save_then_restore(wts_home, tmp_path):
+    from wts.db import connect
+
+    c = connect(wts_home / "state.db")
+    for k in (1, 2, 3):
+        c.execute(
+            "insert into episodes (guid, title, published_at, audio_url, stem, updated_at) "
+            f"values ('g{k}', 't', '2020-01-0{k}', 'u', '2020-01-0{k}_t', 'x')"
+        )
+    c.execute("update episodes set in_scope = 1 where guid in ('g1', 'g3')")
+    c.commit()
+    saved = tmp_path / "scope.txt"
+    run = CliRunner().invoke
+    assert run(main, ["scope", "save", str(saved)]).exit_code == 0
+    assert [ln for ln in saved.read_text().splitlines() if not ln.startswith("#")] == [
+        "2020-01-01_t", "2020-01-03_t"]
+
+    assert run(main, ["scope", "add", "all"]).exit_code == 0
+    # Blank lines, comments and the `scope list` status column are fine in the file.
+    saved.write_text(saved.read_text() + "\n# later\n2020-01-03_t  published\n")
+    r = run(main, ["scope", "restore", str(saved)])
+    assert r.exit_code == 0, r.output
+    assert "2 in scope (0 added, 1 removed)" in r.output
+    in_scope = c.execute("select guid from episodes where in_scope = 1 order by guid").fetchall()
+    assert [g for (g,) in in_scope] == ["g1", "g3"]

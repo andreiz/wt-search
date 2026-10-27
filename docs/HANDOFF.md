@@ -1,4 +1,4 @@
-# Handoff — 2026-10-25 (plans 5, 6 and the Related floor/reranker done; old checkpoints being cleared)
+# Handoff — 2026-10-27 (walnut transcripts and repairs rolled out; publishing left)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
@@ -14,35 +14,51 @@ ep300 33:31). So a repair step was designed and built (spec
 `2026-10-26-transcript-repair-design.md`, plan `plans/2026-10-26-transcript-repair.md`):
 `wts repair` flags speech no word covers (Silero VAD, ≥ 1.5 s), re-transcribes a clip around
 each, and proposes repairs the maintainer accepts or rejects in `wts review` (panel above the
-transcript); accepted ones are applied by `wts chunk`. The automatic rule records its verdict
-but is off (`repair_auto`). ep616 (recorded live, music under it) makes Whisper random on any
-machine; leave it out of comparisons. The rollout, all the maintainer's, in a normal terminal:
-1. `transcribe_url = "https://transcribe.home.zmievski.org"` at the top of `config.toml`.
-2. `uv run wts transcribe --redo --select scope` (the 36 on walnut with today's vocabulary;
-   wick's transcripts go to `transcripts-previous/`), then `uv run wts repair`.
-3. Review every repair: `uv run wts review <ep>` (the "repairs:" line), then `uv run wts chunk`.
-4. `uv run python spikes/repair_audit.py`: holes repair missed (listen to them), flags per hour,
-   and how the rule's checks matched your decisions (check 5 especially: both passes run on
-   walnut). Then decide the threshold and whether to turn `repair_auto` on.
-5. The search eval for a new baseline; then `uv run wts scope add spread:N` (N ≈ 121) and
-   `uv run wts run --env staging` for the quarter.
-Where it stood on 2026-10-27 (end of session):
-- walnut was mid-upgrade to macOS 27.2 (the maintainer started it). Next: unlock FileVault over
-  SSH after the restart; re-test Ollama (now 0.40.11: tool calls, think-off, prompt cache);
-  Claude checks transcribe-web and an MLX smoke clip, and updates `hosts/walnut.md`.
-- `transcribe_url` not set yet; the rollout (steps 1–5 above) not started.
-- Tried on ep606 (wick's transcript): `wts repair` proposed 2 repairs (23:45 a listener's
-  letter, 28:19 a measuring passage), both real skips; the maintainer accepted both; the rule
-  had passed both (fails []). The review page got fixes from that first use (sticky panel,
-  time order, the player jumps to a repair, blue tint for repaired words).
-- Dry run of hole finding on all 38 in-scope transcripts (read-only): 204 flags, ~6/h, median
-  1.9 s; 11 flags of 25–38 s, the five read all whole skipped passages (ep606 23:45, ep336
-  3:08, ep171 13:01, ep601 2:39, ep614 40:40). So wick skips too, about one long skip per 3 h.
-- Corrections in: Lie-Nielsen (Lee/Leon Nielsen, ep071 "lineals and dovetails"), Earlex,
-  "throwing shade" (ep606). Not yet chunked/embedded on the Mac.
-- Claude's session now has read-only access to the app folder (state.db, transcripts, audio).
-- Nothing pushed: wt-search ~15 commits (39 earlier ones squashed to 7), media-tools 4,
-  homelab-ci 9, homelab-docs 25.
+transcript); accepted ones are applied by `wts chunk`. ep616 (recorded live, music under it)
+makes Whisper random on any machine; leave it out of comparisons.
+
+**Rollout done (2026-10-27), except publishing.** walnut is on macOS 27.2 (Ollama 0.40.11,
+transcribe-web with request logging). `transcribe_url` is set; `wts transcribe --redo --select
+scope` did all 38 in 52:36 (38.8× real time, no warnings; wick's in `transcripts-previous/`).
+`wts repair` proposed 46 repairs in 24 episodes; the maintainer accepted 41 and rejected 5
+(mostly noise, not wrong words). Against wick (`scratchpad` comparison): 21 accepted repairs
+read as wick did; ~17 short ones wick missed too; ep085 41:40 (184 words) was a loop in wick.
+What came of it:
+- **The rule** (815111e, spec §5.3): only checks 2, 3 and 4 decide; 1 (anchors) and 5 (second
+  pass) are recorded but don't. Over the 46 decisions: the old rule applied 11 (all accepted),
+  the new one 22 (one a noise rejection). `repair_auto = true` is now in `config.toml`, so
+  later `wts repair` runs apply clear-cut repairs; the rest wait in the review page, which
+  says "The rule would apply this (fails 1, 5, which don't decide)".
+- **Loops** (de7eca4, spec §5.1 step 4): 5+ repeats of one sentence of ≤ 6 words are a flag,
+  and a repair may replace the whole loop. On the 38 it flags only ep603 1:10–1:31 ("I'm
+  good." ×16), which an episode correction (ff4a003) already fixes with wick's words; the
+  maintainer listened: good.
+- **Repair edges** (aa6f469, §5.2): a matching word beside the stretch that the fresh pass
+  writes differently ("Also," / "also,") goes into the repair in the fresh pass's spelling.
+- **ffmpeg** (a4414d8): `cut_clip` adds `-af aresample`; ffmpeg 9.0.2's libmp3lame failed ~1
+  cut in 80 ("inadequate AVFrame plane padding").
+- **Review page** (567c17e, 3259c9c, cc99476): `wts review --next-repair`; `?at=` on a repair
+  opens it; ▶ on an episode's last repair goes to the next episode (`/api/next-repair`); a
+  test runs `node --check` on `review.js` as a module (a duplicate declaration once left the
+  page on "Loading…"). The e2e cases are written but not yet run (`npm run e2e:review`).
+- **Corrections** (ff4a003): where accepted repairs meet the transcript (ep422, 466, 552, 603,
+  610–615); 53 sentences change.
+
+Left, the maintainer's, in a normal terminal:
+1. `uv run wts chunk` and `uv run wts embed` (ff4a003 changed text in 10 episodes after the
+   last chunk), then `uv run wts run --env staging`.
+2. `uv run wts eval run --update` for a new baseline; commit `eval/`.
+3. `uv run wts scope add spread:121` and `uv run wts run --env staging` for the quarter.
+4. Optional listening, where walnut and wick still differ: ep603 8:31, ep604 41:19, ep466
+   18:47.
+Later work: take fresh-pass words just past a hole whose right edge a stretched first word hid
+(ep611 1:14:01). Deferred minors: VAD/ffmpeg failures aren't `ToolMissing`; adjacent repairs
+count as overlapping; holes < ~15 s from the start get the same clip for the second pass; the
+audit counts statuses from stale repairs files; the review endpoint 500s for an episode
+mid-redo; standalone `wts repair` doesn't check the audio mount; an `auto` status stays after
+`repair_auto` is turned off; `--redo` doesn't move the repairs file;
+`data/repairs-failed-clip/` holds 2 stale files to delete.
+Not pushed: wt-search a4414d8..de7eca4 and this note; homelab-ci 2; homelab-docs ~30.
 
 **Old checkpoints, what is left (gathered 2026-10-25; the long notes further down are the
 history).** Checked by Claude on staging the same day, read-only: caching (a repeat answers

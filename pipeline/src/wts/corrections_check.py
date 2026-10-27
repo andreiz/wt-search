@@ -1,7 +1,7 @@
 """What a corrections change would alter, across every transcript (review tool, spec §3.3).
 
-Runs the clean-up `wts chunk` does (guards → corrections → join split words → sentences) with
-the old rules and the new ones, and returns the sentences that differ.
+Runs the clean-up `wts chunk` does (guards → applied repairs → corrections → join split words →
+sentences) with the old rules and the new ones, and returns the sentences that differ.
 """
 
 import hashlib
@@ -13,6 +13,7 @@ from pathlib import Path
 
 from wts.corrections import CorrectionRule, _key, apply_corrections
 from wts.guards import clean_transcript
+from wts.repairs import repairs_path, with_repairs
 from wts.words import Word, join_split_words, split_sentences
 
 
@@ -26,7 +27,19 @@ class Change:
 
 def _clean_words(path: Path) -> list[Word]:
     data = json.loads(path.read_text())
-    return clean_transcript(data, data["meta"].get("duration_s"))[0]
+    # With accepted repairs, like wts chunk (repairs.cleaned_words): a rule can fix their words.
+    return with_repairs(path, clean_transcript(data, data["meta"].get("duration_s"))[0])
+
+
+def _stamp(path: Path) -> tuple[int, ...]:
+    """When the transcript or its repairs file last changed (a repair accepted, undone)."""
+    stat = path.stat()
+    try:
+        rstat = repairs_path(path).stat()
+        repairs = (rstat.st_mtime_ns, rstat.st_size)
+    except FileNotFoundError:
+        repairs = (0, 0)
+    return (stat.st_mtime_ns, stat.st_size, *repairs)
 
 
 def _sentences(words: list[Word], rules: Sequence[CorrectionRule], stem: str) -> dict[int, str]:
@@ -70,16 +83,15 @@ class WordKeys:
     Reading and cleaning a transcript is most of a preview's time (about 35 ms each), and a new
     rule can only change a transcript its words occur in. So the review server keeps this, and a
     preview reads in full only the transcripts that can change. An entry is redone when the
-    file's time or size changes. Safe to use from several threads.
+    time or size of the transcript or its repairs file changes. Safe to use from several threads.
     """
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._entries: dict[Path, tuple[tuple[int, int], str]] = {}
+        self._entries: dict[Path, tuple[tuple[int, ...], str]] = {}
 
     def of(self, path: Path) -> str:
-        stat = path.stat()
-        stamp = (stat.st_mtime_ns, stat.st_size)
+        stamp = _stamp(path)
         with self._lock:
             entry = self._entries.get(path)
         if entry and entry[0] == stamp:

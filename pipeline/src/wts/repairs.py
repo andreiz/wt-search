@@ -153,7 +153,13 @@ def cleaned_words(row: sqlite3.Row) -> tuple[list[Word], list[str]]:
     words, flags = clean_transcript(
         json.loads(path.read_text()), row["audio_duration_s"] or row["duration_s"]
     )
-    rf = load_repairs(path)
-    if rf is not None and rf.transcript_sha == transcript_sha(path):
-        words = apply_repairs(words, rf.repairs)
-    return words, flags
+    return with_repairs(path, words), flags
+
+
+def with_repairs(transcript_path: Path, words: list[Word]) -> list[Word]:
+    """The transcript's cleaned words with its applied repairs spliced in; the same words when
+    it has no repairs file, or one made for an earlier version of the transcript."""
+    rf = load_repairs(transcript_path)
+    if rf is None or rf.transcript_sha != transcript_sha(transcript_path):
+        return words
+    return apply_repairs(words, rf.repairs)

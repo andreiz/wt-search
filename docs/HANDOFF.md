@@ -26,8 +26,23 @@ machine; leave it out of comparisons. The rollout, all the maintainer's, in a no
    walnut). Then decide the threshold and whether to turn `repair_auto` on.
 5. The search eval for a new baseline; then `uv run wts scope add spread:N` (N ≈ 121) and
    `uv run wts run --env staging` for the quarter.
-Also open from this work: Earlex / Lie-Nielsen corrections from the ep071/ep300 comparison;
-upgrading walnut to macOS 27.2 (before the backlog, so one setup makes it all).
+Where it stood on 2026-10-27 (end of session):
+- walnut was mid-upgrade to macOS 27.2 (the maintainer started it). Next: unlock FileVault over
+  SSH after the restart; re-test Ollama (now 0.40.11: tool calls, think-off, prompt cache);
+  Claude checks transcribe-web and an MLX smoke clip, and updates `hosts/walnut.md`.
+- `transcribe_url` not set yet; the rollout (steps 1–5 above) not started.
+- Tried on ep606 (wick's transcript): `wts repair` proposed 2 repairs (23:45 a listener's
+  letter, 28:19 a measuring passage), both real skips; the maintainer accepted both; the rule
+  had passed both (fails []). The review page got fixes from that first use (sticky panel,
+  time order, the player jumps to a repair, blue tint for repaired words).
+- Dry run of hole finding on all 38 in-scope transcripts (read-only): 204 flags, ~6/h, median
+  1.9 s; 11 flags of 25–38 s, the five read all whole skipped passages (ep606 23:45, ep336
+  3:08, ep171 13:01, ep601 2:39, ep614 40:40). So wick skips too, about one long skip per 3 h.
+- Corrections in: Lie-Nielsen (Lee/Leon Nielsen, ep071 "lineals and dovetails"), Earlex,
+  "throwing shade" (ep606). Not yet chunked/embedded on the Mac.
+- Claude's session now has read-only access to the app folder (state.db, transcripts, audio).
+- Nothing pushed: wt-search ~15 commits (39 earlier ones squashed to 7), media-tools 4,
+  homelab-ci 9, homelab-docs 25.
 
 **Old checkpoints, what is left (gathered 2026-10-25; the long notes further down are the
 history).** Checked by Claude on staging the same day, read-only: caching (a repeat answers

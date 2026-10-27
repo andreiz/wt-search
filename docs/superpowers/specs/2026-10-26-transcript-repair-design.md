@@ -116,7 +116,11 @@ For each flag:
 4. If the fresh pass has words where the transcript has none (or far fewer), that is a proposed
    repair: the transcript's words in the stretch are replaced by the fresh pass's, between the
    last matching word before and the first after. If it adds nothing, the flag is dropped
-   silently.
+   silently. A matching word right beside the stretch that the fresh pass writes differently
+   ("Also," for "also,", "grinder." for "grinder") is taken too, in the fresh pass's spelling:
+   the transcript's capital or full stop there came from the skip, which made a sentence start
+   or end where the speaker didn't (the rollout review, 2026-10-27: 13 edges in 9 episodes
+   needed episode rules).
 5. Second pass, for the automatic rule: transcribe the clip again on the same transcriber,
    starting 5 s earlier, so Whisper starts from a different context. (Not on wick's GPU: the
    non-GPU pipeline is meant to move to Linux later, §5.6.)

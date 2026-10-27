@@ -128,6 +128,15 @@ def propose(
     left = ops[k0 - 1][2] - ops[k0 - 1][1] if k0 > 0 and ops[k0 - 1][0] == "equal" else 0
     right = (ops[k1 + 1][2] - ops[k1 + 1][1]
              if k1 + 1 < len(ops) and ops[k1 + 1][0] == "equal" else 0)
+    # The matching word on each side, where the fresh pass writes it differently ("Also," for
+    # "also,", "grinder." for "grinder"): the transcript's capital or full stop came from the
+    # skip, which made a sentence start or end there. The fresh pass heard the whole sentence,
+    # so the repair takes that word in its spelling (spec §5.2).
+    if left and cur[i_from - 1].text != fresh[j_from - 1].text:
+        i_from, j_from = i_from - 1, j_from - 1
+    if right and cur[i_to].text != fresh[j_to].text:
+        i_to, j_to = i_to + 1, j_to + 1
+    before, after = tuple(cur[i_from:i_to]), tuple(fresh[j_from:j_to])
     index = first + i_from
     end = first + i_to
     # A safety net behind the time-gated matching: never splice words whose times go back.

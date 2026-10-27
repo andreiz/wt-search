@@ -81,6 +81,23 @@ def test_repeated_words_beside_a_hole_keep_times_in_order():
     assert "n0" in [w.text for w in p.after]
 
 
+def test_a_word_beside_the_stretch_takes_the_fresh_pass_capitals_and_stops():
+    # ep612 26:09: the transcript had "Also," start a sentence after the skip; the fresh pass
+    # heard "… and it's also, on this show". ep611 1:13:58: "my grinder." before the skip, where
+    # the fresh pass heard "my grinder or some of my drills". The repair takes those words too.
+    transcript = seq("one two three four grinder.", 0) + seq("Also, seven eight nine ten", 13)
+    fresh = (seq("one two three four grinder", 0) + seq(NEW, 5)
+             + seq("also, seven eight nine ten", 13))
+    p = propose(transcript, hole=(5000, 13000), clip=(0, 20000), fresh=fresh)
+    assert [x.text for x in p.before] == ["grinder.", "Also,"]
+    assert [x.text for x in p.after] == ["grinder", *NEW.split(), "also,"]
+    assert p.index == 4
+    assert (p.left_anchor, p.right_anchor) == (5, 5)  # still matching words, by text
+    assert p.from_ms == transcript[3].end_ms and p.to_ms == transcript[6].start_ms
+    starts = [w.start_ms for w in spliced(transcript, p)]
+    assert starts == sorted(starts)
+
+
 def test_hole_at_episode_start_has_no_left_anchor():
     transcript = seq(RIGHT, 9)
     fresh = seq(NEW, 1) + seq(RIGHT, 9)

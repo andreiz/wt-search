@@ -320,6 +320,7 @@ Copy (Claude's call for spec §5.4's wording):
 
 ### Task 6: Re-cut the corpus (stops for the maintainer)
 
+- [ ] **Step 0:** Ask the maintainer to run `uv run wts backup` (the NAS isn't reachable from Claude's sandbox) and wait for it. A safety net only: transcripts aren't touched, chunks rebuild from them, and the embedding cache is keyed by text and never pruned, so a rollback (revert, `wts chunk`, `wts embed`) reuses the old vectors.
 - [ ] **Step 1:** `cd pipeline && uv run wts chunk`. Expected: a refresh of every episode (CHUNKER_VERSION 3), `newly hidden:` lines that are all scripted material, most episodes back to `chunked`. Note the run time.
 - [ ] **Step 2:** Time a routine run: `uv run wts chunk` again. Expected: nothing to do, no refresh, well under a minute.
 - [ ] **Step 3:** Spot-check one episode per era on the review page's data (`uv run wts review <n>` or the chunks table): ep 1–100 (2007–10), 150–300, 400–500, 600+.

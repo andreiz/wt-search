@@ -616,7 +616,15 @@ Parser rules (`worker/src/query.ts`):
       Each result's `debug` gains `rerank_rank` and `rerank_score` (null
       when not reranked) beside `vector_rank` and `vector_score`.
       `wts eval run --param floor=0.66 --param rerank=1` sends them with
-      every Related request and records them in the report.
+      every Related request and records them in the report. `exact=1`
+      asks Vectorize for the values (`returnValues: true`, topK 50 is its
+      limit then), so it scores exactly instead of approximately, in smart
+      and related mode *(added 2026-10-27)*: at 159 episodes (17,405
+      vectors, the index fully processed) the approximate scores fell
+      (0.62–0.70 → 0.50–0.65), close matches went missing from the top 50
+      (ep071's Renaissance-fair chunk, 0.646 at 38 episodes) and Related
+      came back empty for many queries; paraphrase recall 0.876 → 0.580.
+      The floor was set on approximate scores at ~4,400 vectors.
     - **bge's query instruction, tried and not adopted** *(2026-10-25)*:
       a debug switch embedded a Related query as "Represent this sentence
       for searching relevant passages: " + the query (bge's prefix for

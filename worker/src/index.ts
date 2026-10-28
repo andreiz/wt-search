@@ -107,6 +107,8 @@ const search: Handler = async (request, env, info, ctx) => {
   const q = params.get("q") ?? "";
   const debug = meaning && params.get("debug") === "1";
   const floor = parseFloor(params.get("floor"));
+  // Vectorize's exact scores (it approximates by default): a debug-only knob, for now.
+  const exactScores = debug && params.get("exact") === "1";
   const rerank = mode === "related" && rerankFlag(env, params.get("rerank"), debug);
   Object.assign(info, {
     q: boundQuery(q),
@@ -173,6 +175,7 @@ const search: Handler = async (request, env, info, ctx) => {
             onDegraded: (stage, err) => logError(`${stage}_unavailable`, request, err),
             debug,
             ...(skipMeaning ? { skipMeaning } : {}),
+            ...(exactScores ? { exactScores } : {}),
             // A floor override is a debug-only knob of related mode (spec §4.4).
             ...(debug && mode === "related" && floor !== undefined ? { floor } : {}),
             // A reranker that fails keeps Vectorize's order; it is logged, not degraded.

@@ -311,3 +311,23 @@ describe("when meaning-based search can't answer", () => {
     expect(ai.run).not.toHaveBeenCalled();
   });
 });
+
+describe("exact scores from Vectorize (debug=1&exact=1)", () => {
+  // Vectorize scores approximately unless asked for the values; at 17k vectors its approximate
+  // scores fell under the floor and it missed close matches (2026-10-27).
+  const returnValues = (vec: ReturnType<typeof fakeVec>) =>
+    (vec.query.mock.calls[0]?.[1] as { returnValues?: boolean; topK?: number }) ?? {};
+
+  it.each([
+    ["related", { debug: "1", exact: "1" }, true],
+    ["related", { debug: "1" }, false],
+    ["related", { exact: "1" }, false],
+    ["smart", { debug: "1", exact: "1" }, true],
+    ["smart", { exact: "1" }, false],
+  ])("%s mode with %o asks for values: %s", async (mode, params, expected) => {
+    const vec = fakeVec([3102]);
+    await related({ q: "dovetail", mode, ...params }, [], { VEC: vec });
+    expect(returnValues(vec).returnValues).toBe(expected);
+    expect(returnValues(vec).topK).toBe(50); // within Vectorize's limit with values (50)
+  });
+});

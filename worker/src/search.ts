@@ -268,6 +268,8 @@ async function nearestChunks(
   env: Pick<Env, "AI" | "VEC">,
   parsed: ParsedQuery,
   onDegraded: (stage: SmartStage, err: unknown) => void,
+  /** Ask for the values: Vectorize then scores exactly (slower); else it approximates. */
+  exactScores = false,
 ): Promise<{ id: number; score: number }[] | null> {
   let vector: number[];
   try {
@@ -279,8 +281,8 @@ async function nearestChunks(
   try {
     const filter = vectorFilter(parsed.filters);
     const { matches } = await env.VEC.query(vector, {
-      topK: SMART_LIST_SIZE,
-      returnValues: false,
+      topK: SMART_LIST_SIZE, // 50: Vectorize's limit with values
+      returnValues: exactScores,
       returnMetadata: "none",
       ...(filter ? { filter } : {}),
     });
@@ -401,9 +403,11 @@ export async function smartSearch(
     debug?: boolean;
     /** Answer with the keyword hits only, for this reason, without asking AI or Vectorize. */
     skipMeaning?: Exclude<DegradedReason, "unavailable">;
+    /** Vectorize's exact scores instead of its approximate ones (a debug override for now). */
+    exactScores?: boolean;
   } = {},
 ): Promise<SmartAnswer> {
-  const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false, skipMeaning } = options;
+  const { limit = PAGE_SIZE, onDegraded = () => {}, debug = false, skipMeaning, exactScores } = options;
   // Nothing to match means nothing to embed either: `semantic` holds the same positive terms.
   if (parsed.fts === null) return { page, limit, has_more: false, results: [] };
 
@@ -413,7 +417,7 @@ export async function smartSearch(
       .bind(...params, SMART_LIST_SIZE)
       .all()
       .then((r) => r.results as unknown as Row[]),
-    skipMeaning ? Promise.resolve(null) : nearestChunks(env, parsed, onDegraded),
+    skipMeaning ? Promise.resolve(null) : nearestChunks(env, parsed, onDegraded, exactScores),
   ]);
   const vectorIds = nearest?.map((n) => n.id) ?? [];
 
@@ -491,6 +495,8 @@ export async function relatedSearch(
     rerank?: boolean;
     /** The reranker failed or answered nothing usable: Vectorize's order stands, not degraded. */
     onRerankFailed?: (err?: unknown) => void;
+    /** Vectorize's exact scores instead of its approximate ones (a debug override for now). */
+    exactScores?: boolean;
   } = {},
 ): Promise<SmartAnswer> {
   const {
@@ -501,10 +507,11 @@ export async function relatedSearch(
     floor = RELATED_FLOOR,
     rerank = false,
     onRerankFailed = () => {},
+    exactScores = false,
   } = options;
   const none: SmartAnswer = { page, limit, has_more: false, results: [] };
   if (parsed.fts === null) return none;
-  const nearest = skipMeaning ? null : await nearestChunks(env, parsed, onDegraded);
+  const nearest = skipMeaning ? null : await nearestChunks(env, parsed, onDegraded, exactScores);
   if (nearest === null) return { ...none, smart_degraded: skipMeaning ?? "unavailable" };
 
   // The floor: what Vectorize found that is not similar enough is not "related" (spec §4.4).

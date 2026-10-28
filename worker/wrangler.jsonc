@@ -78,7 +78,10 @@
 				// own: Vite's dev server. curl tests add -H 'origin: http://localhost:5173'.
 				"REPORT_ORIGINS": "http://localhost:5173",
 				// Reranks Related with bge-reranker-base (spec §4.4); on since the 2026-10-25 runs.
-				"RELATED_RERANK": "on"
+				"RELATED_RERANK": "on",
+				// Vectorize scores exactly (spec §4.4); its approximate scores lost close matches
+				// at 159 episodes (2026-10-27). About 0.27 s more per uncached meaning search.
+				"VECTORIZE_EXACT": "on"
 				// TURNSTILE_SECRET is a secret, never put it here:
 				//   wrangler secret put TURNSTILE_SECRET --env staging
 				// SEARCH_OVERRIDE is set in the dashboard only (see keep_vars above), and so is
@@ -113,7 +116,8 @@
 				"SEARCH_CACHE_TTL_S": "3600",
 				"TURNSTILE_SITE_KEY": "production-turnstile-site-key-placeholder",
 				// No REPORT_ORIGINS: only reports from the Worker's own origin are accepted.
-				"RELATED_RERANK": "on"
+				"RELATED_RERANK": "on",
+				"VECTORIZE_EXACT": "on"
 				// TURNSTILE_SECRET is a secret:
 				//   wrangler secret put TURNSTILE_SECRET --env production
 			}

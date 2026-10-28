@@ -624,7 +624,18 @@ Parser rules (`worker/src/query.ts`):
       (0.62–0.70 → 0.50–0.65), close matches went missing from the top 50
       (ep071's Renaissance-fair chunk, 0.646 at 38 episodes) and Related
       came back empty for many queries; paraphrase recall 0.876 → 0.580.
-      The floor was set on approximate scores at ~4,400 vectors.
+      The floor was set on approximate scores at ~4,400 vectors. With
+      exact scores (same deploy, 159 episodes): paraphrase recall 0.704,
+      overall 0.791, Related empty for 1 case instead of 10; uncached
+      Related median 0.53 → 0.80 s. Floors 0.58 / 0.62 / 0.66 on exact
+      scores gave overall 0.791 / 0.791 / 0.774 and negatives 5/8 / 6/8 /
+      6/8, so the floor stays 0.62. **`VECTORIZE_EXACT=on`** (a var, both
+      environments; `exact=0|1` overrides it on debug requests, and it is
+      part of the cache key) makes exact scoring the default. Most of
+      what is still lost against the 38-episode baseline is the corpus:
+      generated queries saying "Wood Talk podcast" now meet 159 episode
+      intros (boilerplate detection, shelved until the full corpus, is
+      due), and other episodes on the same topic.
     - **bge's query instruction, tried and not adopted** *(2026-10-25)*:
       a debug switch embedded a Related query as "Represent this sentence
       for searching relevant passages: " + the query (bge's prefix for

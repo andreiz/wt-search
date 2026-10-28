@@ -61,6 +61,12 @@ export function rerankFlag(env: Pick<Env, "RELATED_RERANK">, override: string | 
   return env.RELATED_RERANK === "on";
 }
 
+/** VECTORIZE_EXACT=on, unless a debug request says exact=0|1 (spec §4.4). */
+export function exactFlag(env: Pick<Env, "VECTORIZE_EXACT">, override: string | null, debug: boolean): boolean {
+  if (debug && (override === "0" || override === "1")) return override === "1";
+  return env.VECTORIZE_EXACT === "on";
+}
+
 /** Smart search shows at most this many hits (before collapsing); deeper pages are clamped. */
 export const MAX_SMART_RESULTS = 100;
 

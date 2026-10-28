@@ -67,6 +67,11 @@ export interface Env {
    * A var in wrangler.jsonc, off until measured.
    */
   RELATED_RERANK?: string;
+  /**
+   * "on" has Vectorize score exactly (`returnValues: true`) in smart and related mode; else it
+   * approximates, which at 159 episodes lost close matches (spec §4.4). A var in wrangler.jsonc.
+   */
+  VECTORIZE_EXACT?: string;
   /** ntfy topic and optional access token: `wrangler secret put NTFY_TOPIC --env <env>`. */
   NTFY_TOPIC?: string;
   NTFY_TOKEN?: string;

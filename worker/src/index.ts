@@ -17,6 +17,7 @@ import {
   parseFloor,
   relatedSearch,
   rerankFlag,
+  exactFlag,
   smartSearch,
   type ExactResponse,
   type SmartResponse,
@@ -107,8 +108,8 @@ const search: Handler = async (request, env, info, ctx) => {
   const q = params.get("q") ?? "";
   const debug = meaning && params.get("debug") === "1";
   const floor = parseFloor(params.get("floor"));
-  // Vectorize's exact scores (it approximates by default): a debug-only knob, for now.
-  const exactScores = debug && params.get("exact") === "1";
+  // Vectorize's exact scores (it approximates unless asked): VECTORIZE_EXACT, or exact=0|1.
+  const exactScores = meaning && exactFlag(env, params.get("exact"), debug);
   const rerank = mode === "related" && rerankFlag(env, params.get("rerank"), debug);
   Object.assign(info, {
     q: boundQuery(q),
@@ -131,7 +132,8 @@ const search: Handler = async (request, env, info, ctx) => {
       const searchKey = { q, mode, sort, page, limit };
       key = cacheKey(
         request.url,
-        mode === "related" ? { ...searchKey, rerank } : searchKey,
+        mode === "related" ? { ...searchKey, rerank, exact: exactScores }
+          : meaning ? { ...searchKey, exact: exactScores } : searchKey,
         await corpusVersion(env.DB),
       );
       const hit = await cached(key);

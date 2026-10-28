@@ -312,21 +312,25 @@ describe("when meaning-based search can't answer", () => {
   });
 });
 
-describe("exact scores from Vectorize (debug=1&exact=1)", () => {
+describe("exact scores from Vectorize (VECTORIZE_EXACT, debug=1&exact=0|1)", () => {
   // Vectorize scores approximately unless asked for the values; at 17k vectors its approximate
   // scores fell under the floor and it missed close matches (2026-10-27).
   const returnValues = (vec: ReturnType<typeof fakeVec>) =>
     (vec.query.mock.calls[0]?.[1] as { returnValues?: boolean; topK?: number }) ?? {};
 
   it.each([
-    ["related", { debug: "1", exact: "1" }, true],
-    ["related", { debug: "1" }, false],
-    ["related", { exact: "1" }, false],
-    ["smart", { debug: "1", exact: "1" }, true],
-    ["smart", { exact: "1" }, false],
-  ])("%s mode with %o asks for values: %s", async (mode, params, expected) => {
+    ["related", {}, {}, false],
+    ["related", {}, { VECTORIZE_EXACT: "on" }, true],
+    ["related", { debug: "1", exact: "1" }, {}, true],
+    ["related", { debug: "1", exact: "0" }, { VECTORIZE_EXACT: "on" }, false],
+    ["related", { exact: "1" }, {}, false],
+    ["related", { exact: "0" }, { VECTORIZE_EXACT: "on" }, true],
+    ["smart", {}, { VECTORIZE_EXACT: "on" }, true],
+    ["smart", { debug: "1", exact: "1" }, {}, true],
+    ["smart", { exact: "1" }, {}, false],
+  ])("%s mode with %o and %o asks for values: %s", async (mode, params, vars, expected) => {
     const vec = fakeVec([3102]);
-    await related({ q: "dovetail", mode, ...params }, [], { VEC: vec });
+    await related({ q: "dovetail", mode, ...params }, [], { VEC: vec, ...vars });
     expect(returnValues(vec).returnValues).toBe(expected);
     expect(returnValues(vec).topK).toBe(50); // within Vectorize's limit with values (50)
   });

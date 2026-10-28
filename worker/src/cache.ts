@@ -44,6 +44,8 @@ export interface SearchKey {
   limit: number;
   /** Related mode only: whether the answer was reranked (RELATED_RERANK, spec §4.4). */
   rerank?: boolean;
+  /** Smart and related: whether Vectorize scored exactly (VECTORIZE_EXACT, spec §4.4). */
+  exact?: boolean;
 }
 
 /**

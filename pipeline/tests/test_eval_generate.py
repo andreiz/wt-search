@@ -12,6 +12,7 @@ from wts.cli import main
 from wts.evalset.cases import load_cases
 from wts.evalset.generate import (
     OLLAMA_URL,
+    PROMPT,
     GenerateError,
     ask_model,
     clean_query,
@@ -65,9 +66,21 @@ def test_the_same_seed_gives_the_same_sample(corpus):
     ("-glue clamps", None),
     # A thinking model that ignores `think: false` puts its reasoning first, in tags.
     ("<think>\nThe passage is about cauls.\n</think>\n\nkeeping a glue-up flat", "keeping a glue-up flat"),
+    # The show's name or "podcast"/"episode" matches every episode's intro, not the passage
+    # (2026-10-27: a fifth of the generated queries had them).
+    ("Wood Talk podcast sharpening discussion", None),
+    ("woodtalk Halloween candy tradition", None),
+    ("Renaissance festival medieval fair podcast episode", None),
+    ("which episode covered milk paint", None),
+    ("podcasting setup for a shop", "podcasting setup for a shop"),
 ])
 def test_clean_query(raw, clean):
     assert clean_query(raw) == clean
+
+
+def test_the_prompt_keeps_the_show_out_of_the_query():
+    instruction = PROMPT.split("\n\n")[-1]
+    assert "Don't name the show or use the words podcast or episode" in instruction
 
 
 def test_ask_model_posts_to_ollama(respx_mock):

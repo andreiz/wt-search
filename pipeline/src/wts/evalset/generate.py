@@ -23,8 +23,12 @@ PROMPT = """Here is a passage from Wood Talk, a woodworking podcast:
 
 A listener remembers this part of the show and wants to find it again. Write the search \
 query they would type, 3 to 10 words. Describe what was discussed in your own words; don't \
-copy distinctive phrases from the passage. Reply with the query only."""
+copy distinctive phrases from the passage. Don't name the show or use the words podcast or \
+episode: the search only covers this show. Reply with the query only."""
 _SYNTAX = re.compile(r"(^|\s)-|\w:\S")  # an exclusion or a filter like year:2020
+# The show's name, "podcast" or "episode" matches every episode's intro rather than the passage
+# (2026-10-27: a fifth of the generated queries had them, against 159 intros).
+_SHOW = re.compile(r"\bwood\s*talk|\bpodcasts?\b|\bepisodes?\b", re.IGNORECASE)
 _THINK = re.compile(r"<think>.*?</think>", re.DOTALL)  # a thinking model's reasoning
 
 
@@ -48,7 +52,8 @@ def clean_query(text: str) -> str | None:
     line = re.sub(r"^(search )?query:\s*", "", line.strip(), flags=re.IGNORECASE)
     line = line.strip().strip("\"'“”").rstrip(".").strip()
     words = line.split()
-    if not 2 <= len(words) <= MAX_WORDS or _SYNTAX.search(line) or '"' in line:
+    if (not 2 <= len(words) <= MAX_WORDS or _SYNTAX.search(line) or '"' in line
+            or _SHOW.search(line)):
         return None
     return line
 

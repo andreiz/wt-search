@@ -186,6 +186,7 @@ global:
   # ep602 10:20–12:49, walnut's transcript (wick wrote it both ways); the eval's "underbevel"
   # case (2026-10-27). Checked on the 38 transcripts: ep602 only, 10 sentences.
   under bevel: underbevel
+  widocor: woodworker
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:
@@ -256,3 +257,11 @@ episodes:
     you're probably not: you're probably not      # 24:00
   2026-07-15_ep610_jazz-hands-joinery:
     towards the dam: worth a damn
+  # The accepted repair at 3:40 heard "a well" and stopped; the transcript's "Dovetails. Well,"
+  # that it replaced was "well-executed dovetail" (maintainer, 2026-10-27).
+  2024-09-24_ep573_tinking-about-matt-wearing-lycra:
+    appreciate a well and my wife: appreciate a well-executed dovetail, and my wife   # 4:07
+  # The repair proposed at 8:18 heard "want to call it?" (maintainer, 2026-10-27): rejected,
+  # and the transcript's "know?" fixed instead.
+  2021-05-26_ep503_shannon-hates-nurses:
+    shannon what do you know: Shannon, what do you got going on   # 8:17

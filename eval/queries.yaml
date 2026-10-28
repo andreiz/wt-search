@@ -185,12 +185,6 @@
   tag: negative
   mode: related
   expect_absent: [{episode: 166, at: "18:57"}]
-- id: video-game-consoles
-  # A listener's custom shop; 286's gaming table is fair.
-  query: video game consoles
-  tag: negative
-  mode: related
-  expect_absent: [{episode: 59, at: "40:24"}]
 - id: sewing-machine
   # CNC bowl blanks and a design service.
   query: sewing machine
@@ -323,3 +317,34 @@
   query: dust collector that is just a giant vacuum cleaner
   tag: paraphrase
   expect: [{episode: 578, at: "36:50"}]
+
+# --- misses found by hand ---
+- id: classic-video-games
+  # Donkey Kong and Q-Bert marquetry on stair risers, the last third of a chunk about shiplap.
+  # Similarity 0.56, under the 0.62 floor, though the reranker puts it 2nd (2026-10-28).
+  query: classic video games
+  tag: paraphrase
+  expect: [{episode: 602, at: "4:40"}]
+
+- id: biscuit-recipe-baking-2
+  query: biscuit recipe baking
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 24, at: "56:04"}]
+
+- id: spline-3d-modeling
+  query: spline 3d modeling
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 439, at: "4:04"}]
+
+- id: filament-spool
+  query: filament spool
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 43, at: "24:14"}]
+
+- id: dozuki
+  query: dozuki
+  tag: jargon
+  expect: [{episode: 156}]

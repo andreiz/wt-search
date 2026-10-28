@@ -1,9 +1,53 @@
-# Handoff — 2026-10-27 (walnut transcripts and repairs rolled out; publishing left)
+# Handoff — 2026-10-28 (159 episodes published; exact scores; eval at 250+ cases)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
+
+**Session of 2026-10-27/28: 159 episodes on staging, all published, all repairs decided.**
+- **The batch.** `wts scope add spread:121` + `wts run`: 121 transcribed on walnut, 85
+  repairs (55 auto), 12,978 chunks. A wick check of 20 auto repairs (scratchpad
+  `autocheck.py`): median word agreement 0.99, differences only at the edges. The
+  maintainer then reviewed every proposed repair (now 63 accepted, 54 auto, 14 rejected) and
+  republished. `eval/scope-38.txt` holds the first 38 (`wts scope save/restore`, 3b79a2e).
+- **Vectorize scores exactly** (53ce4e3, 35b2dab; spec §4.4). At 159 episodes the default
+  approximate scores dropped paraphrase recall 0.876 → 0.580 (Related often empty under the
+  0.62 floor). `VECTORIZE_EXACT=on` in `wrangler.jsonc` (`returnValues: true`, topK 50; debug
+  override `exact=0|1`). No billing change; uncached Related median 0.53 → 0.80 s. Floors 0.58
+  and 0.66 measured no better than 0.62.
+- **Repairs: overlapping holes are joined** (2bd71c4, repair spec §5.2). ep578 lost 26 s at
+  36:30 because a first repair's stretch ran past its clip and the next hole's repair was
+  dropped; now one pass over both clips replaces the earlier repair when it hears more.
+- **Eval.** `wts eval generate` no longer names the show (9556c5f); regenerated with
+  qwen3.6:35b on walnut: 192 cases over 103 episodes. Hand-written cases added 2026-10-28:
+  19 off-topic negatives (most name a wrong hit Related returns now, two of them sponsor
+  reads), 11 jargon (incl. corrected Earlex, Systainers, Lie-Nielsen), 4 on fixed passages
+  (ep474, ep573, ep578 ×2), `classic-video-games` (ep602 Donkey Kong: similarity 0.56, under
+  the floor, though the reranker puts it 2nd), and the maintainer's own from the review page.
+  The baseline is in `eval/baseline.json`; negatives mostly fail by design.
+- **Corrections** (f0617ee, 8b6a049, 33865df): underbevel; ep573 "well-executed dovetail";
+  ep503 "what do you got going on" (its repair rejected); widocor → woodworker; ep474 cross
+  cut sled; ep373 Shannon's Lumber industry update.
+- **`wts run` logs each step's start** (1d0a9fd).
+
+What the new cases show, for the next design pass (each needs brainstorm → spec → plan):
+- **Boilerplate detection.** Sponsor reads come back in Related (a Rockler read is #1 for
+  "dog training tips"), against spec §7.2's "without `include:ads`".
+- **Short queries vs. mixed chunks.** A topic mentioned in passing (ep602's Donkey Kong) sits
+  under the floor; options: let the reranker gate instead of the floor (it also ranks junk
+  first, so it needs its own threshold), smaller or topic-aware chunks, a lower floor for
+  short queries.
+- A script measuring Vectorize's first-stage misses against exact local top-50 (GPU: the
+  maintainer runs it).
+- Taking fresh-pass words just past a hole whose right edge a stretched first word hid
+  (ep611 1:14:01).
+
+Not pushed: wt-search 1d0a9fd onward (ask first); homelab-ci 2; homelab-docs ~30. Open: the
+maintainer runs a Forgejo; nothing records why GitHub was chosen (User-Agent in `wts/net.py`,
+spec §3, the a44eec9 purge note).
+
+**Earlier (2026-10-26/27), kept for reference:**
 
 **walnut transcription and transcript repair (2026-10-26).** Transcription moved to walnut
 (spec `2026-10-26-remote-transcription-design.md`; transcribe-web's `mlx` engine is deployed,
@@ -44,21 +88,14 @@ What came of it:
 - **Corrections** (ff4a003): where accepted repairs meet the transcript (ep422, 466, 552, 603,
   610–615); 53 sentences change.
 
-Left, the maintainer's, in a normal terminal:
-1. `uv run wts chunk` and `uv run wts embed` (ff4a003 changed text in 10 episodes after the
-   last chunk), then `uv run wts run --env staging`.
-2. `uv run wts eval run --update` for a new baseline; commit `eval/`.
-3. `uv run wts scope add spread:121` and `uv run wts run --env staging` for the quarter.
-4. Optional listening, where walnut and wick still differ: ep603 8:31, ep604 41:19, ep466
-   18:47.
-Later work: take fresh-pass words just past a hole whose right edge a stretched first word hid
-(ep611 1:14:01). Deferred minors: VAD/ffmpeg failures aren't `ToolMissing`; adjacent repairs
-count as overlapping; holes < ~15 s from the start get the same clip for the second pass; the
-audit counts statuses from stale repairs files; the review endpoint 500s for an episode
-mid-redo; standalone `wts repair` doesn't check the audio mount; an `auto` status stays after
-`repair_auto` is turned off; `--redo` doesn't move the repairs file;
-`data/repairs-failed-clip/` holds 2 stale files to delete.
-Not pushed: wt-search a4414d8..de7eca4 and this note; homelab-ci 2; homelab-docs ~30.
+Those steps (chunk, embed, publish, baseline, `spread:121`) are done (2026-10-27/28, above).
+Optional listening, where walnut and wick still differ: ep603 8:31, ep604 41:19, ep466 18:47.
+Deferred minors: VAD/ffmpeg failures aren't `ToolMissing`; holes < ~15 s from the start get
+the same clip for the second pass; the audit counts statuses from stale repairs files; the
+review endpoint 500s for an episode mid-redo; standalone `wts repair` doesn't check the audio
+mount; an `auto` status stays after `repair_auto` is turned off; `--redo` doesn't move the
+repairs file, and `wts repair` has no redo (set `complete: false` in the repairs file);
+`data/repairs-failed-clip/` holds 2 stale files to delete; `npm run e2e:review` not yet run.
 
 **Old checkpoints, what is left (gathered 2026-10-25; the long notes further down are the
 history).** Checked by Claude on staging the same day, read-only: caching (a repeat answers

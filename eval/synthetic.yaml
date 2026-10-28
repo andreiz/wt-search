@@ -1,602 +1,1154 @@
-# Written by `wts eval generate --model qwen3.6:35b --count 100 --seed 1` on 2026-10-25.
+# Written by `wts eval generate --model qwen3.6:35b --count 200 --seed 2` on 2026-10-28.
 # Don't edit by hand: regenerate and review the diff.
-- id: syn-001-0814
-  query: How to remove glue squeeze out
-  tag: paraphrase
+- id: syn-001-2915
+  query: how to set shop rates and pricing
+  tag: exact
   expect:
   - episode: 1
-    at: '8:14'
-- id: syn-001-2115
-  query: woodworking shop rate calculation formula
+    at: '29:15'
+- id: syn-004-2919
+  query: rough cut boards before planing
   tag: paraphrase
   expect:
-  - episode: 1
-    at: '21:15'
-- id: syn-044-0133
-  query: Wood Talk podcast Halloween candy tradition
+  - episode: 4
+    at: '29:19'
+- id: syn-004-3850
+  query: cheap sturdy workbench using old door
+  tag: paraphrase
+  expect:
+  - episode: 4
+    at: '38:50'
+- id: syn-009-2653
+  query: router vs hand cut dovetails reproducibility
+  tag: paraphrase
+  expect:
+  - episode: 9
+    at: '26:53'
+- id: syn-019-5046
+  query: woodworking fractions calculator tape measure
+  tag: exact
+  expect:
+  - episode: 19
+    at: '50:46'
+- id: syn-024-2252
+  query: shop ventilation for noxious chemical smells
+  tag: paraphrase
+  expect:
+  - episode: 24
+    at: '22:52'
+- id: syn-024-4304
+  query: PVA glue versus urea resin woodworking adhesive comparison
+  tag: paraphrase
+  expect:
+  - episode: 24
+    at: '43:04'
+- id: syn-024-4549
+  query: ironing veneer with pva glue technique
+  tag: paraphrase
+  expect:
+  - episode: 24
+    at: '45:49'
+- id: syn-029-1752
+  query: brushing lacquer Sherwin Williams Frazee
+  tag: exact
+  expect:
+  - episode: 29
+    at: '17:52'
+- id: syn-029-2326
+  query: affordable turbine sprayer alternative to expensive models
+  tag: paraphrase
+  expect:
+  - episode: 29
+    at: '23:26'
+- id: syn-029-3005
+  query: best material for long bar clamps PVC vs steel pipe
+  tag: paraphrase
+  expect:
+  - episode: 29
+    at: '30:05'
+- id: syn-029-3343
+  query: Heinrich called a guest a stud
+  tag: paraphrase
+  expect:
+  - episode: 29
+    at: '33:43'
+- id: syn-029-4705
+  query: parallelogram joiner table co-planarity adjustment
+  tag: exact
+  expect:
+  - episode: 29
+    at: '47:05'
+- id: syn-034-2940
+  query: Woodcraft donation safety week giveaways
+  tag: exact
+  expect:
+  - episode: 34
+    at: '29:40'
+- id: syn-039-3958
+  query: Penetrol polyurethane brush marks dust problems
+  tag: exact
+  expect:
+  - episode: 39
+    at: '39:58'
+- id: syn-043-0225
+  query: missing friend after woodworking trade show
+  tag: paraphrase
+  expect:
+  - episode: 43
+    at: '2:25'
+- id: syn-043-0947
+  query: woodworking host video quality photography lighting advice
+  tag: paraphrase
+  expect:
+  - episode: 43
+    at: '9:47'
+- id: syn-043-3501
+  query: woodworker taking photos of furniture for inspiration
+  tag: paraphrase
+  expect:
+  - episode: 43
+    at: '35:01'
+- id: syn-044-1444
+  query: fixing warped sharpening stone for better tool edge
   tag: paraphrase
   expect:
   - episode: 44
-    at: '1:33'
-- id: syn-044-1304
-  query: dedicated sharpening center chisels
-  tag: exact
-  expect:
-  - episode: 44
-    at: '13:04'
-- id: syn-044-4727
-  query: alder wood hand tool cutting experience
+    at: '14:44'
+- id: syn-044-1757
+  query: Western Pa table project disaster relief donations
   tag: paraphrase
   expect:
   - episode: 44
-    at: '47:27'
-- id: syn-044-5016
-  query: Tom's Workbench blog network tips
+    at: '17:57'
+- id: syn-044-2057
+  query: NASA RotoZip cutter Mars permafrost samples
+  tag: exact
+  expect:
+  - episode: 44
+    at: '20:57'
+- id: syn-044-2558
+  query: Freud dial a width dado discount code
   tag: paraphrase
   expect:
   - episode: 44
-    at: '50:16'
-- id: syn-071-1000
-  query: Renaissance festival medieval fair podcast episode
+    at: '25:58'
+- id: syn-049-4252
+  query: Sharpie black paint wood grain dye tip
+  tag: exact
+  expect:
+  - episode: 49
+    at: '42:52'
+- id: syn-054-2324
+  query: Eagle America Safety Week giveaway Wood Whisperer
+  tag: exact
+  expect:
+  - episode: 54
+    at: '23:24'
+- id: syn-059-0441
+  query: Nicole toilet backup Temecula cream cheese disposal
   tag: paraphrase
   expect:
-  - episode: 71
-    at: '10:00'
-- id: syn-071-2106
-  query: woodworker furnished stalker friend's house
+  - episode: 59
+    at: '4:41'
+- id: syn-059-5137
+  query: polyurethane glue requires moisture to cure properly
+  tag: exact
+  expect:
+  - episode: 59
+    at: '51:37'
+- id: syn-064-2541
+  query: legal requirements donating wooden baby crib
   tag: paraphrase
   expect:
-  - episode: 71
-    at: '21:06'
-- id: syn-071-2329
-  query: Wenge wood cheap in Africa podcast
+  - episode: 64
+    at: '25:41'
+- id: syn-069-4021
+  query: dust collector suction loss when reducing hose size
   tag: paraphrase
   expect:
-  - episode: 71
-    at: '23:29'
-- id: syn-071-2544
-  query: Wood Whisperer podcast poor filling voicemail Jim Woodward
+  - episode: 69
+    at: '40:21'
+- id: syn-069-4319
+  query: dust collector airflow reduction hose diameter
+  tag: paraphrase
+  expect:
+  - episode: 69
+    at: '43:19'
+- id: syn-069-4341
+  query: Bill Pence shop vac vs dust collector for small tools
+  tag: paraphrase
+  expect:
+  - episode: 69
+    at: '43:41'
+- id: syn-071-1405
+  query: DVD enhanced PDF book click and play videos
   tag: exact
   expect:
   - episode: 71
-    at: '25:44'
-- id: syn-071-2922
-  query: refinishing blanket chest oil varnish blend hand sanding
-  tag: exact
-  expect:
-  - episode: 71
-    at: '29:22'
-- id: syn-071-4347
-  query: Blacker House chair build Wood Talk podcast
+    at: '14:05'
+- id: syn-071-3814
+  query: Glenn Drake John Okonimaki unique saws
   tag: paraphrase
   expect:
   - episode: 71
-    at: '43:47'
-- id: syn-071-11805
-  query: Guild DVD liner notes quick reference guide
+    at: '38:14'
+- id: syn-079-0707
+  query: Why do you avoid using dovetail joints?
   tag: paraphrase
   expect:
-  - episode: 71
-    at: '1:18:05'
-- id: syn-085-4945
-  query: Jim Tulpan woodworking wit and wisdom book
-  tag: exact
+  - episode: 79
+    at: '7:07'
+- id: syn-085-1254
+  query: cheap plywood quality issues
+  tag: paraphrase
   expect:
   - episode: 85
-    at: '49:45'
-- id: syn-085-12714
-  query: hand tools vs power tools efficiency results
+    at: '12:54'
+- id: syn-085-4012
+  query: hand tool vs power tool debate
   tag: paraphrase
   expect:
   - episode: 85
-    at: '1:27:14'
-- id: syn-171-2351
-  query: modular power tool workbench design
+    at: '40:12'
+- id: syn-092-0536
+  query: mirror frame built wife cherry wood
   tag: exact
   expect:
-  - episode: 171
-    at: '23:51'
-- id: syn-171-5138
-  query: woodworking injury strong hand safety
-  tag: exact
-  expect:
-  - episode: 171
-    at: '51:38'
-- id: syn-214-0842
-  query: Bubinga dresser nightstand military frustration
-  tag: exact
-  expect:
-  - episode: 214
-    at: '8:42'
-- id: syn-214-1656
-  query: Wood Talk podcast lumber procrastination burnout
+  - episode: 92
+    at: '5:36'
+- id: syn-092-4213
+  query: woodworking event pricing and game night
   tag: paraphrase
   expect:
-  - episode: 214
-    at: '16:56'
-- id: syn-214-3833
-  query: SketchUp necessity without external communication
+  - episode: 92
+    at: '42:13'
+- id: syn-097-0452
+  query: tenon sawing jig versus freehand technique
   tag: paraphrase
   expect:
-  - episode: 214
-    at: '38:33'
-- id: syn-300-0104
-  query: Exhaust fan installation dust collection venting
+  - episode: 97
+    at: '4:52'
+- id: syn-102-0539
+  query: Moxon compound joint instructions vs modern settings
+  tag: paraphrase
+  expect:
+  - episode: 102
+    at: '5:39'
+- id: syn-102-10209
+  query: Fine woodworking live event discussion
+  tag: paraphrase
+  expect:
+  - episode: 102
+    at: '1:02:09'
+- id: syn-107-2738
+  query: why build a portable tool chest
+  tag: paraphrase
+  expect:
+  - episode: 107
+    at: '27:38'
+- id: syn-107-3242
+  query: Schwarz anarchist chest class woodworking america
   tag: exact
+  expect:
+  - episode: 107
+    at: '32:42'
+- id: syn-112-0032
+  query: trouble buying tools scraper planes laminating solid wood stability
+  tag: exact
+  expect:
+  - episode: 112
+    at: 0:32
+- id: syn-112-5938
+  query: sleeping like a baby meaning debate
+  tag: paraphrase
+  expect:
+  - episode: 112
+    at: '59:38'
+- id: syn-116-3040
+  query: process for milling lumber after bringing it home
+  tag: paraphrase
+  expect:
+  - episode: 116
+    at: '30:40'
+- id: syn-116-3228
+  query: buying lumber from reliable suppliers
+  tag: paraphrase
+  expect:
+  - episode: 116
+    at: '32:28'
+- id: syn-121-2904
+  query: why plane names limit usage
+  tag: paraphrase
+  expect:
+  - episode: 121
+    at: '29:04'
+- id: syn-121-4336
+  query: Festool Microjig recurring donors Steven Brassard John Balance Henrik Nilsen Lori McClory
+  tag: exact
+  expect:
+  - episode: 121
+    at: '43:36'
+- id: syn-126-0004
+  query: 20 question quick fire challenge email segment
+  tag: paraphrase
+  expect:
+  - episode: 126
+    at: 0:04
+- id: syn-127-0753
+  query: Incra iBox jig box joint precision cost
+  tag: paraphrase
+  expect:
+  - episode: 127
+    at: '7:53'
+- id: syn-127-3739
+  query: cutting straight lines without a fence
+  tag: paraphrase
+  expect:
+  - episode: 127
+    at: '37:39'
+- id: syn-132-0657
+  query: Q&A session with editors
+  tag: paraphrase
+  expect:
+  - episode: 132
+    at: '6:57'
+- id: syn-147-1406
+  query: tenon cut wrong due to bad lighting
+  tag: paraphrase
+  expect:
+  - episode: 147
+    at: '14:06'
+- id: syn-147-1748
+  query: rust removal phosphoric acid black ferric phosphate
+  tag: exact
+  expect:
+  - episode: 147
+    at: '17:48'
+- id: syn-151-2532
+  query: biscuit joinery poll results opinions
+  tag: paraphrase
+  expect:
+  - episode: 151
+    at: '25:32'
+- id: syn-156-4007
+  query: drilling out small twin mortise tenon joints
+  tag: paraphrase
+  expect:
+  - episode: 156
+    at: '40:07'
+- id: syn-156-4321
+  query: half horsepower router blade selection feed rate
+  tag: paraphrase
+  expect:
+  - episode: 156
+    at: '43:21'
+- id: syn-166-0130
+  query: power sculpting tool fear of mistakes
+  tag: paraphrase
+  expect:
+  - episode: 166
+    at: '1:30'
+- id: syn-166-5036
+  query: hardwood buyer domestic lumber market prices
+  tag: exact
+  expect:
+  - episode: 166
+    at: '50:36'
+- id: syn-172-3721
+  query: Japanese woodworker router table small parts technique
+  tag: paraphrase
+  expect:
+  - episode: 172
+    at: '37:21'
+- id: syn-172-4142
+  query: router on side versus upright jig adaptation
+  tag: paraphrase
+  expect:
+  - episode: 172
+    at: '41:42'
+- id: syn-177-1002
+  query: car trunk crosscut saw emergency lumber cuts
+  tag: paraphrase
+  expect:
+  - episode: 177
+    at: '10:02'
+- id: syn-182-1811
+  query: Wood Magazine rocking horse project
+  tag: exact
+  expect:
+  - episode: 182
+    at: '18:11'
+- id: syn-182-4612
+  query: simple woodworking tips from magazines videos
+  tag: paraphrase
+  expect:
+  - episode: 182
+    at: '46:12'
+- id: syn-187-0531
+  query: worst dad shop dust allergies health
+  tag: exact
+  expect:
+  - episode: 187
+    at: '5:31'
+- id: syn-191-1127
+  query: finding design tweaks for unappealing projects
+  tag: paraphrase
+  expect:
+  - episode: 191
+    at: '11:27'
+- id: syn-191-3458
+  query: woodworking health risks side effects breathing
+  tag: paraphrase
+  expect:
+  - episode: 191
+    at: '34:58'
+- id: syn-196-0823
+  query: Michael Bay filming action sequences behind the scenes
+  tag: paraphrase
+  expect:
+  - episode: 196
+    at: '8:23'
+- id: syn-196-3228
+  query: handworks event scheduling conflict next year
+  tag: paraphrase
+  expect:
+  - episode: 196
+    at: '32:28'
+- id: syn-196-4952
+  query: woodworking hobby value expensive car leather seats
+  tag: paraphrase
+  expect:
+  - episode: 196
+    at: '49:52'
+- id: syn-201-0004
+  query: safe finishes for comic book storage
+  tag: exact
+  expect:
+  - episode: 201
+    at: 0:04
+- id: syn-206-0831
+  query: Mark Spagnuolo TV show friendship joke
+  tag: paraphrase
+  expect:
+  - episode: 206
+    at: '8:31'
+- id: syn-206-1942
+  query: Sean Graham Worthy Effort turning techniques Vimeo
+  tag: exact
+  expect:
+  - episode: 206
+    at: '19:42'
+- id: syn-211-0300
+  query: pairing accident late 2013 snowbound driving
+  tag: exact
+  expect:
+  - episode: 211
+    at: '3:00'
+- id: syn-211-1028
+  query: Giant Hairy Toddler furniture discussion
+  tag: exact
+  expect:
+  - episode: 211
+    at: '10:28'
+- id: syn-211-1143
+  query: define fine furniture I know it when I see it
+  tag: exact
+  expect:
+  - episode: 211
+    at: '11:43'
+- id: syn-211-3855
+  query: mahogany moisture content stability air kiln dried
+  tag: paraphrase
+  expect:
+  - episode: 211
+    at: '38:55'
+- id: syn-222-2223
+  query: Pretentious Matt's Uncle Mortimer monocle investor
+  tag: exact
+  expect:
+  - episode: 222
+    at: '22:23'
+- id: syn-251-2246
+  query: feeling overwhelmed by too much content
+  tag: paraphrase
+  expect:
+  - episode: 251
+    at: '22:46'
+- id: syn-256-3020
+  query: stop apologizing for woodworking mistakes
+  tag: paraphrase
+  expect:
+  - episode: 256
+    at: '30:20'
+- id: syn-256-3522
+  query: danger of sharp tools hidden in wood chips
+  tag: paraphrase
+  expect:
+  - episode: 256
+    at: '35:22'
+- id: syn-257-1135
+  query: woodworking business tax advice government compliance
+  tag: paraphrase
+  expect:
+  - episode: 257
+    at: '11:35'
+- id: syn-266-2952
+  query: large capacity crosscut sled plywood support
+  tag: paraphrase
+  expect:
+  - episode: 266
+    at: '29:52'
+- id: syn-281-0817
+  query: fitting table parts onto one plywood sheet
+  tag: paraphrase
+  expect:
+  - episode: 281
+    at: '8:17'
+- id: syn-286-0508
+  query: adult coloring books business opportunity
+  tag: paraphrase
+  expect:
+  - episode: 286
+    at: '5:08'
+- id: syn-286-4518
+  query: Matt complimenting someone with pasta metaphor
+  tag: paraphrase
+  expect:
+  - episode: 286
+    at: '45:18'
+- id: syn-296-1315
+  query: guild project volunteer shop stay duration
+  tag: paraphrase
+  expect:
+  - episode: 296
+    at: '13:15'
+- id: syn-296-1503
+  query: Microjig gripper rebate form 15th anniversary
+  tag: exact
+  expect:
+  - episode: 296
+    at: '15:03'
+- id: syn-296-2736
+  query: choosing overlapping woodworking classes difficult decision
+  tag: paraphrase
+  expect:
+  - episode: 296
+    at: '27:36'
+- id: syn-300-1504
+  query: leaving children unattended in workshop unsafe
+  tag: paraphrase
   expect:
   - episode: 300
-    at: '1:04'
-- id: syn-300-1230
-  query: Wood Talk podcast host childhood shop accident
+    at: '15:04'
+- id: syn-311-0557
+  query: how to cut dovetail tails and pins
   tag: paraphrase
   expect:
-  - episode: 300
-    at: '12:30'
-- id: syn-336-0437
-  query: Wood Talk podcast Death Star wardrobe box
+  - episode: 311
+    at: '5:57'
+- id: syn-311-3420
+  query: efficient way to make multiple identical slats
   tag: paraphrase
   expect:
-  - episode: 336
-    at: '4:37'
-- id: syn-379-1124
-  query: large seven foot tall casework project
+  - episode: 311
+    at: '34:20'
+- id: syn-311-5053
+  query: regretted power tool purchases for case making
+  tag: paraphrase
+  expect:
+  - episode: 311
+    at: '50:53'
+- id: syn-316-1540
+  query: woodworking bathroom joke euphemism
+  tag: paraphrase
+  expect:
+  - episode: 316
+    at: '15:40'
+- id: syn-316-2154
+  query: electric hand planer router sled twist
+  tag: exact
+  expect:
+  - episode: 316
+    at: '21:54'
+- id: syn-316-3513
+  query: iPhone macro lens stand for woodworking
+  tag: exact
+  expect:
+  - episode: 316
+    at: '35:13'
+- id: syn-316-4753
+  query: protecting concrete from chemical stripper stains
+  tag: paraphrase
+  expect:
+  - episode: 316
+    at: '47:53'
+- id: syn-321-0028
+  query: Happy birthday song for Talitha dog barking
+  tag: paraphrase
+  expect:
+  - episode: 321
+    at: 0:28
+- id: syn-321-4252
+  query: shop vacuum full woodworking dust collection
+  tag: paraphrase
+  expect:
+  - episode: 321
+    at: '42:52'
+- id: syn-328-0249
+  query: weekend show extra topic discussion
+  tag: exact
+  expect:
+  - episode: 328
+    at: '2:49'
+- id: syn-328-4103
+  query: Grobet versus Nicholson files comparison review
+  tag: paraphrase
+  expect:
+  - episode: 328
+    at: '41:03'
+- id: syn-333-3044
+  query: fix orange peel lacquer finish
+  tag: paraphrase
+  expect:
+  - episode: 333
+    at: '30:44'
+- id: syn-339-1155
+  query: Arizona climate home building decisions
+  tag: paraphrase
+  expect:
+  - episode: 339
+    at: '11:55'
+- id: syn-339-4112
+  query: clamping workpiece over hanging board for planing
+  tag: paraphrase
+  expect:
+  - episode: 339
+    at: '41:12'
+- id: syn-349-0726
+  query: shop organization small items metal chainsaw clutter
+  tag: paraphrase
+  expect:
+  - episode: 349
+    at: '7:26'
+- id: syn-349-0855
+  query: woodworker builds bookcase instead of going to ikea
+  tag: paraphrase
+  expect:
+  - episode: 349
+    at: '8:55'
+- id: syn-359-2931
+  query: early bird pricing fine woodworking live
+  tag: exact
+  expect:
+  - episode: 359
+    at: '29:31'
+- id: syn-369-3446
+  query: reclaimed lumber barn history story source
+  tag: paraphrase
+  expect:
+  - episode: 369
+    at: '34:46'
+- id: syn-369-4005
+  query: butt joint vs dovetail tenon biscuit dowel rabbet
+  tag: paraphrase
+  expect:
+  - episode: 369
+    at: '40:05'
+- id: syn-379-2739
+  query: woodworking collar loosened safety incident
   tag: paraphrase
   expect:
   - episode: 379
-    at: '11:24'
-- id: syn-466-4441
-  query: slat top breadboard ends drainage
+    at: '27:39'
+- id: syn-418-2631
+  query: engineer mindset woodworking execution one off pieces
+  tag: paraphrase
+  expect:
+  - episode: 418
+    at: '26:31'
+- id: syn-429-0513
+  query: Why people judged broken handle replacement
+  tag: paraphrase
+  expect:
+  - episode: 429
+    at: '5:13'
+- id: syn-429-0901
+  query: Live edge waterfall river table build variations
+  tag: exact
+  expect:
+  - episode: 429
+    at: '9:01'
+- id: syn-429-2557
+  query: Yankee Yankee Magazine digital archive revenue
+  tag: paraphrase
+  expect:
+  - episode: 429
+    at: '25:57'
+- id: syn-429-2852
+  query: thermal wood blades outdoor projects decks
+  tag: exact
+  expect:
+  - episode: 429
+    at: '28:52'
+- id: syn-434-10638
+  query: snare drum stave length pull shave
+  tag: paraphrase
+  expect:
+  - episode: 434
+    at: '1:06:38'
+- id: syn-439-3022
+  query: Shannon domino hand tool reference surfaces
+  tag: paraphrase
+  expect:
+  - episode: 439
+    at: '30:22'
+- id: syn-448-1654
+  query: HVLP sandblaster turbine blowing holes in walls
+  tag: paraphrase
+  expect:
+  - episode: 448
+    at: '16:54'
+- id: syn-448-2419
+  query: maple rivering water falling off shuttle
+  tag: exact
+  expect:
+  - episode: 448
+    at: '24:19'
+- id: syn-448-10840
+  query: driving large hole end grain wood
+  tag: paraphrase
+  expect:
+  - episode: 448
+    at: '1:08:40'
+- id: syn-458-14251
+  query: Canon 80D autofocus bandsaw wide shots
+  tag: paraphrase
+  expect:
+  - episode: 458
+    at: '1:42:51'
+- id: syn-463-5705
+  query: Sapili wood tabletop structural integrity long term
+  tag: paraphrase
+  expect:
+  - episode: 463
+    at: '57:05'
+- id: syn-463-10334
+  query: Rockler family owned business since 1954
+  tag: exact
+  expect:
+  - episode: 463
+    at: '1:03:34'
+- id: syn-466-3812
+  query: varnish top coat chairs ten years old sun exposure
   tag: paraphrase
   expect:
   - episode: 466
-    at: '44:41'
-- id: syn-509-0519
-  query: finishing wood without proper ventilation
+    at: '38:12'
+- id: syn-474-3950
+  query: router perpendicular mortise angled joint
+  tag: exact
+  expect:
+  - episode: 474
+    at: '39:50'
+- id: syn-479-2948
+  query: importance of multiple dry runs before gluing
   tag: paraphrase
   expect:
-  - episode: 509
-    at: '5:19'
-- id: syn-509-1150
-  query: Wood Talk wrong router pins Garmin headquarters
+  - episode: 479
+    at: '29:48'
+- id: syn-479-3208
+  query: glue that never dries too fast
+  tag: exact
+  expect:
+  - episode: 479
+    at: '32:08'
+- id: syn-488-2359
+  query: Why use epoxy for tight joinery joints
   tag: paraphrase
   expect:
-  - episode: 509
-    at: '11:50'
-- id: syn-509-2155
-  query: CNC woodworking content creator passion over money
+  - episode: 488
+    at: '23:59'
+- id: syn-488-2554
+  query: Roubo workbench leg angle change wood shrinkage
   tag: paraphrase
   expect:
-  - episode: 509
-    at: '21:55'
-- id: syn-552-2357
-  query: Jess Dowling jig vs Domino joinery comparison
+  - episode: 488
+    at: '25:54'
+- id: syn-488-3200
+  query: Dale question about not wanting to Google
   tag: paraphrase
   expect:
-  - episode: 552
-    at: '23:57'
-- id: syn-595-0033
-  query: Woodcraft sponsorship announcement Wood Talk podcast
+  - episode: 488
+    at: '32:00'
+- id: syn-493-1121
+  query: Henschel School bench price Black Friday sale
+  tag: exact
+  expect:
+  - episode: 493
+    at: '11:21'
+- id: syn-493-1806
+  query: relative dimensioning woodworking technique explained
+  tag: paraphrase
+  expect:
+  - episode: 493
+    at: '18:06'
+- id: syn-493-4308
+  query: woodworking shop offcuts waste accumulation
+  tag: paraphrase
+  expect:
+  - episode: 493
+    at: '43:08'
+- id: syn-493-4639
+  query: applying wax over any wood finish
+  tag: paraphrase
+  expect:
+  - episode: 493
+    at: '46:39'
+- id: syn-498-2545
+  query: height comparison photos step block instagram
+  tag: paraphrase
+  expect:
+  - episode: 498
+    at: '25:45'
+- id: syn-508-0321
+  query: woodworking transom window vertical ends arch
+  tag: paraphrase
+  expect:
+  - episode: 508
+    at: '3:21'
+- id: syn-508-1902
+  query: Aussie oil and shellac finish for hickory
+  tag: exact
+  expect:
+  - episode: 508
+    at: '19:02'
+- id: syn-514-2942
+  query: Rockler wishlist link trick for gifts
+  tag: paraphrase
+  expect:
+  - episode: 514
+    at: '29:42'
+- id: syn-514-3010
+  query: Amazon cookie tracking wishlist holiday gifts
+  tag: paraphrase
+  expect:
+  - episode: 514
+    at: '30:10'
+- id: syn-523-0229
+  query: Shannon cold dog walk dining table segment
+  tag: exact
+  expect:
+  - episode: 523
+    at: '2:29'
+- id: syn-523-1449
+  query: Shaker cabinet grain direction negative space uniformity
+  tag: paraphrase
+  expect:
+  - episode: 523
+    at: '14:49'
+- id: syn-533-0830
+  query: card scraper technique for alternating light dark wood squares
+  tag: paraphrase
+  expect:
+  - episode: 533
+    at: '8:30'
+- id: syn-533-1731
+  query: Matt local guy woodworking community appreciation
+  tag: paraphrase
+  expect:
+  - episode: 533
+    at: '17:31'
+- id: syn-543-5228
+  query: Why rough lumber is better than milled wood
+  tag: paraphrase
+  expect:
+  - episode: 543
+    at: '52:28'
+- id: syn-548-2503
+  query: how I improved my on camera presence
+  tag: paraphrase
+  expect:
+  - episode: 548
+    at: '25:03'
+- id: syn-554-0809
+  query: open closet design without doors
+  tag: paraphrase
+  expect:
+  - episode: 554
+    at: '8:09'
+- id: syn-554-3921
+  query: comparing Ryobi Grizzly Jet Laguna tool specs
+  tag: paraphrase
+  expect:
+  - episode: 554
+    at: '39:21'
+- id: syn-563-1959
+  query: Matt finished painting sunroom furniture placement
+  tag: paraphrase
+  expect:
+  - episode: 563
+    at: '19:59'
+- id: syn-568-2233
+  query: smart home connectivity kitchen switches proximity sensors
+  tag: exact
+  expect:
+  - episode: 568
+    at: '22:33'
+- id: syn-568-4913
+  query: Lie Nielsen vs Stanley plane out of box comparison
+  tag: paraphrase
+  expect:
+  - episode: 568
+    at: '49:13'
+- id: syn-583-0717
+  query: Matt never had another obsession after woodworking
+  tag: paraphrase
+  expect:
+  - episode: 583
+    at: '7:17'
+- id: syn-583-0842
+  query: woodworking obsession vs snowmobiling hobby
+  tag: paraphrase
+  expect:
+  - episode: 583
+    at: '8:42'
+- id: syn-583-1728
+  query: Adam Sandler movie shooting bullets into air
+  tag: exact
+  expect:
+  - episode: 583
+    at: '17:28'
+- id: syn-588-0903
+  query: creator motivation algorithm pressure business overhead
+  tag: paraphrase
+  expect:
+  - episode: 588
+    at: '9:03'
+- id: syn-593-3524
+  query: wood filler slurry wood dust pores
+  tag: paraphrase
+  expect:
+  - episode: 593
+    at: '35:24'
+- id: syn-595-1738
+  query: chocolate factory tour warm cocoa beans
   tag: paraphrase
   expect:
   - episode: 595
-    at: 0:33
-- id: syn-595-3721
-  query: Vaughn lumber drying slow process
+    at: '17:38'
+- id: syn-597-3723
+  query: Fixing drawers that stick due to paint buildup
+  tag: paraphrase
+  expect:
+  - episode: 597
+    at: '37:23'
+- id: syn-597-3933
+  query: fixing sloppy drawers in refinished furniture
+  tag: paraphrase
+  expect:
+  - episode: 597
+    at: '39:33'
+- id: syn-597-5150
+  query: Tormac sharpening jigs kitchen knife packages
   tag: exact
   expect:
-  - episode: 595
-    at: '37:21'
-- id: syn-595-3844
-  query: wood moisture content seasonal change
-  tag: paraphrase
-  expect:
-  - episode: 595
-    at: '38:44'
-- id: syn-595-5909
-  query: Woodcraft local events classes schedule
-  tag: paraphrase
-  expect:
-  - episode: 595
-    at: '59:09'
-- id: syn-596-1227
-  query: Wood Talk end of year favorites challenge
-  tag: exact
-  expect:
-  - episode: 596
-    at: '12:27'
-- id: syn-596-3734
-  query: woodworking tool repetitive stress injury tennis elbow
-  tag: paraphrase
-  expect:
-  - episode: 596
-    at: '37:34'
-- id: syn-596-4557
-  query: Refurbishing tools functional versus aesthetic goals
-  tag: paraphrase
-  expect:
-  - episode: 596
-    at: '45:57'
-- id: syn-596-5639
-  query: woodworking content algorithm views niche
-  tag: exact
-  expect:
-  - episode: 596
-    at: '56:39'
-- id: syn-596-11607
-  query: Woodcraft store classes holiday gift
-  tag: exact
-  expect:
-  - episode: 596
-    at: '1:16:07'
-- id: syn-597-0030
-  query: Woodcraft discount code Wood Talk podcast
+  - episode: 597
+    at: '51:50'
+- id: syn-597-5342
+  query: durable sharpening stone lifetime investment tool
   tag: paraphrase
   expect:
   - episode: 597
-    at: 0:30
-- id: syn-597-0836
-  query: skew chisel lathe turning handle movement
-  tag: paraphrase
-  expect:
-  - episode: 597
-    at: '8:36'
-- id: syn-597-1306
-  query: woodturning tools bowl gouge sizes
-  tag: paraphrase
-  expect:
-  - episode: 597
-    at: '13:06'
-- id: syn-597-1646
-  query: Wood Talk podcast height platform discussion
-  tag: paraphrase
-  expect:
-  - episode: 597
-    at: '16:46'
-- id: syn-597-5448
-  query: Tormach CNC router review convenience
-  tag: paraphrase
-  expect:
-  - episode: 597
-    at: '54:48'
-- id: syn-598-3402
-  query: DeWalt 735 planer review longevity cost
+    at: '53:42'
+- id: syn-598-1754
+  query: wanting to cut down beautiful trees for furniture
   tag: paraphrase
   expect:
   - episode: 598
-    at: '34:02'
-- id: syn-599-2646
-  query: Wood Talk podcast sharpening discussion
+    at: '17:54'
+- id: syn-598-3040
+  query: lunchbox planer vs jointer tradeoffs
+  tag: paraphrase
+  expect:
+  - episode: 598
+    at: '30:40'
+- id: syn-599-5219
+  query: performance anxiety group woodworking classes
   tag: paraphrase
   expect:
   - episode: 599
-    at: '26:46'
-- id: syn-599-3751
-  query: Chuck Bender Facebook live video algorithm
+    at: '52:19'
+- id: syn-600-0255
+  query: arched table four by four legs jointer
   tag: exact
   expect:
-  - episode: 599
-    at: '37:51'
-- id: syn-600-3650
-  query: woodworking finish color mixing pigments hexadecimal values
+  - episode: 600
+    at: '2:55'
+- id: syn-600-1535
+  query: broken antique book press shipping damage
   tag: paraphrase
   expect:
   - episode: 600
-    at: '36:50'
-- id: syn-601-0645
-  query: Wood vs plastic at IBS KBIS
-  tag: paraphrase
+    at: '15:35'
+- id: syn-600-4414
+  query: Tigerwood workbench question from Amy
+  tag: exact
   expect:
-  - episode: 601
-    at: '6:45'
-- id: syn-601-3229
-  query: best books for learning historical furniture styles
-  tag: paraphrase
+  - episode: 600
+    at: '44:14'
+- id: syn-602-1242
+  query: hand tool school lesson building with saw
+  tag: exact
   expect:
-  - episode: 601
-    at: '32:29'
-- id: syn-602-1133
-  query: woodworking under bevel sanding attention
+  - episode: 602
+    at: '12:42'
+- id: syn-602-1828
+  query: CNC mass production versus unique handcrafted furniture
   tag: paraphrase
   expect:
   - episode: 602
-    at: '11:33'
-- id: syn-602-3029
-  query: advice on finishing woodworking projects before travel
-  tag: paraphrase
-  expect:
-  - episode: 602
-    at: '30:29'
-- id: syn-603-0733
-  query: water based finish drying fast one shot
-  tag: paraphrase
+    at: '18:28'
+- id: syn-603-0606
+  query: Chris Schwartz Roubo book press photo
+  tag: exact
   expect:
   - episode: 603
-    at: '7:33'
-- id: syn-604-0851
-  query: glue roller maintenance cleaning foam rollers
-  tag: paraphrase
+    at: '6:06'
+- id: syn-603-1325
+  query: school science wing renovation makerspaces
+  tag: exact
   expect:
-  - episode: 604
-    at: '8:51'
-- id: syn-605-0150
-  query: Wood Talk Patreon support thanks goofing off
+  - episode: 603
+    at: '13:25'
+- id: syn-605-2809
+  query: recent college graduate woodworking career sales
   tag: paraphrase
   expect:
   - episode: 605
-    at: '1:50'
-- id: syn-605-0847
-  query: Cutting sandpaper sheets into smaller pieces for storage
-  tag: paraphrase
-  expect:
-  - episode: 605
-    at: '8:47'
-- id: syn-605-3803
-  query: Wood Talk podcast celebrating quitting members
-  tag: paraphrase
-  expect:
-  - episode: 605
-    at: '38:03'
-- id: syn-606-2121
-  query: chisel technique for tight inside angles
-  tag: paraphrase
-  expect:
-  - episode: 606
-    at: '21:21'
-- id: syn-606-3129
-  query: shiplap seam alignment error angle
-  tag: paraphrase
-  expect:
-  - episode: 606
-    at: '31:29'
-- id: syn-606-4333
-  query: woodworking mistake inside door game over
-  tag: paraphrase
-  expect:
-  - episode: 606
-    at: '43:33'
-- id: syn-607-0033
-  query: Woodcraft sponsorship code discount
-  tag: paraphrase
-  expect:
-  - episode: 607
-    at: 0:33
-- id: syn-607-2013
-  query: Woodtalk podcast panel Q&A event
-  tag: paraphrase
-  expect:
-  - episode: 607
-    at: '20:13'
-- id: syn-607-2603
-  query: Using straight edge as fence for rabbit plane
+    at: '28:09'
+- id: syn-607-1501
+  query: Woodcraft Sacramento swap meet desert ironwood
   tag: exact
   expect:
   - episode: 607
-    at: '26:03'
-- id: syn-607-3545
-  query: preventing sun damage on wooden desk
+    at: '15:01'
+- id: syn-607-1600
+  query: German stepped rabbet plane inside corner
   tag: paraphrase
   expect:
   - episode: 607
-    at: '35:45'
-- id: syn-608-0256
-  query: Woodcraft straight edge sale missing
+    at: '16:00'
+- id: syn-608-10309
+  query: Boise Karen lamp class Greenville Celtic knot rolling pin
+  tag: exact
+  expect:
+  - episode: 608
+    at: '1:03:09'
+- id: syn-609-0249
+  query: Why did you specialize in bandsaw work
   tag: paraphrase
   expect:
-  - episode: 608
-    at: '2:56'
-- id: syn-608-1605
-  query: vacuum pump under 100 remote quiet
-  tag: exact
-  expect:
-  - episode: 608
-    at: '16:05'
-- id: syn-608-1633
-  query: Festool discontinued pump pads pods used price
-  tag: paraphrase
-  expect:
-  - episode: 608
-    at: '16:33'
-- id: syn-608-1732
-  query: carving ball claw leg holding force puck
-  tag: exact
-  expect:
-  - episode: 608
-    at: '17:32'
-- id: syn-608-5739
-  query: Kreg Edge battery ecosystem pricing Festool
-  tag: exact
-  expect:
-  - episode: 608
-    at: '57:39'
-- id: syn-608-5836
-  query: classic workhorse router replacement discontinued model
-  tag: paraphrase
-  expect:
-  - episode: 608
-    at: '58:36'
-- id: syn-610-0349
-  query: Mike Farrington double taper sanding disc table saw
-  tag: exact
-  expect:
-  - episode: 610
-    at: '3:49'
-- id: syn-610-1049
-  query: Wood Talk podcast bisection angle mistake
+  - episode: 609
+    at: '2:49'
+- id: syn-610-0227
+  query: Matt and Mark eating before recording
   tag: paraphrase
   expect:
   - episode: 610
-    at: '10:49'
-- id: syn-610-3237
-  query: corded drill vs cordless drill use cases
+    at: '2:27'
+- id: syn-610-0443
+  query: NASCAR style pre mid post ad breaks
   tag: paraphrase
   expect:
   - episode: 610
-    at: '32:37'
-- id: syn-610-4825
-  query: Shaker side table drawer thickness
+    at: '4:43'
+- id: syn-610-2114
+  query: PowerPoint animations flying in meetings
   tag: exact
   expect:
   - episode: 610
-    at: '48:25'
-- id: syn-611-1630
-  query: Matt's ACM made Laguna band saw story
-  tag: paraphrase
-  expect:
-  - episode: 611
-    at: '16:30'
-- id: syn-611-3527
-  query: July mixed media woodworking theme discussion
-  tag: paraphrase
-  expect:
-  - episode: 611
-    at: '35:27'
-- id: syn-611-3914
-  query: Matt's struggle with filming woodworking failures
-  tag: paraphrase
-  expect:
-  - episode: 611
-    at: '39:14'
-- id: syn-611-10333
-  query: updates important long woodworking project
-  tag: paraphrase
-  expect:
-  - episode: 611
-    at: '1:03:33'
-- id: syn-612-0100
-  query: Woodcraft sponsorship code discount
-  tag: paraphrase
-  expect:
-  - episode: 612
-    at: '1:00'
-- id: syn-612-3824
-  query: dust collector vs air filter shop setup
-  tag: paraphrase
-  expect:
-  - episode: 612
-    at: '38:24'
-- id: syn-612-4017
-  query: woodworking dust collection efficiency high speed molders
-  tag: paraphrase
-  expect:
-  - episode: 612
-    at: '40:17'
-- id: syn-613-0953
-  query: Shannon's drawer organizer bin
-  tag: paraphrase
-  expect:
-  - episode: 613
-    at: '9:53'
-- id: syn-613-2112
-  query: Kreg Edge cordless tenon joiner price
-  tag: exact
-  expect:
-  - episode: 613
-    at: '21:12'
-- id: syn-613-5132
-  query: Woodcraft podcast parking lot fight joke
-  tag: paraphrase
-  expect:
-  - episode: 613
-    at: '51:32'
-- id: syn-614-0255
-  query: wood talk podcast nurse bumper sticker story
-  tag: paraphrase
-  expect:
-  - episode: 614
-    at: '2:55'
-- id: syn-614-2830
-  query: Domino joiner review delay strategy
-  tag: paraphrase
-  expect:
-  - episode: 614
-    at: '28:30'
-- id: syn-614-3533
-  query: Kreg adjustment mechanism spring loaded part flew
-  tag: exact
-  expect:
-  - episode: 614
-    at: '35:33'
-- id: syn-615-0448
-  query: table saw caster system collapse
-  tag: exact
-  expect:
-  - episode: 615
-    at: '4:48'
-- id: syn-615-0603
-  query: Wood Talk shoulder bolt modification smooth thread
-  tag: paraphrase
-  expect:
-  - episode: 615
-    at: '6:03'
-- id: syn-615-1902
-  query: Smoke detector smoldering detection limitations
-  tag: paraphrase
-  expect:
-  - episode: 615
-    at: '19:02'
-- id: syn-615-2443
-  query: podcast discussion on using 64th inch ruler graduations
-  tag: paraphrase
-  expect:
-  - episode: 615
-    at: '24:43'
-- id: syn-615-3012
-  query: Woodworking decimals vs fractions shop measurement
-  tag: paraphrase
-  expect:
-  - episode: 615
-    at: '30:12'
-- id: syn-615-3929
-  query: hand tool turned into power tool
-  tag: exact
-  expect:
-  - episode: 615
-    at: '39:29'
-- id: syn-615-4153
-  query: Woodworking podcast fishing lure workshop Columbus Ohio
-  tag: paraphrase
-  expect:
-  - episode: 615
-    at: '41:53'
-- id: syn-616-0611
-  query: Matt's trim carpentry skills Hamptons
-  tag: paraphrase
-  expect:
-  - episode: 616
-    at: '6:11'
-- id: syn-616-0857
-  query: Jonathan Schapansky pronunciation joke
-  tag: paraphrase
-  expect:
-  - episode: 616
-    at: '8:57'
-- id: syn-616-2457
-  query: best combo machine vs dedicated jointer
-  tag: paraphrase
-  expect:
-  - episode: 616
-    at: '24:57'
-- id: syn-616-2928
-  query: dominoes splines glue up alignment necessity
-  tag: paraphrase
-  expect:
-  - episode: 616
-    at: '29:28'
-- id: syn-617-1241
-  query: woodworking podcast business money focus
-  tag: paraphrase
-  expect:
-  - episode: 617
-    at: '12:41'
-- id: syn-617-2114
-  query: Kreg Edge corded version Woodcraft
-  tag: exact
-  expect:
-  - episode: 617
     at: '21:14'
-- id: syn-617-4645
-  query: Alex Taylor tour schedule October dates
+- id: syn-612-0634
+  query: woodworking furniture repair lessons learned after 23 years
+  tag: paraphrase
+  expect:
+  - episode: 612
+    at: '6:34'
+- id: syn-612-4846
+  query: creator frustration algorithm hiding content despite years of work
+  tag: paraphrase
+  expect:
+  - episode: 612
+    at: '48:46'
+- id: syn-613-3306
+  query: Using an apprentice for chores to save time
+  tag: paraphrase
+  expect:
+  - episode: 613
+    at: '33:06'
+- id: syn-614-2928
+  query: Kreg jig Christmas marketing joke
+  tag: paraphrase
+  expect:
+  - episode: 614
+    at: '29:28'
+- id: syn-614-4237
+  query: upgrade ductwork clamp system vs Nord Fab
+  tag: paraphrase
+  expect:
+  - episode: 614
+    at: '42:37'
+- id: syn-615-0124
+  query: Wood River email list discount code
+  tag: paraphrase
+  expect:
+  - episode: 615
+    at: '1:24'
+- id: syn-615-1737
+  query: smart flame detector infrared monitoring
+  tag: paraphrase
+  expect:
+  - episode: 615
+    at: '17:37'
+- id: syn-615-1833
+  query: Does infrared technology detect smoldering smoke?
+  tag: paraphrase
+  expect:
+  - episode: 615
+    at: '18:33'
+- id: syn-615-3752
+  query: Bridge City Harvey jig for tight joinery
+  tag: paraphrase
+  expect:
+  - episode: 615
+    at: '37:52'
+- id: syn-615-4411
+  query: Matt joke about short loft and Cremona chickens
+  tag: exact
+  expect:
+  - episode: 615
+    at: '44:11'
+- id: syn-616-0155
+  query: host decided dual table saw setup
+  tag: paraphrase
+  expect:
+  - episode: 616
+    at: '1:55'
+- id: syn-616-2741
+  query: woodworking flatness workbench size importance
+  tag: paraphrase
+  expect:
+  - episode: 616
+    at: '27:41'
+- id: syn-617-0808
+  query: heavy wet mulberry wood vs dry exotic hardwoods
   tag: paraphrase
   expect:
   - episode: 617
-    at: '46:45'
+    at: '8:08'
+- id: syn-617-1654
+  query: wooden bench gap stop material mulberry
+  tag: paraphrase
+  expect:
+  - episode: 617
+    at: '16:54'

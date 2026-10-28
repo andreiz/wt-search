@@ -133,3 +133,193 @@
   query: extending glue time
   tag: paraphrase
   expect: [{episode: 616, at: "31:43"}]
+
+# --- negatives: off-topic searches, checked on staging 2026-10-28 (159 episodes) ---
+# Related returned these unrelated passages. A wrong hit is named by its time; the case passes
+# once it's gone (the floor drops it, or something better outranks it out of the top 10).
+- id: biscuit-recipe-baking
+  # Biscuit joinery, not baking.
+  query: biscuit recipe baking
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 171, at: "58:21"}, {episode: 359, at: "35:09"}]
+- id: dog-training-tips
+  # A Rockler sponsor read, ranked first by the reranker (boilerplate, spec §7.2).
+  query: dog training tips
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 558, at: "36:42"}]
+- id: fishing-lures-and-tackle
+  # The scholarship plug and a Rockler sale read; 615 42:13 and 306 22:54 do mention fishing.
+  query: fishing lures and tackle
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 296, at: "14:04"}, {episode: 616, at: "11:52"}]
+- id: stock-market-investing
+  # An outro ("Bye. Bye. investing. Thank you."); 509 does talk about investing.
+  query: stock market investing
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 583, at: "38:48"}]
+- id: filing-my-taxes
+  # Carving a golden retriever; 418 and 257 on self-employment tax are fair.
+  query: filing my taxes
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 182, at: "4:46"}]
+- id: knitting-a-sweater
+  # Sweaty chair cushions.
+  query: knitting a sweater
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 311, at: "37:01"}]
+- id: wedding-planning
+  # Ganging parts to drill hardware holes.
+  query: wedding planning
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 311, at: "32:05"}]
+- id: guitar-chord-progressions
+  # Live-show logistics; 595 and 458 on guitars are fair.
+  query: guitar chord progressions
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 166, at: "18:57"}]
+- id: video-game-consoles
+  # A listener's custom shop; 286's gaming table is fair.
+  query: video game consoles
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 59, at: "40:24"}]
+- id: sewing-machine
+  # CNC bowl blanks and a design service.
+  query: sewing machine
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 597, at: "15:22"}, {episode: 107, at: "22:22"}]
+- id: home-brewing-beer
+  # Next year's plans and a SketchUp tracing tip.
+  query: home brewing beer
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 578, at: "18:16"}, {episode: 182, at: "22:18"}]
+- id: pottery-wheel
+  # A sharpening wheel and a trestle table.
+  query: pottery wheel
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 92, at: "9:58"}, {episode: 614, at: "20:02"}]
+- id: leather-tooling
+  # A tattoo joke.
+  query: leather tooling
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 600, at: "40:31"}]
+- id: hanging-drywall
+  # Veneer storage and a tool-chest question.
+  query: hanging drywall
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 458, at: "50:42"}, {episode: 107, at: "26:13"}]
+- id: laser-hair-removal
+  # The lead-in to a sponsor read.
+  query: laser hair removal
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 300, at: "26:29"}]
+# These come back empty now, as they should; each names the nearest passage the floor dropped.
+- id: router-wifi-network-setup
+  query: router wifi network setup
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 608, at: "15:25"}]
+- id: airplane-flight-delays
+  query: airplane flight delays
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 333, at: "11:25"}]
+- id: bench-press-workout-routine
+  query: bench press workout routine
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 256, at: "31:33"}]
+- id: sourdough-bread-starter
+  query: sourdough bread starter
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 598, at: "11:15"}]
+- id: cryptocurrency-mining
+  query: cryptocurrency mining
+  tag: negative
+  mode: related
+  expect_absent: [{episode: 509, at: "43:33"}]
+
+# --- jargon: tools, brands and terms, checked on staging 2026-10-28 ---
+- id: chatoyance
+  query: chatoyance
+  tag: jargon
+  expect: [{episode: 429, at: "35:40"}]
+- id: earlex-sprayer
+  # "Earlex" is a correction (Urlex, Earl X).
+  query: Earlex sprayer
+  tag: jargon
+  expect: [{episode: 29, at: "23:00"}]
+- id: festool-systainers
+  # "Systainers" is a correction (festival sustainers).
+  query: Festool Systainers
+  tag: jargon
+  expect: [{episode: 613, at: "6:12"}]
+- id: tormek
+  query: Tormek
+  tag: jargon
+  expect: [{episode: 92, at: "8:41"}]
+- id: spokeshave
+  query: spokeshave
+  tag: jargon
+  expect: [{episode: 147, at: "25:55"}]
+- id: cabinet-scraper-vs-card-scraper
+  query: cabinet scraper vs card scraper
+  tag: jargon
+  expect: [{episode: 488, at: "9:44"}]
+- id: reversing-hide-glue
+  query: reversing hide glue
+  tag: jargon
+  expect: [{episode: 466, at: "21:02"}]
+- id: japanese-pull-saw
+  query: Japanese pull saw
+  tag: jargon
+  expect: [{episode: 102, at: "47:20"}]
+- id: kumiko
+  query: kumiko
+  tag: jargon
+  expect: [{episode: 463, at: "28:34"}]
+- id: stickley-arts-and-crafts
+  query: Stickley arts and crafts joinery
+  tag: jargon
+  expect: [{episode: 479, at: "17:59"}]
+- id: lie-nielsen-dovetail-saw
+  # "Lie-Nielsen" is a correction (lineal, Lee Nielsen).
+  query: Lie-Nielsen dovetail saw
+  tag: jargon
+  expect: [{episode: 121, at: "23:37"}, {episode: 71, at: "38:01"}]
+
+# --- fixed transcripts: each passage was wrong or missing until a correction or repair ---
+- id: cross-cut-sled
+  # corrections.yaml, ep474 ("cross cut sludge").
+  query: cross cut sled shoulders
+  tag: exact
+  expect: [{episode: 474, at: "11:18"}]
+- id: well-executed-dovetail
+  # corrections.yaml, ep573 (the repair stopped at "a well").
+  query: well-executed dovetail
+  tag: exact
+  expect: [{episode: 573, at: "4:07"}]
+- id: anemometer-dust-collector
+  # ep578 36:30-37:31 was untranscribed until the joined repair (2bd71c4).
+  query: anemometer 190 CFM dust collector
+  tag: exact
+  expect: [{episode: 578, at: "36:30"}]
+- id: shop-vac-dust-collection
+  query: dust collector that is just a giant vacuum cleaner
+  tag: paraphrase
+  expect: [{episode: 578, at: "36:50"}]

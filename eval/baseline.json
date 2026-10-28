@@ -1,23 +1,23 @@
 {
   "env": "staging",
   "api_url": "https://wts-api-staging.andrei-b94.workers.dev",
-  "at": "2026-10-28T04:01:16Z",
+  "at": "2026-10-28T07:45:17Z",
   "params": {},
   "summary": {
     "overall": {
-      "cases": 215,
-      "recall@10": 0.913,
-      "mrr": 0.8149,
-      "ndcg@10": 0.8393,
-      "time_hit_rate": 0.8529,
-      "negative_pass_rate": 0.75
+      "cases": 250,
+      "recall@10": 0.9189,
+      "mrr": 0.8251,
+      "ndcg@10": 0.8484,
+      "time_hit_rate": 0.8636,
+      "negative_pass_rate": 0.3929
     },
     "tags": {
       "exact": {
-        "cases": 55,
+        "cases": 58,
         "recall@10": 1.0,
-        "mrr": 0.9909,
-        "ndcg@10": 0.9933,
+        "mrr": 0.9914,
+        "ndcg@10": 0.9936,
         "time_hit_rate": 1.0
       },
       "filter": {
@@ -29,22 +29,22 @@
         "negative_pass_rate": 1.0
       },
       "jargon": {
-        "cases": 5,
+        "cases": 16,
         "recall@10": 1.0,
-        "mrr": 0.7,
-        "ndcg@10": 0.7786,
+        "mrr": 0.875,
+        "ndcg@10": 0.9061,
         "time_hit_rate": 1.0
       },
       "negative": {
-        "cases": 6,
-        "negative_pass_rate": 0.6667
+        "cases": 26,
+        "negative_pass_rate": 0.3462
       },
       "paraphrase": {
-        "cases": 146,
-        "recall@10": 0.8767,
-        "mrr": 0.7512,
-        "ndcg@10": 0.7823,
-        "time_hit_rate": 0.7945
+        "cases": 147,
+        "recall@10": 0.8776,
+        "mrr": 0.7529,
+        "ndcg@10": 0.7838,
+        "time_hit_rate": 0.7959
       }
     }
   },
@@ -53,14 +53,14 @@
       "scope": "overall",
       "metric": "recall@10",
       "target": 0.85,
-      "value": 0.913,
+      "value": 0.9189,
       "met": true
     },
     {
       "scope": "paraphrase",
       "metric": "recall@10",
       "target": 0.75,
-      "value": 0.8767,
+      "value": 0.8776,
       "met": true
     },
     {
@@ -974,7 +974,16 @@
             "meaning_rank": 4,
             "similarity": 0.6745449,
             "rerank_rank": 1,
-            "rerank_score": 0.2516246736049652
+            "rerank_score": 0.2516249716281891
+          },
+          {
+            "episode": 578,
+            "at": "37:59",
+            "match": "related",
+            "meaning_rank": 46,
+            "similarity": 0.6206438,
+            "rerank_rank": 3,
+            "rerank_score": 0.18679924309253693
           },
           {
             "episode": 311,
@@ -982,8 +991,8 @@
             "match": "related",
             "meaning_rank": 23,
             "similarity": 0.6401077,
-            "rerank_rank": 3,
-            "rerank_score": 0.003237327793613076
+            "rerank_rank": 4,
+            "rerank_score": 0.003237321740016341
           },
           {
             "episode": 217,
@@ -991,8 +1000,8 @@
             "match": "related",
             "meaning_rank": 3,
             "similarity": 0.6827945,
-            "rerank_rank": 4,
-            "rerank_score": 0.002987242303788662
+            "rerank_rank": 5,
+            "rerank_score": 0.002987250918522477
           },
           {
             "episode": 71,
@@ -1000,7 +1009,7 @@
             "match": "related",
             "meaning_rank": 18,
             "similarity": 0.64497715,
-            "rerank_rank": 5,
+            "rerank_rank": 6,
             "rerank_score": 0.002090710448101163
           },
           {
@@ -1009,7 +1018,7 @@
             "match": "related",
             "meaning_rank": 34,
             "similarity": 0.6316711,
-            "rerank_rank": 7,
+            "rerank_rank": 8,
             "rerank_score": 0.0011869615409523249
           },
           {
@@ -1018,8 +1027,8 @@
             "match": "related",
             "meaning_rank": 17,
             "similarity": 0.6468171,
-            "rerank_rank": 8,
-            "rerank_score": 0.0011016137432307005
+            "rerank_rank": 9,
+            "rerank_score": 0.0011016116477549076
           },
           {
             "episode": 311,
@@ -1027,8 +1036,8 @@
             "match": "related",
             "meaning_rank": 9,
             "similarity": 0.65762794,
-            "rerank_rank": 11,
-            "rerank_score": 0.0008982490398921072
+            "rerank_rank": 12,
+            "rerank_score": 0.0008982508443295956
           },
           {
             "episode": 79,
@@ -1036,8 +1045,8 @@
             "match": "related",
             "meaning_rank": 27,
             "similarity": 0.6373261,
-            "rerank_rank": 12,
-            "rerank_score": 0.0008903794223442674
+            "rerank_rank": 13,
+            "rerank_score": 0.0008903789566829801
           },
           {
             "episode": 217,
@@ -1045,17 +1054,8 @@
             "match": "related",
             "meaning_rank": 12,
             "similarity": 0.6569747,
-            "rerank_rank": 14,
-            "rerank_score": 0.0008184361504390836
-          },
-          {
-            "episode": 286,
-            "at": "14:09",
-            "match": "related",
-            "meaning_rank": 35,
-            "similarity": 0.63064927,
             "rerank_rank": 15,
-            "rerank_score": 0.0007946289842948318
+            "rerank_score": 0.0008184373145923018
           }
         ]
       }
@@ -2380,6 +2380,2921 @@
       }
     },
     {
+      "id": "biscuit-recipe-baking",
+      "tag": "negative",
+      "mode": "related",
+      "query": "biscuit recipe baking",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 171 at 58:21 should not be in the top 10 (#3 in related)",
+        "ep 359 at 35:09 should not be in the top 10 (#4 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 24,
+            "at": "53:11",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.64489675,
+            "rerank_rank": 1,
+            "rerank_score": 0.04940906912088394
+          },
+          {
+            "episode": 24,
+            "at": "55:49",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.63209707,
+            "rerank_rank": 2,
+            "rerank_score": 0.03283221647143364
+          },
+          {
+            "episode": 171,
+            "at": "58:21",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.6620712,
+            "rerank_rank": 3,
+            "rerank_score": 0.0038808858953416348
+          },
+          {
+            "episode": 359,
+            "at": "35:09",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.63129497,
+            "rerank_rank": 4,
+            "rerank_score": 0.0037491198163479567
+          }
+        ]
+      }
+    },
+    {
+      "id": "dog-training-tips",
+      "tag": "negative",
+      "mode": "related",
+      "query": "dog training tips",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 558 at 36:42 should not be in the top 10 (#1 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 558,
+            "at": "36:42",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.6404441,
+            "rerank_rank": 1,
+            "rerank_score": 0.8461288213729858
+          },
+          {
+            "episode": 413,
+            "at": "39:28",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.62189806,
+            "rerank_rank": 2,
+            "rerank_score": 0.029667722061276436
+          },
+          {
+            "episode": 611,
+            "at": "12:11",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.62033427,
+            "rerank_rank": 3,
+            "rerank_score": 0.0220797099173069
+          }
+        ]
+      }
+    },
+    {
+      "id": "fishing-lures-and-tackle",
+      "tag": "negative",
+      "mode": "related",
+      "query": "fishing lures and tackle",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 296 at 14:04 should not be in the top 10 (#3 in related)",
+        "ep 616 at 11:52 should not be in the top 10 (#4 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 615,
+            "at": "42:13",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.6359274,
+            "rerank_rank": 1,
+            "rerank_score": 0.20816946029663086
+          },
+          {
+            "episode": 306,
+            "at": "22:54",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.6462131,
+            "rerank_rank": 2,
+            "rerank_score": 0.15675872564315796
+          },
+          {
+            "episode": 296,
+            "at": "14:04",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.62923735,
+            "rerank_rank": 3,
+            "rerank_score": 0.0030693290755152702
+          },
+          {
+            "episode": 616,
+            "at": "11:52",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.629044,
+            "rerank_rank": 5,
+            "rerank_score": 0.00011889517190866172
+          }
+        ]
+      }
+    },
+    {
+      "id": "stock-market-investing",
+      "tag": "negative",
+      "mode": "related",
+      "query": "stock market investing",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 583 at 38:48 should not be in the top 10 (#1 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 583,
+            "at": "38:48",
+            "match": "related",
+            "meaning_rank": 20,
+            "similarity": 0.6201727,
+            "rerank_rank": 1,
+            "rerank_score": 0.05335942655801773
+          },
+          {
+            "episode": 573,
+            "at": "24:31",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.6759219,
+            "rerank_rank": 2,
+            "rerank_score": 0.014406717382371426
+          },
+          {
+            "episode": 509,
+            "at": "43:18",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.66958654,
+            "rerank_rank": 3,
+            "rerank_score": 0.013837557286024094
+          },
+          {
+            "episode": 509,
+            "at": "14:35",
+            "match": "related",
+            "meaning_rank": 18,
+            "similarity": 0.6286505,
+            "rerank_rank": 4,
+            "rerank_score": 0.006525119766592979
+          },
+          {
+            "episode": 509,
+            "at": "31:22",
+            "match": "related",
+            "meaning_rank": 19,
+            "similarity": 0.6221194,
+            "rerank_rank": 6,
+            "rerank_score": 0.0032736777793616056
+          },
+          {
+            "episode": 418,
+            "at": "4:10",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.683052,
+            "rerank_rank": 7,
+            "rerank_score": 0.0025259628891944885
+          },
+          {
+            "episode": 607,
+            "at": "2:59",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.6673736,
+            "rerank_rank": 8,
+            "rerank_score": 0.00242107966914773
+          },
+          {
+            "episode": 418,
+            "at": "32:05",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.65988666,
+            "rerank_rank": 10,
+            "rerank_score": 0.0010656345402821898
+          },
+          {
+            "episode": 418,
+            "at": "29:49",
+            "match": "related",
+            "meaning_rank": 17,
+            "similarity": 0.6310478,
+            "rerank_rank": 12,
+            "rerank_score": 0.0006432587979361415
+          }
+        ]
+      }
+    },
+    {
+      "id": "filing-my-taxes",
+      "tag": "negative",
+      "mode": "related",
+      "query": "filing my taxes",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 182 at 4:46 should not be in the top 10 (#4 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 418,
+            "at": "35:28",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.62382776,
+            "rerank_rank": 1,
+            "rerank_score": 0.018657494336366653
+          },
+          {
+            "episode": 418,
+            "at": "39:03",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.63484615,
+            "rerank_rank": 2,
+            "rerank_score": 0.010820393450558186
+          },
+          {
+            "episode": 257,
+            "at": "9:53",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.6244251,
+            "rerank_rank": 3,
+            "rerank_score": 0.006904563866555691
+          },
+          {
+            "episode": 182,
+            "at": "4:46",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.657255,
+            "rerank_rank": 4,
+            "rerank_score": 0.003388433251529932
+          },
+          {
+            "episode": 257,
+            "at": "7:14",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.6278602,
+            "rerank_rank": 5,
+            "rerank_score": 0.001284420141018927
+          },
+          {
+            "episode": 257,
+            "at": "3:15",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.64238393,
+            "rerank_rank": 6,
+            "rerank_score": 3.7311816413421184e-05
+          }
+        ]
+      }
+    },
+    {
+      "id": "knitting-a-sweater",
+      "tag": "negative",
+      "mode": "related",
+      "query": "knitting a sweater",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 311 at 37:01 should not be in the top 10 (#1 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 311,
+            "at": "37:01",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.66605437,
+            "rerank_rank": 1,
+            "rerank_score": 0.040139246731996536
+          },
+          {
+            "episode": 44,
+            "at": "49:17",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.6540083,
+            "rerank_rank": 2,
+            "rerank_score": 0.014078306034207344
+          },
+          {
+            "episode": 4,
+            "at": "1:05:15",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.6485329,
+            "rerank_rank": 3,
+            "rerank_score": 0.009751218371093273
+          },
+          {
+            "episode": 54,
+            "at": "1:20",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.6755091,
+            "rerank_rank": 5,
+            "rerank_score": 0.005141954403370619
+          },
+          {
+            "episode": 4,
+            "at": "12:21",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.67421126,
+            "rerank_rank": 6,
+            "rerank_score": 0.0032144240103662014
+          },
+          {
+            "episode": 172,
+            "at": "29:13",
+            "match": "related",
+            "meaning_rank": 10,
+            "similarity": 0.64685243,
+            "rerank_rank": 8,
+            "rerank_score": 0.0026514737401157618
+          },
+          {
+            "episode": 266,
+            "at": "6:19",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.6477636,
+            "rerank_rank": 9,
+            "rerank_score": 0.001906781573779881
+          },
+          {
+            "episode": 196,
+            "at": "22:33",
+            "match": "related",
+            "meaning_rank": 15,
+            "similarity": 0.6230035,
+            "rerank_rank": 10,
+            "rerank_score": 0.001333718653768301
+          },
+          {
+            "episode": 458,
+            "at": "23:45",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.64892346,
+            "rerank_rank": 11,
+            "rerank_score": 0.0007548037101514637
+          },
+          {
+            "episode": 463,
+            "at": "46:31",
+            "match": "related",
+            "meaning_rank": 14,
+            "similarity": 0.62393296,
+            "rerank_rank": 12,
+            "rerank_score": 0.0003609406412579119
+          }
+        ]
+      }
+    },
+    {
+      "id": "wedding-planning",
+      "tag": "negative",
+      "mode": "related",
+      "query": "wedding planning",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 311 at 32:05 should not be in the top 10 (#4 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 605,
+            "at": "22:03",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.6305858,
+            "rerank_rank": 1,
+            "rerank_score": 0.325339674949646
+          },
+          {
+            "episode": 573,
+            "at": "27:21",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.6274099,
+            "rerank_rank": 2,
+            "rerank_score": 0.25391754508018494
+          },
+          {
+            "episode": 43,
+            "at": "6:13",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.6283611,
+            "rerank_rank": 3,
+            "rerank_score": 0.08539056032896042
+          },
+          {
+            "episode": 311,
+            "at": "32:05",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.62883866,
+            "rerank_rank": 4,
+            "rerank_score": 9.74618160398677e-05
+          }
+        ]
+      }
+    },
+    {
+      "id": "guitar-chord-progressions",
+      "tag": "negative",
+      "mode": "related",
+      "query": "guitar chord progressions",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 166 at 18:57 should not be in the top 10 (#3 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 595,
+            "at": "26:01",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.6245275,
+            "rerank_rank": 1,
+            "rerank_score": 0.0010200750548392534
+          },
+          {
+            "episode": 458,
+            "at": "27:04",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.6216202,
+            "rerank_rank": 2,
+            "rerank_score": 0.0008681360632181168
+          },
+          {
+            "episode": 166,
+            "at": "18:57",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.6212099,
+            "rerank_rank": 3,
+            "rerank_score": 0.0006139090983197093
+          },
+          {
+            "episode": 458,
+            "at": "31:10",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.6550849,
+            "rerank_rank": 4,
+            "rerank_score": 0.0005582011071965098
+          }
+        ]
+      }
+    },
+    {
+      "id": "video-game-consoles",
+      "tag": "negative",
+      "mode": "related",
+      "query": "video game consoles",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 59 at 40:24 should not be in the top 10 (#2 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 286,
+            "at": "10:21",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.6296595,
+            "rerank_rank": 1,
+            "rerank_score": 0.009524666704237461
+          },
+          {
+            "episode": 59,
+            "at": "40:24",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.62366086,
+            "rerank_rank": 2,
+            "rerank_score": 0.003168600145727396
+          }
+        ]
+      }
+    },
+    {
+      "id": "sewing-machine",
+      "tag": "negative",
+      "mode": "related",
+      "query": "sewing machine",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 597 at 15:22 should not be in the top 10 (#1 in related)",
+        "ep 107 at 22:22 should not be in the top 10 (#2 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 597,
+            "at": "15:22",
+            "match": "related",
+            "meaning_rank": 10,
+            "similarity": 0.62091786,
+            "rerank_rank": 1,
+            "rerank_score": 0.18768011033535004
+          },
+          {
+            "episode": 107,
+            "at": "22:22",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.6477072,
+            "rerank_rank": 2,
+            "rerank_score": 0.17717966437339783
+          },
+          {
+            "episode": 64,
+            "at": "2:15",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.6213151,
+            "rerank_rank": 3,
+            "rerank_score": 0.1343330293893814
+          },
+          {
+            "episode": 311,
+            "at": "37:31",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.63374215,
+            "rerank_rank": 5,
+            "rerank_score": 0.10813086479902267
+          },
+          {
+            "episode": 399,
+            "at": "25:16",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.62520707,
+            "rerank_rank": 7,
+            "rerank_score": 0.04911588877439499
+          },
+          {
+            "episode": 600,
+            "at": "40:31",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.63106334,
+            "rerank_rank": 8,
+            "rerank_score": 0.01271788775920868
+          },
+          {
+            "episode": 616,
+            "at": "25:49",
+            "match": "related",
+            "meaning_rank": 11,
+            "similarity": 0.62072414,
+            "rerank_rank": 9,
+            "rerank_score": 0.00940022338181734
+          },
+          {
+            "episode": 316,
+            "at": "49:49",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.6230777,
+            "rerank_rank": 10,
+            "rerank_score": 0.001534259063191712
+          },
+          {
+            "episode": 4,
+            "at": "36:03",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.6259026,
+            "rerank_rank": 11,
+            "rerank_score": 0.0014848135178908706
+          },
+          {
+            "episode": 611,
+            "at": "1:17:38",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.6212837,
+            "rerank_rank": 12,
+            "rerank_score": 5.0637663662200794e-05
+          }
+        ]
+      }
+    },
+    {
+      "id": "home-brewing-beer",
+      "tag": "negative",
+      "mode": "related",
+      "query": "home brewing beer",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 578 at 18:16 should not be in the top 10 (#1 in related)",
+        "ep 182 at 22:18 should not be in the top 10 (#3 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 578,
+            "at": "18:16",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.65588254,
+            "rerank_rank": 1,
+            "rerank_score": 0.0738900899887085
+          },
+          {
+            "episode": 316,
+            "at": "5:49",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.6424512,
+            "rerank_rank": 2,
+            "rerank_score": 0.03226489573717117
+          },
+          {
+            "episode": 182,
+            "at": "22:18",
+            "match": "related",
+            "meaning_rank": 10,
+            "similarity": 0.6243951,
+            "rerank_rank": 3,
+            "rerank_score": 0.022017773240804672
+          },
+          {
+            "episode": 593,
+            "at": "7:54",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.6745884,
+            "rerank_rank": 5,
+            "rerank_score": 0.01767754554748535
+          },
+          {
+            "episode": 107,
+            "at": "1:00:49",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.6562502,
+            "rerank_rank": 6,
+            "rerank_score": 0.010139754973351955
+          },
+          {
+            "episode": 593,
+            "at": "4:15",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.62687343,
+            "rerank_rank": 8,
+            "rerank_score": 0.0014326702803373337
+          },
+          {
+            "episode": 137,
+            "at": "37:00",
+            "match": "related",
+            "meaning_rank": 13,
+            "similarity": 0.62026054,
+            "rerank_rank": 9,
+            "rerank_score": 0.001145379152148962
+          },
+          {
+            "episode": 328,
+            "at": "8:23",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.6458098,
+            "rerank_rank": 10,
+            "rerank_score": 0.0003191594732925296
+          },
+          {
+            "episode": 503,
+            "at": "26:11",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.62784547,
+            "rerank_rank": 11,
+            "rerank_score": 0.00017337875033263117
+          },
+          {
+            "episode": 44,
+            "at": "34:26",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.63300675,
+            "rerank_rank": 12,
+            "rerank_score": 3.7297017115633935e-05
+          }
+        ]
+      }
+    },
+    {
+      "id": "pottery-wheel",
+      "tag": "negative",
+      "mode": "related",
+      "query": "pottery wheel",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 92 at 9:58 should not be in the top 10 (#3 in related)",
+        "ep 614 at 20:02 should not be in the top 10 (#4 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 196,
+            "at": "45:26",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.65143675,
+            "rerank_rank": 1,
+            "rerank_score": 0.007893175818026066
+          },
+          {
+            "episode": 538,
+            "at": "11:29",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.64509666,
+            "rerank_rank": 2,
+            "rerank_score": 0.0007106984267011285
+          },
+          {
+            "episode": 92,
+            "at": "9:58",
+            "match": "related",
+            "meaning_rank": 12,
+            "similarity": 0.6212576,
+            "rerank_rank": 3,
+            "rerank_score": 0.00045072956709191203
+          },
+          {
+            "episode": 614,
+            "at": "20:02",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.6264348,
+            "rerank_rank": 4,
+            "rerank_score": 0.000236337844398804
+          },
+          {
+            "episode": 142,
+            "at": "2:26",
+            "match": "related",
+            "meaning_rank": 14,
+            "similarity": 0.6207951,
+            "rerank_rank": 5,
+            "rerank_score": 5.960686394246295e-05
+          },
+          {
+            "episode": 344,
+            "at": "5:05",
+            "match": "related",
+            "meaning_rank": 11,
+            "similarity": 0.62224156,
+            "rerank_rank": 6,
+            "rerank_score": 5.565103128901683e-05
+          },
+          {
+            "episode": 291,
+            "at": "7:38",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.6445165,
+            "rerank_rank": 7,
+            "rerank_score": 5.354629684006795e-05
+          },
+          {
+            "episode": 137,
+            "at": "33:42",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.6273744,
+            "rerank_rank": 8,
+            "rerank_score": 4.2941544961649925e-05
+          },
+          {
+            "episode": 211,
+            "at": "15:39",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.6344899,
+            "rerank_rank": 9,
+            "rerank_score": 3.906104393536225e-05
+          },
+          {
+            "episode": 611,
+            "at": "1:11:11",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.63097394,
+            "rerank_rank": 10,
+            "rerank_score": 3.760419713216834e-05
+          }
+        ]
+      }
+    },
+    {
+      "id": "leather-tooling",
+      "tag": "negative",
+      "mode": "related",
+      "query": "leather tooling",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 600 at 40:31 should not be in the top 10 (#1 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 600,
+            "at": "40:31",
+            "match": "related",
+            "meaning_rank": 24,
+            "similarity": 0.6300808,
+            "rerank_rank": 1,
+            "rerank_score": 0.10169178992509842
+          },
+          {
+            "episode": 418,
+            "at": "8:29",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.6779476,
+            "rerank_rank": 2,
+            "rerank_score": 0.028128888458013535
+          },
+          {
+            "episode": 92,
+            "at": "15:22",
+            "match": "related",
+            "meaning_rank": 30,
+            "similarity": 0.6268052,
+            "rerank_rank": 3,
+            "rerank_score": 0.019627215340733528
+          },
+          {
+            "episode": 92,
+            "at": "9:04",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.67561394,
+            "rerank_rank": 4,
+            "rerank_score": 0.011872493661940098
+          },
+          {
+            "episode": 600,
+            "at": "32:08",
+            "match": "related",
+            "meaning_rank": 15,
+            "similarity": 0.6422726,
+            "rerank_rank": 6,
+            "rerank_score": 0.008995463140308857
+          },
+          {
+            "episode": 444,
+            "at": "18:42",
+            "match": "related",
+            "meaning_rank": 12,
+            "similarity": 0.6477417,
+            "rerank_rank": 9,
+            "rerank_score": 0.00196706666611135
+          },
+          {
+            "episode": 296,
+            "at": "10:31",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.6567658,
+            "rerank_rank": 10,
+            "rerank_score": 0.0012601063353940845
+          },
+          {
+            "episode": 64,
+            "at": "1:13:49",
+            "match": "related",
+            "meaning_rank": 33,
+            "similarity": 0.62067854,
+            "rerank_rank": 11,
+            "rerank_score": 0.001061391900293529
+          },
+          {
+            "episode": 85,
+            "at": "1:16:12",
+            "match": "related",
+            "meaning_rank": 18,
+            "similarity": 0.63824534,
+            "rerank_rank": 12,
+            "rerank_score": 0.0009433931554667652
+          },
+          {
+            "episode": 453,
+            "at": "2:55",
+            "match": "related",
+            "meaning_rank": 13,
+            "similarity": 0.6458919,
+            "rerank_rank": 13,
+            "rerank_score": 0.0008386516128666699
+          }
+        ]
+      }
+    },
+    {
+      "id": "hanging-drywall",
+      "tag": "negative",
+      "mode": "related",
+      "query": "hanging drywall",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 458 at 50:42 should not be in the top 10 (#5 in related)",
+        "ep 107 at 26:13 should not be in the top 10 (#3 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 568,
+            "at": "19:44",
+            "match": "related",
+            "meaning_rank": 21,
+            "similarity": 0.6322002,
+            "rerank_rank": 1,
+            "rerank_score": 0.04823444038629532
+          },
+          {
+            "episode": 616,
+            "at": "17:01",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.69032747,
+            "rerank_rank": 2,
+            "rerank_score": 0.037633366882801056
+          },
+          {
+            "episode": 107,
+            "at": "26:13",
+            "match": "related",
+            "meaning_rank": 31,
+            "similarity": 0.626873,
+            "rerank_rank": 3,
+            "rerank_score": 0.027404548600316048
+          },
+          {
+            "episode": 606,
+            "at": "19:27",
+            "match": "related",
+            "meaning_rank": 22,
+            "similarity": 0.63081604,
+            "rerank_rank": 5,
+            "rerank_score": 0.01276490744203329
+          },
+          {
+            "episode": 458,
+            "at": "50:42",
+            "match": "related",
+            "meaning_rank": 15,
+            "similarity": 0.6408381,
+            "rerank_rank": 7,
+            "rerank_score": 0.011258539743721485
+          },
+          {
+            "episode": 107,
+            "at": "31:44",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.6517587,
+            "rerank_rank": 8,
+            "rerank_score": 0.00889300275593996
+          },
+          {
+            "episode": 107,
+            "at": "6:01",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.66547626,
+            "rerank_rank": 10,
+            "rerank_score": 0.006457953248172998
+          },
+          {
+            "episode": 126,
+            "at": "32:58",
+            "match": "related",
+            "meaning_rank": 34,
+            "similarity": 0.62440485,
+            "rerank_rank": 11,
+            "rerank_score": 0.0062389736995100975
+          },
+          {
+            "episode": 301,
+            "at": "27:11",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.6499913,
+            "rerank_rank": 15,
+            "rerank_score": 0.0016103420639410615
+          },
+          {
+            "episode": 24,
+            "at": "28:15",
+            "match": "related",
+            "meaning_rank": 10,
+            "similarity": 0.6477684,
+            "rerank_rank": 16,
+            "rerank_score": 0.001379363820888102
+          }
+        ]
+      }
+    },
+    {
+      "id": "laser-hair-removal",
+      "tag": "negative",
+      "mode": "related",
+      "query": "laser hair removal",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": false,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [
+        "ep 300 at 26:29 should not be in the top 10 (#1 in related)"
+      ],
+      "top": {
+        "related": [
+          {
+            "episode": 300,
+            "at": "26:29",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.62725383
+          }
+        ]
+      }
+    },
+    {
+      "id": "router-wifi-network-setup",
+      "tag": "negative",
+      "mode": "related",
+      "query": "router wifi network setup",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": true,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [],
+      "top": {
+        "related": []
+      }
+    },
+    {
+      "id": "airplane-flight-delays",
+      "tag": "negative",
+      "mode": "related",
+      "query": "airplane flight delays",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": true,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [],
+      "top": {
+        "related": []
+      }
+    },
+    {
+      "id": "bench-press-workout-routine",
+      "tag": "negative",
+      "mode": "related",
+      "query": "bench press workout routine",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": true,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [],
+      "top": {
+        "related": []
+      }
+    },
+    {
+      "id": "sourdough-bread-starter",
+      "tag": "negative",
+      "mode": "related",
+      "query": "sourdough bread starter",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": true,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [],
+      "top": {
+        "related": []
+      }
+    },
+    {
+      "id": "cryptocurrency-mining",
+      "tag": "negative",
+      "mode": "related",
+      "query": "cryptocurrency mining",
+      "recall": null,
+      "rr": null,
+      "ndcg": null,
+      "time_hits": 0,
+      "time_items": 0,
+      "absent_ok": true,
+      "collapse_ok": null,
+      "found_in": {},
+      "failures": [],
+      "top": {
+        "related": []
+      }
+    },
+    {
+      "id": "chatoyance",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "chatoyance",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          429
+        ],
+        "related": []
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 429,
+            "at": "35:40",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 121,
+            "at": "2:52",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.64217716,
+            "rerank_rank": 1,
+            "rerank_score": 0.0005463314009830356
+          },
+          {
+            "episode": 69,
+            "at": "1:01:10",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.633047,
+            "rerank_rank": 2,
+            "rerank_score": 0.0005189579678699374
+          },
+          {
+            "episode": 54,
+            "at": "53:53",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.62576807,
+            "rerank_rank": 3,
+            "rerank_score": 0.00022091261052992195
+          },
+          {
+            "episode": 64,
+            "at": "40:00",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.62882876,
+            "rerank_rank": 4,
+            "rerank_score": 0.00011112212087027729
+          }
+        ]
+      }
+    },
+    {
+      "id": "earlex-sprayer",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "Earlex sprayer",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [],
+        "related": [
+          29
+        ]
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 71,
+            "at": "1:09:49",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 29,
+            "at": "22:55",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.75019944,
+            "rerank_rank": 1,
+            "rerank_score": 0.965777575969696
+          },
+          {
+            "episode": 236,
+            "at": "52:47",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.6648827,
+            "rerank_rank": 2,
+            "rerank_score": 0.9403977990150452
+          },
+          {
+            "episode": 29,
+            "at": "25:04",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.6593366,
+            "rerank_rank": 4,
+            "rerank_score": 0.08453314751386642
+          },
+          {
+            "episode": 191,
+            "at": "40:18",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.6310494,
+            "rerank_rank": 5,
+            "rerank_score": 0.001195521792396903
+          },
+          {
+            "episode": 236,
+            "at": "25:33",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.64333004,
+            "rerank_rank": 7,
+            "rerank_score": 0.0004763730685226619
+          }
+        ]
+      }
+    },
+    {
+      "id": "festool-systainers",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "Festool Systainers",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          613
+        ],
+        "related": []
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 613,
+            "at": "6:12",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 177,
+            "at": "0:33",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.64352953,
+            "rerank_rank": 1,
+            "rerank_score": 0.02282058820128441
+          },
+          {
+            "episode": 137,
+            "at": "1:00",
+            "match": "related",
+            "meaning_rank": 16,
+            "similarity": 0.6215382,
+            "rerank_rank": 2,
+            "rerank_score": 0.016366658732295036
+          },
+          {
+            "episode": 171,
+            "at": "0:34",
+            "match": "related",
+            "meaning_rank": 12,
+            "similarity": 0.62912023,
+            "rerank_rank": 3,
+            "rerank_score": 0.014368335716426373
+          },
+          {
+            "episode": 182,
+            "at": "0:34",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.6782901,
+            "rerank_rank": 4,
+            "rerank_score": 0.011856991797685623
+          },
+          {
+            "episode": 519,
+            "at": "18:05",
+            "match": "related",
+            "meaning_rank": 15,
+            "similarity": 0.6224006,
+            "rerank_rank": 5,
+            "rerank_score": 0.011636755429208279
+          },
+          {
+            "episode": 166,
+            "at": "0:31",
+            "match": "related",
+            "meaning_rank": 14,
+            "similarity": 0.62367016,
+            "rerank_rank": 6,
+            "rerank_score": 0.006383362226188183
+          },
+          {
+            "episode": 548,
+            "at": "18:30",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.6443795,
+            "rerank_rank": 7,
+            "rerank_score": 0.005258781369775534
+          },
+          {
+            "episode": 321,
+            "at": "9:04",
+            "match": "related",
+            "meaning_rank": 11,
+            "similarity": 0.6310223,
+            "rerank_rank": 8,
+            "rerank_score": 0.0048895408399403095
+          },
+          {
+            "episode": 608,
+            "at": "16:33",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.64854467,
+            "rerank_rank": 9,
+            "rerank_score": 0.004723540041595697
+          },
+          {
+            "episode": 563,
+            "at": "27:47",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.65307987,
+            "rerank_rank": 10,
+            "rerank_score": 0.003547076601535082
+          }
+        ]
+      }
+    },
+    {
+      "id": "tormek",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "Tormek",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          92
+        ],
+        "related": []
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 92,
+            "at": "8:41",
+            "match": "keyword"
+          },
+          {
+            "episode": 503,
+            "at": "37:33",
+            "match": "keyword"
+          },
+          {
+            "episode": 597,
+            "at": "57:12",
+            "match": "keyword"
+          },
+          {
+            "episode": 597,
+            "at": "1:00:10",
+            "match": "keyword"
+          },
+          {
+            "episode": 116,
+            "at": "42:20",
+            "match": "keyword"
+          }
+        ],
+        "related": []
+      }
+    },
+    {
+      "id": "spokeshave",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "spokeshave",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          147
+        ],
+        "related": [
+          147
+        ]
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 147,
+            "at": "25:55",
+            "match": "keyword"
+          },
+          {
+            "episode": 301,
+            "at": "44:27",
+            "match": "keyword"
+          },
+          {
+            "episode": 519,
+            "at": "29:30",
+            "match": "keyword"
+          },
+          {
+            "episode": 281,
+            "at": "36:48",
+            "match": "keyword"
+          },
+          {
+            "episode": 147,
+            "at": "0:24",
+            "match": "keyword"
+          },
+          {
+            "episode": 137,
+            "at": "42:50",
+            "match": "keyword"
+          },
+          {
+            "episode": 602,
+            "at": "21:11",
+            "match": "keyword"
+          },
+          {
+            "episode": 206,
+            "at": "41:43",
+            "match": "keyword"
+          },
+          {
+            "episode": 588,
+            "at": "9:57",
+            "match": "keyword"
+          },
+          {
+            "episode": 488,
+            "at": "10:05",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 281,
+            "at": "43:55",
+            "match": "related",
+            "meaning_rank": 18,
+            "similarity": 0.6607499,
+            "rerank_rank": 1,
+            "rerank_score": 0.48574182391166687
+          },
+          {
+            "episode": 147,
+            "at": "28:14",
+            "match": "related",
+            "meaning_rank": 41,
+            "similarity": 0.6294686,
+            "rerank_rank": 2,
+            "rerank_score": 0.43379074335098267
+          },
+          {
+            "episode": 281,
+            "at": "40:10",
+            "match": "related",
+            "meaning_rank": 37,
+            "similarity": 0.6335108,
+            "rerank_rank": 5,
+            "rerank_score": 0.14240406453609467
+          },
+          {
+            "episode": 434,
+            "at": "1:07:05",
+            "match": "related",
+            "meaning_rank": 25,
+            "similarity": 0.64857966,
+            "rerank_rank": 8,
+            "rerank_score": 0.043343961238861084
+          },
+          {
+            "episode": 112,
+            "at": "21:41",
+            "match": "related",
+            "meaning_rank": 15,
+            "similarity": 0.67014664,
+            "rerank_rank": 10,
+            "rerank_score": 0.0007196554215624928
+          },
+          {
+            "episode": 171,
+            "at": "26:08",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.6804651,
+            "rerank_rank": 11,
+            "rerank_score": 0.000647340901196003
+          },
+          {
+            "episode": 71,
+            "at": "1:13:37",
+            "match": "related",
+            "meaning_rank": 30,
+            "similarity": 0.64174604,
+            "rerank_rank": 12,
+            "rerank_score": 0.0004909235867671669
+          },
+          {
+            "episode": 373,
+            "at": "4:11",
+            "match": "related",
+            "meaning_rank": 42,
+            "similarity": 0.62696165,
+            "rerank_rank": 13,
+            "rerank_score": 0.0003615474561229348
+          },
+          {
+            "episode": 172,
+            "at": "30:33",
+            "match": "related",
+            "meaning_rank": 46,
+            "similarity": 0.62007326,
+            "rerank_rank": 14,
+            "rerank_score": 0.0002896219084504992
+          },
+          {
+            "episode": 339,
+            "at": "21:12",
+            "match": "related",
+            "meaning_rank": 14,
+            "similarity": 0.67257077,
+            "rerank_rank": 15,
+            "rerank_score": 0.00027490040520206094
+          }
+        ]
+      }
+    },
+    {
+      "id": "cabinet-scraper-vs-card-scraper",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "cabinet scraper vs card scraper",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [],
+        "related": [
+          488
+        ]
+      },
+      "failures": [],
+      "top": {
+        "exact": [],
+        "related": [
+          {
+            "episode": 488,
+            "at": "9:41",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.8457189,
+            "rerank_rank": 1,
+            "rerank_score": 0.9997071623802185
+          },
+          {
+            "episode": 137,
+            "at": "42:44",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.82393813,
+            "rerank_rank": 4,
+            "rerank_score": 0.9903839826583862
+          },
+          {
+            "episode": 112,
+            "at": "31:17",
+            "match": "related",
+            "meaning_rank": 19,
+            "similarity": 0.72081685,
+            "rerank_rank": 6,
+            "rerank_score": 0.9673993587493896
+          },
+          {
+            "episode": 349,
+            "at": "23:42",
+            "match": "related",
+            "meaning_rank": 16,
+            "similarity": 0.72357434,
+            "rerank_rank": 7,
+            "rerank_score": 0.9540266990661621
+          },
+          {
+            "episode": 137,
+            "at": "46:38",
+            "match": "related",
+            "meaning_rank": 20,
+            "similarity": 0.7201551,
+            "rerank_rank": 11,
+            "rerank_score": 0.8776016235351562
+          },
+          {
+            "episode": 533,
+            "at": "8:30",
+            "match": "related",
+            "meaning_rank": 18,
+            "similarity": 0.7212026,
+            "rerank_rank": 13,
+            "rerank_score": 0.8448551893234253
+          },
+          {
+            "episode": 112,
+            "at": "28:50",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.7651959,
+            "rerank_rank": 14,
+            "rerank_score": 0.8012789487838745
+          },
+          {
+            "episode": 291,
+            "at": "28:38",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.75467485,
+            "rerank_rank": 15,
+            "rerank_score": 0.7724053859710693
+          },
+          {
+            "episode": 488,
+            "at": "12:57",
+            "match": "related",
+            "meaning_rank": 25,
+            "similarity": 0.71146184,
+            "rerank_rank": 16,
+            "rerank_score": 0.7490831017494202
+          },
+          {
+            "episode": 262,
+            "at": "41:00",
+            "match": "related",
+            "meaning_rank": 50,
+            "similarity": 0.6472383,
+            "rerank_rank": 17,
+            "rerank_score": 0.7247781753540039
+          }
+        ]
+      }
+    },
+    {
+      "id": "reversing-hide-glue",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "reversing hide glue",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          466
+        ],
+        "related": [
+          466
+        ]
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 466,
+            "at": "21:02",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 519,
+            "at": "25:13",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.7128814,
+            "rerank_rank": 1,
+            "rerank_score": 0.3914332091808319
+          },
+          {
+            "episode": 196,
+            "at": "1:11:52",
+            "match": "related",
+            "meaning_rank": 14,
+            "similarity": 0.66468716,
+            "rerank_rank": 2,
+            "rerank_score": 0.08971789479255676
+          },
+          {
+            "episode": 429,
+            "at": "52:55",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.6842337,
+            "rerank_rank": 3,
+            "rerank_score": 0.084224633872509
+          },
+          {
+            "episode": 24,
+            "at": "38:52",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.6787634,
+            "rerank_rank": 4,
+            "rerank_score": 0.07781992107629776
+          },
+          {
+            "episode": 466,
+            "at": "20:33",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.66985124,
+            "rerank_rank": 5,
+            "rerank_score": 0.07201726734638214
+          },
+          {
+            "episode": 306,
+            "at": "7:32",
+            "match": "related",
+            "meaning_rank": 15,
+            "similarity": 0.66399044,
+            "rerank_rank": 6,
+            "rerank_score": 0.044388771057128906
+          },
+          {
+            "episode": 616,
+            "at": "31:12",
+            "match": "related",
+            "meaning_rank": 23,
+            "similarity": 0.6515165,
+            "rerank_rank": 7,
+            "rerank_score": 0.04041920229792595
+          },
+          {
+            "episode": 533,
+            "at": "2:28",
+            "match": "related",
+            "meaning_rank": 47,
+            "similarity": 0.621699,
+            "rerank_rank": 11,
+            "rerank_score": 0.024334311485290527
+          },
+          {
+            "episode": 558,
+            "at": "56:30",
+            "match": "related",
+            "meaning_rank": 10,
+            "similarity": 0.668468,
+            "rerank_rank": 18,
+            "rerank_score": 0.0026398494374006987
+          },
+          {
+            "episode": 588,
+            "at": "46:09",
+            "match": "related",
+            "meaning_rank": 44,
+            "similarity": 0.6248322,
+            "rerank_rank": 20,
+            "rerank_score": 0.001662363763898611
+          }
+        ]
+      }
+    },
+    {
+      "id": "japanese-pull-saw",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "Japanese pull saw",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          102
+        ],
+        "related": []
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 102,
+            "at": "47:20",
+            "match": "keyword"
+          },
+          {
+            "episode": 121,
+            "at": "24:48",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 9,
+            "at": "27:22",
+            "match": "related",
+            "meaning_rank": 18,
+            "similarity": 0.6843309,
+            "rerank_rank": 1,
+            "rerank_score": 0.43809133768081665
+          },
+          {
+            "episode": 127,
+            "at": "52:48",
+            "match": "related",
+            "meaning_rank": 22,
+            "similarity": 0.6715069,
+            "rerank_rank": 2,
+            "rerank_score": 0.3533438444137573
+          },
+          {
+            "episode": 121,
+            "at": "24:25",
+            "match": "related",
+            "meaning_rank": 13,
+            "similarity": 0.6897655,
+            "rerank_rank": 4,
+            "rerank_score": 0.27492183446884155
+          },
+          {
+            "episode": 156,
+            "at": "37:24",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.69419646,
+            "rerank_rank": 5,
+            "rerank_score": 0.21945969760417938
+          },
+          {
+            "episode": 608,
+            "at": "40:22",
+            "match": "related",
+            "meaning_rank": 12,
+            "similarity": 0.690471,
+            "rerank_rank": 6,
+            "rerank_score": 0.21309718489646912
+          },
+          {
+            "episode": 75,
+            "at": "19:33",
+            "match": "related",
+            "meaning_rank": 20,
+            "similarity": 0.6726346,
+            "rerank_rank": 7,
+            "rerank_score": 0.20868313312530518
+          },
+          {
+            "episode": 116,
+            "at": "16:13",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.7063744,
+            "rerank_rank": 10,
+            "rerank_score": 0.06401090323925018
+          },
+          {
+            "episode": 316,
+            "at": "39:35",
+            "match": "related",
+            "meaning_rank": 2,
+            "similarity": 0.7263074,
+            "rerank_rank": 11,
+            "rerank_score": 0.04496075212955475
+          },
+          {
+            "episode": 196,
+            "at": "29:35",
+            "match": "related",
+            "meaning_rank": 19,
+            "similarity": 0.6783701,
+            "rerank_rank": 12,
+            "rerank_score": 0.04056316986680031
+          },
+          {
+            "episode": 116,
+            "at": "18:49",
+            "match": "related",
+            "meaning_rank": 27,
+            "similarity": 0.66539717,
+            "rerank_rank": 15,
+            "rerank_score": 0.03572414070367813
+          }
+        ]
+      }
+    },
+    {
+      "id": "kumiko",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "kumiko",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          463
+        ],
+        "related": []
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 463,
+            "at": "28:34",
+            "match": "keyword"
+          }
+        ],
+        "related": []
+      }
+    },
+    {
+      "id": "stickley-arts-and-crafts",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "Stickley arts and crafts joinery",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          479
+        ],
+        "related": []
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 479,
+            "at": "17:55",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 97,
+            "at": "29:20",
+            "match": "related",
+            "meaning_rank": 42,
+            "similarity": 0.62823594,
+            "rerank_rank": 1,
+            "rerank_score": 0.07504449039697647
+          },
+          {
+            "episode": 573,
+            "at": "6:09",
+            "match": "related",
+            "meaning_rank": 34,
+            "similarity": 0.64080507,
+            "rerank_rank": 2,
+            "rerank_score": 0.03038947656750679
+          },
+          {
+            "episode": 601,
+            "at": "18:16",
+            "match": "related",
+            "meaning_rank": 20,
+            "similarity": 0.64898115,
+            "rerank_rank": 3,
+            "rerank_score": 0.019671855494379997
+          },
+          {
+            "episode": 102,
+            "at": "22:02",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.6624585,
+            "rerank_rank": 4,
+            "rerank_score": 0.015136477537453175
+          },
+          {
+            "episode": 286,
+            "at": "23:00",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.6660615,
+            "rerank_rank": 5,
+            "rerank_score": 0.014093523845076561
+          },
+          {
+            "episode": 602,
+            "at": "25:19",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.66501933,
+            "rerank_rank": 6,
+            "rerank_score": 0.01227756030857563
+          },
+          {
+            "episode": 602,
+            "at": "55:28",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.6612538,
+            "rerank_rank": 7,
+            "rerank_score": 0.010491907596588135
+          },
+          {
+            "episode": 613,
+            "at": "37:16",
+            "match": "related",
+            "meaning_rank": 16,
+            "similarity": 0.6538266,
+            "rerank_rank": 8,
+            "rerank_score": 0.0069492291659116745
+          },
+          {
+            "episode": 616,
+            "at": "11:52",
+            "match": "related",
+            "meaning_rank": 14,
+            "similarity": 0.6573334,
+            "rerank_rank": 9,
+            "rerank_score": 0.006790990009903908
+          },
+          {
+            "episode": 573,
+            "at": "26:52",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.67183965,
+            "rerank_rank": 10,
+            "rerank_score": 0.006450543645769358
+          }
+        ]
+      }
+    },
+    {
+      "id": "lie-nielsen-dovetail-saw",
+      "tag": "jargon",
+      "mode": "both",
+      "query": "Lie-Nielsen dovetail saw",
+      "recall": 1.0,
+      "rr": 0.5,
+      "ndcg": 0.6052602440527057,
+      "time_hits": 2,
+      "time_items": 2,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          121,
+          71
+        ],
+        "related": [
+          121
+        ]
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 87,
+            "at": "7:10",
+            "match": "keyword"
+          },
+          {
+            "episode": 121,
+            "at": "23:37",
+            "match": "keyword"
+          },
+          {
+            "episode": 156,
+            "at": "46:50",
+            "match": "keyword"
+          },
+          {
+            "episode": 116,
+            "at": "16:34",
+            "match": "keyword"
+          },
+          {
+            "episode": 156,
+            "at": "51:11",
+            "match": "keyword"
+          },
+          {
+            "episode": 71,
+            "at": "37:52",
+            "match": "keyword"
+          },
+          {
+            "episode": 156,
+            "at": "49:09",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 102,
+            "at": "28:24",
+            "match": "related",
+            "meaning_rank": 14,
+            "similarity": 0.7176663,
+            "rerank_rank": 1,
+            "rerank_score": 0.9800533652305603
+          },
+          {
+            "episode": 116,
+            "at": "16:42",
+            "match": "related",
+            "meaning_rank": 7,
+            "similarity": 0.75026435,
+            "rerank_rank": 2,
+            "rerank_score": 0.8853231072425842
+          },
+          {
+            "episode": 116,
+            "at": "19:09",
+            "match": "related",
+            "meaning_rank": 12,
+            "similarity": 0.7200951,
+            "rerank_rank": 3,
+            "rerank_score": 0.4824317395687103
+          },
+          {
+            "episode": 121,
+            "at": "24:46",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.73282415,
+            "rerank_rank": 4,
+            "rerank_score": 0.4574386179447174
+          },
+          {
+            "episode": 156,
+            "at": "47:11",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.7261721,
+            "rerank_rank": 5,
+            "rerank_score": 0.44508036971092224
+          },
+          {
+            "episode": 112,
+            "at": "49:30",
+            "match": "related",
+            "meaning_rank": 16,
+            "similarity": 0.7149931,
+            "rerank_rank": 10,
+            "rerank_score": 0.11622722446918488
+          },
+          {
+            "episode": 607,
+            "at": "11:50",
+            "match": "related",
+            "meaning_rank": 49,
+            "similarity": 0.6717068,
+            "rerank_rank": 12,
+            "rerank_score": 0.02854149416089058
+          },
+          {
+            "episode": 568,
+            "at": "51:08",
+            "match": "related",
+            "meaning_rank": 27,
+            "similarity": 0.69369704,
+            "rerank_rank": 13,
+            "rerank_score": 0.019240515306591988
+          },
+          {
+            "episode": 563,
+            "at": "10:47",
+            "match": "related",
+            "meaning_rank": 18,
+            "similarity": 0.71231234,
+            "rerank_rank": 14,
+            "rerank_score": 0.016615547239780426
+          },
+          {
+            "episode": 9,
+            "at": "27:22",
+            "match": "related",
+            "meaning_rank": 41,
+            "similarity": 0.68348914,
+            "rerank_rank": 15,
+            "rerank_score": 0.01103611383587122
+          }
+        ]
+      }
+    },
+    {
+      "id": "cross-cut-sled",
+      "tag": "exact",
+      "mode": "both",
+      "query": "cross cut sled shoulders",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          474
+        ],
+        "related": [
+          474
+        ]
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 474,
+            "at": "11:20",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 266,
+            "at": "28:58",
+            "match": "related",
+            "meaning_rank": 11,
+            "similarity": 0.68424815,
+            "rerank_rank": 1,
+            "rerank_score": 0.7669744491577148
+          },
+          {
+            "episode": 474,
+            "at": "10:45",
+            "match": "related",
+            "meaning_rank": 19,
+            "similarity": 0.6759207,
+            "rerank_rank": 2,
+            "rerank_score": 0.7310967445373535
+          },
+          {
+            "episode": 161,
+            "at": "18:23",
+            "match": "related",
+            "meaning_rank": 16,
+            "similarity": 0.67744476,
+            "rerank_rank": 3,
+            "rerank_score": 0.5260438323020935
+          },
+          {
+            "episode": 4,
+            "at": "27:08",
+            "match": "related",
+            "meaning_rank": 20,
+            "similarity": 0.6735749,
+            "rerank_rank": 4,
+            "rerank_score": 0.5182918906211853
+          },
+          {
+            "episode": 593,
+            "at": "49:10",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.6858695,
+            "rerank_rank": 5,
+            "rerank_score": 0.4974808692932129
+          },
+          {
+            "episode": 301,
+            "at": "41:55",
+            "match": "related",
+            "meaning_rank": 13,
+            "similarity": 0.6807289,
+            "rerank_rank": 6,
+            "rerank_score": 0.49606674909591675
+          },
+          {
+            "episode": 349,
+            "at": "18:11",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.70105183,
+            "rerank_rank": 7,
+            "rerank_score": 0.47770240902900696
+          },
+          {
+            "episode": 161,
+            "at": "28:54",
+            "match": "related",
+            "meaning_rank": 12,
+            "similarity": 0.6839878,
+            "rerank_rank": 8,
+            "rerank_score": 0.446668416261673
+          },
+          {
+            "episode": 474,
+            "at": "17:56",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.70773625,
+            "rerank_rank": 10,
+            "rerank_score": 0.365875780582428
+          },
+          {
+            "episode": 177,
+            "at": "55:38",
+            "match": "related",
+            "meaning_rank": 44,
+            "similarity": 0.63917714,
+            "rerank_rank": 11,
+            "rerank_score": 0.3503414988517761
+          }
+        ]
+      }
+    },
+    {
+      "id": "well-executed-dovetail",
+      "tag": "exact",
+      "mode": "both",
+      "query": "well-executed dovetail",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          573
+        ],
+        "related": []
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 573,
+            "at": "3:53",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 316,
+            "at": "31:30",
+            "match": "related",
+            "meaning_rank": 31,
+            "similarity": 0.69014037,
+            "rerank_rank": 1,
+            "rerank_score": 0.2814767062664032
+          },
+          {
+            "episode": 448,
+            "at": "1:02:46",
+            "match": "related",
+            "meaning_rank": 38,
+            "similarity": 0.68119484,
+            "rerank_rank": 2,
+            "rerank_score": 0.23901624977588654
+          },
+          {
+            "episode": 300,
+            "at": "24:05",
+            "match": "related",
+            "meaning_rank": 43,
+            "similarity": 0.6759647,
+            "rerank_rank": 3,
+            "rerank_score": 0.23173032701015472
+          },
+          {
+            "episode": 75,
+            "at": "34:08",
+            "match": "related",
+            "meaning_rank": 18,
+            "similarity": 0.6977578,
+            "rerank_rank": 4,
+            "rerank_score": 0.16514572501182556
+          },
+          {
+            "episode": 607,
+            "at": "10:22",
+            "match": "related",
+            "meaning_rank": 33,
+            "similarity": 0.6881899,
+            "rerank_rank": 5,
+            "rerank_score": 0.1095440611243248
+          },
+          {
+            "episode": 300,
+            "at": "18:19",
+            "match": "related",
+            "meaning_rank": 11,
+            "similarity": 0.7013342,
+            "rerank_rank": 6,
+            "rerank_score": 0.10512372106313705
+          },
+          {
+            "episode": 439,
+            "at": "44:46",
+            "match": "related",
+            "meaning_rank": 44,
+            "similarity": 0.6756312,
+            "rerank_rank": 7,
+            "rerank_score": 0.1029873713850975
+          },
+          {
+            "episode": 9,
+            "at": "25:59",
+            "match": "related",
+            "meaning_rank": 45,
+            "similarity": 0.6753878,
+            "rerank_rank": 8,
+            "rerank_score": 0.09419000893831253
+          },
+          {
+            "episode": 514,
+            "at": "40:49",
+            "match": "related",
+            "meaning_rank": 8,
+            "similarity": 0.703542,
+            "rerank_rank": 9,
+            "rerank_score": 0.07607557624578476
+          },
+          {
+            "episode": 142,
+            "at": "10:29",
+            "match": "related",
+            "meaning_rank": 29,
+            "similarity": 0.69063723,
+            "rerank_rank": 10,
+            "rerank_score": 0.0719122365117073
+          }
+        ]
+      }
+    },
+    {
+      "id": "anemometer-dust-collector",
+      "tag": "exact",
+      "mode": "both",
+      "query": "anemometer 190 CFM dust collector",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [
+          578
+        ],
+        "related": [
+          578
+        ]
+      },
+      "failures": [],
+      "top": {
+        "exact": [
+          {
+            "episode": 578,
+            "at": "36:17",
+            "match": "keyword"
+          }
+        ],
+        "related": [
+          {
+            "episode": 578,
+            "at": "35:55",
+            "match": "related",
+            "meaning_rank": 4,
+            "similarity": 0.72307456,
+            "rerank_rank": 1,
+            "rerank_score": 0.21799637377262115
+          },
+          {
+            "episode": 488,
+            "at": "13:55",
+            "match": "related",
+            "meaning_rank": 18,
+            "similarity": 0.6796813,
+            "rerank_rank": 2,
+            "rerank_score": 0.14701829850673676
+          },
+          {
+            "episode": 246,
+            "at": "32:07",
+            "match": "related",
+            "meaning_rank": 6,
+            "similarity": 0.7119126,
+            "rerank_rank": 3,
+            "rerank_score": 0.11370312422513962
+          },
+          {
+            "episode": 488,
+            "at": "17:03",
+            "match": "related",
+            "meaning_rank": 11,
+            "similarity": 0.695504,
+            "rerank_rank": 4,
+            "rerank_score": 0.09394465386867523
+          },
+          {
+            "episode": 69,
+            "at": "42:32",
+            "match": "related",
+            "meaning_rank": 22,
+            "similarity": 0.6723927,
+            "rerank_rank": 5,
+            "rerank_score": 0.03420190140604973
+          },
+          {
+            "episode": 614,
+            "at": "40:01",
+            "match": "related",
+            "meaning_rank": 19,
+            "similarity": 0.67923003,
+            "rerank_rank": 7,
+            "rerank_score": 0.02022532746195793
+          },
+          {
+            "episode": 187,
+            "at": "15:44",
+            "match": "related",
+            "meaning_rank": 5,
+            "similarity": 0.7169292,
+            "rerank_rank": 8,
+            "rerank_score": 0.020176837220788002
+          },
+          {
+            "episode": 614,
+            "at": "24:18",
+            "match": "related",
+            "meaning_rank": 23,
+            "similarity": 0.6717226,
+            "rerank_rank": 9,
+            "rerank_score": 0.018680425360798836
+          },
+          {
+            "episode": 187,
+            "at": "19:53",
+            "match": "related",
+            "meaning_rank": 47,
+            "similarity": 0.6329071,
+            "rerank_rank": 13,
+            "rerank_score": 0.012085648253560066
+          },
+          {
+            "episode": 69,
+            "at": "44:35",
+            "match": "related",
+            "meaning_rank": 9,
+            "similarity": 0.70066917,
+            "rerank_rank": 14,
+            "rerank_score": 0.008401867002248764
+          }
+        ]
+      }
+    },
+    {
+      "id": "shop-vac-dust-collection",
+      "tag": "paraphrase",
+      "mode": "both",
+      "query": "dust collector that is just a giant vacuum cleaner",
+      "recall": 1.0,
+      "rr": 1.0,
+      "ndcg": 1.0,
+      "time_hits": 1,
+      "time_items": 1,
+      "absent_ok": null,
+      "collapse_ok": null,
+      "found_in": {
+        "exact": [],
+        "related": [
+          578
+        ]
+      },
+      "failures": [],
+      "top": {
+        "exact": [],
+        "related": [
+          {
+            "episode": 578,
+            "at": "36:39",
+            "match": "related",
+            "meaning_rank": 23,
+            "similarity": 0.7007416,
+            "rerank_rank": 1,
+            "rerank_score": 0.9829811453819275
+          },
+          {
+            "episode": 24,
+            "at": "25:01",
+            "match": "related",
+            "meaning_rank": 3,
+            "similarity": 0.7375108,
+            "rerank_rank": 2,
+            "rerank_score": 0.6879856586456299
+          },
+          {
+            "episode": 187,
+            "at": "31:21",
+            "match": "related",
+            "meaning_rank": 15,
+            "similarity": 0.71694994,
+            "rerank_rank": 4,
+            "rerank_score": 0.39253345131874084
+          },
+          {
+            "episode": 187,
+            "at": "23:51",
+            "match": "related",
+            "meaning_rank": 20,
+            "similarity": 0.702357,
+            "rerank_rank": 5,
+            "rerank_score": 0.3542783856391907
+          },
+          {
+            "episode": 488,
+            "at": "13:55",
+            "match": "related",
+            "meaning_rank": 21,
+            "similarity": 0.70222306,
+            "rerank_rank": 6,
+            "rerank_score": 0.26992830634117126
+          },
+          {
+            "episode": 187,
+            "at": "26:37",
+            "match": "related",
+            "meaning_rank": 12,
+            "similarity": 0.719856,
+            "rerank_rank": 8,
+            "rerank_score": 0.15290167927742004
+          },
+          {
+            "episode": 488,
+            "at": "18:44",
+            "match": "related",
+            "meaning_rank": 14,
+            "similarity": 0.7185244,
+            "rerank_rank": 10,
+            "rerank_score": 0.11014346033334732
+          },
+          {
+            "episode": 328,
+            "at": "14:28",
+            "match": "related",
+            "meaning_rank": 1,
+            "similarity": 0.7506748,
+            "rerank_rank": 11,
+            "rerank_score": 0.07311007380485535
+          },
+          {
+            "episode": 246,
+            "at": "31:42",
+            "match": "related",
+            "meaning_rank": 16,
+            "similarity": 0.71321017,
+            "rerank_rank": 12,
+            "rerank_score": 0.06369044631719589
+          },
+          {
+            "episode": 126,
+            "at": "38:06",
+            "match": "related",
+            "meaning_rank": 48,
+            "similarity": 0.67260987,
+            "rerank_rank": 14,
+            "rerank_score": 0.05524812266230583
+          }
+        ]
+      }
+    },
+    {
       "id": "syn-001-2915",
       "tag": "exact",
       "mode": "both",
@@ -2564,7 +5479,7 @@
             "episode": 613,
             "at": "43:15",
             "match": "related",
-            "meaning_rank": 35,
+            "meaning_rank": 36,
             "similarity": 0.70277977,
             "rerank_rank": 8,
             "rerank_score": 0.42289242148399353
@@ -5869,7 +8784,7 @@
             "episode": 147,
             "at": "22:58",
             "match": "related",
-            "meaning_rank": 39,
+            "meaning_rank": 38,
             "similarity": 0.70443606,
             "rerank_rank": 3,
             "rerank_score": 0.21542313694953918
@@ -5914,7 +8829,7 @@
             "episode": 102,
             "at": "44:24",
             "match": "related",
-            "meaning_rank": 44,
+            "meaning_rank": 43,
             "similarity": 0.6990055,
             "rerank_rank": 10,
             "rerank_score": 0.06600965559482574
@@ -7556,7 +10471,7 @@
             "episode": 137,
             "at": "1:07:41",
             "match": "related",
-            "meaning_rank": 8,
+            "meaning_rank": 9,
             "similarity": 0.64742345,
             "rerank_rank": 1,
             "rerank_score": 0.7309780716896057
@@ -7565,7 +10480,7 @@
             "episode": 147,
             "at": "48:16",
             "match": "related",
-            "meaning_rank": 15,
+            "meaning_rank": 16,
             "similarity": 0.6398027,
             "rerank_rank": 2,
             "rerank_score": 0.3288457989692688
@@ -7574,7 +10489,7 @@
             "episode": 182,
             "at": "0:34",
             "match": "related",
-            "meaning_rank": 14,
+            "meaning_rank": 15,
             "similarity": 0.63980913,
             "rerank_rank": 3,
             "rerank_score": 0.07032166421413422
@@ -7592,7 +10507,7 @@
             "episode": 171,
             "at": "1:04",
             "match": "related",
-            "meaning_rank": 6,
+            "meaning_rank": 7,
             "similarity": 0.6495312,
             "rerank_rank": 5,
             "rerank_score": 0.012759859673678875
@@ -7601,7 +10516,7 @@
             "episode": 127,
             "at": "1:00:39",
             "match": "related",
-            "meaning_rank": 12,
+            "meaning_rank": 13,
             "similarity": 0.64098537,
             "rerank_rank": 6,
             "rerank_score": 0.0027032503858208656
@@ -7610,7 +10525,7 @@
             "episode": 151,
             "at": "54:46",
             "match": "related",
-            "meaning_rank": 7,
+            "meaning_rank": 8,
             "similarity": 0.6476423,
             "rerank_rank": 7,
             "rerank_score": 0.0026622568257153034
@@ -7619,7 +10534,7 @@
             "episode": 126,
             "at": "1:04:24",
             "match": "related",
-            "meaning_rank": 9,
+            "meaning_rank": 10,
             "similarity": 0.6458232,
             "rerank_rank": 8,
             "rerank_score": 0.00208933069370687
@@ -7628,7 +10543,7 @@
             "episode": 281,
             "at": "0:31",
             "match": "related",
-            "meaning_rank": 22,
+            "meaning_rank": 23,
             "similarity": 0.631267,
             "rerank_rank": 9,
             "rerank_score": 0.001672457903623581
@@ -7637,7 +10552,7 @@
             "episode": 296,
             "at": "1:27",
             "match": "related",
-            "meaning_rank": 23,
+            "meaning_rank": 24,
             "similarity": 0.63106173,
             "rerank_rank": 10,
             "rerank_score": 0.0016125214751809835
@@ -9263,7 +12178,7 @@
             "episode": 127,
             "at": "2:50",
             "match": "related",
-            "meaning_rank": 10,
+            "meaning_rank": 9,
             "similarity": 0.6501463,
             "rerank_rank": 14,
             "rerank_score": 0.0019237457308918238
@@ -9612,22 +12527,22 @@
             "rerank_score": 0.0004191123880445957
           },
           {
+            "episode": 458,
+            "at": "1:12:18",
+            "match": "related",
+            "meaning_rank": 24,
+            "similarity": 0.62060493,
+            "rerank_rank": 11,
+            "rerank_score": 0.0003444738395046443
+          },
+          {
             "episode": 69,
             "at": "39:25",
             "match": "related",
             "meaning_rank": 17,
             "similarity": 0.63183284,
-            "rerank_rank": 11,
+            "rerank_rank": 12,
             "rerank_score": 0.00013709346239920706
-          },
-          {
-            "episode": 612,
-            "at": "45:00",
-            "match": "related",
-            "meaning_rank": 10,
-            "similarity": 0.640338,
-            "rerank_rank": 13,
-            "rerank_score": 0.00010730166104622185
           }
         ]
       }
@@ -9802,7 +12717,7 @@
             "episode": 538,
             "at": "4:19",
             "match": "related",
-            "meaning_rank": 31,
+            "meaning_rank": 30,
             "similarity": 0.65921813,
             "rerank_rank": 9,
             "rerank_score": 0.01804695837199688
@@ -9835,13 +12750,13 @@
             "rerank_score": 0.005456163082271814
           },
           {
-            "episode": 34,
-            "at": "13:16",
+            "episode": 578,
+            "at": "36:39",
             "match": "related",
-            "meaning_rank": 42,
-            "similarity": 0.64702344,
-            "rerank_rank": 16,
-            "rerank_score": 0.004295235965400934
+            "meaning_rank": 31,
+            "similarity": 0.6581673,
+            "rerank_rank": 14,
+            "rerank_score": 0.005410721991211176
           }
         ]
       }
@@ -13292,9 +16207,9 @@
             "at": "36:39",
             "match": "related",
             "meaning_rank": 3,
-            "similarity": 0.7121113,
-            "rerank_rank": 6,
-            "rerank_score": 0.3774137496948242
+            "similarity": 0.7133334,
+            "rerank_rank": 5,
+            "rerank_score": 0.3897098898887634
           },
           {
             "episode": 578,
@@ -13378,7 +16293,7 @@
             "episode": 404,
             "at": "0:33",
             "match": "related",
-            "meaning_rank": 30,
+            "meaning_rank": 32,
             "similarity": 0.6653085,
             "rerank_rank": 1,
             "rerank_score": 0.8505222201347351
@@ -13405,10 +16320,10 @@
             "episode": 344,
             "at": "0:33",
             "match": "related",
-            "meaning_rank": 35,
-            "similarity": 0.66186553,
+            "meaning_rank": 25,
+            "similarity": 0.6693018,
             "rerank_rank": 5,
-            "rerank_score": 0.4359697997570038
+            "rerank_score": 0.42136022448539734
           },
           {
             "episode": 384,
@@ -13432,7 +16347,7 @@
             "episode": 354,
             "at": "5:05",
             "match": "related",
-            "meaning_rank": 25,
+            "meaning_rank": 26,
             "similarity": 0.6691203,
             "rerank_rank": 8,
             "rerank_score": 0.09050673991441727
@@ -13776,19 +16691,10 @@
             "episode": 339,
             "at": "41:12",
             "match": "related",
-            "meaning_rank": 30,
+            "meaning_rank": 31,
             "similarity": 0.6763383,
             "rerank_rank": 1,
             "rerank_score": 0.8835791945457458
-          },
-          {
-            "episode": 578,
-            "at": "39:55",
-            "match": "related",
-            "meaning_rank": 32,
-            "similarity": 0.6760361,
-            "rerank_rank": 2,
-            "rerank_score": 0.3672593832015991
           },
           {
             "episode": 296,
@@ -13796,14 +16702,23 @@
             "match": "related",
             "meaning_rank": 34,
             "similarity": 0.6757026,
-            "rerank_rank": 3,
+            "rerank_rank": 2,
             "rerank_score": 0.1447531282901764
+          },
+          {
+            "episode": 578,
+            "at": "39:43",
+            "match": "related",
+            "meaning_rank": 28,
+            "similarity": 0.6781912,
+            "rerank_rank": 3,
+            "rerank_score": 0.1418001800775528
           },
           {
             "episode": 469,
             "at": "7:26",
             "match": "related",
-            "meaning_rank": 28,
+            "meaning_rank": 29,
             "similarity": 0.6771255,
             "rerank_rank": 4,
             "rerank_score": 0.12875954806804657
@@ -14009,7 +16924,16 @@
             "meaning_rank": 1,
             "similarity": 0.70974433,
             "rerank_rank": 1,
-            "rerank_score": 0.4665900468826294
+            "rerank_score": 0.4665903151035309
+          },
+          {
+            "episode": 311,
+            "at": "17:07",
+            "match": "related",
+            "meaning_rank": 34,
+            "similarity": 0.6282501,
+            "rerank_rank": 2,
+            "rerank_score": 0.037163134664297104
           },
           {
             "episode": 483,
@@ -14017,17 +16941,17 @@
             "match": "related",
             "meaning_rank": 29,
             "similarity": 0.63419926,
-            "rerank_rank": 2,
+            "rerank_rank": 3,
             "rerank_score": 0.023516470566391945
           },
           {
             "episode": 59,
             "at": "26:12",
             "match": "related",
-            "meaning_rank": 41,
+            "meaning_rank": 42,
             "similarity": 0.62508285,
-            "rerank_rank": 3,
-            "rerank_score": 0.02308771386742592
+            "rerank_rank": 4,
+            "rerank_score": 0.02308770641684532
           },
           {
             "episode": 603,
@@ -14035,8 +16959,8 @@
             "match": "related",
             "meaning_rank": 9,
             "similarity": 0.6549572,
-            "rerank_rank": 5,
-            "rerank_score": 0.02230062708258629
+            "rerank_rank": 6,
+            "rerank_score": 0.022300565615296364
           },
           {
             "episode": 605,
@@ -14044,8 +16968,8 @@
             "match": "related",
             "meaning_rank": 4,
             "similarity": 0.67210513,
-            "rerank_rank": 6,
-            "rerank_score": 0.020943552255630493
+            "rerank_rank": 7,
+            "rerank_score": 0.020943600684404373
           },
           {
             "episode": 616,
@@ -14053,7 +16977,7 @@
             "match": "related",
             "meaning_rank": 10,
             "similarity": 0.6517599,
-            "rerank_rank": 8,
+            "rerank_rank": 9,
             "rerank_score": 0.017464056611061096
           },
           {
@@ -14062,8 +16986,8 @@
             "match": "related",
             "meaning_rank": 2,
             "similarity": 0.67736065,
-            "rerank_rank": 9,
-            "rerank_score": 0.010131909511983395
+            "rerank_rank": 10,
+            "rerank_score": 0.010131913237273693
           },
           {
             "episode": 49,
@@ -14071,8 +16995,8 @@
             "match": "related",
             "meaning_rank": 3,
             "similarity": 0.6744506,
-            "rerank_rank": 10,
-            "rerank_score": 0.009807190857827663
+            "rerank_rank": 11,
+            "rerank_score": 0.009807214140892029
           },
           {
             "episode": 306,
@@ -14080,17 +17004,8 @@
             "match": "related",
             "meaning_rank": 5,
             "similarity": 0.66499525,
-            "rerank_rank": 11,
-            "rerank_score": 0.004464663099497557
-          },
-          {
-            "episode": 116,
-            "at": "8:18",
-            "match": "related",
-            "meaning_rank": 25,
-            "similarity": 0.6401298,
             "rerank_rank": 12,
-            "rerank_score": 0.0036382745020091534
+            "rerank_score": 0.004464682191610336
           }
         ]
       }
@@ -14375,7 +17290,7 @@
             "episode": 474,
             "at": "47:17",
             "match": "related",
-            "meaning_rank": 6,
+            "meaning_rank": 5,
             "similarity": 0.6988743,
             "rerank_rank": 3,
             "rerank_score": 0.03319239243865013
@@ -14393,7 +17308,7 @@
             "episode": 156,
             "at": "21:50",
             "match": "related",
-            "meaning_rank": 14,
+            "meaning_rank": 13,
             "similarity": 0.6813087,
             "rerank_rank": 5,
             "rerank_score": 0.02974613569676876
@@ -14420,7 +17335,7 @@
             "episode": 222,
             "at": "28:24",
             "match": "related",
-            "meaning_rank": 15,
+            "meaning_rank": 14,
             "similarity": 0.6807938,
             "rerank_rank": 9,
             "rerank_score": 0.010771180503070354
@@ -15531,7 +18446,7 @@
             "episode": 286,
             "at": "26:56",
             "match": "related",
-            "meaning_rank": 28,
+            "meaning_rank": 29,
             "similarity": 0.6640402,
             "rerank_rank": 4,
             "rerank_score": 0.012319663539528847
@@ -15549,7 +18464,7 @@
             "episode": 588,
             "at": "14:54",
             "match": "related",
-            "meaning_rank": 40,
+            "meaning_rank": 41,
             "similarity": 0.6570548,
             "rerank_rank": 6,
             "rerank_score": 0.007573057897388935
@@ -15585,7 +18500,7 @@
             "episode": 262,
             "at": "38:50",
             "match": "related",
-            "meaning_rank": 24,
+            "meaning_rank": 25,
             "similarity": 0.66759753,
             "rerank_rank": 10,
             "rerank_score": 0.0036776894703507423
@@ -16531,7 +19446,7 @@
             "episode": 611,
             "at": "54:45",
             "match": "related",
-            "meaning_rank": 29,
+            "meaning_rank": 30,
             "similarity": 0.66817063,
             "rerank_rank": 4,
             "rerank_score": 0.026770424097776413
@@ -16540,7 +19455,7 @@
             "episode": 422,
             "at": "16:53",
             "match": "related",
-            "meaning_rank": 41,
+            "meaning_rank": 42,
             "similarity": 0.65958583,
             "rerank_rank": 5,
             "rerank_score": 0.01856997050344944
@@ -17250,7 +20165,7 @@
             "episode": 43,
             "at": "23:11",
             "match": "related",
-            "meaning_rank": 32,
+            "meaning_rank": 31,
             "similarity": 0.6304381,
             "rerank_rank": 6,
             "rerank_score": 0.0020015465561300516
@@ -17259,7 +20174,7 @@
             "episode": 256,
             "at": "44:01",
             "match": "related",
-            "meaning_rank": 28,
+            "meaning_rank": 27,
             "similarity": 0.63560784,
             "rerank_rank": 7,
             "rerank_score": 0.0013445222284644842
@@ -17268,7 +20183,7 @@
             "episode": 533,
             "at": "4:16",
             "match": "related",
-            "meaning_rank": 35,
+            "meaning_rank": 34,
             "similarity": 0.62888354,
             "rerank_rank": 8,
             "rerank_score": 0.001135718310251832
@@ -17277,7 +20192,7 @@
             "episode": 296,
             "at": "56:53",
             "match": "related",
-            "meaning_rank": 29,
+            "meaning_rank": 28,
             "similarity": 0.6326224,
             "rerank_rank": 10,
             "rerank_score": 0.0007308598724193871
@@ -19239,7 +22154,7 @@
             "episode": 603,
             "at": "10:18",
             "match": "related",
-            "meaning_rank": 26,
+            "meaning_rank": 27,
             "similarity": 0.65870327,
             "rerank_rank": 8,
             "rerank_score": 0.033295467495918274
@@ -19854,7 +22769,7 @@
             "episode": 493,
             "at": "43:38",
             "match": "related",
-            "meaning_rank": 28,
+            "meaning_rank": 29,
             "similarity": 0.6702488,
             "rerank_rank": 5,
             "rerank_score": 0.006198304705321789
@@ -19890,7 +22805,7 @@
             "episode": 614,
             "at": "16:57",
             "match": "related",
-            "meaning_rank": 15,
+            "meaning_rank": 16,
             "similarity": 0.68485624,
             "rerank_rank": 9,
             "rerank_score": 0.002556748688220978
@@ -19899,7 +22814,7 @@
             "episode": 609,
             "at": "6:32",
             "match": "related",
-            "meaning_rank": 27,
+            "meaning_rank": 28,
             "similarity": 0.67118233,
             "rerank_rank": 10,
             "rerank_score": 0.0018369121244177222
@@ -21267,7 +24182,7 @@
             "episode": 339,
             "at": "43:54",
             "match": "related",
-            "meaning_rank": 27,
+            "meaning_rank": 26,
             "similarity": 0.7071355,
             "rerank_rank": 1,
             "rerank_score": 0.061641693115234375
@@ -21285,7 +24200,7 @@
             "episode": 281,
             "at": "23:40",
             "match": "related",
-            "meaning_rank": 26,
+            "meaning_rank": 25,
             "similarity": 0.7090083,
             "rerank_rank": 3,
             "rerank_score": 0.039740998297929764
@@ -21318,40 +24233,40 @@
             "rerank_score": 0.021677721291780472
           },
           {
+            "episode": 418,
+            "at": "14:27",
+            "match": "related",
+            "meaning_rank": 27,
+            "similarity": 0.7070631,
+            "rerank_rank": 9,
+            "rerank_score": 0.019704358652234077
+          },
+          {
             "episode": 609,
             "at": "3:18",
             "match": "related",
             "meaning_rank": 2,
             "similarity": 0.75778085,
-            "rerank_rank": 9,
+            "rerank_rank": 10,
             "rerank_score": 0.01309066079556942
           },
           {
             "episode": 344,
             "at": "6:25",
             "match": "related",
-            "meaning_rank": 24,
+            "meaning_rank": 23,
             "similarity": 0.70953053,
-            "rerank_rank": 10,
+            "rerank_rank": 11,
             "rerank_score": 0.011837820522487164
           },
           {
             "episode": 503,
             "at": "32:45",
             "match": "related",
-            "meaning_rank": 23,
+            "meaning_rank": 22,
             "similarity": 0.7099249,
-            "rerank_rank": 11,
-            "rerank_score": 0.011655602604150772
-          },
-          {
-            "episode": 418,
-            "at": "14:27",
-            "match": "related",
-            "meaning_rank": 19,
-            "similarity": 0.7116004,
             "rerank_rank": 12,
-            "rerank_score": 0.01115706842392683
+            "rerank_score": 0.011655602604150772
           }
         ]
       }
@@ -21500,7 +24415,7 @@
             "meaning_rank": 1,
             "similarity": 0.72390056,
             "rerank_rank": 1,
-            "rerank_score": 0.6179878115653992
+            "rerank_score": 0.6179882884025574
           },
           {
             "episode": 578,
@@ -21509,7 +24424,7 @@
             "meaning_rank": 30,
             "similarity": 0.6284165,
             "rerank_rank": 2,
-            "rerank_score": 0.08992542326450348
+            "rerank_score": 0.08992546051740646
           },
           {
             "episode": 538,
@@ -21518,16 +24433,16 @@
             "meaning_rank": 14,
             "similarity": 0.64861804,
             "rerank_rank": 4,
-            "rerank_score": 0.004474684130400419
+            "rerank_score": 0.00447473069652915
           },
           {
             "episode": 568,
             "at": "3:26",
             "match": "related",
-            "meaning_rank": 35,
+            "meaning_rank": 34,
             "similarity": 0.62413305,
             "rerank_rank": 5,
-            "rerank_score": 0.004059529863297939
+            "rerank_score": 0.004059511236846447
           },
           {
             "episode": 444,
@@ -21536,7 +24451,7 @@
             "meaning_rank": 23,
             "similarity": 0.6356758,
             "rerank_rank": 6,
-            "rerank_score": 0.0033588327933102846
+            "rerank_score": 0.0033588362857699394
           },
           {
             "episode": 182,
@@ -21545,7 +24460,7 @@
             "meaning_rank": 12,
             "similarity": 0.6503914,
             "rerank_rank": 7,
-            "rerank_score": 0.0032209164928644896
+            "rerank_score": 0.0032209085766226053
           },
           {
             "episode": 523,
@@ -21563,7 +24478,7 @@
             "meaning_rank": 13,
             "similarity": 0.6500129,
             "rerank_rank": 10,
-            "rerank_score": 0.0010079252533614635
+            "rerank_score": 0.001007919549010694
           },
           {
             "episode": 601,
@@ -21572,7 +24487,7 @@
             "meaning_rank": 9,
             "similarity": 0.65819925,
             "rerank_rank": 12,
-            "rerank_score": 0.00045115596731193364
+            "rerank_score": 0.0004511555307544768
           },
           {
             "episode": 509,
@@ -21581,7 +24496,7 @@
             "meaning_rank": 16,
             "similarity": 0.64435554,
             "rerank_rank": 13,
-            "rerank_score": 0.00042907241731882095
+            "rerank_score": 0.00042907160241156816
           }
         ]
       }
@@ -23044,7 +25959,7 @@
             "episode": 256,
             "at": "31:17",
             "match": "related",
-            "meaning_rank": 32,
+            "meaning_rank": 31,
             "similarity": 0.65015566,
             "rerank_rank": 7,
             "rerank_score": 0.0003180122876074165
@@ -23053,7 +25968,7 @@
             "episode": 600,
             "at": "44:43",
             "match": "related",
-            "meaning_rank": 18,
+            "meaning_rank": 17,
             "similarity": 0.6624004,
             "rerank_rank": 8,
             "rerank_score": 0.0002693887217901647

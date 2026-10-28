@@ -195,7 +195,10 @@ def test_rechunk_failure_does_not_stop_the_step(conn, paths, cfg, episode, monke
     assert status_of(conn, e) == "error"
 
 
-def test_overlapping_proposals_kept_once(conn, paths, cfg, episode):
+def test_overlapping_holes_are_joined_into_one_repair(conn, paths, cfg, episode):
+    # ep578 36:31 and 37:04: the first hole's repair runs up to the next word (25 s), but its
+    # clip ends at 16 s, so its words stop there; the second hole's repair overlaps it. One pass
+    # over both clips hears all of it, and replaces the first repair.
     e, t = episode([
         seg_with_word_starts(LEFT, [0, 0.4, 0.8, 1.2, 1.6], 0, 2),
         seg_with_word_starts(RIGHT, [25, 25.4, 25.8, 26.2, 26.6], 25, 27),
@@ -203,8 +206,25 @@ def test_overlapping_proposals_kept_once(conn, paths, cfg, episode):
     long_new = " ".join(f"m{i}" for i in range(60))
     tr = ClipTranscriber(said(LEFT, 0, 0.4) + said(long_new, 3, 0.35) + said(RIGHT, 25, 0.4))
     counts = repair_once(conn, paths, cfg, [e], tr, [(3000, 6000), (13000, 16000)])
-    assert len(load_repairs(t).repairs) == 1
-    assert counts["dropped"] == 1
+    (r,) = load_repairs(t).repairs
+    assert [w.text for w in r.after] == long_new.split()
+    assert (r.hole, r.clip) == ((3000, 16000), (0, 26000))
+    assert r.id == "3000-16000" and r.second_after is not None
+    assert counts["joined"] == 1 and counts["dropped"] == 0 and counts["proposed"] == 1
+
+
+def test_overlapping_hole_dropped_when_joining_adds_nothing(conn, paths, cfg, episode):
+    # The first clip already heard everything: the joined pass adds no words.
+    e, t = episode([
+        seg_with_word_starts(LEFT, [0, 0.4, 0.8, 1.2, 1.6], 0, 2),
+        seg_with_word_starts(RIGHT, [18, 18.4, 18.8, 19.2, 19.6], 18, 20),
+    ])
+    new = " ".join(f"m{i}" for i in range(25))  # 3 to 11.4 s
+    tr = ClipTranscriber(said(LEFT, 0, 0.4) + said(new, 3, 0.35) + said(RIGHT, 18, 0.4))
+    counts = repair_once(conn, paths, cfg, [e], tr, [(3000, 6000), (12000, 14000)])
+    (r,) = load_repairs(t).repairs
+    assert r.hole == (3000, 6000) and [w.text for w in r.after] == new.split()
+    assert counts["dropped"] == 1 and counts["joined"] == 0 and counts["proposed"] == 1
 
 
 def test_missing_audio_is_skipped(conn, paths, cfg, episode, tmp_path):

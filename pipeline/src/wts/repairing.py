@@ -66,6 +66,32 @@ def _filled_span(p: Proposal, hole: Span, clip: Span) -> Span:
     return (max(start, clip[0]), min(end, clip[1]))
 
 
+def _overlapping(p: Proposal, repairs: list[Repair]) -> list[Repair]:
+    end = p.index + len(p.before)
+    return [r for r in repairs if r.index <= end and p.index <= r.index + len(r.before)]
+
+
+def _joined(
+    transcriber: Transcriber, clipper: Clipper, audio: Path, prompt: str, tmp: Path,
+    words: list, prev: Repair, hole: Span, clip: Span, repairs: list[Repair], extra: dict,
+) -> tuple[Span, Span, Proposal] | None:
+    """The hole, clip and proposal over `prev`'s clip and this one together, when that pass
+    adds words to `prev` and overlaps no other repair; else None."""
+    joined_hole, joined_clip = (prev.hole[0], hole[1]), (prev.clip[0], clip[1])
+    try:
+        q = _pass(transcriber, clipper, audio, joined_clip, prompt, tmp, joined_hole, words)
+    except MachineProblem:
+        raise
+    except Exception as exc:  # noqa: BLE001 — as a failed second pass: keep the earlier repair
+        log.warning(f"joined pass failed: {exc!r}", extra=extra)
+        return None
+    if q is None or len(q.after) <= len(prev.after):
+        return None
+    if any(r is not prev for r in _overlapping(q, repairs)):
+        return None
+    return joined_hole, joined_clip, q
+
+
 def repair_episode(
     row, transcriber: Transcriber, detector: SpeechDetector, prompt: str, *, auto: bool,
     clipper: Clipper = cut_clip, counts: Counter | None = None,
@@ -102,11 +128,24 @@ def repair_episode(
                 counts["failed"] += 1
                 complete = False
                 continue
-            end = p.index + len(p.before) if p else 0
-            if p is None or any(r.index <= end and p.index <= r.index + len(r.before)
-                                for r in repairs):
+            if p is None:
                 counts["dropped"] += 1
                 continue
+            if overlapping := _overlapping(p, repairs):
+                # An earlier repair's stretch can run past its clip (ep578 36:31 and 37:04: it
+                # ran to the next word, its words stopped at the clip's end). One pass over both
+                # clips; if it hears more, it replaces the earlier repair.
+                prev = overlapping[-1]
+                joined = _joined(transcriber, clipper, audio, prompt, tmp, words, prev,
+                                 hole, clip, repairs, extra)
+                if joined is None:
+                    counts["dropped"] += 1
+                    continue
+                repairs.remove(prev)
+                counts[prev.status] -= 1
+                counts["joined"] += 1
+                hole, clip, p = joined
+            end = p.index + len(p.before)
             second_clip = clip_span(hole, duration_ms, SECOND_PASS_SHIFT_MS)
             try:
                 second = _pass(transcriber, clipper, audio, second_clip, prompt, tmp, hole, words)

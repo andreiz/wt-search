@@ -130,6 +130,12 @@ For each flag:
    the transcript's capital or full stop there came from the skip, which made a sentence start
    or end where the speaker didn't (the rollout review, 2026-10-27: 13 edges in 9 episodes
    needed episode rules).
+   A proposal that overlaps an earlier flag's repair is not simply dropped: the earlier
+   repair's stretch can run past its clip (to the next transcript word) while its words stop at
+   the clip's end. Then one more pass over both clips together (from the first clip's start to
+   the second's end, the hole likewise) replaces the earlier repair if it hears more words and
+   overlaps no other repair; else the flag is dropped. *(2026-10-27: ep578 36:31 and 37:04,
+   9 s apart, left 26 s untranscribed; the only such case in 159 episodes.)*
 5. Second pass, for the automatic rule: transcribe the clip again on the same transcriber,
    starting 5 s earlier, so Whisper starts from a different context. (Not on wick's GPU: the
    non-GPU pipeline is meant to move to Linux later, §5.6.)

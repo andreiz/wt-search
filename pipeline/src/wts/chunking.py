@@ -53,7 +53,7 @@ def chunk_episode(
     transaction, so its vectors can't outlive the text they were made from.
     """
     sentences, flags = prepare_episode(row, corrections)
-    chunks = build_chunks(sentences, [False] * len(sentences))  # no boilerplate detection yet
+    chunks = build_chunks(sentences)  # no boilerplate detection yet
     new = [
         (c.seq, c.start_ms, c.end_ms, c.text, c.word_times, int(c.is_boilerplate)) for c in chunks
     ]

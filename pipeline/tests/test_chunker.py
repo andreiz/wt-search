@@ -49,7 +49,7 @@ def test_word_times_match_worker_fixture():
 
 def test_chunks_about_30s_with_one_sentence_overlap():
     sents = sentences_every(5_000, n=20)  # 20 sentences, 5 s each
-    chunks = build_chunks(sents, [False] * 20)
+    chunks = build_chunks(sents)
     assert len(chunks) > 1
     assert all(30_000 <= c.end_ms - c.start_ms + 1 <= 45_000 for c in chunks[:-1])
     for a, b in pairwise(chunks):
@@ -61,7 +61,7 @@ def test_chunks_about_30s_with_one_sentence_overlap():
 
 def test_word_times_decode_to_real_word_starts():
     sents = sentences_every(5_000, n=8)
-    chunk = build_chunks(sents, [False] * 8)[1]
+    chunk = build_chunks(sents)[1]
     starts = decode_word_times(chunk.word_times, chunk.start_ms)
     all_words = {w.text: w.start_ms for s in sents for w in s.words}
     assert starts == [all_words[t] for t in chunk.text.split()]
@@ -69,28 +69,81 @@ def test_word_times_decode_to_real_word_starts():
 
 def test_unpunctuated_monologue_is_split_under_max():
     sents = [one_sentence(duration_ms=200_000, words=500)]
-    chunks = build_chunks(sents, [False])
+    chunks = build_chunks(sents)
     assert len(chunks) >= 5 and all(c.end_ms - c.start_ms + 1 <= 45_000 for c in chunks)
     assert chunks[-1].end_ms == sents[0].end_ms
 
 
 def test_long_last_sentence_is_not_repeated_as_its_own_chunk():
     sents = [sent(10, 0, 500), sent(31, 5_000, 1_000), sent(10, 36_000, 500)]
-    chunks = build_chunks(sents, [False] * 3)
+    chunks = build_chunks(sents)
     texts = [c.text for c in chunks]
     assert sents[1].text not in texts  # never a chunk that is only the repeated overlap
     assert chunks[-1].end_ms == sents[-1].end_ms
 
 
 def test_short_episode_gives_one_chunk():
-    chunks = build_chunks([sent(5)], [False])
+    chunks = build_chunks([sent(5)])
     assert len(chunks) == 1 and chunks[0].text == "w0 w1 w2 w3 w4."
 
 
 def test_no_sentences_gives_no_chunks():
-    assert build_chunks([], []) == []
+    assert build_chunks([]) == []
 
 
-def test_boilerplate_threshold_60_percent():
-    assert build_chunks([sent(6), sent(4, 2000)], [True, False])[0].is_boilerplate is True
-    assert build_chunks([sent(5), sent(5, 2000)], [True, False])[0].is_boilerplate is False
+def words_of(chunks):
+    return [(t, c.is_boilerplate) for c in chunks for t in c.text.split()]
+
+
+def test_no_spans_means_nothing_flagged():
+    chunks = build_chunks(sentences_every(5_000, n=20), [])
+    assert chunks and not any(c.is_boilerplate for c in chunks)
+
+
+def test_span_becomes_its_own_flagged_chunk():
+    sents = [sent(10, 0, label="a"), sent(10, 3_000, label="b"), sent(10, 6_000, label="c")]
+    chunks = build_chunks(sents, [(10, 20)])
+    assert [(c.text.split()[0], c.is_boilerplate) for c in chunks] == [
+        ("a0", False), ("b0", True), ("c0", False),
+    ]
+    assert [c.seq for c in chunks] == [0, 1, 2]
+
+
+def test_sentence_straddling_an_edge_is_split():
+    chunks = build_chunks([sent(20)], [(5, 15)])
+    assert [len(c.text.split()) for c in chunks] == [5, 10, 5]
+    assert [c.is_boilerplate for c in chunks] == [False, True, False]
+    assert chunks[1].text.split()[0] == "w5" and chunks[1].start_ms == 5 * 300
+
+
+def test_overlap_never_crosses_an_edge():
+    talk1 = sentences_every(5_000, n=12)
+    read = [sent(10, 60_000 + i * 3_000, label=f"r{i}w") for i in range(4)]
+    talk2 = [sent(10, 72_000 + i * 5_000, 500, label=f"t{i}w") for i in range(12)]
+    sents = talk1 + read + talk2
+    chunks = build_chunks(sents, [(120, 160)])
+    flags_by_word: dict[str, set[bool]] = {}
+    for t, bp in words_of(chunks):
+        flags_by_word.setdefault(t, set()).add(bp)
+    assert all(len(f) == 1 for f in flags_by_word.values())
+    assert {t for t, f in flags_by_word.items() if f == {True}} == {
+        w.text for s in read for w in s.words
+    }
+    assert all(len(c.text.split()) == len(c.word_times.split(",")) for c in chunks)
+    assert chunks[-1].end_ms == sents[-1].end_ms
+
+
+def test_span_at_start_and_end():
+    sents = [sent(10, i * 3_000, label=f"s{i}w") for i in range(5)]
+    chunks = build_chunks(sents, [(0, 10), (40, 50)])
+    assert chunks[0].is_boilerplate and chunks[-1].is_boilerplate
+    assert chunks[0].text.split()[0] == "s0w0" and chunks[-1].text.split()[-1] == "s4w9."
+    assert not any(c.is_boilerplate for c in chunks[1:-1]) and len(chunks) >= 3
+    assert all(c.text for c in chunks)
+
+
+def test_long_span_splits_at_max_ms():
+    sents = [sent(20, i * 6_000) for i in range(10)]  # 60 s
+    chunks = build_chunks(sents, [(0, 200)])
+    assert len(chunks) >= 2 and all(c.is_boilerplate for c in chunks)
+    assert all(c.end_ms - c.start_ms + 1 <= 45_000 for c in chunks)

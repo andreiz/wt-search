@@ -45,6 +45,7 @@ underbevel
 # Tools
 workbench
 Roubo
+Moxon vise
 spokeshave
 jointer
 planer

@@ -233,6 +233,16 @@ episodes:
   2023-09-27_ep558_plywood-suck-it-flat:
     # 6:35, Whisper repeated the phrase over what was said (the maintainer's report, 2026-10-29).
     the slight variation the slight variation the slight variation: the slight variation in thickness, the slight variation, 1%
+    # Every "Mark" here is the host Marc (the maintainer's report of 15:40, 2026-10-29), and he
+    # ran the polls (11:59, 57:40), so 15:52 "Mark's pole" is a poll. The longer key keeps 58:57
+    # "That's my high water mark" (a `keep:` phrase would lose to these episode rules).
+    mark: Marc
+    mark's: Marc's
+    mark's pole: Marc's poll
+    high water mark: high water mark
+    # 59:20 to the end (59:26), made up over the last seconds; "You can't" and "We can't"
+    # alternate, so the end-of-episode guard never sees four the same in a row.
+    you can't be he's still here you can't be he's still here we can't be he's still here we can't be he's still here we can't be he's still here we can't be he's here ii ii: ""
   2018-05-07_ep434_rough-ride-on-the-back-end:
     craig: Craig
   2009-01-21_ep049_sketchup-for-woodworkers-and-a-steamer-trunk-with-a-bigger:

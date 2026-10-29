@@ -21,7 +21,9 @@ def _is_no_speech(seg: dict) -> bool:
 
 
 def _has_loop(tokens: list[str]) -> bool:
-    """A Whisper repetition loop: one phrase repeated back to back over most of the segment."""
+    """A Whisper repetition loop: one phrase repeated back to back over most of the segment,
+    running to its end. Whisper doesn't come out of a loop, so repeats with more words after
+    them were said ("Wood never, ever, ever, … ever stops moving", ep142)."""
     for n in range(1, MAX_NGRAM + 1):
         needed = SINGLE_WORD_LOOP_REPEATS if n == 1 else LOOP_REPEATS
         i = 0
@@ -30,7 +32,9 @@ def _has_loop(tokens: list[str]) -> bool:
             repeats = 1
             while tokens[i + repeats * n : i + (repeats + 1) * n] == gram:
                 repeats += 1
-            if repeats >= needed and repeats * n >= LOOP_SHARE * len(tokens):
+            rest = " ".join(tokens[i + repeats * n :])
+            to_the_end = " ".join(gram).startswith(rest)  # nothing, or a cut-off last repeat
+            if repeats >= needed and repeats * n >= LOOP_SHARE * len(tokens) and to_the_end:
                 return True
             i += 1
     return False

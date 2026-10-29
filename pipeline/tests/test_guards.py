@@ -40,6 +40,27 @@ def test_conversational_repeats_are_kept():
     assert _text(words) == text and "loop_cut" not in flags
 
 
+def test_emphasis_that_goes_on_is_kept():
+    # Episode 142, 40:29: said, not a loop; the sentence continues after the repeats.
+    text = "Wood never, ever, ever, ever, ever, ever, ever, ever, ever stops moving."
+    words, flags = clean_transcript(tx(seg(text)), 60)
+    assert _text(words) == text and "loop_cut" not in flags
+
+
+def test_loop_that_runs_to_the_end_is_dropped():
+    # Episode 4, 6:40: Whisper stuck on one word until the segment ends.
+    loop = "Well, actually, um, " + "we, " * 11
+    words, flags = clean_transcript(tx(seg(loop), seg("Clamp it.")), 60)
+    assert _text(words) == "Clamp it." and "loop_cut" in flags
+
+
+def test_loop_ending_in_a_cut_off_repeat_is_dropped():
+    # Episode 612, 1:08:11: the segment stops partway through the last repeat ("là n l").
+    loop = "Paul coach in " + "là n " * 20 + "l"
+    words, flags = clean_transcript(tx(seg(loop), seg("Clamp it.")), 60)
+    assert _text(words) == "Clamp it." and "loop_cut" in flags
+
+
 def _signoff(*endings):
     return tx(seg("Thanks for listening, everybody."), *[seg(e) for e in endings])
 

@@ -28,7 +28,7 @@ _CHUNK_COLUMNS = "seq, start_ms, end_ms, text, word_times, is_boilerplate"
 # Bump this whenever a change to the chunking code (guards, sentence splitting, the chunker)
 # changes what it produces. The chunk step re-chunks every episode once when it differs from the
 # stored value, and the changed ones go back to `chunked` for re-embedding.
-CHUNKER_VERSION = 3  # 3: boilerplate spans cut and flagged (2026-10-28)
+CHUNKER_VERSION = 4  # 3: boilerplate spans cut and flagged; 4: loops run to the end (2026-10-28)
 _IN_CORPUS = (Status.CHUNKED, Status.EMBEDDED, Status.PUBLISHED)
 
 

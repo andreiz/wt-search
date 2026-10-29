@@ -6,11 +6,11 @@ write. Started 2026-10-28.
 
 ## Tell them
 
-- **Sponsor reads, intros and plugs are left out of search results** (spec §3.5, 2026-10-28), so
-  a search finds discussion rather than a Rockler read. Nothing is removed: the reads stay in the
-  transcript view, marked "Intro, ad or plug", `include:ads` searches them, and every play link
-  opens the real episode on YouTube or the podcast, reads and all. Offer to change the label (a
-  warmer one for the patron thank-yous?) or the behaviour if they'd rather.
+- **Sponsor reads, intros and announcements are left out of search results** (spec §3.5,
+  2026-10-28), so a search finds discussion rather than a Rockler read. Nothing is removed: the
+  reads stay in the transcript view, marked "Intro, sponsor or announcement", `include:ads`
+  searches them, and every play link opens the real episode on YouTube or the podcast, reads and
+  all. Offer to change the label or the behaviour if they'd rather.
 - **The transcripts are machine-made** (Whisper), with misheard names and terms fixed by hand as
   they're reported (`pipeline/corrections.yaml`). There is a "Report a transcript error" form.
 - **Searches are logged anonymously** to improve results (the footer says so).

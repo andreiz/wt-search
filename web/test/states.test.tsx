@@ -131,7 +131,7 @@ describe("no results", () => {
       "No passage has those exact words.",
       "≈ See related passages BETA",
       "Or use fewer words, or check the spelling.",
-      "Intros, sponsor reads and plugs are left out; add include:ads to search them too.",
+      "Intros, sponsor reads and announcements are left out; add include:ads to search them too.",
     ]);
     expect(note.textContent).not.toMatch(/Try one of these/);
   });

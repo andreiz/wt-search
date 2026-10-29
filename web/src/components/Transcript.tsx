@@ -5,7 +5,7 @@
 // hits' paragraphs are a lighter tint labelled "Nearby match". Every paragraph marks the query's
 // words from the chunk's own `ranges` (the answer to /api/context?q=), in a lighter mark outside
 // the hit's paragraph. Boilerplate (an intro, sponsor read, plug or outro; boilerplate spec §5.4)
-// is shown, muted and tagged "Intro, ad or plug"; a folded hit's "Nearby match" tag wins. Chunks
+// is shown, muted and tagged "Intro, sponsor or announcement"; a folded hit's "Nearby match" tag wins. Chunks
 // overlap by a sentence; the API has already taken out the copy on the side away from the hit (§4.4).
 //
 // The view is a labelled region that takes focus when it opens; Esc or "Show less" collapses it
@@ -56,7 +56,7 @@ function Passage({ chunk, hit, radius }: { chunk: ContextChunk; hit: SearchResul
         {folded ? (
           <span class="passage__tag">Nearby match</span>
         ) : (
-          chunk.boilerplate && <span class="passage__tag">Intro, ad or plug</span>
+          chunk.boilerplate && <span class="passage__tag">Intro, sponsor or announcement</span>
         )}
         <p class="passage__text">
           <span {...ONE_TEXT}>

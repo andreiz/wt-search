@@ -288,7 +288,7 @@ transcribed_at.
 > 3. A passage of 10 or more words is boilerplate. Its edges are hard chunk
 >    boundaries, so it is its own chunk(s) with `is_boilerplate = 1`: not
 >    embedded, hidden from search unless `include:ads` is given, and shown
->    muted, tagged "Intro, ad or plug", in the transcript view.
+>    muted, tagged "Intro, sponsor or announcement", in the transcript view.
 >
 > Each episode's run hashes (`run_hashes`) and the corpus's shared set
 > (`shared_runs`) are kept in `state.db`, so a new episode re-cuts only the
@@ -556,7 +556,7 @@ AI with `pooling: "cls"` (§3.2 `wts embed`).
 | `year:2015`, `before:2018`, `after:2020` | Filter by publish year (before/after are exclusive). |
 | `year:2015-2020` | Years 2015 to 2020, both included: the same as `after:2014 before:2021`. Either order; one year (`year:2015-2015`) is `year:2015`. *(Added 2026-10-08, plan 3: what the year chip writes, §5.2.)* |
 | `ep:250` | Limit to one episode. |
-| `include:ads` | Include boilerplate chunks (intros, sponsor reads and plugs, §3.5; keyword search only). The syntax help lists it, and Exact's no-results message mentions it *(2026-10-28)*. |
+| `include:ads` | Include boilerplate chunks (intros, sponsor reads and announcements, §3.5; keyword search only). The syntax help lists it, and Exact's no-results message mentions it *(2026-10-28)*. |
 
 The parser turns the query into an FTS5 MATCH expression plus SQL filters.
 Unless `include:ads` is given, the SQL adds `is_boilerplate = 0`. The text
@@ -1535,7 +1535,8 @@ states. Behaviour from the design, with the maintainer's calls:)*
   the hit's paragraph emphasised. Collapsing returns to the excerpt.
   *(2026-10-09: the "Sponsor read" label for `boilerplate` chunks is dropped
   while detection is binned, §3.5. 2026-10-28: back as muted text tagged
-  "Intro, ad or plug"; "Nearby match" wins when a paragraph is both.)*
+  "Intro, sponsor or announcement" (the maintainer's pick over "Intro, ad or
+  plug"); "Nearby match" wins when a paragraph is both.)*
 - **+n more nearby** *(settled 2026-10-08, replaces "+n more in this
   episode")*: folded hits are always within 120 s of the card's hit (§4.4),
   so searching the episode would fold them into the same card again.
@@ -1608,7 +1609,7 @@ As in the brief §4.5; the wording there is the copy, and the design's
   exact matches — passages about similar things:" before the cards. Later
   pages never show it *(2026-10-09; was every page with no keyword hit)*.
 - **No results:** suggest Smart mode, or fewer words or looser years.
-  In Exact mode, add "Intros, sponsor reads and plugs are left out; add
+  In Exact mode, add "Intros, sponsor reads and announcements are left out; add
   include:ads to search them too." *(2026-10-28; left out while detection
   was binned.)*
 - **Exact, truncated:** "Showing the best 200 of N matches — add words, a

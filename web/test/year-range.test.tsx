@@ -205,7 +205,7 @@ describe("<SyntaxHelp/>", () => {
       "either",
       "words starting with it",
       "one episode",
-      "intros, sponsor reads and plugs too",
+      "intros, sponsor reads and announcements too",
     ]) {
       expect(within(dialog).getByText(text)).toBeTruthy();
     }

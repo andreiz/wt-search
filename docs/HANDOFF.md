@@ -10,7 +10,7 @@ then [README.md](../README.md), then the spec sections it points to.
 - `wts chunk` hides intros, scripted sponsor reads, plugs and outros: any 8 normalised words
   shared by 5+ episodes, merged, gaps of ≤ 12 words bridged, passages of ≥ 10 words. Chunks are
   cut at passage edges; flagged chunks aren't embedded and only `include:ads` finds them. The
-  transcript view shows them muted ("Intro, ad or plug"). State migration 008 adds
+  transcript view shows them muted ("Intro, sponsor or announcement"). State migration 008 adds
   `run_hashes` and `shared_runs`; a new episode re-cuts only the episodes a changed run touches.
 - Re-cut, re-embedded and published to staging: 642 of 18,039 chunks flagged (1.2% of the
   text). Eval within tolerance (recall 0.920, paraphrase 0.878, MRR 0.819, time 0.860;

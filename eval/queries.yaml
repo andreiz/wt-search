@@ -25,7 +25,12 @@
   query: Moxon
   tag: jargon
   mode: exact
-  expect: [{episode: 603, at: "51:46"}]
+  # ep538 and ep206 say "Moxon" since the "Moxin"/"mox and" corrections (2026-10-28).
+  expect:
+    - {episode: 603, at: "51:46"}
+    - {episode: 538, at: "15:04"}
+    - {episode: 538, at: "17:38"}
+    - {episode: 206, at: "36:00"}
   smoke: true
 - id: snodgrass
   query: Snodgrass

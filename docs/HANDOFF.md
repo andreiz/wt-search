@@ -156,7 +156,12 @@ without). Left, all the maintainer's:
   ~22 px narrower than the header as in the mocks, or aligned. Checkpoint L's phone pass
   covered the rest of the design review.
 - **Checkpoint J (plan 4):** the review page in Safari.
-- **Task 17:** the domain, when the name is chosen.
+- **Task 17:** the domain, when the name is chosen. **2026-10-29:** the introduction links the
+  `workers.dev` URL; the domain is settled with the hosts (`docs/hosts-email.md`). Found then:
+  a Worker custom domain needs its zone on Cloudflare, and all four of the maintainer's domains
+  (10fathoms.org, gravitonic.com, zmievski.org/.com) are on Route 53. 10fathoms.org carries
+  Fastmail mail (MX, DKIM) and `www`/`mail` to the home WAN, so moving it means checking those
+  records in Cloudflare's import first. A CNAME to `workers.dev` doesn't work.
 
 **Plan 6, the phone layout from Design's round 2, is built (2026-10-13)**, not yet deployed:
 [`docs/superpowers/plans/2026-10-13-phone-layout.md`](superpowers/plans/2026-10-13-phone-layout.md);

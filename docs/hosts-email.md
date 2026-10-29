@@ -26,6 +26,12 @@ write. Started 2026-10-28.
 - Whether the **YouTube uploads are the same edit** as the podcast audio (spec §10 item 1; the
   play links assume the same timeline, with per-platform offsets as the fallback).
 - Whether they're OK with the **name**: the site is called "Wood Talk Search" and the footer says
-  "made with the hosts' blessing", which isn't true until they say yes (domain: plan Task 17).
+  "made with the hosts' blessing", which isn't true until they say yes.
+- **Where the site should live.** The introduction links the staging site on its `workers.dev`
+  address (maintainer, 2026-10-29). Options to discuss: a Wood Talk–named domain
+  (woodtalksearch.com, woodtalk.fm and others looked unregistered on 2026-10-29), which could be
+  theirs to own; a subdomain of woodtalkshow.com (its DNS is at Hover, so it would need their
+  help); or a subdomain of the maintainer's 10fathoms.org (its DNS would first move to
+  Cloudflare). Whichever it is, its DNS has to be on Cloudflare (plan Task 17).
 - Whether the **code repository can be public**: its test fixtures hold transcript excerpts (the
   first 15 minutes of a few episodes; plan `2026-10-05-m1-pipeline-core.md` Task 14 note).

@@ -110,6 +110,31 @@ the pipeline's config is acceptable (builder's call). Matching the intro joke: G
 bridge "three guys who [joke]. I'm Marc…", if that can be done without merging a read into the
 real talk after it.
 
+**Measured values (2026-10-28, 156 numbered episodes, `pipeline/spikes/boilerplate_report.py`):
+M = 10, G = 12** (with N = 8, K = 5).
+
+| M | G = 0 | G = 3 | G = 8 | G = 15 |
+|---|---|---|---|---|
+| 8 | 1,108 spans, 1.33% of words | 1.34% | 1.37% | 1.41% |
+| 10 | 794 spans, 1.17% | 1.20% | 1.24% | 1.29% |
+| 15 | 556 spans, 1.00% | 1.08% | 1.14% | 1.21% |
+| 20 | 408 spans, 0.85% | 0.96% | 1.04% | 1.12% |
+
+At M = 10, G = 12: 638 spans in 155 of 156 episodes, 1.28% of words.
+
+- **M = 10.** Every distinct span of 10–19 words was scripted or a show transition ("all right,
+  Shannon, what do you got going on?", "let's move into what's on the bench"). The repeats that
+  are ordinary speech are all 8–9 words: "I don't know about you guys, but I" (9 episodes),
+  "that's all I have to say about that" (5), "you got to do what you got to do" (5). So no
+  never-hide list is needed.
+- **G = 12.** Every gap of up to 12 words between two spans was inside a read or an outro (an
+  aside such as "you beautiful people", "be sure to", a phone number), or the intro's weekly
+  joke ("three guys who [love the smell of shellac in the morning]"). The one 15-word gap seen
+  held an episode's topic preview (ep588), which shouldn't be hidden.
+- **Eval check:** no `expect` passage of `eval/queries.yaml` falls inside a span.
+- **Pollution measured the same way:** 58 of 2,256 top-10 hits in the 2026-10-28 report are in
+  chunks these spans cover by 25% or more (7 at #1; 48 in Related).
+
 **Tuning as the corpus grows** *(Claude's call, 2026-10-28)*: tune on the 159 episodes now and
 ship. K is an absolute count, so as the archive grows toward ~625 episodes, more ordinary host
 phrases will reach K. Two guards:

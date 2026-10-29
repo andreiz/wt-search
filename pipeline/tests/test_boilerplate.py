@@ -45,9 +45,12 @@ def test_find_spans_covers_the_read_only():
 def test_short_spans_dropped_and_gaps_bridged():
     shared = shared_runs(eps_with(READ, 5), 5)
     words = ws(f"intro {READ} joke {READ} outro")
-    assert find_spans(words, shared, Params(min_span_words=40)) == []  # each piece is 20 words
+    no_gap = Params(min_span_words=40, max_gap_words=0)
+    assert find_spans(words, shared, no_gap) == []  # each piece is 20 words
     assert find_spans(words, shared, Params(min_span_words=30, max_gap_words=1)) == [(1, 42)]
-    assert find_spans(words, shared, Params(min_span_words=10)) == [(1, 21), (22, 42)]
+    assert find_spans(words, shared, Params(min_span_words=10, max_gap_words=0)) == [
+        (1, 21), (22, 42),
+    ]
 
 
 def test_empty_token_inside_a_span_is_covered():

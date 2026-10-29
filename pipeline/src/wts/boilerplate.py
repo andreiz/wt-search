@@ -19,8 +19,11 @@ from wts.words import Word, normalize_text
 
 RUN_WORDS = 8
 MIN_EPISODES = 5
-MIN_SPAN_WORDS = 20
-MAX_GAP_WORDS = 0
+# Measured on 159 episodes, 2026-10-28 (spec §5.1): every repeated span of 10+ words was scripted;
+# the ordinary phrases that repeat ("I don't know about you guys, but I") are 8-9 words. Gaps of up
+# to 12 words between spans were all inside a read, an outro or the intro's weekly joke.
+MIN_SPAN_WORDS = 10
+MAX_GAP_WORDS = 12
 
 _P = np.uint64(1_000_003)
 _NOT_TOKEN = re.compile(r"[^a-z0-9']")

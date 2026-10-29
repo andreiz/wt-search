@@ -142,6 +142,11 @@ global:
   morse and tenons: mortise and tenons        # ep300, 24:40
   mortars and tenons: mortise and tenons      # ep599, 36:24
   morrison tenon: mortise and tenon           # ep604, 38:45; ep607, 8:55
+  # The hosts' brands and handles (the maintainer's report of ep612 1:07:50, 2026-10-29).
+  # "Wood Whisper": 23 times across 2010–2026, every one The Wood Whisperer.
+  wood whisper: Wood Whisperer
+  macremona: Matt Cremona          # ep493, ep608, ep612
+  renaissance wordworker: Renaissance Woodworker
   # Marc Spagnuolo, the host: Whisper writes "Mark". A bare `mark: Marc` would also change "the
   # 30-second mark" and other people called Mark, so the keys are "Mark" beside his surname or
   # another host's name (the intro, and listeners' greetings). A value's comma is written out:

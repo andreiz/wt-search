@@ -207,6 +207,11 @@ global:
   go to source: go-to source
   tee box: tea box
   tee boxes: tea boxes
+  # Accoya (acetylated wood) and what it's made with, ep612 29:52–34:00 (the maintainer's
+  # rules, 2026-10-29).
+  a koya: Accoya
+  static and hydride: acetic anhydride
+  a static and hydride: acetic anhydride
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:
@@ -308,6 +313,8 @@ episodes:
     pipes that's the problem: pipes. That's the problem   # 34:49
     power tools but no matter: power tools. But no matter # 39:28
     table saw no matter: table saw. No matter     # 39:33
+    koya: Accoya
+    put it up put it up i cut it together: One of my stories, I cut it together   # 16:33
   2026-09-17_ep615_why-we-dont-use-metric:
     contributions of our patrons: contributions of our patrons   # 41:07
   2023-05-24_ep552_embarrassed-by-all-the-shiplap:

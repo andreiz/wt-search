@@ -179,6 +179,10 @@ global:
   # fixes; `vice: vise` still fixes the word after "mox and".
   moxin: Moxon
   mox and: Moxon
+  moxon: Moxon                # the name, lower-case in ep563 36:24
+  # Benchcrafted, the bench hardware maker (ep092, ep206, ep538, ep563, ep598, ep613;
+  # 2026-10-29).
+  bench crafted: Benchcrafted
   # The show's voicemail line, spelled out once (ep359, 56:52); Whisper writes the digits
   # everywhere else (74 times).
   six two three two four two five one eight zero: 623-242-5180

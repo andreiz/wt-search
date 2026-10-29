@@ -167,6 +167,9 @@ global:
   # fixes; `vice: vise` still fixes the word after "mox and".
   moxin: Moxon
   mox and: Moxon
+  # The show's voicemail line, spelled out once (ep359, 56:52); Whisper writes the digits
+  # everywhere else (74 times).
+  six two three two four two five one eight zero: 623-242-5180
   # The bench vise, which Whisper spells "vice" (2026-10-13: all 47 uses in the 37 episodes
   # are the tool). "vice versa" and "vice president" are kept below.
   vices: vises

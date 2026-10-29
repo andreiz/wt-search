@@ -13,6 +13,9 @@ serves the frontend's static files), D1 and Vectorize serve search.
 - `docs/superpowers/specs/2026-10-04-wood-talk-search-design.md` — the full
   design spec. This is the source of truth; update it when a design decision
   changes.
+- `docs/hosts-email.md` — what to tell or ask the hosts when the maintainer
+  contacts them before launch. Add to it when a decision is one they'd want
+  to hear about or approve.
 
 ## Skills
 

@@ -1934,7 +1934,8 @@ and plan. *(Done 2026-10-28:
 
 1. **Hosts' blessing:** contact Marc, Shannon and Matt before the public
    launch (M2). Ask whether ads are inserted at download time and whether
-   the YouTube uploads are the same edit as the podcast audio.
+   the YouTube uploads are the same edit as the podcast audio. Everything to
+   tell or ask them is collected in [`docs/hosts-email.md`](../../hosts-email.md).
 2. **Deep-link formats:** check by hand during M1 (§4.6).
 3. **YouTube:** ~~confirm the channel~~ @WoodTalk; length-match rule in §4.6.
 4. **Ad drift:** ~~check whether ads are inserted~~ confirmed per download

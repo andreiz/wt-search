@@ -14,6 +14,7 @@ const ROWS: { examples: string[]; finds: string }[] = [
   { examples: ["year:2015", "after:2019", "before:2012"], finds: "by year (after and before leave out the year itself)" },
   { examples: ["year:2015-2020"], finds: "years 2015 to 2020, both included" },
   { examples: ["ep:613"], finds: "one episode" },
+  { examples: ["include:ads"], finds: "intros, sponsor reads and plugs too" },
 ];
 
 export function SyntaxHelp({ onPick }: { onPick: (example: string) => void }) {

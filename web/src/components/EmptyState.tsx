@@ -82,6 +82,7 @@ export function NoResults({
           <p class="nothing__tip">
             {hasYears ? "Or use fewer words, loosen the years, or check the spelling." : "Or use fewer words, or check the spelling."}
           </p>
+          <p class="nothing__tip">Intros, sponsor reads and plugs are left out; add include:ads to search them too.</p>
         </>
       )}
     </section>

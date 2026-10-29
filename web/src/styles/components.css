@@ -1212,6 +1212,11 @@ a.hit__time:hover {
   background: color-mix(in oklch, var(--tint) 45%, transparent);
 }
 
+/* Boilerplate (an intro, sponsor read, plug or outro) is shown, but muted (boilerplate spec §5.4). */
+.passage--boilerplate .passage__text {
+  color: var(--muted);
+}
+
 /* Marks outside the hit's paragraph are lighter (design: --mark-bg mixed 55% with --surface). */
 .passage:not(.passage--hit) mark {
   background: color-mix(in oklch, var(--mark-bg) 55%, var(--surface));

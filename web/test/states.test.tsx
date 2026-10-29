@@ -131,8 +131,9 @@ describe("no results", () => {
       "No passage has those exact words.",
       "≈ See related passages BETA",
       "Or use fewer words, or check the spelling.",
+      "Intros, sponsor reads and plugs are left out; add include:ads to search them too.",
     ]);
-    expect(note.textContent).not.toMatch(/include:ads|Try one of these/);
+    expect(note.textContent).not.toMatch(/Try one of these/);
   });
 
   it("Exact: the button switches to Related and searches", async () => {
@@ -155,6 +156,7 @@ describe("no results", () => {
       "Nothing about the same thing turned up without your words.",
       "See exact matches",
     ]);
+    expect(note.textContent).not.toContain("include:ads");
     const button = within(note).getByRole("button", { name: "See exact matches" });
     expect(button.className).toContain("across--exact");
     fireEvent.click(button);

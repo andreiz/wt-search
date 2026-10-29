@@ -244,12 +244,28 @@ describe("the paragraphs", () => {
     expect(within(region()).queryByText("Nearby match")).toBeNull();
   });
 
-  it("gives a sponsor read no treatment of its own", async () => {
-    await open(6);
-    const ad = rows()[8]!;
-    expect(ad.textContent).toContain("brought to you by Sponsorly");
-    expect(ad.textContent).not.toMatch(/sponsor read/i);
-    expect(ad.className).toBe("passage");
+  it("shows a boilerplate chunk muted and labelled 'Intro, ad or plug', and no other", async () => {
+    await open(3);
+    const marked = rows().filter((row) => row.classList.contains("passage--boilerplate"));
+    expect(marked).toHaveLength(1);
+    expect(marked[0]!.querySelector("p")!.textContent).toBe(chunkOf(8).text);
+    expect(within(marked[0]!).getByText("Intro, ad or plug").className).toBe("passage__tag");
+    expect(within(region()).getAllByText("Intro, ad or plug")).toHaveLength(1);
+  });
+
+  it("labels a folded hit that is also boilerplate 'Nearby match' only", async () => {
+    const calls = stubFetch();
+    renderList();
+    fireEvent.click(nearby());
+    const data = contextAnswer(6);
+    data.chunks = data.chunks.map((chunk) => (chunk.chunk_id === FOLDED_ID ? { ...chunk, boilerplate: true } : chunk));
+    calls[0]!.respond(data);
+    await loaded();
+    const folded = rows().find((row) => row.classList.contains("passage--fold"))!;
+    expect(folded.classList.contains("passage--boilerplate")).toBe(true);
+    expect(within(folded).getByText("Nearby match")).toBeTruthy();
+    expect(within(folded).queryByText("Intro, ad or plug")).toBeNull();
+    expect(folded.querySelectorAll(".passage__tag")).toHaveLength(1);
   });
 
 });

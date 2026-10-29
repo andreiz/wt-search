@@ -173,7 +173,7 @@ describe("<YearRange/>", () => {
 });
 
 describe("<SyntaxHelp/>", () => {
-  it("a '?' button that opens the syntax table, with the year range row and no include:ads", () => {
+  it("a '?' button that opens the syntax table, with the year range row and include:ads last", () => {
     render(<SyntaxHelp onPick={() => {}} />);
     const button = screen.getByRole("button", { name: "Search tips" });
     expect(button.getAttribute("aria-expanded")).toBe("false");
@@ -196,12 +196,20 @@ describe("<SyntaxHelp/>", () => {
       "before:2012",
       "year:2015-2020",
       "ep:613",
+      "include:ads",
     ]);
-    for (const text of ["both words", "the exact phrase", "without a word", "either", "words starting with it", "one episode"]) {
+    for (const text of [
+      "both words",
+      "the exact phrase",
+      "without a word",
+      "either",
+      "words starting with it",
+      "one episode",
+      "intros, sponsor reads and plugs too",
+    ]) {
       expect(within(dialog).getByText(text)).toBeTruthy();
     }
     expect(within(dialog).getByText(/years 2015 to 2020, both included/)).toBeTruthy();
-    expect(dialog.textContent).not.toContain("include:ads");
   });
 
   it("the '?' points at its dialog with aria-controls", () => {

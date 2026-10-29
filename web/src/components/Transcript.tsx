@@ -4,8 +4,9 @@
 // paragraph is on the tint and carries the result's highlights; in the radius 6 view the folded
 // hits' paragraphs are a lighter tint labelled "Nearby match". Every paragraph marks the query's
 // words from the chunk's own `ranges` (the answer to /api/context?q=), in a lighter mark outside
-// the hit's paragraph. A sponsor read is a paragraph like any other (spec §3.5). Chunks overlap
-// by a sentence; the API has already taken out the copy on the side away from the hit (§4.4).
+// the hit's paragraph. Boilerplate (an intro, sponsor read, plug or outro; boilerplate spec §5.4)
+// is shown, muted and tagged "Intro, ad or plug"; a folded hit's "Nearby match" tag wins. Chunks
+// overlap by a sentence; the API has already taken out the copy on the side away from the hit (§4.4).
 //
 // The view is a labelled region that takes focus when it opens; Esc or "Show less" collapses it
 // (the row returns focus to whatever opened it). Loading, error and retry live inside it.
@@ -39,7 +40,9 @@ function Passage({ chunk, hit, radius }: { chunk: ContextChunk; hit: SearchResul
   const pieces = segments(chunk.text, ranges);
   const name = play ? chipName(play, time) : undefined;
   return (
-    <li class={`passage${isHit ? " passage--hit" : ""}${folded ? " passage--fold" : ""}`}>
+    <li
+      class={`passage${isHit ? " passage--hit" : ""}${folded ? " passage--fold" : ""}${chunk.boilerplate ? " passage--boilerplate" : ""}`}
+    >
       {play ? (
         <a class="passage__time" href={play.href} target="_blank" rel="noopener" aria-label={name} title={name}>
           <PlayIcon size={9} />
@@ -50,7 +53,11 @@ function Passage({ chunk, hit, radius }: { chunk: ContextChunk; hit: SearchResul
       )}
       <div class="passage__body">
         {isHit && <span class="visually-hidden">Matching passage</span>}
-        {folded && <span class="passage__tag">Nearby match</span>}
+        {folded ? (
+          <span class="passage__tag">Nearby match</span>
+        ) : (
+          chunk.boilerplate && <span class="passage__tag">Intro, ad or plug</span>
+        )}
         <p class="passage__text">
           <span {...ONE_TEXT}>
             {pieces.map((piece, index) => (piece.mark ? <mark key={index}>{piece.text}</mark> : piece.text))}

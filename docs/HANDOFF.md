@@ -1,9 +1,32 @@
-# Handoff — 2026-10-28 (159 episodes published; exact scores; eval at 250+ cases)
+# Handoff — 2026-10-28 (159 episodes published; boilerplate hidden; exact scores; eval at 250+ cases)
 
 Where the project stands, so a fresh session can pick up without the conversation. Read this,
 then [README.md](../README.md), then the spec sections it points to.
 
 ## Start here (next session)
+
+**2026-10-28 evening: boilerplate detection shipped** (spec
+`specs/2026-10-28-boilerplate-design.md`, plan `plans/2026-10-28-boilerplate.md`, 88abc2c onward).
+- `wts chunk` hides intros, scripted sponsor reads, plugs and outros: any 8 normalised words
+  shared by 5+ episodes, merged, gaps of ≤ 12 words bridged, passages of ≥ 10 words. Chunks are
+  cut at passage edges; flagged chunks aren't embedded and only `include:ads` finds them. The
+  transcript view shows them muted ("Intro, ad or plug"). State migration 008 adds
+  `run_hashes` and `shared_runs`; a new episode re-cuts only the episodes a changed run touches.
+- Re-cut, re-embedded and published to staging: 642 of 18,039 chunks flagged (1.2% of the
+  text). Eval within tolerance (recall 0.920, paraphrase 0.878, MRR 0.819, time 0.860;
+  negatives 0.367 → 0.400). The pollution count was over-counting (fixed); the spec's §9 has
+  the numbers and what the detector still misses (ad-libbed reads, the varying parts of reads,
+  reads seen in fewer than 5 sampled episodes).
+- **Next for it:** re-tune the four values (run length 8, 5 episodes, 10 words, gap 12) with
+  `pipeline/spikes/boilerplate_report.py` once the full archive is in (M2), before production.
+  Ad-libbed reads (a walnut classifier) and a "mark as ad" control in the new-episode review
+  stay for later (spec §7).
+- Not run in the sandbox: `npm run e2e` and `e2e:shots` (Chromium can't start). Deferred minors:
+  the "newly hidden" log compares whole chunk texts, so every distinct intro logs once; tiny
+  unflagged "Bye." chunks are left beside outros (74 under 10 words, from 17); run hashes are
+  cached before chunking (harmless); the no-results tip shows even when the query already has
+  `include:ads`.
+- Topics (per-episode list, every place a subject came up) were spiked and parked: backlog §6.
 
 **Session of 2026-10-27/28: 159 episodes on staging, all published, all repairs decided.**
 - **The batch.** `wts scope add spread:121` + `wts run`: 121 transcribed on walnut, 85
@@ -32,8 +55,7 @@ then [README.md](../README.md), then the spec sections it points to.
 - **`wts run` logs each step's start** (1d0a9fd).
 
 What the new cases show, for the next design pass (each needs brainstorm → spec → plan):
-- **Boilerplate detection.** Sponsor reads come back in Related (a Rockler read is #1 for
-  "dog training tips"), against spec §7.2's "without `include:ads`".
+- ~~**Boilerplate detection.**~~ Done 2026-10-28 (above).
 - **Short queries vs. mixed chunks.** A topic mentioned in passing (ep602's Donkey Kong) sits
   under the floor; options: let the reranker gate instead of the floor (it also ranks junk
   first, so it needs its own threshold), smaller or topic-aware chunks, a lower floor for

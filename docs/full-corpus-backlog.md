@@ -5,9 +5,14 @@ and published (M2), because the 36-episode seed is too small to judge them. Each
 we know, where the details live and what to try first. Started 2026-10-09 (maintainer); add to it
 rather than leaving "on the archive" notes scattered through the handoff.
 
-## 1. Boilerplate (sponsor reads, plugs, intros, inserted ads) — binned 2026-10-09
+## 1. Boilerplate (sponsor reads, plugs, intros, inserted ads) — done 2026-10-28
 
-**State:** detection was **removed** from the pipeline (maintainer, 2026-10-09). The plumbing
+**Closed:** rebuilt as shared 8-word runs with chunks cut at passage edges, measured on 159
+episodes and shipped: [`specs/2026-10-28-boilerplate-design.md`](superpowers/specs/2026-10-28-boilerplate-design.md).
+Left for M2: re-tune its four values on the full archive with
+`pipeline/spikes/boilerplate_report.py` (the spec's §5.1). The notes below are the history.
+
+**State (2026-10-09):** detection was **removed** from the pipeline (maintainer, 2026-10-09). The plumbing
 stays, so a new detector only has to set the flag:
 - `chunks.is_boilerplate` in `state.db` and D1 (always 0 now); `chunker.py`'s 60%-of-words rule
   that turns flagged sentences into a flagged chunk.

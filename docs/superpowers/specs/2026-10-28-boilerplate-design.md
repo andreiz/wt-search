@@ -251,3 +251,28 @@ phrases will reach K. Two guards:
 4. Claude runs the eval and the pollution measurement and reports.
 5. Docs: rewrite main spec §3.5 (and the §5.4/§5.5 notes, §9's rework entry), close backlog §1,
    update `docs/HANDOFF.md`.
+
+## 9. Measured after shipping (2026-10-28, 159 episodes on staging)
+
+- **Re-cut:** `wts chunk` re-cut 156 episodes in 24 s; an idle rerun takes 0.5 s. 642 of
+  18,039 chunks are flagged (1.2% of the text) in 155 episodes. ep458 and two extras had
+  nothing shared to hide. By eye, one episode per era (ep9, ep127, ep300, ep612): intros,
+  scripted reads, Patreon/contact/review plugs and outros hidden; one 10-word aside said in 5
+  episodes ("I'll put the link in the show notes for that") hidden too.
+- **No harm** (report `eval/reports/20261029T040757Z.json` against the 181eea7 baseline):
+  recall 0.915 → 0.920, paraphrase recall 0.872 → 0.878, MRR 0.819 → 0.819, time hits
+  0.860 → 0.860, negatives 0.367 → 0.400. One case got worse: `syn-554-3921` was a #10 hit at
+  the wrong time and dropped out of the top 10 (re-cut, not hidden).
+- **Pollution:** 37 → 0 of ~2,260 top-10 hits. The 2026-10-28 figures above (51, then 58)
+  over-counted: a hit's time is its chunk's start rounded down to the second, and the script
+  took the first chunk within 1 s, often the boilerplate just before. Fixed in
+  `spikes/boilerplate_report.py`. Zero is by construction (a chunk that isn't flagged can't hold
+  a detected passage), so this measure can't see what the detector misses.
+- **What it misses** (the negatives): `fishing-lures-and-tackle` now passes. Still failing:
+  `laser-hair-removal` (ep300 26:29, an ad-libbed Harry's read), `dog-training-tips` (ep558
+  36:42 is mostly a listener's question from "David the Dog Trainer"; the Rockler classes read
+  just before it isn't hidden, being seen in fewer than 5 of the sampled episodes) and
+  `stock-market-investing` (ep583 38:48 "Bye. Bye. investing.": words Whisper invented after the
+  outro, not a scripted outro, backlog §3's `bad_word_times`). Also seen unhidden: the varying
+  parts of reads (ep514 0:35 Rockler's monthly giveaway, ep615 41:17 Woodcraft store events).
+  Mid-show reads that ran for only a few months should reach 5 episodes on the full archive.

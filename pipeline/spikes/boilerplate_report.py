@@ -156,7 +156,12 @@ def cmd_pollution(conn, words, shared, args) -> None:
         for mode, hits in case["top"].items():
             for rank, h in enumerate(hits[:10]):
                 ms, num = to_ms(h["at"]), h["episode"]
-                found = [c for c in chunks.get(num, []) if c[0] <= ms <= c[1] + 1000]
+                # A hit's time is its chunk's start, rounded down to the second. Prefer the
+                # chunk starting in that second: now that chunks are cut at passage edges,
+                # the hidden chunk before it ends there too.
+                found = [c for c in chunks.get(num, []) if c[0] // 1000 * 1000 == ms] or [
+                    c for c in chunks.get(num, []) if c[0] <= ms <= c[1] + 1000
+                ]
                 if not found:
                     continue
                 st, en = found[0]

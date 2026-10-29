@@ -92,3 +92,35 @@ bench-top queries; the `collapse` tag for `more_in_episode` cases.
 - Apple IDs reach back only to 2017-10 (the lookup's newest-200 limit): an M2 fallback for
   older episodes.
 - YouTube: 89 of 625 matched, 55 within the 3 s rule; recheck after the archive's feed refresh.
+
+## 6. Topics (spec §9, phase 2) — spiked 2026-10-28, parked until boilerplate ships
+
+**What the maintainer wants:** both a per-episode "topics discussed" list and "every place a
+subject came up", across episodes too. A topic is not a table-of-contents entry: "cutting
+dovetails" can come up in the first and last ten minutes, so a topic has several times.
+
+**Spike** (throwaway scripts, not in the repo; qwen3.6:35b on walnut; ep71, 171, 466, 602):
+1. **Tag each ~3 min window** (6 chunks) with 0–4 subject names. About 30 s per episode in all
+   (≈ 5 h for 625 episodes). The tags are specific and in the hosts' terms ("horse stall
+   mats", "lever mortise chisels", "reinforcing miters with splines", "Derek Cohen Jackrabbit
+   plane") and land where the talk is. This is the layer to keep.
+2. **Model merge of an episode's tags into topics: too coarse.** Some good ("Chisel Types and
+   Selection" @ 44:36, 47:12, 50:02; ep466's outdoor finishing at 9 times), but it invents
+   catch-alls ("Project Design and Construction", "Miscellaneous Projects") and loses detail.
+3. **Merge by embedding (bge-base, complete linkage on cosine):** 0.78 makes few wrong groups
+   but leaves some subjects split ("SketchUp software" / "SketchUp for woodworking"; "Glendrake"
+   / "Glen Drake"). 0.72 joins the big subjects fully but makes wrong groups ("baseboard
+   miters" + "woodworking education during injury", "Windsor chair making" + "CNC
+   reproduction"). Across the four episodes it found real shared subjects ("finishing outdoor
+   furniture" in ep171 and ep466, "learning SketchUp" in ep71 and ep171) and some false ones
+   ("dovetail chisels" + "dovetail saws").
+
+**Problems seen:** the intro's topic preview ("this week: chisels and mats") counts as a
+mention at 0:03; times are only as fine as the window; misheard words get through
+("Amazoniko wood", ep602 27:39).
+
+**Suggested design to brainstorm:** window tags (1) → loose embedding groups (~0.72) as
+candidates → the model checks each small group (same subject? split, and name it) → drop tags
+from the intro's preview; snap times to chunk starts. Run after boilerplate, so ads and
+intros are never tagged. Open: where topics show (the site has no episode page), and whether
+topic search helps short-query misses (eval `classic-video-games`).

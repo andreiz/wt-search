@@ -147,7 +147,11 @@ without). Left, all the maintainer's:
   (YouTube precise, Apple/Spotify early by the ad gap), More transcript and "+n more
   nearby"; the rate-limit notice in the page (console: `for (let i = 0; i < 70; i++)
   fetch("/api/health")`, then search within the minute); VoiceOver on a result card (soft
-  yes on the Mac, 2026-10-11).
+  yes on the Mac, 2026-10-11). **2026-10-29:** a second moment in a YouTube video the app
+  already has open brings the app forward paused, without seeking; other episodes seek
+  fine. No link format helps (`docs/deep-links.md`); a known limitation, with an embedded
+  player as the planned fix (`docs/full-corpus-backlog.md` §7). Still to try: the same on
+  Apple Podcasts and Spotify, and the rest of this checkpoint.
 - **Task 16 step 3 / Checkpoint I (design):** the report form's placeholders are in
   (2026-10-25, maintainer: "What it should say", "Anything else we should know"). Two choices
   open: the variable Source Serif 4 (optical size, matches the mocks, bigger download) or the

@@ -45,7 +45,7 @@ times on the show's own timeline.
 
 | Platform | Device | Format | Result |
 | --- | --- | --- | --- |
-| YouTube | iOS app | `&t=<s>s` (what the Worker uses) | works, precise (2026-10-07) |
+| YouTube | iOS app | `&t=<s>s` (what the Worker uses) | works, precise (2026-10-07); not for a second moment in a video the app already has open (below, 2026-10-29) |
 | YouTube | Android app | `&t=<s>s` (what the Worker uses) | not checked |
 | YouTube | Desktop web | `&t=<s>s` (what the Worker uses) | works (2026-10-07) |
 | Apple Podcasts | iOS app | `&t=<s>` (what the Worker uses; the app's own share format) | works, lands early (play-time ads; 2026-10-07) |
@@ -56,3 +56,13 @@ times on the show's own timeline.
 | Spotify | Desktop web | `?t=<s>` (what the Worker uses) | works (2026-10-07) |
 | Show page (Acast) | Desktop web | `?seek=<s>` (what the Worker uses) | works; an ad may play first (WT616, 2026-10-09) |
 | Show page (Acast, by guid) | iOS Safari and desktop web | `/episodes/<guid, URL-encoded>?seek=<s>` (what the Worker uses since 2026-10-11) | works (episodes 71 and 597, maintainer, 2026-10-11) |
+
+**2026-10-29, Checkpoint H (iPhone, maintainer):** with the YouTube app already showing an
+episode, a link to another moment in **the same video** only brings the app forward, paused,
+without seeking. A link into a different episode seeks correctly. Tried on ep617
+(`9bIin0tVcj0`) at 2:00 then 10:00, force-quitting the app between formats, with four formats:
+`watch?v=…&t=<s>s` (current), `youtu.be/…?t=<s>`, `&t=<s>s` plus a random extra parameter per
+tap, and `&start=<s>`. None seeked. The app makes this decision, so no link format can fix
+it, and a web page can't make iOS open a YouTube link in Safari instead of the app. Known
+limitation for launch. The fix would be an embedded player on the site (backlog §7).
+Apple Podcasts and Spotify not yet checked for the same thing.

@@ -129,3 +129,11 @@ candidates → the model checks each small group (same subject? split, and name 
 from the intro's preview; snap times to chunk starts. Run after boilerplate, so ads and
 intros are never tagged. Open: where topics show (the site has no episode page), and whether
 topic search helps short-query misses (eval `classic-video-games`).
+
+## 7. Playback
+
+- **An embedded YouTube player** (privacy-enhanced embed), so a second moment in the same
+  episode seeks every time. The iPhone YouTube app ignores the time when it already has that
+  video open (`docs/deep-links.md`, 2026-10-29). Touches the page layout, the CSP
+  (`web/public/_headers`) and the privacy note in the footer. Needs the design steps
+  (brainstorm → spec → plan). Until then, maybe a short phone hint near the play buttons.

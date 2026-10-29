@@ -48,6 +48,13 @@ global:
   rubos: Roubos
   ruba: Roubo          # ep595 "split top Ruba design"
   ruba's: Roubo's
+  rubot: Roubo         # ep369 15:22 "French oak rubot project" (the maintainer's report, 2026-10-29)
+  # Times of day Whisper wrote with a dot ("2" ".18" to it), found from the maintainer's report
+  # of ep369 9:59 (2026-10-29). Keyed with the words around them, so a decimal stays a decimal.
+  at 2 .18 in the afternoon: at 2:18 in the afternoon    # ep369 9:59
+  be 2 .30 in the morning: be 2:30 in the morning        # ep039 23:53
+  until 4 .30 at night: until 4:30 at night              # ep126 20:37
+  to 3 .30 pm: to 3:30 PM                                # ep602 56:04
   # Split-top benches: Whisper writes "split top" (17 times in the 36 episodes, all the bench).
   split top: split-top
   # Chris Schwarz (ep605 "the Swartz"; spelled right in ep595). Swartz is also a surname:
@@ -195,6 +202,8 @@ global:
   # case (2026-10-27). Checked on the 38 transcripts: ep602 only, 10 sentences.
   under bevel: underbevel
   widocor: woodworker
+  tee box: tea box
+  tee boxes: tea boxes
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:
@@ -220,6 +229,7 @@ episodes:
     craig: Craig
   2017-03-28_ep369_marc-leaves-the-show:
     craig: Craig
+    gold turning: bowl turning
   2018-05-07_ep434_rough-ride-on-the-back-end:
     craig: Craig
   2009-01-21_ep049_sketchup-for-woodworkers-and-a-steamer-trunk-with-a-bigger:

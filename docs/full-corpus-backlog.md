@@ -137,3 +137,23 @@ topic search helps short-query misses (eval `classic-video-games`).
   video open (`docs/deep-links.md`, 2026-10-29). Touches the page layout, the CSP
   (`web/public/_headers`) and the privacy note in the footer. Needs the design steps
   (brainstorm → spec → plan). Until then, maybe a short phone hint near the play buttons.
+
+## 8. Found comparing with Apple Podcasts' transcripts (2026-10-29)
+
+- **Apple links before 2017-11** (§5): Apple's search API finds older episodes one at a time
+  (`itunes.apple.com/search?media=podcast&entity=podcastEpisode&term=WT406` returned WT406 and,
+  for "WT300", WT300). Fallback for every episode the lookup misses: search by number or
+  title, keep a result only if its `collectionId` is 251471480 and its title or date
+  matches. One request per episode: ~5 min for the 96 transcribed episodes without one, ~20
+  min once for the archive. A small design change: spec §4.6, then a plan.
+- **Unpunctuated stretches**: Whisper sometimes stops punctuating for minutes (a known
+  failure). 150+ words with no `. ? !`, scanned 2026-10-29 on 159 transcripts: ep064 26 min
+  from 50:36, ep483 16 min from 28:54, ep458 11 min from 94:38, ep466 4 min from 55:01, ep266
+  2 min from 56:43. Search still works (chunks stop at 45 s), but the transcript view shows a
+  wall of lowercase text and boilerplate detection half-misses: ep466's Rockler read is hidden
+  in one chunk of three. Likely fix: re-transcribe the stretch, a new kind of repair next to
+  loops and holes (`docs/superpowers/specs/2026-10-26-transcript-repair-design.md`), with the
+  scan as its detector.
+- Apple's transcripts are tidied (fillers and crosstalk dropped, reliable punctuation), ours
+  are verbatim with word times. Neither was clearly more accurate on 5 passages (ep418, 424,
+  466); Apple was right on two words where ours was marked unsure (ep418 2:46).

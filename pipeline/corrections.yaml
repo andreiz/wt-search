@@ -221,6 +221,14 @@ global:
   a koya: Accoya
   static and hydride: acetic anhydride
   a static and hydride: acetic anhydride
+  # Found comparing with Apple Podcasts' transcripts (2026-10-29). The X-Acto knife (ep424
+  # 5:36, ep498 38:47); the rest are in ep466's unpunctuated ending (55:01–58:58). Each
+  # checked on the 159 transcripts: only those sentences change.
+  exacto: X-Acto
+  spring pole wave: spring pole lathe
+  super gyros: SuperJaws          # Triton's clamping stand
+  matt carmona: Matt Cremona
+  covet outbreak: COVID outbreak
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:

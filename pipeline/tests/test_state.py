@@ -103,6 +103,12 @@ def test_fresh_database_has_no_boilerplate_index(tmp_path):
     assert {"episodes", "chunks"} <= _tables(conn)
 
 
+def test_fresh_database_has_a_run_hash_cache(tmp_path):
+    conn = connect(tmp_path / "state.db")
+    cols = {r[1] for r in conn.execute("pragma table_info(run_hashes)")}
+    assert cols == {"episode_id", "n", "hashes"}
+
+
 def _migration_lines(caplog):
     return [r.getMessage() for r in caplog.records if "migration" in r.getMessage()]
 

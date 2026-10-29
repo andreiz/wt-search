@@ -1,21 +1,26 @@
 """`wts chunk`: raw transcript → guards → corrections → sentences → chunks.
 
 Everything here is deterministic and cheap, so it can be re-run whenever the guards or
-corrections.yaml change, without re-transcribing. No chunk is flagged as boilerplate for now
-(detection is shelved until the full corpus is available); the flag, and the embed and publish
-steps that honour it, stay.
+corrections.yaml change, without re-transcribing. Boilerplate (boilerplate spec 2026-10-28) is
+the word runs that enough episodes share: each chunked episode's run hashes are cached in
+`run_hashes`, counted across the corpus, and the spans they cover become chunks of their own,
+flagged `is_boilerplate` (embed and publish skip them; search hides them unless asked).
 """
 
 import json
 import logging
 import sqlite3
+from collections import Counter
 from collections.abc import Sequence
 
+import numpy as np
+
+from wts.boilerplate import Params, find_spans, run_hashes, shared_runs, tokens
 from wts.chunker import build_chunks
 from wts.corrections import CorrectionRule, apply_corrections
 from wts.repairs import cleaned_words
 from wts.state import Status, fail, requeue_embedding
-from wts.words import Sentence, join_split_words, split_sentences
+from wts.words import Sentence, join_split_words, normalize_text, split_sentences
 
 log = logging.getLogger("wts")
 _CHUNK_COLUMNS = "seq, start_ms, end_ms, text, word_times, is_boilerplate"
@@ -23,7 +28,8 @@ _CHUNK_COLUMNS = "seq, start_ms, end_ms, text, word_times, is_boilerplate"
 # Bump this whenever a change to the chunking code (guards, sentence splitting, the chunker)
 # changes what it produces. The chunk step re-chunks every episode once when it differs from the
 # stored value, and the changed ones go back to `chunked` for re-embedding.
-CHUNKER_VERSION = 2
+CHUNKER_VERSION = 3  # 3: boilerplate spans cut and flagged (2026-10-28)
+_IN_CORPUS = (Status.CHUNKED, Status.EMBEDDED, Status.PUBLISHED)
 
 
 def chunking_inputs(corrections_sha: str) -> str:
@@ -42,18 +48,67 @@ def prepare_episode(
     return split_sentences(join_split_words(words)), flags
 
 
+def store_run_hashes(
+    conn: sqlite3.Connection, episode_id: int, hashes: np.ndarray, n: int
+) -> None:
+    with conn:
+        conn.execute(
+            "insert into run_hashes (episode_id, n, hashes) values (?, ?, ?) "
+            "on conflict (episode_id) do update set n = excluded.n, hashes = excluded.hashes",
+            (episode_id, n, hashes.astype(np.uint64).tobytes()),
+        )
+
+
+def corpus_shared_runs(
+    conn: sqlite3.Connection, params: Params | None = None, *, include: int | None = None
+) -> np.ndarray:
+    """The run hashes shared by enough episodes: those chunked, embedded or published, plus
+    `include` (the episode being chunked) whatever its status."""
+    params = params or Params()
+    marks = ", ".join("?" for _ in _IN_CORPUS)
+    rows = conn.execute(
+        f"select r.hashes from run_hashes r join episodes e on e.id = r.episode_id "
+        f"where r.n = ? and (e.status in ({marks}) or e.id = ?)",
+        (params.run_words, *_IN_CORPUS, -1 if include is None else include),
+    )
+    return shared_runs((np.frombuffer(r[0], np.uint64) for r in rows), params.min_episodes)
+
+
+def _words(sentences: Sequence[Sentence]) -> list:
+    return [w for s in sentences for w in s.words]
+
+
+def index_episode(
+    conn: sqlite3.Connection, row: sqlite3.Row, corrections: Sequence[CorrectionRule]
+) -> None:
+    """Cache the episode's run hashes from its current text, without touching its chunks."""
+    sentences, _ = prepare_episode(row, corrections)
+    n = Params().run_words
+    store_run_hashes(conn, row["id"], run_hashes(tokens(_words(sentences)), n), n)
+
+
 def chunk_episode(
     conn: sqlite3.Connection,
     row: sqlite3.Row,
     corrections: Sequence[CorrectionRule],
+    shared: np.ndarray | None = None,
 ) -> bool:
     """Rebuild one episode's chunks. Returns True if they differ from what was stored.
+
+    The episode's run hashes are cached first; it is then cut against `shared`, or, when that
+    is None, against the counts of the whole corpus including its own new text.
 
     An `embedded`/`published` episode whose chunks changed goes back to `chunked` in the same
     transaction, so its vectors can't outlive the text they were made from.
     """
     sentences, flags = prepare_episode(row, corrections)
-    chunks = build_chunks(sentences)  # no boilerplate detection yet
+    words = _words(sentences)
+    params = Params()
+    store_run_hashes(conn, row["id"], run_hashes(tokens(words), params.run_words),
+                     params.run_words)
+    if shared is None:
+        shared = corpus_shared_runs(conn, params, include=row["id"])
+    chunks = build_chunks(sentences, find_spans(words, shared, params))
     new = [
         (c.seq, c.start_ms, c.end_ms, c.text, c.word_times, int(c.is_boilerplate)) for c in chunks
     ]
@@ -83,16 +138,34 @@ def chunk_episode(
     return True
 
 
-def refresh_chunks(conn: sqlite3.Connection, corrections: Sequence[CorrectionRule]) -> int:
-    """Re-chunk already-chunked episodes; changed ones go back to `chunked` for re-embedding."""
-    rows = conn.execute(
-        "select * from episodes where status in (?, ?, ?) order by published_at",
-        (Status.CHUNKED, Status.EMBEDDED, Status.PUBLISHED),
+def _corpus_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute(
+        "select * from episodes where status in (?, ?, ?) order by published_at", _IN_CORPUS
     ).fetchall()
+
+
+def refresh_chunks(
+    conn: sqlite3.Connection, corrections: Sequence[CorrectionRule], *, rehash: bool
+) -> int:
+    """Re-chunk already-chunked episodes; changed ones go back to `chunked` for re-embedding.
+
+    With `rehash` (their text may have changed) every episode's run hashes are rebuilt first,
+    so all are cut against one count of the corpus as it now is, whatever the order.
+    """
+    if rehash:
+        for row in _corpus_rows(conn):
+            try:
+                index_episode(conn, row, corrections)
+            except Exception as exc:  # noqa: BLE001 — as below
+                fail(conn, row["id"], "chunk", repr(exc)[:500])
+                log.error(
+                    f"re-chunking failed: {exc!r}", extra={"step": "chunk", "episode": row["stem"]}
+                )
+    shared = corpus_shared_runs(conn)
     changed = 0
-    for row in rows:
+    for row in _corpus_rows(conn):
         try:
-            if chunk_episode(conn, row, corrections):
+            if chunk_episode(conn, row, corrections, shared):
                 changed += 1
         except Exception as exc:  # noqa: BLE001
             # One bad transcript must not block every run.
@@ -101,3 +174,14 @@ def refresh_chunks(conn: sqlite3.Connection, corrections: Sequence[CorrectionRul
                 f"re-chunking failed: {exc!r}", extra={"step": "chunk", "episode": row["stem"]}
             )
     return changed
+
+
+def boilerplate_texts(conn: sqlite3.Connection) -> Counter[str]:
+    """Each flagged chunk's normalised text → how many different episodes have it."""
+    seen = {
+        (normalize_text(text), episode_id)
+        for text, episode_id in conn.execute(
+            "select text, episode_id from chunks where is_boilerplate = 1"
+        )
+    }
+    return Counter(text for text, _ in seen)

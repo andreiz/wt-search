@@ -18,7 +18,14 @@ import httpx
 
 from wts import storage
 from wts.backup import BackupFailed, backup
-from wts.chunking import chunk_episode, chunking_inputs, refresh_chunks
+from wts.boilerplate import shared_digest
+from wts.chunking import (
+    boilerplate_texts,
+    chunk_episode,
+    chunking_inputs,
+    corpus_shared_runs,
+    refresh_chunks,
+)
 from wts.cloudflare import CloudflareError
 from wts.config import Config
 from wts.corrections import CORRECTIONS_FILE, corrections_sha, load_corrections
@@ -350,6 +357,7 @@ def run_chunk(
 ) -> Counter:
     corrections = load_corrections(corrections_file)
     counts: Counter = Counter()
+    hidden_before = boilerplate_texts(conn)
     if force:
         done = (Status.CHUNKED, Status.EMBEDDED, Status.PUBLISHED)
         for episode_id in ids:
@@ -375,10 +383,16 @@ def run_chunk(
 
     # A corrections.yaml edit or a new CHUNKER_VERSION changes what chunking produces: re-chunk
     # everything already chunked. (The kv key predates the version: a bare sha counts as changed.)
+    # Otherwise, re-cut everything when the set of shared runs changed (a new episode, a repair
+    # or an episode leaving the corpus pushed a run over or under the threshold).
     inputs = chunking_inputs(corrections_sha(corrections_file))
     if inputs != kv_get(conn, "corrections_sha"):
-        counts["refreshed"] = refresh_chunks(conn, corrections)
+        counts["refreshed"] = refresh_chunks(conn, corrections, rehash=True)
         kv_set(conn, "corrections_sha", inputs)
+    elif shared_digest(corpus_shared_runs(conn)) != kv_get(conn, "boilerplate_shared_sha"):
+        counts["refreshed"] = refresh_chunks(conn, corrections, rehash=False)
+    kv_set(conn, "boilerplate_shared_sha", shared_digest(corpus_shared_runs(conn)))
+    _log_newly_hidden(hidden_before, boilerplate_texts(conn), counts)
     if chunked:
         n, bp, flags = _chunk_stats(conn, chunked)
         counts.update(chunks=n, boilerplate=bp, flagged=len(flags))
@@ -388,6 +402,17 @@ def run_chunk(
             msg += "; flagged: " + ", ".join(f"{s} ({', '.join(f)})" for s, f in flags.items())
         log.info(msg, extra={"step": "chunk"})
     return counts
+
+
+def _log_newly_hidden(before: Counter, after: Counter, counts: Counter) -> None:
+    """Say which passages this run started hiding, so a threshold drifting into ordinary speech
+    shows up in the run log (boilerplate spec 2026-10-28 §5.1)."""
+    new = sorted(((n, t) for t, n in after.items() if t not in before), key=lambda x: (-x[0], x[1]))
+    counts["newly_hidden"] = len(new)
+    for n, text in new[:20]:
+        log.info(f'newly hidden: "{text[:80]}" ({plural(n, "episode")})', extra={"step": "chunk"})
+    if len(new) > 20:
+        log.info(f"newly hidden: {len(new) - 20} more", extra={"step": "chunk"})
 
 
 def _chunk_stats(

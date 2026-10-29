@@ -8,7 +8,7 @@ from conftest import force_status, seg, status_of, tx
 from wts import chunking, steps
 from wts.chunking import prepare_episode
 from wts.cli import main
-from wts.corrections import CORRECTIONS_FILE, CorrectionRule, corrections_sha
+from wts.corrections import CORRECTIONS_FILE, CorrectionRule, corrections_sha, load_corrections
 from wts.db import kv_set
 from wts.state import fail
 from wts.steps import run_chunk
@@ -104,7 +104,7 @@ def test_chunk_reports_chunks_and_flags(conn, paths, cfg, episodes_with_ad, wts_
         "select count(*), sum(is_boilerplate) from chunks"
     ).fetchone()
     assert (counts["chunks"], counts["boilerplate"], counts["flagged"]) == (total, bp, 1)
-    assert bp == 0  # nothing detects boilerplate for now
+    assert bp > 0  # the shared ad
     per_episode = [m for m in wts_messages if m.startswith("chunked: ")]
     assert len(per_episode) == 5
     assert per_episode[0].endswith("; flags: wpm_low")
@@ -120,13 +120,85 @@ def test_shipped_corrections_are_applied(conn, transcribed_episode, paths, cfg):
     assert "Cremona" in all_text(conn, transcribed_episode)
 
 
-def test_no_chunk_is_boilerplate_even_when_five_episodes_share_a_passage(
-    conn, paths, cfg, episodes_with_ad
-):
-    # Detection is off until the full corpus is available; the five copies of the ad stay text.
+def flagged_texts(conn, e):
+    return [
+        t for t, bp in conn.execute(
+            "select text, is_boilerplate from chunks where episode_id = ? order by seq", (e,)
+        ) if bp
+    ]
+
+
+def test_five_episodes_sharing_a_read_get_it_flagged(conn, paths, cfg, episodes_with_ad):
     run_chunk(conn, paths, cfg, episodes_with_ad)
-    assert conn.execute("select count(*) from chunks").fetchone()[0] > 0
+    for e in episodes_with_ad:
+        flagged = flagged_texts(conn, e)
+        assert flagged and "rockler" in " ".join(flagged)
+        assert all("q0z" not in t for t in flagged)  # the episode's own sentences stay searchable
+        assert any("q0z" in t for t, in conn.execute(
+            "select text from chunks where episode_id = ? and is_boilerplate = 0", (e,)))
+
+
+def test_four_episodes_are_not_enough(conn, paths, cfg, make_episodes):
+    ids = make_episodes(4)
+    for k, e in enumerate(ids):
+        write_transcript(conn, paths, e, AD_BLOCK + unique_sentences(f"ep{k}", 15))
+    run_chunk(conn, paths, cfg, ids)
     assert conn.execute("select count(*) from chunks where is_boilerplate = 1").fetchone()[0] == 0
+
+
+def test_order_independent_across_runs(conn, paths, cfg, make_episodes):
+    ids = make_episodes(5)
+    for k, e in enumerate(ids):
+        write_transcript(conn, paths, e, AD_BLOCK + unique_sentences(f"ep{k}", 15))
+    run_chunk(conn, paths, cfg, ids[:4])
+    for e in ids[:4]:
+        force_status(conn, e, "embedded")
+    run_chunk(conn, paths, cfg, ids[4:])
+    assert all(flagged_texts(conn, e) for e in ids)
+    assert all(status_of(conn, e) == "chunked" for e in ids[:4])  # re-cut, so re-embedded
+
+
+def test_failed_or_reset_episode_does_not_count(conn, paths, cfg, episodes_with_ad):
+    run_chunk(conn, paths, cfg, episodes_with_ad)
+    fail(conn, episodes_with_ad[0], "chunk", "boom")
+    run_chunk(conn, paths, cfg, [])
+    assert all(boilerplate_chunk_count(conn, e) == 0 for e in episodes_with_ad[1:])
+
+
+def test_idle_run_refreshes_and_requeues_nothing(conn, paths, cfg, episodes_with_ad, refreshes):
+    run_chunk(conn, paths, cfg, episodes_with_ad)
+    for e in episodes_with_ad:
+        force_status(conn, e, "published")
+    n = len(refreshes)
+    counts = run_chunk(conn, paths, cfg, [])
+    assert len(refreshes) == n and not counts["newly_hidden"]
+    assert all(status_of(conn, e) == "published" for e in episodes_with_ad)
+
+
+def test_newly_hidden_text_is_logged(conn, paths, cfg, episodes_with_ad, wts_messages):
+    counts = run_chunk(conn, paths, cfg, episodes_with_ad)
+    assert counts["newly_hidden"] >= 1
+    assert any(
+        m.startswith('newly hidden: "this episode is brought to you by rockler')
+        and m.endswith("(5 episodes)")
+        for m in wts_messages
+    )
+
+
+def test_single_episode_rechunk_uses_corpus_counts(conn, paths, cfg, episodes_with_ad):
+    run_chunk(conn, paths, cfg, episodes_with_ad)
+    e = episodes_with_ad[2]
+    row = conn.execute("select * from episodes where id = ?", (e,)).fetchone()
+    rules = load_corrections(CORRECTIONS_FILE)  # what the run used
+    assert chunking.chunk_episode(conn, row, rules) is False  # same cut as the run made
+    assert flagged_texts(conn, e)
+
+
+def test_run_hashes_are_cached_per_episode(conn, paths, cfg, episodes_with_ad):
+    run_chunk(conn, paths, cfg, episodes_with_ad)
+    rows = conn.execute("select episode_id, n, length(hashes) from run_hashes").fetchall()
+    assert sorted(r[0] for r in rows) == sorted(episodes_with_ad)
+    assert all(r[1] == 8 and r[2] > 0 and r[2] % 8 == 0 for r in rows)
 
 
 @pytest.fixture
@@ -360,3 +432,26 @@ def test_chunk_cli(wts_home):
     r = CliRunner().invoke(main, ["chunk", "--select", "all", "--force"])
     assert r.exit_code == 0, r.output
     assert "chunk: nothing to do (0:00)" in r.output
+
+
+def test_real_sponsor_reads_flagged(conn, paths, cfg, make_episodes, real_transcripts):
+    # Restored from 67e1300^ (boilerplate spec 2026-10-28 §5.5): the Woodcraft read in ep610–615.
+    ids = make_episodes(len(real_transcripts))
+    paths.transcripts_dir.mkdir(parents=True, exist_ok=True)
+    for e, data in zip(ids, real_transcripts, strict=True):
+        out = paths.transcripts_dir / f"real-{e}.json"
+        out.write_text(json.dumps(data))
+        conn.execute(
+            "update episodes set transcript_path = ?, duration_s = ?, status = 'transcribed' "
+            "where id = ?",
+            (str(out), data["meta"].get("duration_s"), e),
+        )
+    conn.commit()
+    run_chunk(conn, paths, cfg, ids)
+    with_bp = sum(1 for e in ids if boilerplate_chunk_count(conn, e) >= 1)
+    total_words = bp_words = 0
+    for text, bp in conn.execute("select text, is_boilerplate from chunks"):
+        total_words += len(text.split())
+        bp_words += len(text.split()) if bp else 0
+    assert with_bp >= min(5, len(ids))
+    assert bp_words < 0.15 * total_words

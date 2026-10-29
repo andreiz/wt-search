@@ -27,6 +27,17 @@ then [README.md](../README.md), then the spec sections it points to.
   cached before chunking (harmless); the no-results tip shows even when the query already has
   `include:ads`.
 - Topics (per-episode list, every place a subject came up) were spiked and parked: backlog §6.
+- **Before contacting the hosts** (remote-transcription plan Task 9 step 3), 2026-10-28:
+  - Eval rerun and new baseline: done (5d2d743).
+  - `check_corrections.py --before-ref a6edfb1` (every rule over all 159 transcripts): 1,513
+    sentences change. Grouped by rule, all fixes except the bare `craig: Kreg`, which renamed
+    people (patrons, listeners): fixed in bd29528, re-chunked (7 episodes, need embed +
+    publish). Possible new rule: "mox and vise" / "Moxin vise" → Moxon vise.
+  - `wts status --flagged`: 10 to review, none reviewed: loop_cut in ep4, 142, 359, 369,
+    588, 612, 613; bad_word_times in ep49, 364, 558 (`wts review <n>`).
+  - Platform links (159 episodes): Spotify 159, Apple 63 (every episode from 2017-10 on;
+    the lookup's limit, backlog §5), YouTube 39 (all from 2023 on, 4 earlier), show page 159.
+  - What to tell or ask the hosts: `docs/hosts-email.md`.
 
 **Session of 2026-10-27/28: 159 episodes on staging, all published, all repairs decided.**
 - **The batch.** `wts scope add spread:121` + `wts run`: 121 transcribed on walnut, 85

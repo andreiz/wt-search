@@ -48,10 +48,10 @@ times on the show's own timeline.
 | YouTube | iOS app | `&t=<s>s` (what the Worker uses) | works, precise (2026-10-07); not for a second moment in a video the app already has open (below, 2026-10-29) |
 | YouTube | Android app | `&t=<s>s` (what the Worker uses) | not checked |
 | YouTube | Desktop web | `&t=<s>s` (what the Worker uses) | works (2026-10-07) |
-| Apple Podcasts | iOS app | `&t=<s>` (what the Worker uses; the app's own share format) | works, lands early (play-time ads; 2026-10-07) |
+| Apple Podcasts | iOS app | `&t=<s>` (what the Worker uses; the app's own share format) | works, lands early (play-time ads; 2026-10-07); opens the app's transcript at the passage, ▶ to play; a second moment in the same episode works (2026-10-29) |
 | Apple Podcasts | Android (web) | `&t=<s>` (what the Worker uses) | not checked |
 | Apple Podcasts | Desktop web / Mac app | `&t=<s>` (what the Worker uses) | not checked |
-| Spotify | iOS app | `?t=<s>` (what the Worker uses; the app's own share format) | works, sometimes 30–60 s early (play-time ads; 2026-10-07) |
+| Spotify | iOS app | `?t=<s>` (what the Worker uses; the app's own share format) | works, sometimes 30–60 s early (play-time ads; 2026-10-07); a second moment in the same episode works (2026-10-29) |
 | Spotify | Android app | `?t=<s>` (what the Worker uses) | not checked |
 | Spotify | Desktop web | `?t=<s>` (what the Worker uses) | works (2026-10-07) |
 | Show page (Acast) | Desktop web | `?seek=<s>` (what the Worker uses) | works; an ad may play first (WT616, 2026-10-09) |
@@ -65,4 +65,8 @@ without seeking. A link into a different episode seeks correctly. Tried on ep617
 tap, and `&start=<s>`. None seeked. The app makes this decision, so no link format can fix
 it, and a web page can't make iOS open a YouTube link in Safari instead of the app. Known
 limitation for launch. The fix would be an embedded player on the site (backlog §7).
-Apple Podcasts and Spotify not yet checked for the same thing.
+The same test on Apple Podcasts and Spotify (ep617 2:00 then 10:00, then ep616 5:00): both
+move to the second moment. Spotify plays from it. Apple Podcasts opens its own transcript
+of the episode scrolled to that passage, with a ▶ beside it, and doesn't start playing: the
+mini-player at the bottom keeps showing what played before, even another episode. Tapping
+the ▶ plays from the passage. That extra tap is the app's choice; no link can skip it.

@@ -150,8 +150,9 @@ without). Left, all the maintainer's:
   yes on the Mac, 2026-10-11). **2026-10-29:** a second moment in a YouTube video the app
   already has open brings the app forward paused, without seeking; other episodes seek
   fine. No link format helps (`docs/deep-links.md`); a known limitation, with an embedded
-  player as the planned fix (`docs/full-corpus-backlog.md` §7). Still to try: the same on
-  Apple Podcasts and Spotify, and the rest of this checkpoint.
+  player as the planned fix (`docs/full-corpus-backlog.md` §7). Apple Podcasts and Spotify
+  seek to a second moment fine (Apple opens its transcript at the passage and waits for ▶).
+  Still to try: the rest of this checkpoint.
 - **Task 16 step 3 / Checkpoint I (design):** the report form's placeholders are in
   (2026-10-25, maintainer: "What it should say", "Anything else we should know"). Two choices
   open: the variable Source Serif 4 (optical size, matches the mocks, bigger download) or the

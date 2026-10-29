@@ -191,10 +191,29 @@ global:
 # An episode rule still wins over a kept phrase.
 keep:
   - Craig Jackson      # ep608, 25:36: a person who ran Kreg, not the brand
+  # People called Craig in the 159 episodes of 2026-10-28: patrons thanked by name (ep226,
+  # 369, 444, 568) and a listener who writes in (ep434). Bare "Craig"s that are people get
+  # an episode rule below.
+  - Craig Shaver
+  - Craig Rowe
+  - Craig Norton
+  - Craig Savo
+  - Craig Grider
   - woodcraft com      # the web address ("woodcraft" ".com" to Whisper), not "Woodcraft.com"
   - vice versa         # not in the first 37 episodes; here so `vice: vise` can't touch them
   - vice president
 episodes:
+  # Every "Craig" in these four episodes is a person, not Kreg (checked 2026-10-28):
+  # ep75 52:11 Jason Craig; ep156 23:23 and 24:38 a listener; ep369 13:52 a friend who drove
+  # Marc; ep434 33:11 Craig Grider.
+  2010-10-04_ep075_live-from-wia:
+    craig: Craig
+  2013-11-05_ep156_science-is-sexy:
+    craig: Craig
+  2017-03-28_ep369_marc-leaves-the-show:
+    craig: Craig
+  2018-05-07_ep434_rough-ride-on-the-back-end:
+    craig: Craig
   2010-06-10_ep071_welcome-to-the-three-way:
     # 38:01, "I have a Lie-Nielsen dovetail saw" (the maintainer listened, 2026-10-26; walnut
     # heard "lineal dovetail saw"). This episode only: "lineal" is also a real word.

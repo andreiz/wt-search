@@ -154,6 +154,13 @@ phrases will reach K. Two guards:
 - The refresh trigger (today `corrections` digest + `CHUNKER_VERSION`) must also fire when a new
   episode has been chunked, since that can push a run over K. Bump `CHUNKER_VERSION` once for
   this change, which re-cuts the whole corpus.
+- **As built (2026-10-28, after the code review):** the shared set the chunks were last cut
+  against is stored (`shared_runs` in `state.db`). Each run re-cuts only the episodes whose
+  cached runs include one that crossed K either way since then, plus, with `--force`, the
+  episodes forced (each was cut against a corpus missing the others). A corrections or
+  `CHUNKER_VERSION` change still re-cuts everything. An episode that failed at embed or publish
+  still counts toward K: its text and chunks are intact, and one flaky publish mustn't unhide
+  passages elsewhere.
 - **Single-episode changes** *(Claude's call, 2026-10-28)*: `wts repair` and the review page's
   accept-repair flow re-chunk one episode. That episode is cut using counts over the whole
   corpus, including its own new text. Other episodes whose spans that change affects are re-cut

@@ -11,7 +11,7 @@ import json
 import logging
 import sqlite3
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 
 import numpy as np
 
@@ -66,12 +66,46 @@ def corpus_shared_runs(
     `include` (the episode being chunked) whatever its status."""
     params = params or Params()
     marks = ", ".join("?" for _ in _IN_CORPUS)
+    # An episode that failed at embed or publish still has its text and chunks: it counts, or
+    # one flaky publish would unhide passages elsewhere until it's retried.
     rows = conn.execute(
         f"select r.hashes from run_hashes r join episodes e on e.id = r.episode_id "
-        f"where r.n = ? and (e.status in ({marks}) or e.id = ?)",
-        (params.run_words, *_IN_CORPUS, -1 if include is None else include),
+        f"where r.n = ? and (e.status in ({marks}) or e.id = ? "
+        f"or (e.status = ? and e.error_step in ('embed', 'publish')))",
+        (params.run_words, *_IN_CORPUS, -1 if include is None else include, Status.ERROR),
     )
     return shared_runs((np.frombuffer(r[0], np.uint64) for r in rows), params.min_episodes)
+
+
+def load_shared(conn: sqlite3.Connection, n: int) -> np.ndarray | None:
+    """The shared runs the stored chunks were last cut against; None if never stored."""
+    row = conn.execute("select n, hashes from shared_runs where id = 1").fetchone()
+    return np.frombuffer(row[1], np.uint64) if row and row[0] == n else None
+
+
+def save_shared(conn: sqlite3.Connection, shared: np.ndarray, n: int) -> None:
+    with conn:
+        conn.execute(
+            "insert into shared_runs (id, n, hashes) values (1, ?, ?) "
+            "on conflict (id) do update set n = excluded.n, hashes = excluded.hashes",
+            (n, shared.astype(np.uint64).tobytes()),
+        )
+
+
+def episodes_holding(conn: sqlite3.Connection, hashes: np.ndarray) -> set[int]:
+    """Corpus episodes whose cached run hashes include any of `hashes`."""
+    if not len(hashes):
+        return set()
+    marks = ", ".join("?" for _ in _IN_CORPUS)
+    return {
+        episode_id
+        for episode_id, blob in conn.execute(
+            f"select r.episode_id, r.hashes from run_hashes r join episodes e "
+            f"on e.id = r.episode_id where e.status in ({marks})",
+            _IN_CORPUS,
+        )
+        if np.isin(np.frombuffer(blob, np.uint64), hashes).any()
+    }
 
 
 def _words(sentences: Sequence[Sentence]) -> list:
@@ -145,9 +179,14 @@ def _corpus_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def refresh_chunks(
-    conn: sqlite3.Connection, corrections: Sequence[CorrectionRule], *, rehash: bool
+    conn: sqlite3.Connection,
+    corrections: Sequence[CorrectionRule],
+    *,
+    rehash: bool,
+    only: Collection[int] | None = None,
 ) -> int:
-    """Re-chunk already-chunked episodes; changed ones go back to `chunked` for re-embedding.
+    """Re-chunk already-chunked episodes (or just those in `only`); changed ones go back to
+    `chunked` for re-embedding.
 
     With `rehash` (their text may have changed) every episode's run hashes are rebuilt first,
     so all are cut against one count of the corpus as it now is, whatever the order.
@@ -164,6 +203,8 @@ def refresh_chunks(
     shared = corpus_shared_runs(conn)
     changed = 0
     for row in _corpus_rows(conn):
+        if only is not None and row["id"] not in only:
+            continue
         try:
             if chunk_episode(conn, row, corrections, shared):
                 changed += 1

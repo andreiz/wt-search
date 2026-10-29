@@ -165,6 +165,58 @@ def test_failed_or_reset_episode_does_not_count(conn, paths, cfg, episodes_with_
     assert all(boilerplate_chunk_count(conn, e) == 0 for e in episodes_with_ad[1:])
 
 
+@pytest.mark.parametrize("forced", [5, 2])
+def test_force_rechunk_keeps_flags(conn, paths, cfg, episodes_with_ad, forced):
+    run_chunk(conn, paths, cfg, episodes_with_ad)
+    run_chunk(conn, paths, cfg, episodes_with_ad[:forced], force=True)
+    assert all(flagged_texts(conn, e) for e in episodes_with_ad)
+
+
+def test_reset_episode_does_not_count(conn, paths, cfg, episodes_with_ad):
+    run_chunk(conn, paths, cfg, episodes_with_ad)
+    force_status(conn, episodes_with_ad[0], "transcribed")
+    run_chunk(conn, paths, cfg, [])
+    assert all(boilerplate_chunk_count(conn, e) == 0 for e in episodes_with_ad[1:])
+
+
+@pytest.mark.parametrize("step", ["embed", "publish"])
+def test_episode_failed_after_chunking_still_counts(conn, paths, cfg, episodes_with_ad, step):
+    run_chunk(conn, paths, cfg, episodes_with_ad)
+    for e in episodes_with_ad:
+        force_status(conn, e, "published")
+    fail(conn, episodes_with_ad[0], step, "flaky")
+    run_chunk(conn, paths, cfg, [])
+    assert all(flagged_texts(conn, e) for e in episodes_with_ad[1:])
+    assert all(status_of(conn, e) == "published" for e in episodes_with_ad[1:])
+
+
+def test_refresh_recuts_only_affected_episodes(conn, paths, cfg, make_episodes, monkeypatch):
+    other = [
+        "welcome back to the shop where we talk about planes and saws",
+        "and the occasional jig that nobody really needs but builds anyway",
+    ]
+    ids = make_episodes(13)
+    for k, e in enumerate(ids[:5]):
+        write_transcript(conn, paths, e, AD_BLOCK + unique_sentences(f"ad{k}", 15))
+    for k, e in enumerate(ids[5:8]):
+        write_transcript(conn, paths, e, unique_sentences(f"solo{k}", 15))
+    for k, e in enumerate(ids[8:]):
+        write_transcript(conn, paths, e, other + unique_sentences(f"new{k}", 15))
+    run_chunk(conn, paths, cfg, ids[:8])
+    cut = []
+    real = chunking.chunk_episode
+
+    def spy(conn_, row, *args, **kwargs):
+        cut.append(row["id"])
+        return real(conn_, row, *args, **kwargs)
+
+    monkeypatch.setattr("wts.chunking.chunk_episode", spy)
+    monkeypatch.setattr("wts.steps.chunk_episode", spy)
+    run_chunk(conn, paths, cfg, ids[8:])
+    assert set(cut) == set(ids[8:])  # the new block's episodes; not the ad's, not the others
+    assert all(flagged_texts(conn, e) for e in ids[8:])
+
+
 def test_idle_run_refreshes_and_requeues_nothing(conn, paths, cfg, episodes_with_ad, refreshes):
     run_chunk(conn, paths, cfg, episodes_with_ad)
     for e in episodes_with_ad:

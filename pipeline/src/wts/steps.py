@@ -15,16 +15,20 @@ from pathlib import Path
 
 import click
 import httpx
+import numpy as np
 
 from wts import storage
 from wts.backup import BackupFailed, backup
-from wts.boilerplate import shared_digest
+from wts.boilerplate import Params
 from wts.chunking import (
     boilerplate_texts,
     chunk_episode,
     chunking_inputs,
     corpus_shared_runs,
+    episodes_holding,
+    load_shared,
     refresh_chunks,
+    save_shared,
 )
 from wts.cloudflare import CloudflareError
 from wts.config import Config
@@ -383,15 +387,27 @@ def run_chunk(
 
     # A corrections.yaml edit or a new CHUNKER_VERSION changes what chunking produces: re-chunk
     # everything already chunked. (The kv key predates the version: a bare sha counts as changed.)
-    # Otherwise, re-cut everything when the set of shared runs changed (a new episode, a repair
-    # or an episode leaving the corpus pushed a run over or under the threshold).
+    # Otherwise re-cut the episodes holding a run that crossed the threshold either way since the
+    # last run (a new episode, a repair, an episode leaving the corpus), and with --force the
+    # episodes cut this run, which were cut against a corpus missing the other forced ones.
     inputs = chunking_inputs(corrections_sha(corrections_file))
+    n = Params().run_words
     if inputs != kv_get(conn, "corrections_sha"):
         counts["refreshed"] = refresh_chunks(conn, corrections, rehash=True)
         kv_set(conn, "corrections_sha", inputs)
-    elif shared_digest(corpus_shared_runs(conn)) != kv_get(conn, "boilerplate_shared_sha"):
-        counts["refreshed"] = refresh_chunks(conn, corrections, rehash=False)
-    kv_set(conn, "boilerplate_shared_sha", shared_digest(corpus_shared_runs(conn)))
+    else:
+        old, new = load_shared(conn, n), corpus_shared_runs(conn)
+        if old is None:
+            counts["refreshed"] = refresh_chunks(conn, corrections, rehash=False)
+        else:
+            affected = episodes_holding(conn, np.setxor1d(old, new))
+            if force:
+                affected |= set(chunked)
+            if affected:
+                counts["refreshed"] = refresh_chunks(
+                    conn, corrections, rehash=False, only=affected
+                )
+    save_shared(conn, corpus_shared_runs(conn), n)
     _log_newly_hidden(hidden_before, boilerplate_texts(conn), counts)
     if chunked:
         n, bp, flags = _chunk_stats(conn, chunked)

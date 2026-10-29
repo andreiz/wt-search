@@ -6,3 +6,11 @@ CREATE TABLE run_hashes (
     n INTEGER NOT NULL,
     hashes BLOB NOT NULL
 );
+
+-- The shared runs the stored chunks were last cut against (one row), so the next run re-cuts
+-- only the episodes that hold a run that has since crossed the threshold either way.
+CREATE TABLE shared_runs (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    n INTEGER NOT NULL,
+    hashes BLOB NOT NULL
+);

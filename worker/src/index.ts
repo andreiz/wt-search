@@ -1,4 +1,4 @@
-import { recordReport, recordSearch } from "./analytics";
+import { recordReport, recordSearch, trafficOf } from "./analytics";
 import { countSmartSearch } from "./budget";
 import { cached, cacheKey, cacheTtl, corpusVersion, store } from "./cache";
 import { context } from "./context";
@@ -268,9 +268,10 @@ export default {
         degraded: info.degraded ?? false,
         page: info.page ?? 1,
         status: response.status,
+        traffic: trafficOf(request),
       });
     } else if (route === "POST /api/report") {
-      recordReport(env, response.status);
+      recordReport(env, response.status, trafficOf(request));
     }
     return response;
   },

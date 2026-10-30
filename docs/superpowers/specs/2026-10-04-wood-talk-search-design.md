@@ -1900,7 +1900,13 @@ pings stop, which covers the Mini being off or launchd being broken.
   double1 results, double2 latency ms, double3 degraded, double4 page,
   double5 status. Report — index1 `report`, double1 status. The binding is
   optional; a failed write is logged once per isolate and never fails a
-  request.
+  request. *(Added 2026-10-30,
+  [`2026-10-29-analytics-pull-design.md`](2026-10-29-analytics-pull-design.md):)*
+  a traffic class, search blob5 and report blob1: `pipeline` when the
+  User-Agent starts with `WoodTalkSearchBot/` (every `wts` client), else
+  `maintainer` when the request has `X-WTS-Traffic: maintainer` (the
+  frontend's `?me=1` switch, §5.7), else `web`. Only the class is kept, never
+  the headers. Older points read as an empty string.
 
 ### 8.4 Getting logs for analysis
 

@@ -131,9 +131,47 @@ describe("Analytics Engine", () => {
     expect(a.writeDataPoint).toHaveBeenCalledTimes(1);
     expect(a.writeDataPoint).toHaveBeenCalledWith({
       indexes: ["search"],
-      blobs: ["hide glue", "exact", "oldest", "skip"],
+      blobs: ["hide glue", "exact", "oldest", "skip", "web"],
       doubles: [1, expect.any(Number), 0, 1, 200],
     });
+  });
+
+  async function trafficFor(headers: Record<string, string>): Promise<unknown> {
+    const a = analytics();
+    await logLines(() => call("/api/search?q=glue&mode=exact", bindings({ ANALYTICS: a }), { headers }));
+    return a.writeDataPoint.mock.calls[0]?.[0].blobs?.[4];
+  }
+
+  it("classes a pipeline client by its User-Agent", async () => {
+    expect(await trafficFor({ "user-agent": "WoodTalkSearchBot/0.1 (+https://github.com/andreiz/wt-search)" })).toBe(
+      "pipeline",
+    );
+  });
+
+  it("classes the maintainer's browser by X-WTS-Traffic", async () => {
+    expect(await trafficFor({ "x-wts-traffic": "maintainer" })).toBe("maintainer");
+  });
+
+  it("prefers pipeline when both are sent", async () => {
+    expect(await trafficFor({ "user-agent": "WoodTalkSearchBot/0.1", "x-wts-traffic": "maintainer" })).toBe("pipeline");
+  });
+
+  it("ignores other X-WTS-Traffic values and other user agents", async () => {
+    expect(await trafficFor({ "x-wts-traffic": "eval" })).toBe("web");
+    expect(await trafficFor({ "user-agent": "curl/8.7.1" })).toBe("web");
+    expect(await trafficFor({ "user-agent": "Mozilla/5.0 WoodTalkSearchBot/0.1" })).toBe("web");
+  });
+
+  it("never writes the User-Agent or the header's value, only the class", async () => {
+    const a = analytics();
+    const lines = await logLines(() =>
+      call("/api/search?q=glue&mode=exact", bindings({ ANALYTICS: a }), {
+        headers: { "user-agent": "WoodTalkSearchBot/9.9-secretish", "x-wts-traffic": "maintainer" },
+      }),
+    );
+    const written = JSON.stringify([a.writeDataPoint.mock.calls, lines]);
+    expect(written).not.toContain("9.9-secretish");
+    expect(written).not.toContain("WoodTalkSearchBot");
   });
 
   it("keeps the query up to 200 characters, the parser's own cut", async () => {
@@ -156,9 +194,21 @@ describe("Analytics Engine", () => {
       call("/api/report", bindings({ ANALYTICS: a }), { method: "POST", body: "not json", headers: FROM_SITE }),
     );
     expect(a.writeDataPoint.mock.calls.map((c) => c[0])).toEqual([
-      { indexes: ["report"], blobs: [], doubles: [200] },
-      { indexes: ["report"], blobs: [], doubles: [400] },
+      { indexes: ["report"], blobs: ["web"], doubles: [200] },
+      { indexes: ["report"], blobs: ["web"], doubles: [400] },
     ]);
+  });
+
+  it("classes a report too", async () => {
+    const a = analytics();
+    await logLines(() =>
+      call("/api/report", bindings({ ANALYTICS: a }), {
+        method: "POST",
+        body: "not json",
+        headers: { ...FROM_SITE, "x-wts-traffic": "maintainer" },
+      }),
+    );
+    expect(a.writeDataPoint.mock.calls[0]?.[0]).toEqual({ indexes: ["report"], blobs: ["maintainer"], doubles: [400] });
   });
 
   it("gets nothing for health, context or unknown routes", async () => {

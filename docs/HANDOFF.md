@@ -152,7 +152,11 @@ without). Left, all the maintainer's:
   commit dac6ef9); production needs its own. The kill switch survives a deploy (2026-10-29:
   `SEARCH_OVERRIDE=exact` set in the dashboard, `npm run deploy:staging`, which warns that
   the dashboard has a var the file doesn't; afterwards Related answered `smart_degraded:
-  "off"` and the page said "Related search is paused."). Left, step 6: `uv run pytest -m mac -k real_rsync`, and a `wts run --env staging`
+  "off"` and the page said "Related search is paused."). Step 6 done the same day:
+  `real_rsync` passed and `wts run --env staging` logged `backup: ok=1` to
+  `/Volumes/media/wts/backup/wts`. Step 7 (Claude, `state.db`): of 159 published, Spotify
+  159, Apple 63 (none before 2017-11; backlog §8), YouTube 39 matched, about 10 of them
+  more than 3 s off in length. **Checkpoint G is done.** As planned, step 6: `uv run pytest -m mac -k real_rsync`, and a `wts run --env staging`
   that writes a backup to `backup_dir` with no error notification (confirm once). Step 7:
   platform ID coverage and YouTube links after the length rule (`wts status`, or SQL).
 - **Checkpoint H (plan 3):** on the iPhone, each platform button lands at the moment

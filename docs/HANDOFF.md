@@ -1678,6 +1678,25 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    guards need. Embedding: the Mini too, or Workers AI's own `bge-base-en-v1.5` (~$0.90 for the
    full archive's ~13.5M tokens, then pennies a week; query and passage vectors then match by
    construction) — revisiting the earlier local-embedding choice deliberately.
+16. **Keep our own traffic out of the search analytics** (found 2026-10-29, the first look at
+   Analytics Engine; needs a short spec note and plan, before launch and before item 14's
+   digest). Of 5,689 searches logged 2026-10-07..29 none came from outside: ~95% were the eval
+   and its experiments (~600 questions run dozens of times each), the rest the maintainer's
+   hand tests and test traffic (`budget test …`, `killswitch check …`, `… include:ads`). Once
+   the site is public this would drown real visitors' top and zero-result searches. Today's
+   workaround, filtering on the eval's query list, misses older synthetic sets and one-off
+   probes. Proposal: the Worker records a traffic class in a new blob (blob5, after the
+   existing four, so old rows read as empty): `eval` when the request carries a marker the
+   pipeline sends (the pipeline's client already sets `User-Agent: WoodTalkSearchBot/…`,
+   `pipeline/src/wts/net.py`, so a UA check may be enough; an explicit header such as
+   `X-WTS-Traffic: eval` is clearer and lets the maintainer tag a browser session too), else
+   `web`. Reports and `wts analytics pull` filter on it. The marker isn't secret and anyone
+   could send it; the cost of that is only a visitor hiding their own searches. Also decide
+   whether the smoke checks after `wts run` count as eval (yes, likely). Reading the data today:
+   the Keychain item `wts`/`cloudflare_analytics_token` (Account Analytics: Read, created
+   2026-10-29) against `POST /accounts/<id>/analytics_engine/sql`, dataset `wts_staging`; sum
+   `_sample_interval`, not `count()`, since Analytics Engine samples. First findings: Exact
+   p50 ~55 ms / p95 ~155 ms uncached; Related p50 ~0.6 s / p95 ~3.5 s uncached; cached ~10 ms.
 8. ~~Full transcripts in public history~~ — removed by rewriting `main` (second session).
    Left: ask GitHub Support to purge cached views of `a44eec9`. Clones from before the rewrite
    must `git fetch && git reset --hard origin/main` before committing.

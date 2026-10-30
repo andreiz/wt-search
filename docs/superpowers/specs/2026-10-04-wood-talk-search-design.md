@@ -1659,7 +1659,13 @@ As in the brief §4.5; the wording there is the copy, and the design's
   show links (YouTube, podcast, site), "Searches are logged anonymously to
   improve results.", **Send feedback**.
 - No analytics or cookies in the frontend; the Worker's anonymous search
-  logs (§8.3) are all there is.
+  logs (§8.3) are all there is. *(Added 2026-10-30:)* one exception for the
+  maintainer: opening the site with `?me=1` keeps `wts-traffic=maintainer`
+  in local storage (`?me=0` removes it; the parameter is then taken out of
+  the address bar). While it is set, API calls carry
+  `X-WTS-Traffic: maintainer`, so the Worker counts those searches as the
+  maintainer's (§8.3), and the footer reads "Unofficial · fan-made · not
+  counted". Visitors who never open `?me=1` have nothing stored.
 
 ### 5.8 Code and tests
 

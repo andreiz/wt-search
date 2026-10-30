@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/pre
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
 import { Footer, SHOW_LINKS, TAGLINE } from "../src/components/Footer";
+import { setMaintainer } from "../src/lib/traffic";
 import { stubFetch } from "./helpers";
 
 afterEach(() => {
@@ -16,6 +17,16 @@ describe("<Footer/>", () => {
     expect(TAGLINE).toBe("fan-made");
     expect(container.querySelector("p")?.textContent).toBe(`Unofficial · ${TAGLINE}`);
     expect(container.querySelector("p strong")?.textContent).toBe("Unofficial");
+  });
+
+  it("says the maintainer's searches are not counted while the switch is on", () => {
+    setMaintainer(true);
+    try {
+      const { container } = render(<Footer />);
+      expect(container.querySelector("p")?.textContent).toBe(`Unofficial · ${TAGLINE} · not counted`);
+    } finally {
+      setMaintainer(false);
+    }
   });
 
   it("links to the show: YouTube, the podcast and the website, in that order, in a new tab", () => {

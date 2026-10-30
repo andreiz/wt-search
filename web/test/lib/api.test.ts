@@ -2,6 +2,7 @@
 // aborts and network failures. `fetch` is stubbed; nothing here touches a network.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { context, info, report, search, type ReportBody, type SearchData } from "../../src/lib/api";
+import { setMaintainer } from "../../src/lib/traffic";
 import type { SearchState } from "../../src/lib/url";
 import emptyFixture from "../../../pipeline/tests/fixtures/search/empty.json";
 import exactFixture from "../../../pipeline/tests/fixtures/search/exact.json";
@@ -105,6 +106,29 @@ describe("requests", () => {
     answer(200, { ok: true });
     await report(PASSAGE);
     expect(JSON.parse(String(call().init.body))).toEqual(PASSAGE);
+  });
+});
+
+describe("the maintainer's traffic header", () => {
+  afterEach(() => setMaintainer(false));
+
+  it("is sent on every call while the switch is on, beside the report's content-type", async () => {
+    setMaintainer(true);
+    answer(200, emptyFixture);
+    await search(SMART, new AbortController().signal);
+    answer(200, { ok: true });
+    await report(FEEDBACK);
+    const [, searchInit] = fetchMock.mock.calls[0] ?? [];
+    const [, reportInit] = fetchMock.mock.calls[1] ?? [];
+    expect(new Headers(searchInit?.headers).get("x-wts-traffic")).toBe("maintainer");
+    expect(new Headers(reportInit?.headers).get("x-wts-traffic")).toBe("maintainer");
+    expect(new Headers(reportInit?.headers).get("content-type")).toBe("application/json");
+  });
+
+  it("is not sent while it is off", async () => {
+    answer(200, emptyFixture);
+    await search(SMART, new AbortController().signal);
+    expect(new Headers(call().init.headers).has("x-wts-traffic")).toBe(false);
   });
 });
 

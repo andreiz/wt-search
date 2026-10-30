@@ -3,6 +3,7 @@
 // feedback form (spec §5.5) below the links; closing it (Cancel, ×, or the button again)
 // returns focus to the button.
 import { useRef, useState } from "preact/hooks";
+import { isMaintainer } from "../lib/traffic";
 import { FeedbackForm } from "./FeedbackForm";
 
 /** "fan-made" until the hosts agree (spec §10 item 1); then "made with the hosts' blessing". */
@@ -29,6 +30,7 @@ export function Footer({ feedback = false }: { feedback?: boolean }) {
       <div class="column site-footer__inner">
         <p class="site-footer__line">
           <strong>Unofficial</strong> · {TAGLINE}
+          {isMaintainer() && " · not counted"}
         </p>
         <nav class="site-footer__links" aria-label="The show">
           {SHOW_LINKS.map((link) => (

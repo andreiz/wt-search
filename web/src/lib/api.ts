@@ -11,6 +11,7 @@ import type {
   SmartResponse,
   Sort,
 } from "../../../worker/src/api-types";
+import { trafficHeaders } from "./traffic";
 import type { SearchState } from "./url";
 
 /** A search answer. The Worker adds `mode` and `sort` to the body (index.ts), so `mode` tells the arms apart. */
@@ -96,7 +97,11 @@ async function call<T>(
   let body: unknown = undefined;
   let parsed = false;
   try {
-    response = await fetch(url, init);
+    const extra = trafficHeaders();
+    response = await fetch(
+      url,
+      Object.keys(extra).length === 0 ? init : { ...init, headers: { ...(init.headers as Record<string, string>), ...extra } },
+    );
     try {
       body = await response.json();
       parsed = true;

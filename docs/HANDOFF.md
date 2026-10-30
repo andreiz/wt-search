@@ -146,8 +146,10 @@ without). Left, all the maintainer's:
   `phone` user reads `wts`. Retesting needs today's row deleted
   (`DELETE FROM usage WHERE day = '<UTC date>'`): each alert goes once per UTC day. Plain
   `wrangler d1 execute --remote` failed with code 7403 (wrangler's own login lacks D1); run
-  it with `CLOUDFLARE_API_TOKEN` set from the Keychain's `cloudflare_api_token`. Left: the
-  homelab monitor on `/api/health` (exists or not); the kill switch surviving a deploy (`keep_vars`), if not
+  it with `CLOUDFLARE_API_TOKEN` set from the Keychain's `cloudflare_api_token`. The homelab
+  monitor exists: Uptime Kuma "wts-api staging", a keyword check for `"ok":true` on
+  `/api/health` every 5 min (infra-stack `deploy/autokuma/monitors/wts-api-staging.toml`,
+  commit dac6ef9); production needs its own. Left: the kill switch surviving a deploy (`keep_vars`), if not
   already seen. Step 6: `uv run pytest -m mac -k real_rsync`, and a `wts run --env staging`
   that writes a backup to `backup_dir` with no error notification (confirm once). Step 7:
   platform ID coverage and YouTube links after the length rule (`wts status`, or SQL).

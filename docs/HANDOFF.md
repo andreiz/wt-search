@@ -153,7 +153,9 @@ without). Left, all the maintainer's:
   player as the planned fix (`docs/full-corpus-backlog.md` §7). Apple Podcasts and Spotify
   seek to a second moment fine (Apple opens its transcript at the passage and waits for ▶).
   More transcript, "+n more nearby" and VoiceOver on a result card work on the iPhone
-  (maintainer, 2026-10-29). Still to try: the rate-limit notice.
+  (maintainer, 2026-10-29). The rate-limit notice shows in the page with its countdown
+  (desktop, same day: the burst must land in the same fixed one-minute window as the
+  search). **Checkpoint H is done.**
 - **Task 16 step 3 / Checkpoint I (design):** the report form's placeholders are in
   (2026-10-25, maintainer: "What it should say", "Anything else we should know"). Two choices
   open: the variable Source Serif 4 (optical size, matches the mocks, bigger download) or the

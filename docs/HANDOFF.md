@@ -162,8 +162,8 @@ without). Left, all the maintainer's:
   two fixed files, for "Find the moment it was said." and "Nothing found." (neither wraps on
   a phone any more; they are only ~10% wider and heavier than the mocks'). The variable
   file is ~120 KB against ~41 KB for the two fixed ones (2026-10-29; side by side:
-  https://claude.ai/artifact/8CLPjyhpSi7gwVuxcU2an5). **Decided 2026-10-29:** the results
-  column stays aligned with the header. Checkpoint L's phone pass covered the rest of the
+  https://claude.ai/artifact/8CLPjyhpSi7gwVuxcU2an5). **Decided 2026-10-29:** the two fixed
+  files stay, and the results column stays aligned with the header. **Checkpoint I is done.** Checkpoint L's phone pass covered the rest of the
   design review.
 - **Checkpoint J (plan 4):** the review page in Safari. **Done** (maintainer, 2026-10-29: tried
   several times).

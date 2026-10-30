@@ -4,6 +4,7 @@
 question, a budget or kill-switch test, a cache-busting token).
 """
 
+import json
 import re
 import sqlite3
 from collections import Counter, defaultdict
@@ -13,7 +14,7 @@ from datetime import date, datetime, time, timedelta, tzinfo
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from wts.evalset.cases import load_cases
+from wts.evalset.cases import eval_dir, load_cases
 
 _UTC = ZoneInfo("UTC")
 _TS = "%Y-%m-%d %H:%M:%S"
@@ -61,7 +62,18 @@ def utc_bounds(first: date, last: date, tz: tzinfo) -> tuple[str, str]:
 
 
 def eval_query_set(directory: Path | None = None) -> frozenset[str]:
-    return frozenset(normalise(c.query) for c in load_cases(directory))
+    """Every eval question, normalised: today's case files, plus the questions in past reports
+    (`eval/reports/*.json`, not in git), which remember cases since dropped from the files."""
+    directory = directory or eval_dir()
+    queries = {normalise(c.query) for c in load_cases(directory)}
+    for path in sorted((directory / "reports").glob("*.json")):
+        try:
+            cases = json.loads(path.read_text()).get("cases") or []
+        except (OSError, ValueError, AttributeError):
+            continue  # a half-written or foreign file: skip it, it only narrows the guess
+        queries |= {normalise(c["query"]) for c in cases
+                    if isinstance(c, dict) and isinstance(c.get("query"), str)}
+    return frozenset(queries)
 
 
 def classify(row_traffic: str, q: str | None, eval_queries: frozenset[str]) -> str:

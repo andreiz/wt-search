@@ -112,6 +112,17 @@ def test_eval_query_set_reads_both_files(tmp_path):
     assert eval_query_set(tmp_path) == frozenset({"conoid", "how do i flatten"})
 
 
+def test_eval_query_set_includes_questions_from_past_reports(tmp_path):
+    # Questions since dropped from the yaml files were still run; their reports remember them.
+    (tmp_path / "queries.yaml").write_text("[]\n")
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    (reports / "20261025T045536Z.json").write_text(
+        '{"cases": [{"id": "x", "query": "Woodcraft sponsorship code discount"}, {"id": "y"}]}')
+    (reports / "broken.json").write_text("{not json")
+    assert eval_query_set(tmp_path) == frozenset({"woodcraft sponsorship code discount"})
+
+
 def test_normalise():
     assert normalise("  Hide\tGLUE  now ") == "hide glue now"
 

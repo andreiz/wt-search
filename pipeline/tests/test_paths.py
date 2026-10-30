@@ -9,6 +9,7 @@ def test_wts_home_overrides_everything(wts_home):
     assert p.app_dir == wts_home
     assert p.config_file == wts_home / "config.toml"
     assert p.state_db == wts_home / "state.db"
+    assert p.analytics_db == wts_home / "analytics.db"
     assert p.transcripts_dir == wts_home / "data" / "transcripts"
     assert p.embeddings_dir == wts_home / "data" / "embeddings"
     assert p.audio_dir == wts_home / "audio"

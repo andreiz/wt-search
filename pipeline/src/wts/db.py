@@ -8,8 +8,8 @@ from pathlib import Path
 log = logging.getLogger("wts")
 
 
-def _migrations() -> list[tuple[int, str]]:
-    files = resources.files("wts").joinpath("migrations")
+def _migrations(folder: str = "migrations") -> list[tuple[int, str]]:
+    files = resources.files("wts").joinpath(folder)
     found = []
     for f in files.iterdir():
         if f.name.endswith(".sql"):
@@ -17,7 +17,9 @@ def _migrations() -> list[tuple[int, str]]:
     return sorted(found)
 
 
-def connect(path: Path) -> sqlite3.Connection:
+def connect(path: Path, migrations: str = "migrations") -> sqlite3.Connection:
+    """Open (creating if needed) a database and apply the numbered `.sql` files in the package
+    folder `migrations`: `migrations/` for state.db, `analytics_migrations/` for analytics.db."""
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
@@ -25,7 +27,7 @@ def connect(path: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     version = conn.execute("PRAGMA user_version").fetchone()[0]
     applied = []
-    for number, sql in _migrations():
+    for number, sql in _migrations(migrations):
         if number > version:
             with conn:
                 conn.executescript(sql)
@@ -33,9 +35,9 @@ def connect(path: Path) -> sqlite3.Connection:
             applied.append(number)
     # Said once, so a schema change on the Mac is visible in the run's output and logs.
     if len(applied) == 1:
-        log.info(f"state.db: applied migration {applied[0]:03d}")
+        log.info(f"{path.name}: applied migration {applied[0]:03d}")
     elif applied:
-        log.info(f"state.db: applied migrations {applied[0]:03d}–{applied[-1]:03d}")
+        log.info(f"{path.name}: applied migrations {applied[0]:03d}–{applied[-1]:03d}")
     return conn
 
 

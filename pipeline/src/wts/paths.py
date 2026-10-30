@@ -18,6 +18,7 @@ class Paths:
     app_dir: Path
     config_file: Path
     state_db: Path
+    analytics_db: Path
     data_dir: Path
     transcripts_dir: Path
     embeddings_dir: Path
@@ -40,6 +41,7 @@ def resolve_paths(cfg: Config | None = None, env: Mapping[str, str] = os.environ
         app_dir=app_dir,
         config_file=app_dir / "config.toml",
         state_db=app_dir / "state.db",
+        analytics_db=app_dir / "analytics.db",
         data_dir=data_dir,
         transcripts_dir=data_dir / "transcripts",
         embeddings_dir=data_dir / "embeddings",

@@ -160,10 +160,13 @@ without). Left, all the maintainer's:
   (2026-10-25, maintainer: "What it should say", "Anything else we should know"). Two choices
   open: the variable Source Serif 4 (optical size, matches the mocks, bigger download) or the
   two fixed files, for "Find the moment it was said." and "Nothing found." (neither wraps on
-  a phone any more; they are only ~10% wider and heavier than the mocks'); the results column
-  ~22 px narrower than the header as in the mocks, or aligned. Checkpoint L's phone pass
-  covered the rest of the design review.
-- **Checkpoint J (plan 4):** the review page in Safari.
+  a phone any more; they are only ~10% wider and heavier than the mocks'). The variable
+  file is ~120 KB against ~41 KB for the two fixed ones (2026-10-29; side by side:
+  https://claude.ai/artifact/8CLPjyhpSi7gwVuxcU2an5). **Decided 2026-10-29:** the results
+  column stays aligned with the header. Checkpoint L's phone pass covered the rest of the
+  design review.
+- **Checkpoint J (plan 4):** the review page in Safari. **Done** (maintainer, 2026-10-29: tried
+  several times).
 - **Task 17:** the domain, when the name is chosen. **2026-10-29:** the introduction links the
   `workers.dev` URL; the domain is settled with the hosts (`docs/hosts-email.md`). Found then:
   a Worker custom domain needs its zone on Cloudflare, and all four of the maintainer's domains

@@ -138,8 +138,16 @@ uncached: Exact median ~0.10 s (worst 0.12), Related ~0.85 s with the reranker (
 without). Left, all the maintainer's:
 - **Checkpoint G (plan 2):** step 2's budget test (`SMART_DAILY_BUDGET` = 3 in the dashboard,
   4 uncached Related searches: alerts at 2 and 4 arrive once each, the 4th answers
-  `"budget"`, then remove it; needs the `NTFY_*` secrets on staging) and the homelab monitor
-  on `/api/health` (exists or not); the kill switch surviving a deploy (`keep_vars`), if not
+  `"budget"`, then remove it; needs the `NTFY_*` secrets on staging). **Budget test done
+  2026-10-29:** both alerts reached the phone, the 4th search answered `budget`. Setup: one
+  ntfy topic, `wts`, on `https://ntfy.10fathoms.org` (public; anonymous gets 403) for the
+  pipeline and the Workers. Users: `wts` (the pipeline, Keychain `ntfy_topic`/`ntfy_token`)
+  and `wts-worker` (write-only, token in the Worker's `NTFY_TOKEN`; 1Password Homelab); the
+  `phone` user reads `wts`. Retesting needs today's row deleted
+  (`DELETE FROM usage WHERE day = '<UTC date>'`): each alert goes once per UTC day. Plain
+  `wrangler d1 execute --remote` failed with code 7403 (wrangler's own login lacks D1); run
+  it with `CLOUDFLARE_API_TOKEN` set from the Keychain's `cloudflare_api_token`. Left: the
+  homelab monitor on `/api/health` (exists or not); the kill switch surviving a deploy (`keep_vars`), if not
   already seen. Step 6: `uv run pytest -m mac -k real_rsync`, and a `wts run --env staging`
   that writes a backup to `backup_dir` with no error notification (confirm once). Step 7:
   platform ID coverage and YouTube links after the length rule (`wts status`, or SQL).

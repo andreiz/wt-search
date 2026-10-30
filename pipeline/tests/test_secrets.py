@@ -120,3 +120,7 @@ def test_secrets_check_never_prints_values(wts_home, monkeypatch):
     assert lines["youtube_api_key"] == "set"
     assert lines["cloudflare_api_token"] == "missing"
     assert set(lines) == set(SECRET_NAMES)
+
+
+def test_the_analytics_token_is_a_known_secret():
+    assert "cloudflare_analytics_token" in SECRET_NAMES

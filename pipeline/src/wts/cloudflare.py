@@ -71,11 +71,35 @@ class CloudflareApi:
         """POST `path` (under `/accounts/{account_id}`) and return the response envelope: a JSON
         `body`, or raw `content` with its `content_type`. Raises CloudflareError on a failed
         call, including `success: false` in a 200."""
+        kwargs = {"content": content} if content is not None else {"json": body}
+        return self._envelope(self._send(path, content_type, kwargs))
+
+    def sql(self, query: str) -> list[dict]:
+        """Run an Analytics Engine SQL query (`… FORMAT JSON`) and return its `data` rows.
+
+        A success here is not an envelope: the body is `{meta, data, rows}`. An error body is
+        an envelope with `success: false`, or plain text from the SQL engine.
+        """
+        resp = self._send("/analytics_engine/sql", "text/plain", {"content": query.encode()})
+        if resp.status_code >= 400:
+            raise self._error(resp)
+        try:
+            body = resp.json()
+        except ValueError:
+            body = None
+        if not isinstance(body, dict) or body.get("success") is False:
+            raise self._error(resp, "Analytics Engine did not return JSON data")
+        data = body.get("data")
+        if not isinstance(data, list):
+            raise self._error(resp, "Analytics Engine did not return JSON data")
+        return data
+
+    def _send(self, path: str, content_type: str | None, kwargs: dict) -> httpx.Response:
+        """POST with retries on 429, 5xx and network errors; the first other response."""
         url = f"{self._base}/accounts/{self.account_id}{path}"
         headers = {"Authorization": f"Bearer {self._token}"}
         if content_type:
             headers["Content-Type"] = content_type
-        kwargs = {"content": content} if content is not None else {"json": body}
         for attempt in range(len(BACKOFF_S) + 1):
             delay = None
             try:
@@ -85,7 +109,7 @@ class CloudflareApi:
                 error = CloudflareError(0, [{"message": f"network error: {type(exc).__name__}"}])
             else:
                 if resp.status_code != 429 and resp.status_code < 500:
-                    return self._envelope(resp)
+                    return resp
                 error = self._error(resp)
                 delay = _retry_after(resp)
             if attempt == len(BACKOFF_S):

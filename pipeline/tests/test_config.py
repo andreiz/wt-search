@@ -196,3 +196,18 @@ def test_plan1_config_still_loads(tmp_path):
     f.write_text('feed_url = "https://example.com/feed"\nmin_free_gb = 5\n')
     c = load_config(f)
     assert c.min_free_gb == 5.0 and c.envs == {} and c.cloudflare_account_id is None
+
+
+def test_analytics_dataset_defaults_to_wts_env_and_can_be_set():
+    assert Config().analytics_dataset("staging") == "wts_staging"
+    c = Config(env_tables={"production": {"analytics_dataset": "wts_prod_2"}})
+    assert c.analytics_dataset("production") == "wts_prod_2"
+
+
+def test_analytics_dataset_must_be_a_plain_name():
+    # It goes into SQL text (`FROM <dataset>`), so only letters, digits and underscores.
+    c = Config(env_tables={"staging": {"analytics_dataset": "wts; drop table x"}})
+    with pytest.raises(click.UsageError, match="analytics_dataset"):
+        c.analytics_dataset("staging")
+    with pytest.raises(click.UsageError):
+        Config().analytics_dataset("nope")

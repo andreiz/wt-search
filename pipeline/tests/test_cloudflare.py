@@ -660,3 +660,52 @@ def test_chunked_inserts_go_through_d1_batch_as_json_numbers(d1):
     sent = body_of(route.calls.last)["batch"]
     assert len(sent) == 2
     assert [type(p) for p in sent[0]["params"][:8]] == [int] * 5 + [str, str, int]
+
+
+# --- Analytics Engine SQL (analytics design §2.2) ---
+
+SQL_URL = f"{BASE}/accounts/{ACCOUNT}/analytics_engine/sql"
+
+
+@respx.mock
+def test_sql_posts_the_query_as_text_and_returns_the_data(api):
+    route = respx.post(SQL_URL).respond(
+        200, json={"meta": [{"name": "n", "type": "UInt64"}], "data": [{"n": "3"}], "rows": 1})
+    assert api.sql("SELECT count() AS n FROM wts_staging FORMAT JSON") == [{"n": "3"}]
+    request = route.calls[0].request
+    assert request.content == b"SELECT count() AS n FROM wts_staging FORMAT JSON"
+    assert request.headers["content-type"].startswith("text/plain")
+    assert request.headers["authorization"] == f"Bearer {TOKEN}"
+
+
+@respx.mock
+def test_sql_auth_error_raises_without_the_token(api):
+    respx.post(SQL_URL).respond(400, json={
+        "success": False, "errors": [{"code": 10000, "message": f"Authentication error {TOKEN}"}]})
+    with pytest.raises(CloudflareError) as exc:
+        api.sql("SELECT 1")
+    assert "Authentication error" in str(exc.value)
+    assert TOKEN not in str(exc.value)
+
+
+@respx.mock
+def test_sql_failure_in_a_200_raises(api):
+    respx.post(SQL_URL).respond(200, json={"success": False, "errors": [{"message": "bad"}]})
+    with pytest.raises(CloudflareError):
+        api.sql("SELECT 1")
+
+
+@respx.mock
+def test_sql_body_without_data_raises(api):
+    respx.post(SQL_URL).respond(200, text="Code: 62. DB::Exception: Syntax error")
+    with pytest.raises(CloudflareError):
+        api.sql("SELEKT 1")
+
+
+@respx.mock
+def test_sql_retries_a_5xx(api, sleeps):
+    route = respx.post(SQL_URL).mock(side_effect=[
+        httpx.Response(502), httpx.Response(200, json={"data": [], "rows": 0})])
+    assert api.sql("SELECT 1") == []
+    assert route.call_count == 2
+    assert sleeps == [1]

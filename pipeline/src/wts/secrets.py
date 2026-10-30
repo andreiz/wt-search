@@ -12,6 +12,8 @@ from typing import Protocol
 SERVICE = "wts"
 SECRET_NAMES = (
     "cloudflare_api_token",
+    # Account Analytics: Read only, for `wts analytics pull`; the token above stays D1/Vectorize.
+    "cloudflare_analytics_token",
     "spotify_client_id",
     "spotify_client_secret",
     "youtube_api_key",

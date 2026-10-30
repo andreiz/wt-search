@@ -1,5 +1,6 @@
 """Non-secret settings from config.toml."""
 
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -66,6 +67,21 @@ class Config:
         if not isinstance(url, str) or not url:
             raise click.UsageError(f"config.toml is missing: [env.{name}] api_url")
         return url.removesuffix("/")
+
+    def analytics_dataset(self, name: str) -> str:
+        """The Analytics Engine dataset for `name`: `[env.<name>] analytics_dataset`, or
+        `wts_<name>` as in worker/wrangler.jsonc. It goes into SQL text, so it must be a plain
+        name (letters, digits, underscores)."""
+        _check_env_name(name)
+        dataset = self.env_tables.get(name, {}).get("analytics_dataset") or f"wts_{name}"
+        if not isinstance(dataset, str) or not _DATASET.fullmatch(dataset):
+            raise click.UsageError(
+                f"config.toml: [env.{name}] analytics_dataset must be letters, digits and "
+                f"underscores, not {dataset!r}")
+        return dataset
+
+
+_DATASET = re.compile(r"[A-Za-z0-9_]+")
 
 
 def _check_env_name(name: str) -> None:

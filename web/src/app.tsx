@@ -298,7 +298,10 @@ function Page({ maintenance, setMaintenance }: { maintenance: string | null; set
             )}
             {view.kind === "rate_limited" && (
               <Notice tone="warning">
-                Too many searches from here; try again in a minute.{" "}
+                Too many searches from here.{" "}
+                {/* The countdown is hidden from screen readers (it would announce every second), so
+                    they hear the wait in words instead. */}
+                {waiting > 0 && <span class="visually-hidden">Try again in a minute. </span>}
                 {waiting > 0 ? (
                   <span class="notice__countdown" aria-hidden="true">{`Try again in ${waiting} s`}</span>
                 ) : (

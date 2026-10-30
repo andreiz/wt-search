@@ -351,7 +351,7 @@ describe("paging", () => {
 describe("answers that are not results", () => {
   const cases: [string, number, Record<string, string>, unknown, RegExp][] = [
     ["maintenance", 503, {}, { error: "maintenance", message: "Back soon." }, /Back soon\./],
-    ["rate limited", 429, { "retry-after": "30" }, { error: "rate_limited" }, /Too many searches from here; try again in a minute\./],
+    ["rate limited", 429, { "retry-after": "30" }, { error: "rate_limited" }, /Too many searches from here\./],
     ["unavailable", 500, {}, { error: "boom" }, /Something went wrong\./],
   ];
   for (const [name, status, headers, body, text] of cases) {

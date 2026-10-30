@@ -416,12 +416,14 @@ describe("rate limited", () => {
     return calls;
   }
 
-  const note = () => screen.getByText(/Too many searches from here; try again in a minute\./).closest("[role='status']") as HTMLElement;
+  const note = () => screen.getByText(/Too many searches from here\./).closest("[role='status']") as HTMLElement;
   const searchButton = () => screen.getByRole("button", { name: "Search" }) as HTMLButtonElement;
 
   it("shows the message and a countdown from retry-after, and disables Search", async () => {
     await limited("42");
     expect(note().textContent).toContain("Try again in 42 s");
+    // Screen readers skip the countdown, so they get the wait in words.
+    expect(note().querySelector(".visually-hidden")?.textContent).toBe("Try again in a minute. ");
     expect(searchButton().disabled).toBe(true);
   });
 

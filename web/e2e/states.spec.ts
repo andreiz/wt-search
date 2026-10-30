@@ -248,7 +248,7 @@ for (const config of CONFIGS) {
       // not stopped; fastForward jumps it ahead, so the countdown is not waited for.
       await page.clock.install();
       await page.goto("/?q=glue");
-      await expect(page.getByText("Too many searches from here; try again in a minute.")).toBeVisible();
+      await expect(page.getByText("Too many searches from here.")).toBeVisible();
       const button = page.getByRole("button", { name: "Search", exact: true });
       await expect(button).toBeDisabled();
       const left = page.getByText(/Try again in \d+ s/);

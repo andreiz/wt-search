@@ -1645,7 +1645,9 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    key. Rows go to `reports` (new `source` and `link` columns, migration 0004); review is
    plan 4's `wts reports`. Three things are unverified and listed in §4.9: the Overcast
    action and its link format, matching the link's page to an episode, and the ad offset.
-14. **The weekly search digest, by email** (spec §8.2/§8.4; was in plan 5's scope in the M1
+14. *(2026-10-30: `wts analytics pull` and `report` are built, item 16; the email digest is
+   still to do and can reuse `analytics_report.summarise`.)*
+   **The weekly search digest, by email** (spec §8.2/§8.4; was in plan 5's scope in the M1
    plan, not built; maintainer, 2026-10-25: he wants it as an **email, not a phone
    notification**; needs spec revision and a plan). Today the Worker records one Analytics
    Engine point per search (query ≤ 200 chars, mode, results, latency, cache) kept ~3 months,
@@ -1678,7 +1680,15 @@ Plans 3–5 (frontend, review tool, test search set) are written after that.
    guards need. Embedding: the Mini too, or Workers AI's own `bge-base-en-v1.5` (~$0.90 for the
    full archive's ~13.5M tokens, then pennies a week; query and passage vectors then match by
    construction) — revisiting the earlier local-embedding choice deliberately.
-16. **Keep our own traffic out of the search analytics** (found 2026-10-29, the first look at
+16. **Built 2026-10-30** (spec `docs/superpowers/specs/2026-10-29-analytics-pull-design.md`,
+   plan `docs/superpowers/plans/2026-10-29-analytics-pull.md`): the Worker records a traffic
+   class (search blob5, report blob1: `pipeline` | `maintainer` | `web`); `?me=1` on the site
+   marks a browser as the maintainer's (footer: "· not counted"; `?me=0` undoes it);
+   `wts analytics pull` fills `analytics.db` and prints the last 7 days; `wts analytics report
+   [--since DAY|Nd] [--until DAY] [--top N] [--all]` prints any range offline. **To do by the
+   maintainer:** deploy staging (`cd worker && npm run deploy:staging`), then open the site
+   with `?me=1` on each device. The original note follows.
+   **Keep our own traffic out of the search analytics** (found 2026-10-29, the first look at
    Analytics Engine; needs a short spec note and plan, before launch and before item 14's
    digest). Of 5,689 searches logged 2026-10-07..29 none came from outside: ~95% were the eval
    and its experiments (~600 questions run dozens of times each), the rest the maintainer's

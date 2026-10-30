@@ -815,6 +815,117 @@ def logs_cmd(run_id: str | None, episode: str | None, level: str | None, since: 
         click.echo("no log lines match", err=True)
 
 
+@main.group("analytics")
+def analytics_group() -> None:
+    """What people search for: Analytics Engine points copied to analytics.db (spec §8.4)."""
+
+
+_analytics_env_option = click.option(
+    "--env", "env", type=click.Choice(ENV_NAMES), default=None,
+    help="Environment [default: run_env in config.toml].")
+
+
+def _analytics_env(ctx: Ctx, env: str | None) -> str:
+    name = env or ctx.cfg.run_env
+    if not name:
+        raise click.UsageError(f"no environment: use --env or run_env in {ctx.paths.config_file}")
+    return name
+
+
+def _day_range(since: str | None, until: str | None):
+    from datetime import datetime
+
+    from wts.analytics_report import parse_day_range
+
+    try:  # local days: the Mac's time zone
+        return parse_day_range(since, until, today=datetime.now().astimezone().date())
+    except ValueError as exc:
+        hint = "--until" if until and "--until" in str(exc) else "--since"
+        raise click.BadParameter(str(exc), param_hint=hint) from exc
+
+
+def _print_summary(conn, env: str, days, top: int, include_all: bool) -> None:
+    from datetime import datetime
+
+    from wts.analytics_report import eval_query_set, summarise
+    from wts.evalset.cases import CaseError
+
+    first, last = days
+    try:
+        eval_queries = eval_query_set()
+    except CaseError as exc:
+        raise click.ClickException(f"eval files: {exc}") from exc
+    click.echo(summarise(conn, env=env, first=first, last=last,
+                         tz=datetime.now().astimezone().tzinfo, top=top,
+                         include_all=include_all, eval_queries=eval_queries))
+
+
+@analytics_group.command("pull")
+@_analytics_env_option
+def analytics_pull_cmd(env: str | None) -> None:
+    """Copy new search points from Cloudflare, then summarise the last 7 days."""
+    from datetime import UTC, datetime
+
+    from wts.analytics import open_db, pull
+    from wts.cloudflare import CloudflareApi, CloudflareError
+    from wts.net import new_client
+    from wts.secrets import KeychainError, MissingSecret, get_secret, get_store
+
+    ctx = _ctx()
+    name = _analytics_env(ctx, env)
+    dataset = ctx.cfg.analytics_dataset(name)
+    if not ctx.cfg.cloudflare_account_id:
+        raise click.UsageError(f"cloudflare_account_id is not set in {ctx.paths.config_file}")
+    try:
+        token = get_secret(get_store(), "cloudflare_analytics_token")
+    except (MissingSecret, KeychainError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    ctx.logger()
+    conn = open_db(ctx.paths.analytics_db)
+    try:
+        with new_client() as client:
+            api = CloudflareApi(client, ctx.cfg.cloudflare_account_id, token)
+            result = pull(conn, api.sql, env=name, dataset=dataset, now=datetime.now(UTC))
+    except (CloudflareError, RuntimeError) as exc:  # CloudflareError never holds the token
+        conn.close()
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"pulled {result.rows:,} points for {result.first_day}..{result.last_day} ({name})")
+    click.echo()
+    try:
+        _print_summary(conn, name, _day_range(None, None), 20, False)
+    finally:
+        conn.close()
+
+
+@analytics_group.command("report")
+@_analytics_env_option
+@click.option("--since", default=None, help="First local day (2026-10-01) or a span (7d, 30d).")
+@click.option("--until", default=None, help="Last local day, inclusive [default: today].")
+@click.option("--top", type=click.IntRange(min=1), default=20, show_default=True,
+              help="Rows in each list.")
+@click.option("--all", "include_all", is_flag=True,
+              help="Include our own traffic (the pipeline, the maintainer's browser).")
+def analytics_report_cmd(env: str | None, since: str | None, until: str | None, top: int,
+                         include_all: bool) -> None:
+    """Summarise pulled searches for a date range; no network."""
+    from wts.analytics import last_pull, open_db
+
+    days = _day_range(since, until)
+    ctx = _ctx()
+    name = _analytics_env(ctx, env)
+    if not ctx.paths.analytics_db.exists():
+        click.echo(f"no analytics pulled for {name} yet; run wts analytics pull", err=True)
+        raise SystemExit(1)
+    conn = open_db(ctx.paths.analytics_db)
+    try:
+        if last_pull(conn, name) is None:
+            click.echo(f"no analytics pulled for {name} yet; run wts analytics pull", err=True)
+            raise SystemExit(1)
+        _print_summary(conn, name, days, top, include_all)
+    finally:
+        conn.close()
+
+
 _reports_env_option = click.option(
     "--env", "env", type=click.Choice(ENV_NAMES), default=None,
     help="Environment to read [default: run_env in config.toml].")

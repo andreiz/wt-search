@@ -54,6 +54,8 @@ uv run wts repair                  # find skipped passages and propose repairs (
 uv run wts status                  # counts per status, errors, recent runs
 uv run wts status --flagged        # the episodes the guards flagged, and which are reviewed
 uv run wts logs --since 1d --level warning  # log lines (--run ID, --episode ep312, --json)
+uv run wts analytics pull          # copy search analytics to analytics.db; summary of the last 7 days
+uv run wts analytics report --since 2026-10-01   # the summary for any range (--until, --top, --all)
 uv run wts backup                  # back up to backup_dir now
 uv run wts links 71 --at 12:34     # an episode's YouTube/Apple/Spotify/page/audio links
 uv run wts search '"hide glue" -titebond'   # search a deployed Worker (--env, --mode exact, --json)

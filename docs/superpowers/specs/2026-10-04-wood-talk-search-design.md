@@ -228,7 +228,8 @@ system.
 | `wts status` | Episode counts by status, episodes in `error` with their reasons, and the last 10 runs. `--flagged` lists instead the episodes the guards flagged, oldest first, with their flags and whether each is marked reviewed. |
 | `wts reports [--env E] [--all] [--json]`, `wts reports resolve\|reject\|reopen <id>…` | Lists listener transcript-error reports and feedback (§4.4), open ones unless `--all`, read from D1 with its own chunks and episodes; the subcommands set a report's status. *(Built 2026-10-11, plan 4.)* Planned: also lists the maintainer's marks (§4.9), apart from the reports. |
 | `wts logs` | Filters the pipeline logs (§8.4). |
-| `wts analytics pull` | Copies Worker search analytics to a local file (§8.4). |
+| `wts analytics pull [--env]` | Copies Worker search analytics to `analytics.db`, then prints the last 7 days' summary (§8.4). *(Built 2026-10-30.)* |
+| `wts analytics report [--env] [--since DAY\|Nd] [--until DAY] [--top N] [--all]` | The summary for a range of local days, from `analytics.db` alone; our own traffic is left out unless `--all` (§8.4). *(Added 2026-10-30.)* |
 | `wts eval run`, `wts eval generate` | The test search set: score a deployed environment, and write the synthetic cases. See §7.2. |
 | `wts review` | Local transcript review tool (§3.7). |
 | `wts paths` | Prints the resolved file locations (§3.0). |
@@ -361,6 +362,8 @@ committed:
 
 - The Cloudflare API token, limited to D1 and Vectorize edit on this
   account.
+- A second Cloudflare token, `cloudflare_analytics_token`, with Account
+  Analytics: Read only, for `wts analytics pull` (§8.4). *(Added 2026-10-30.)*
 - The Spotify client credentials.
 - The YouTube Data API key.
 - The ntfy topic name, and an access token when the ntfy server requires one.
@@ -1922,7 +1925,7 @@ pings stop, which covers the Mini being off or launchd being broken.
 | Pipeline run history | `wts status`, or SQL on `state.db` (location from `wts paths`). |
 | Worker, live | `wrangler tail --env production` (filterable by status or text). |
 | Worker, last few days | Workers Logs query builder in the Cloudflare dashboard. |
-| Search analytics, long term | `wts analytics pull` (run weekly by `wts run`) copies Analytics Engine data through its SQL API into `analytics.db` (§3.0). That file keeps the full history for SQL or DuckDB analysis, and drives the weekly digest. |
+| Search analytics, long term | `wts analytics pull` copies Analytics Engine data through its SQL API into `analytics.db` (§3.0) and prints the last 7 days; `wts analytics report` prints the same summary for any range without the network. That file keeps the full history for SQL or DuckDB analysis. Later: run weekly by `wts run`, and drive the weekly digest. *(As built 2026-10-30, [`2026-10-29-analytics-pull-design.md`](2026-10-29-analytics-pull-design.md):)* a pull replaces whole UTC days from the newest one stored (92 days back the first time), because points have no id and can arrive late. The summary (top searches, searches that found nothing, errors and degraded, latency by mode and cache) counts only `web` traffic (§8.3); unmarked older points are classed against the eval files and the test-query patterns. |
 | Transcript reports | `wts reports` (reads the `reports` table in D1). |
 
 Optional: a free UptimeRobot check on `/api/health` every 5 minutes.

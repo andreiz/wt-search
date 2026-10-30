@@ -1654,7 +1654,8 @@ As in the brief §4.5; the wording there is the copy, and the design's
   visible focus everywhere; motion respects `prefers-reduced-motion`;
   WCAG AA in both themes, `<mark>` and disabled states included.
 - Works on phones first (results ~720–760 px wide on desktop).
-- **Footer:** "Unofficial · made with the hosts' blessing" (§10 item 1),
+- **Footer:** "Unofficial · fan-made", becoming "Unofficial · made with the
+  hosts' blessing" once they agree (§10 item 1; changed 2026-10-29),
   show links (YouTube, podcast, site), "Searches are logged anonymously to
   improve results.", **Send feedback**.
 - No analytics or cookies in the frontend; the Worker's anonymous search

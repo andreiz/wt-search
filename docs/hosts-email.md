@@ -25,8 +25,9 @@ write. Started 2026-10-28.
   `/api/context`.
 - Whether the **YouTube uploads are the same edit** as the podcast audio (spec §10 item 1; the
   play links assume the same timeline, with per-platform offsets as the fallback).
-- Whether they're OK with the **name**: the site is called "Wood Talk Search" and the footer says
-  "made with the hosts' blessing", which isn't true until they say yes.
+- Whether they're OK with the **name**: the site is called "Wood Talk Search". The footer says
+  "Unofficial · fan-made" and would say "made with the hosts' blessing" once they agree
+  (`TAGLINE` in `web/src/components/Footer.tsx`).
 - **Where the site should live.** The introduction links the staging site on its `workers.dev`
   address (maintainer, 2026-10-29). Options to discuss: a Wood Talk–named domain
   (woodtalksearch.com, woodtalk.fm and others looked unregistered on 2026-10-29), which could be

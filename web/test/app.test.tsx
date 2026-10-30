@@ -28,9 +28,9 @@ describe("<App/>", () => {
     expect(screen.getByRole("contentinfo")).toBeTruthy();
   });
 
-  it("names the footer's note about the hosts", () => {
+  it("says in the footer that the site is unofficial", () => {
     render(<App />);
-    expect(screen.getByRole("contentinfo").textContent).toContain("made with the hosts' blessing");
+    expect(screen.getByRole("contentinfo").textContent).toContain("Unofficial · fan-made");
   });
 
   it("never sets a style attribute (CSP style-src 'self')", () => {

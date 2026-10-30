@@ -5,8 +5,8 @@
 import { useRef, useState } from "preact/hooks";
 import { FeedbackForm } from "./FeedbackForm";
 
-/** Spec §10 item 1 is still open (the hosts have not been asked): the phrase lives here only. */
-export const BLESSING = "made with the hosts' blessing";
+/** "fan-made" until the hosts agree (spec §10 item 1); then "made with the hosts' blessing". */
+export const TAGLINE = "fan-made";
 
 /** The show's own pages. These are the show's hosts, not ours, so they are fixed here. */
 export const SHOW_LINKS = [
@@ -28,7 +28,7 @@ export function Footer({ feedback = false }: { feedback?: boolean }) {
     <footer class="site-footer">
       <div class="column site-footer__inner">
         <p class="site-footer__line">
-          <strong>Unofficial</strong> · {BLESSING}
+          <strong>Unofficial</strong> · {TAGLINE}
         </p>
         <nav class="site-footer__links" aria-label="The show">
           {SHOW_LINKS.map((link) => (

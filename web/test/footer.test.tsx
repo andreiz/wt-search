@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/app";
-import { BLESSING, Footer, SHOW_LINKS } from "../src/components/Footer";
+import { Footer, SHOW_LINKS, TAGLINE } from "../src/components/Footer";
 import { stubFetch } from "./helpers";
 
 afterEach(() => {
@@ -11,10 +11,10 @@ afterEach(() => {
 });
 
 describe("<Footer/>", () => {
-  it("says it is unofficial, with the hosts' line from one constant", () => {
+  it("says it is unofficial and fan-made, from one constant", () => {
     const { container } = render(<Footer />);
-    expect(BLESSING).toBe("made with the hosts' blessing");
-    expect(container.querySelector("p")?.textContent).toBe(`Unofficial · ${BLESSING}`);
+    expect(TAGLINE).toBe("fan-made");
+    expect(container.querySelector("p")?.textContent).toBe(`Unofficial · ${TAGLINE}`);
     expect(container.querySelector("p strong")?.textContent).toBe("Unofficial");
   });
 
@@ -77,7 +77,7 @@ describe("in <App/>", () => {
     render(<App />);
     const footer = screen.getByRole("contentinfo");
     expect(within(footer).getAllByRole("link")).toHaveLength(3);
-    expect(footer.textContent).toContain("made with the hosts' blessing");
+    expect(footer.textContent).toContain("Unofficial · fan-made");
     expect(footer.textContent).toContain("Searches are logged anonymously to improve results.");
   });
 });

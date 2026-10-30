@@ -38,6 +38,8 @@ then [README.md](../README.md), then the spec sections it points to.
   - Platform links (159 episodes): Spotify 159, Apple 63 (every episode from 2017-10 on;
     the lookup's limit, backlog §5), YouTube 39 (all from 2023 on, 4 earlier), show page 159.
   - What to tell or ask the hosts: `docs/hosts-email.md`.
+  - **Sent** through the Guild's Support form; no reply as of 2026-10-30. A shorter follow-up
+    is drafted if it stays quiet.
 
 **Session of 2026-10-27/28: 159 episodes on staging, all published, all repairs decided.**
 - **The batch.** `wts scope add spread:121` + `wts run`: 121 transcribed on walnut, 85

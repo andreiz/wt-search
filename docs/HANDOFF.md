@@ -149,8 +149,10 @@ without). Left, all the maintainer's:
   it with `CLOUDFLARE_API_TOKEN` set from the Keychain's `cloudflare_api_token`. The homelab
   monitor exists: Uptime Kuma "wts-api staging", a keyword check for `"ok":true` on
   `/api/health` every 5 min (infra-stack `deploy/autokuma/monitors/wts-api-staging.toml`,
-  commit dac6ef9); production needs its own. Left: the kill switch surviving a deploy (`keep_vars`), if not
-  already seen. Step 6: `uv run pytest -m mac -k real_rsync`, and a `wts run --env staging`
+  commit dac6ef9); production needs its own. The kill switch survives a deploy (2026-10-29:
+  `SEARCH_OVERRIDE=exact` set in the dashboard, `npm run deploy:staging`, which warns that
+  the dashboard has a var the file doesn't; afterwards Related answered `smart_degraded:
+  "off"` and the page said "Related search is paused."). Left, step 6: `uv run pytest -m mac -k real_rsync`, and a `wts run --env staging`
   that writes a backup to `backup_dir` with no error notification (confirm once). Step 7:
   platform ID coverage and YouTube links after the length rule (`wts status`, or SQL).
 - **Checkpoint H (plan 3):** on the iPhone, each platform button lands at the moment

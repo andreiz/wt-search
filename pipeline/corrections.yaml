@@ -229,6 +229,15 @@ global:
   super gyros: SuperJaws          # Triton's clamping stand
   matt carmona: Matt Cremona
   covet outbreak: COVID outbreak
+  # Drawboring: Whisper writes "draw bore" as two words, so a search for "drawbore" found
+  # nothing (2026-10-29, checking the hosts email's example). ep206, 256, 321, 519, 612.
+  draw bore: drawbore
+  draw bores: drawbores
+  draw bored: drawbored
+  draw boring: drawboring
+  were draw board: were drawbored    # ep206 1:02:39
+  loose tenant: loose tenon          # ep206 53:18–1:02:01, a listener's bed
+  loose tenants: loose tenons
 # Phrases no global rule may change: matched like keys, and left exactly as transcribed.
 # An episode rule still wins over a kept phrase.
 keep:

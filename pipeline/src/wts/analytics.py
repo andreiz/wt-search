@@ -2,8 +2,9 @@
 (analytics design §2; spec §8.3, §8.4).
 
 Analytics Engine rows have no id, and a point can arrive a little after its timestamp, so a
-pull replaces whole UTC days: from the start of the newest day already stored (or 92 days
-back, everything Cloudflare keeps) through today.
+pull replaces whole UTC days: from the day before the newest day already stored (but no more
+than 80 days back, so days Cloudflare has dropped are never deleted here; 92 days back, all it
+keeps, on the first pull) through today.
 """
 
 import logging
@@ -76,8 +77,14 @@ def _window_start(conn: sqlite3.Connection, env: str, now: datetime,
         day = date.fromisoformat(first_day)
     else:
         newest = conn.execute("select max(ts) from points where env = ?", (env,)).fetchone()[0]
-        day = (date.fromisoformat(newest[:10]) if newest
-               else (now - timedelta(days=RETENTION_DAYS)).date())
+        if newest:
+            # The day before the newest stored one too (a point can land after midnight UTC for
+            # the day before), but never further back than STALE_DAYS: Cloudflare may no longer
+            # have older days, and its empty answer must not delete what is stored.
+            day = max(date.fromisoformat(newest[:10]) - timedelta(days=1),
+                      now.date() - timedelta(days=STALE_DAYS))
+        else:
+            day = (now - timedelta(days=RETENTION_DAYS)).date()
     return datetime.combine(day, datetime.min.time(), UTC)
 
 

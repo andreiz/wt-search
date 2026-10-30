@@ -126,8 +126,11 @@ before launch is ours, so `--since <launch date>` drops it.
 Analytics Engine rows have no id, and a point can land a little after its timestamp. So a pull
 **replaces whole UTC days** instead of appending:
 
-1. Window start: the start of the UTC day of the newest stored `ts` for this env; on the first
-   pull, 92 days ago (everything Cloudflare still has).
+1. Window start: the start of the UTC day before the newest stored `ts` for this env, but no
+   more than 80 days back; on the first pull, 92 days ago (everything Cloudflare still has).
+   *(Revised 2026-10-30 after the final review: starting at the newest stored day itself would
+   delete that day if Cloudflare had already dropped it, after a long gap or a quiet env, and
+   would miss a point stamped just before midnight UTC that arrived after a pull.)*
 2. Fetch the window up to now, one query per UTC day (so no response gets large; if a day
    comes back at the query's row cap, split it further — the builder's call how).
 3. In one transaction: delete this env's rows with `ts` ≥ window start, insert what was

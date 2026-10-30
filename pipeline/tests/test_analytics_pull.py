@@ -76,18 +76,43 @@ def test_rows_are_mapped_for_search_and_report(conn):
 
 
 def test_repull_replaces_only_the_window(conn):
-    engine = FakeEngine([search_row("2026-10-27 10:00:00", "a"), search_row("2026-10-28 10:00:00", "b")])
+    engine = FakeEngine([search_row("2026-10-26 10:00:00", "old"), search_row("2026-10-27 10:00:00", "a"),
+                         search_row("2026-10-28 10:00:00", "b")])
     pull(conn, engine, env="staging", dataset="wts_staging",
          now=datetime(2026, 10, 28, 12, tzinfo=UTC))
-    # Cloudflare now has a late point for the 28th and a new one on the 29th; the 27th is gone
-    # from its answer (as if expired) but must stay here.
-    engine.rows = [search_row("2026-10-28 10:00:00", "b"), search_row("2026-10-28 11:00:00", "late"),
-                   search_row("2026-10-29 01:00:00", "c")]
+    # Cloudflare now has a late point for the 28th and a new one on the 29th; the 26th is gone
+    # from its answer (as if expired) but is outside the window and must stay here.
+    engine.rows = [search_row("2026-10-27 10:00:00", "a"), search_row("2026-10-28 10:00:00", "b"),
+                   search_row("2026-10-28 11:00:00", "late"), search_row("2026-10-29 01:00:00", "c")]
     engine.queries.clear()
     pull(conn, engine, env="staging", dataset="wts_staging", now=NOW)
-    assert len(engine.queries) == 2  # the 28th (newest stored day) and the 29th
-    assert stored(conn) == [("2026-10-27 10:00:00", "a", "web"), ("2026-10-28 10:00:00", "b", "web"),
-                            ("2026-10-28 11:00:00", "late", "web"), ("2026-10-29 01:00:00", "c", "web")]
+    assert len(engine.queries) == 3  # the day before the newest stored day, that day, and today
+    assert stored(conn) == [("2026-10-26 10:00:00", "old", "web"), ("2026-10-27 10:00:00", "a", "web"),
+                            ("2026-10-28 10:00:00", "b", "web"), ("2026-10-28 11:00:00", "late", "web"),
+                            ("2026-10-29 01:00:00", "c", "web")]
+
+
+def test_a_late_point_for_the_previous_utc_day_is_fetched(conn):
+    # Pulled just after midnight UTC: the 29th's first point is stored, so the newest day is the
+    # 29th; a point stamped 23:59 on the 28th that arrived after the first pull must still come in.
+    engine = FakeEngine([search_row("2026-10-28 20:00:00", "a"), search_row("2026-10-29 00:01:00", "b")])
+    pull(conn, engine, env="staging", dataset="wts_staging",
+         now=datetime(2026, 10, 29, 0, 5, tzinfo=UTC))
+    engine.rows.append(search_row("2026-10-28 23:59:00", "late"))
+    pull(conn, engine, env="staging", dataset="wts_staging",
+         now=datetime(2026, 10, 29, 0, 30, tzinfo=UTC))
+    assert ("2026-10-28 23:59:00", "late", "web") in stored(conn)
+
+
+def test_stored_days_past_cloudflares_retention_are_never_deleted(conn):
+    # The last pull was long ago (or the env went quiet): Cloudflare no longer has the newest
+    # stored day, and its empty answer must not wipe it.
+    pull(conn, FakeEngine([search_row("2026-07-21 10:00:00", "kept")]), env="staging",
+         dataset="wts_staging", now=datetime(2026, 7, 21, 12, tzinfo=UTC))
+    engine = FakeEngine([])
+    pull(conn, engine, env="staging", dataset="wts_staging", now=NOW)
+    assert stored(conn) == [("2026-07-21 10:00:00", "kept", "web")]
+    assert "toDateTime('2026-08-10 00:00:00')" in engine.queries[0]  # 80 days back, no further
 
 
 def test_repull_with_nothing_new_changes_nothing(conn):
